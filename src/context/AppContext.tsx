@@ -6,6 +6,8 @@ export interface User {
   id: string;
   name: string;
   email?: string;
+  phoneNumber?: string;
+  preferredCurrency?: string;
   balance: number;
 }
 
@@ -49,6 +51,7 @@ interface AppState {
 
 type Action =
   | { type: 'ADD_USER'; payload: Omit<User, 'id' | 'balance'> }
+  | { type: 'UPDATE_USER'; payload: { id: string, name: string, email?: string, phoneNumber?: string, preferredCurrency?: string } }
   | { type: 'ADD_EXPENSE'; payload: Omit<Expense, 'id'> }
   | { type: 'UPDATE_EXPENSE'; payload: Expense }
   | { type: 'DELETE_EXPENSE'; payload: string }
@@ -75,6 +78,16 @@ const reducer = (state: AppState, action: Action): AppState => {
         balance: 0,
       };
       return { ...state, users: [...state.users, newUser] };
+      
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        users: state.users.map(user => 
+          user.id === action.payload.id
+            ? { ...user, ...action.payload }
+            : user
+        ),
+      };
 
     case 'ADD_EXPENSE':
       const newExpense: Expense = {

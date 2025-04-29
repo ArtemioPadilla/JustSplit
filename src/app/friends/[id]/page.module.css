@@ -1,0 +1,245 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.backButton {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: var(--primary-color);
+  border-radius: 6px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.backButton:hover {
+  background-color: #e5e7eb;
+}
+
+.section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-right: 20px;
+}
+
+.info h2 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+}
+
+.email {
+  color: #6b7280;
+  margin: 0;
+}
+
+.balanceSection {
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.balanceAmount {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px;
+}
+
+.positive {
+  color: #10b981; /* green */
+}
+
+.negative {
+  color: #ef4444; /* red */
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.editButton, .addExpenseButton {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.editButton {
+  background-color: #f3f4f6;
+  color: var(--primary-color);
+}
+
+.addExpenseButton {
+  background-color: var(--primary-color);
+  color: white;
+  flex-grow: 1;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.saveButton {
+  flex: 1;
+  padding: 12px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancelButton {
+  padding: 12px;
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.expensesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.expenseCard {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.expenseCard:hover {
+  background-color: #f9fafb;
+  transform: translateY(-2px);
+}
+
+.expenseHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.expenseName {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.expenseAmount {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.settledBadge, .unsettledBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.settledBadge {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.unsettledBadge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.emptyMessage {
+  text-align: center;
+  padding: 20px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  color: #6b7280;
+}

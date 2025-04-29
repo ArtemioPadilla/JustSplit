@@ -1,5 +1,7 @@
 .container {
-  padding: 20px 0;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
 .profileCard {
@@ -35,17 +37,126 @@
 }
 
 .profileSection h3 {
-  margin-bottom: 5px;
-}
-
-.profileSection p {
-  color: #666;
   margin-bottom: 15px;
+  color: var(--primary-color);
 }
 
 .infoCard {
   background-color: #f9f9f9;
   padding: 15px;
-  border-radius: 4px;
-  margin-top: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.infoItem {
+  display: flex;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.infoLabel {
+  width: 150px;
+  font-weight: 500;
+  color: #666;
+}
+
+.infoValue {
+  flex-grow: 1;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.input, .select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.saveButton, .editButton, .addButton {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.saveButton, .editButton {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.saveButton:hover, .editButton:hover {
+  background-color: #45A049;
+}
+
+.cancelButton {
+  padding: 10px 16px;
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addButton {
+  background-color: var(--secondary-color);
+  color: white;
+  margin-top: 10px;
+}
+
+.addButton:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .infoItem {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .infoLabel {
+    width: 100%;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
 }

@@ -21,6 +21,8 @@ describe('Header', () => {
     // Check navigation links
     expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Events')).toBeInTheDocument();
+    expect(screen.getByText('Expenses')).toBeInTheDocument();
+    expect(screen.getByText('Friends')).toBeInTheDocument();
     expect(screen.getByText('Settlements')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
   });

@@ -68,6 +68,12 @@ const Header = () => {
             Expenses
           </Link>
           <Link 
+            href="/friends" 
+            className={`${styles.navLink} ${pathname?.startsWith('/friends') ? styles.active : ''}`}
+          >
+            Friends
+          </Link>
+          <Link 
             href="/settlements" 
             className={`${styles.navLink} ${pathname?.startsWith('/settlements') ? styles.active : ''}`}
           >
