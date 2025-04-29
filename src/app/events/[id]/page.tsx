@@ -20,6 +20,66 @@ export default function EventDetail() {
     if (!event) return [];
     return state.users.filter(user => event.participants.includes(user.id));
   }, [event, state.users]);
+
+  // Get all expenses for this event
+  const eventExpenses = useMemo(() => {
+    if (!event) return [];
+    return state.expenses
+      .filter(expense => expense.eventId === eventId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [event, state.expenses, eventId]);
+
+  // Calculate user balances for this event
+  const eventBalances = useMemo(() => {
+    if (!event) return {};
+    
+    const balances: Record<string, number> = {};
+    
+    // Initialize all participant balances to 0
+    event.participants.forEach(userId => {
+      balances[userId] = 0;
+    });
+    
+    // Calculate balances based on expenses
+    eventExpenses.forEach(expense => {
+      if (expense.settled) return;
+      
+      const payer = expense.paidBy;
+      const participants = expense.participants;
+      const amountPerPerson = expense.amount / participants.length;
+      
+      // Add to the payer's balance (they are owed money)
+      balances[payer] = (balances[payer] || 0) + expense.amount;
+      
+      // Subtract from each participant's balance (they owe money)
+      participants.forEach(participantId => {
+        balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
+      });
+    });
+    
+    return balances;
+  }, [event, eventExpenses]);
+
+  // Calculate event statistics
+  const eventStats = useMemo(() => {
+    if (!event) return { totalExpenses: 0, totalAmount: 0, unsettledAmount: 0 };
+    
+    const totalAmount = eventExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const unsettledExpenses = eventExpenses.filter(exp => !exp.settled);
+    const unsettledAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    return {
+      totalExpenses: eventExpenses.length,
+      totalAmount,
+      unsettledAmount
+    };
+  }, [event, eventExpenses]);
+
+  // Get user name by ID
+  const getUserName = (userId: string) => {
+    const user = state.users.find(user => user.id === userId);
+    return user ? user.name : 'Unknown';
+  };
   
   if (!event) {
     return (
@@ -67,17 +127,102 @@ export default function EventDetail() {
       </div>
       
       <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Summary</h2>
+        <div className={styles.statsGrid}>
+          <div className={styles.statItem}>
+            <span className={styles.statValue}>{eventStats.totalExpenses}</span>
+            <span className={styles.statLabel}>Expenses</span>
+          </div>
+          <div className={styles.statItem}>
+            <span className={styles.statValue}>${eventStats.totalAmount.toFixed(2)}</span>
+            <span className={styles.statLabel}>Total Amount</span>
+          </div>
+          <div className={styles.statItem}>
+            <span className={styles.statValue}>${eventStats.unsettledAmount.toFixed(2)}</span>
+            <span className={styles.statLabel}>Unsettled</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Participants</h2>
         {participants.length > 0 ? (
           <ul className={styles.participantsList}>
-            {participants.map(user => (
-              <li key={user.id} className={styles.participantItem}>
-                {user.name}
-              </li>
-            ))}
+            {participants.map(user => {
+              const balance = eventBalances[user.id] || 0;
+              return (
+                <li key={user.id} className={styles.participantItem}>
+                  <span>{user.name}</span>
+                  <span className={`${styles.participantBalance} ${balance > 0 ? styles.positive : balance < 0 ? styles.negative : ''}`}>
+                    {balance > 0 ? '+' : ''}{balance.toFixed(2)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p>No participants in this event.</p>
+        )}
+      </div>
+      
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Expenses</h2>
+          <button 
+            className={styles.addExpenseButton}
+            onClick={() => router.push(`/expenses/new?event=${eventId}`)}
+          >
+            Add Expense
+          </button>
+        </div>
+        
+        {eventExpenses.length > 0 ? (
+          <div className={styles.expensesList}>
+            {eventExpenses.map(expense => (
+              <div key={expense.id} className={styles.expenseCard}>
+                <div className={styles.expenseHeader}>
+                  <h3 className={styles.expenseName}>{expense.description}</h3>
+                  <span className={styles.expenseAmount}>
+                    {expense.currency} {expense.amount.toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className={styles.expenseDetails}>
+                  <div className={styles.expenseDetail}>
+                    <span className={styles.detailLabel}>Date:</span>
+                    <span>{new Date(expense.date).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <div className={styles.expenseDetail}>
+                    <span className={styles.detailLabel}>Paid by:</span>
+                    <span>{getUserName(expense.paidBy)}</span>
+                  </div>
+                  
+                  <div className={styles.expenseDetail}>
+                    <span className={styles.detailLabel}>Split among:</span>
+                    <span>{expense.participants.length} people</span>
+                  </div>
+                  
+                  <div className={styles.expenseDetail}>
+                    <span className={styles.detailLabel}>Status:</span>
+                    <span className={expense.settled ? styles.settledBadge : styles.unsettledBadge}>
+                      {expense.settled ? 'Settled' : 'Unsettled'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={styles.expenseActions}>
+                  <Link href={`/expenses/${expense.id}`} className={styles.viewExpenseButton}>
+                    View Details
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.emptyExpenses}>
+            <p>No expenses added to this event yet.</p>
+          </div>
         )}
       </div>
       
@@ -87,6 +232,12 @@ export default function EventDetail() {
           onClick={() => router.push(`/expenses/new?event=${eventId}`)}
         >
           Add Expense
+        </button>
+        <button
+          className={`${styles.actionButton} ${styles.secondaryButton}`}
+          onClick={() => router.push(`/settlements?event=${eventId}`)}
+        >
+          View Settlements
         </button>
       </div>
     </div>

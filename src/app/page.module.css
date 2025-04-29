@@ -26,6 +26,144 @@
   background-color: #45A049;
 }
 
+/* Dashboard styles */
+.dashboardMain {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.dashboardHeader h1 {
+  margin: 0;
+}
+
+.quickActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboardCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.summaryStats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 1rem;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.expensesList, .eventsList, .settlementsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+}
+
+.expenseItem, .eventItem, .settlementItem {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.expenseItem a, .eventItem a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.expenseName, .eventName {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.expenseDetails, .eventDate {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.expenseAmount, .settlementAmount {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.expensePaidBy, .eventParticipants {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.viewAllLink {
+  margin-top: auto;
+  text-align: center;
+  padding-top: 0.75rem;
+  color: var(--primary-color);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+  .dashboardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .createButton {
   background-color: var(--primary-color);
@@ -37,4 +175,11 @@
 
 .createButton:hover {
   background-color: #45A049;
+}
+
+.settlementEvent {
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  margin-top: 0.25rem;
+  font-style: italic;
 }

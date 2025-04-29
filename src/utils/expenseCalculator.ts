@@ -1,134 +1,133 @@
-import { Expense, User, Settlement } from '../context/AppContext';
+import { User, Expense } from '../context/AppContext';
 
-interface Balance {
-  userId: string;
-  amount: number;
+interface DebtMap {
+  [userId: string]: {
+    [creditorId: string]: number;
+  };
 }
 
-interface SettlementCalculation {
+interface Settlement {
   fromUser: string;
   toUser: string;
   amount: number;
   expenseIds: string[];
+  eventId?: string;
 }
 
-// Calculate individual shares from an expense
-export const calculateExpenseShares = (expense: Expense): Record<string, number> => {
-  const perPersonAmount = expense.amount / expense.participants.length;
+// Calculate settlements between users
+export const calculateSettlements = (
+  expenses: Expense[], 
+  users: User[], 
+  eventId?: string
+): Settlement[] => {
+  // Filter expenses by event if eventId is provided
+  const filteredExpenses = eventId 
+    ? expenses.filter(exp => exp.eventId === eventId && !exp.settled)
+    : expenses.filter(exp => !exp.settled);
   
-  const shares: Record<string, number> = {};
+  // Create a map of debts between users
+  const debts: DebtMap = {};
+  const expenseIdsByDebtors: Record<string, Record<string, string[]>> = {};
   
-  // Initialize all participants with their share
-  expense.participants.forEach(userId => {
-    shares[userId] = -perPersonAmount; // Negative means they owe money
-  });
-  
-  // The person who paid gets credited
-  if (shares[expense.paidBy]) {
-    shares[expense.paidBy] += expense.amount;
-  } else {
-    shares[expense.paidBy] = expense.amount;
-  }
-  
-  return shares;
-};
-
-// Calculate overall balances for all users
-export const calculateBalances = (expenses: Expense[], users: User[]): Balance[] => {
-  const balances: Record<string, number> = {};
-  
-  // Initialize balances for all users
+  // Initialize debts map
   users.forEach(user => {
-    balances[user.id] = 0;
-  });
-  
-  // Calculate each expense's contribution to the balance
-  expenses.filter(expense => !expense.settled).forEach(expense => {
-    const shares = calculateExpenseShares(expense);
-    
-    Object.entries(shares).forEach(([userId, amount]) => {
-      if (balances[userId] !== undefined) {
-        balances[userId] += amount;
-      } else {
-        balances[userId] = amount;
+    debts[user.id] = {};
+    users.forEach(otherUser => {
+      if (user.id !== otherUser.id) {
+        debts[user.id][otherUser.id] = 0;
       }
     });
   });
   
-  return Object.entries(balances).map(([userId, amount]) => ({
-    userId,
-    amount,
-  }));
-};
-
-// Calculate optimal settlements to minimize transactions
-export const calculateSettlements = (
-  expenses: Expense[],
-  users: User[]
-): SettlementCalculation[] => {
-  const balances = calculateBalances(expenses, users);
-  const unsettledExpenses = expenses.filter(expense => !expense.settled);
-  
-  // Separate debtors and creditors
-  const debtors = balances.filter(balance => balance.amount < 0)
-    .sort((a, b) => a.amount - b.amount); // Sort ascending (most negative first)
-  
-  const creditors = balances.filter(balance => balance.amount > 0)
-    .sort((a, b) => b.amount - a.amount); // Sort descending (most positive first)
-  
-  const settlements: SettlementCalculation[] = [];
-  
-  // Create a map of expense IDs by user (who paid)
-  const expensesByPayer: Record<string, string[]> = {};
-  unsettledExpenses.forEach(expense => {
-    if (!expensesByPayer[expense.paidBy]) {
-      expensesByPayer[expense.paidBy] = [];
-    }
-    expensesByPayer[expense.paidBy].push(expense.id);
+  // Initialize expense ids tracking
+  users.forEach(user => {
+    expenseIdsByDebtors[user.id] = {};
+    users.forEach(otherUser => {
+      if (user.id !== otherUser.id) {
+        expenseIdsByDebtors[user.id][otherUser.id] = [];
+      }
+    });
   });
   
-  // Match debtors with creditors to minimize transactions
-  let debtorIndex = 0;
-  let creditorIndex = 0;
-  
-  while (debtorIndex < debtors.length && creditorIndex < creditors.length) {
-    const debtor = debtors[debtorIndex];
-    const creditor = creditors[creditorIndex];
+  // Calculate net amounts for each expense
+  filteredExpenses.forEach(expense => {
+    // Skip settled expenses
+    if (expense.settled) return;
     
-    const debtAmount = Math.abs(debtor.amount);
-    const creditAmount = creditor.amount;
+    const payerId = expense.paidBy;
+    const participantCount = expense.participants.length;
     
-    // Calculate the amount that can be settled
-    const settlementAmount = Math.min(debtAmount, creditAmount);
+    if (participantCount === 0) return;
     
-    if (settlementAmount > 0) {
-      settlements.push({
-        fromUser: debtor.userId,
-        toUser: creditor.userId,
-        amount: Number(settlementAmount.toFixed(2)), // Round to 2 decimal places
-        expenseIds: expensesByPayer[creditor.userId] || [],
-      });
+    const amountPerPerson = expense.amount / participantCount;
+    
+    expense.participants.forEach(participantId => {
+      if (participantId === payerId) return; // Payer doesn't owe themselves
       
-      // Update balances
-      debtor.amount += settlementAmount;
-      creditor.amount -= settlementAmount;
-    }
-    
-    // Move to next user if balance is (nearly) zero
-    if (Math.abs(debtor.amount) < 0.01) {
-      debtorIndex++;
-    }
-    
-    if (Math.abs(creditor.amount) < 0.01) {
-      creditorIndex++;
-    }
-  }
+      // Participant owes payer
+      debts[participantId][payerId] += amountPerPerson;
+      
+      // Track which expenses contribute to this debt
+      if (!expenseIdsByDebtors[participantId][payerId]) {
+        expenseIdsByDebtors[participantId][payerId] = [];
+      }
+      expenseIdsByDebtors[participantId][payerId].push(expense.id);
+    });
+  });
+  
+  // Simplify debts (cancel out mutual debts)
+  users.forEach(user1 => {
+    users.forEach(user2 => {
+      if (user1.id === user2.id) return;
+      
+      // If both users owe each other, cancel out the smaller amount
+      const user1OwesUser2 = debts[user1.id][user2.id];
+      const user2OwesUser1 = debts[user2.id][user1.id];
+      
+      if (user1OwesUser2 > 0 && user2OwesUser1 > 0) {
+        if (user1OwesUser2 >= user2OwesUser1) {
+          debts[user1.id][user2.id] -= user2OwesUser1;
+          debts[user2.id][user1.id] = 0;
+        } else {
+          debts[user2.id][user1.id] -= user1OwesUser2;
+          debts[user1.id][user2.id] = 0;
+        }
+      }
+    });
+  });
+  
+  // Convert to settlements array
+  const settlements: Settlement[] = [];
+  
+  users.forEach(debtor => {
+    users.forEach(creditor => {
+      if (debtor.id === creditor.id) return;
+      
+      const amount = debts[debtor.id][creditor.id];
+      
+      if (amount > 0) {
+        const settlement: Settlement = {
+          fromUser: debtor.id,
+          toUser: creditor.id,
+          amount: parseFloat(amount.toFixed(2)),
+          expenseIds: expenseIdsByDebtors[debtor.id][creditor.id] || [],
+        };
+        
+        // Add eventId to the settlement if specified
+        if (eventId) {
+          settlement.eventId = eventId;
+        }
+        
+        settlements.push(settlement);
+      }
+    });
+  });
   
   return settlements;
 };
 
 // Helper function to get username by ID
 export const getUserName = (userId: string, users: User[]): string => {
-  const user = users.find(u => u.id === userId);
+  const user = users.find(user => user.id === userId);
   return user ? user.name : 'Unknown User';
 };

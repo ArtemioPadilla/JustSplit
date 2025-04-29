@@ -37,6 +37,7 @@ export interface Settlement {
   amount: number;
   date: string;
   expenseIds: string[]; // Related Expense IDs
+  eventId?: string; // Optional event ID
 }
 
 interface AppState {

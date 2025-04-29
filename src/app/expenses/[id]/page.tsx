@@ -28,7 +28,7 @@ export default function ExpenseDetail() {
   
   const participants = useMemo(() => {
     if (!expense) return [];
-    return state.users.filter(user => expense.splitAmong.includes(user.id));
+    return state.users.filter(user => expense.participants.includes(user.id));
   }, [expense, state.users]);
   
   if (!expense) {

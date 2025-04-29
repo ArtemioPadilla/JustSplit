@@ -21,7 +21,7 @@
 .backButton {
   padding: 8px 16px;
   background-color: #f3f4f6;
-  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  color: var(--primary-color); /* Changed from #4f46e5 to Next.js blue */
   border-radius: 6px;
   font-size: 14px;
   text-decoration: none;
@@ -55,14 +55,14 @@
 .amount {
   font-size: 42px;
   font-weight: 700;
-  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  color: var(--primary-color); /* Changed from #4f46e5 to Next.js blue */
 }
 
 .sectionTitle {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 16px;
-  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  color: var(--primary-color); /* Changed from #4f46e5 to Next.js blue */
 }
 
 .detailGrid {
@@ -124,12 +124,12 @@
 }
 
 .editButton {
-  background-color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  background-color: var(--primary-color); /* Changed from #4f46e5 to Next.js blue */
   color: white;
 }
 
 .editButton:hover {
-  background-color: #0060df; /* Slightly darker shade for hover state */
+  background-color: #0056b3; /* Slightly darker shade for hover state */
 }
 
 @media (max-width: 640px) {
