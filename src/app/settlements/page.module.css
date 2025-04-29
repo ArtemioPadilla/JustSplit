@@ -183,9 +183,16 @@
 
 .filterContainer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 20px;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .filterLabel {
@@ -200,24 +207,16 @@
   border-radius: 6px;
   font-size: 14px;
   background-color: white;
-  min-width: 180px;
+  min-width: 150px;
 }
 
-.settlementEvent {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 0;
-  font-size: 14px;
-}
-
-.eventLabel {
+.loadingState {
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  margin: 40px 0;
   color: #6b7280;
-}
-
-.eventName {
-  font-weight: 500;
-  color: var(--primary-color);
 }
 
 .balanceHeader {
@@ -313,7 +312,10 @@
   .filterContainer {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+  }
+  
+  .filterItem {
+    width: 100%;
   }
   
   .filterSelect {

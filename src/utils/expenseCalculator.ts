@@ -1,4 +1,5 @@
 import { User, Expense } from '../context/AppContext';
+import { convertCurrency } from './currencyExchange';
 
 interface DebtMap {
   [userId: string]: {
@@ -104,21 +105,14 @@ export const calculateSettlements = (
       if (debtor.id === creditor.id) return;
       
       const amount = debts[debtor.id][creditor.id];
-      
       if (amount > 0) {
-        const settlement: Settlement = {
+        settlements.push({
           fromUser: debtor.id,
           toUser: creditor.id,
-          amount: parseFloat(amount.toFixed(2)),
-          expenseIds: expenseIdsByDebtors[debtor.id][creditor.id] || [],
-        };
-        
-        // Add eventId to the settlement if specified
-        if (eventId) {
-          settlement.eventId = eventId;
-        }
-        
-        settlements.push(settlement);
+          amount,
+          expenseIds: expenseIdsByDebtors[debtor.id][creditor.id],
+          eventId
+        });
       }
     });
   });
@@ -126,8 +120,37 @@ export const calculateSettlements = (
   return settlements;
 };
 
-// Helper function to get username by ID
-export const getUserName = (userId: string, users: User[]): string => {
-  const user = users.find(user => user.id === userId);
-  return user ? user.name : 'Unknown User';
+// Helper function to convert all expenses to a single currency for accurate settlement calculation
+export const calculateSettlementsWithConversion = async (
+  expenses: Expense[],
+  users: User[],
+  targetCurrency: string = 'USD',
+  eventId?: string
+): Promise<Settlement[]> => {
+  // Create a copy of expenses to avoid modifying the original
+  const convertedExpenses = await Promise.all(
+    expenses.map(async (expense) => {
+      if (expense.currency === targetCurrency) {
+        return { ...expense };
+      }
+      
+      // Convert amount to target currency
+      const convertedAmount = await convertCurrency(
+        expense.amount,
+        expense.currency,
+        targetCurrency
+      );
+      
+      return {
+        ...expense,
+        amount: convertedAmount,
+        originalAmount: expense.amount,
+        originalCurrency: expense.currency,
+        currency: targetCurrency
+      };
+    })
+  );
+  
+  // Use the regular settlement calculation with converted expenses
+  return calculateSettlements(convertedExpenses, users, eventId);
 };

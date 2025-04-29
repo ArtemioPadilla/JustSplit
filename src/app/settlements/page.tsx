@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { calculateSettlements } from '../../utils/expenseCalculator';
+import { calculateSettlements, calculateSettlementsWithConversion } from '../../utils/expenseCalculator';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
 
@@ -14,6 +15,9 @@ export default function SettlementsPage() {
   // Initialize with event param from URL if available
   const eventParam = searchParams.get('event');
   const [selectedEventId, setSelectedEventId] = useState<string>(eventParam || 'all');
+  const [displayCurrency, setDisplayCurrency] = useState<string>('USD');
+  const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Get events with unsettled expenses for the filter
   const eventsWithUnsettledExpenses = useMemo(() => {
@@ -22,119 +26,77 @@ export default function SettlementsPage() {
     return state.events.filter(event => eventIds.includes(event.id));
   }, [state.expenses, state.events]);
   
-  // Calculate pending settlements based on selected event
-  const pendingSettlements = useMemo(() => {
-    return selectedEventId === 'all' 
-      ? calculateSettlements(state.expenses, state.users) 
-      : calculateSettlements(state.expenses, state.users, selectedEventId);
-  }, [state.expenses, state.users, selectedEventId]);
-  
-  // Filter settlement history by event
-  const filteredSettlementHistory = useMemo(() => {
-    return selectedEventId === 'all'
-      ? state.settlements
-      : state.settlements.filter(settlement => settlement.eventId === selectedEventId);
-  }, [state.settlements, selectedEventId]);
-  
-  // Calculate user balances overall and per event
-  const balances = useMemo(() => {
-    const userBalances: Record<string, { overall: number, byEvent: Record<string, number> }> = {};
-    
-    // Initialize user balances
-    state.users.forEach(user => {
-      userBalances[user.id] = { 
-        overall: 0, 
-        byEvent: {} 
-      };
-      
-      // Initialize balance for each event
-      state.events.forEach(event => {
-        userBalances[user.id].byEvent[event.id] = 0;
-      });
-    });
-    
-    // Process expenses to calculate balances
-    state.expenses.forEach(expense => {
-      if (expense.settled) return;
-      
-      const paidBy = expense.paidBy;
-      const participants = expense.participants;
-      const amountPerPerson = expense.amount / participants.length;
-      
-      participants.forEach(participantId => {
-        if (participantId === paidBy) return; // Payer doesn't owe themselves
-        
-        // Update overall balance
-        userBalances[participantId].overall -= amountPerPerson;
-        userBalances[paidBy].overall += amountPerPerson;
-        
-        // Update per-event balance if expense is associated with an event
-        if (expense.eventId) {
-          userBalances[participantId].byEvent[expense.eventId] -= amountPerPerson;
-          userBalances[paidBy].byEvent[expense.eventId] += amountPerPerson;
-        }
-      });
-    });
-    
-    return userBalances;
-  }, [state.users, state.events, state.expenses]);
-  
-  // Get username by user ID
-  const getUserName = (userId: string): string => {
-    const user = state.users.find(user => user.id === userId);
-    return user ? user.name : 'Unknown User';
-  };
-  
-  // Get event name by event ID
-  const getEventName = (eventId?: string): string => {
-    if (!eventId) return 'No event';
-    const event = state.events.find(event => event.id === eventId);
-    return event ? event.name : 'Unknown event';
-  };
-  
-  // Handle settlement completion
-  const handleSettleUp = (settlement: { fromUser: string; toUser: string; amount: number; expenseIds: string[]; eventId?: string }) => {
-    dispatch({
-      type: 'ADD_SETTLEMENT',
-      payload: {
-        fromUser: settlement.fromUser,
-        toUser: settlement.toUser,
-        amount: settlement.amount,
-        expenseIds: settlement.expenseIds,
-        eventId: settlement.eventId
+  // Calculate pending settlements based on selected event and currency
+  useEffect(() => {
+    const fetchSettlements = async () => {
+      setIsLoading(true);
+      try {
+        const settlements = await calculateSettlementsWithConversion(
+          state.expenses,
+          state.users,
+          displayCurrency,
+          selectedEventId === 'all' ? undefined : selectedEventId
+        );
+        setPendingSettlements(settlements);
+      } catch (error) {
+        console.error('Error calculating settlements:', error);
+        // Fallback to regular calculation without conversion
+        const settlements = calculateSettlements(
+          state.expenses,
+          state.users,
+          selectedEventId === 'all' ? undefined : selectedEventId
+        );
+        setPendingSettlements(settlements);
+      } finally {
+        setIsLoading(false);
       }
-    });
-  };
+    };
+    
+    fetchSettlements();
+  }, [state.expenses, state.users, selectedEventId, displayCurrency]);
   
-  // Format currency with 2 decimal places
-  const formatCurrency = (amount: number): string => {
-    return amount.toFixed(2);
-  };
-  
-  // Calculate total unsettled amount
-  const totalUnsettledAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
-
+  // Add currency selector UI
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Settlements</h1>
       
       <div className={styles.filterContainer}>
-        <label htmlFor="event-filter" className={styles.filterLabel}>
-          Filter by Event:
-        </label>
-        <select
-          id="event-filter"
-          className={styles.filterSelect}
-          value={selectedEventId}
-          onChange={(e) => setSelectedEventId(e.target.value)}
-        >
-          <option value="all">All Events</option>
-          {eventsWithUnsettledExpenses.map(event => (
-            <option key={event.id} value={event.id}>
-              {event.name}
-            </option>
-          ))}
-        </select>
+        <div className={styles.filterItem}>
+          <label htmlFor="event-filter" className={styles.filterLabel}>
+            Filter by Event:
+          </label>
+          <select
+            id="event-filter"
+            className={styles.filterSelect}
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+          >
+            <option value="all">All Events</option>
+            {eventsWithUnsettledExpenses.map(event => (
+              <option key={event.id} value={event.id}>
+                {event.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className={styles.filterItem}>
+          <label htmlFor="currency-filter" className={styles.filterLabel}>
+            Display Currency:
+          </label>
+          <select
+            id="currency-filter"
+            className={styles.filterSelect}
+            value={displayCurrency}
+            onChange={(e) => setDisplayCurrency(e.target.value)}
+          >
+            {SUPPORTED_CURRENCIES.map(curr => (
+              <option key={curr.code} value={curr.code}>
+                {curr.code} ({curr.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className={styles.tabs}>
@@ -160,7 +122,11 @@ export default function SettlementsPage() {
       
       {activeTab === 'pending' && (
         <div className={styles.tabContent}>
-          {pendingSettlements.length === 0 ? (
+          {isLoading ? (
+            <div className={styles.loadingState}>
+              <p>Loading settlements and converting currencies...</p>
+            </div>
+          ) : pendingSettlements.length === 0 ? (
             <div className={styles.emptyState}>
               <h3>All Settled Up!</h3>
               <p>There are no pending settlements {selectedEventId !== 'all' ? 'for this event' : ''} at the moment.</p>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAppContext } from '../context/AppContext';
 import { useMemo, useEffect } from 'react';
 import { calculateSettlements } from '../utils/expenseCalculator';
+import CurrencyExchangeTicker from '../components/CurrencyExchangeTicker';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -11,6 +12,9 @@ export default function Home() {
   
   // Check if the user has any data
   const hasData = state.expenses.length > 0 || state.events.length > 0;
+  
+  // Get the user's preferred currency
+  const preferredCurrency = state.users.length > 0 ? state.users[0].preferredCurrency || 'USD' : 'USD';
   
   // Calculate financial summary
   const financialSummary = useMemo(() => {
@@ -201,6 +205,9 @@ export default function Home() {
           <Link href="/events/new" className={styles.button}>Create Event</Link>
         </div>
       </div>
+      
+      {/* Exchange Rates Ticker */}
+      <CurrencyExchangeTicker baseCurrency={preferredCurrency} />
       
       <div className={styles.dashboardSummary}>
         <div className={styles.summaryCard}>

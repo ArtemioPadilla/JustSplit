@@ -3,6 +3,7 @@
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '../../../../context/AppContext';
+import { SUPPORTED_CURRENCIES } from '../../../../utils/currencyExchange';
 import styles from './page.module.css';
 
 export default function EditExpense() {
@@ -167,11 +168,11 @@ export default function EditExpense() {
               onChange={(e) => setCurrency(e.target.value)}
               className={styles.select}
             >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
-              <option value="CAD">CAD (C$)</option>
+              {SUPPORTED_CURRENCIES.map(curr => (
+                <option key={curr.code} value={curr.code}>
+                  {curr.code} ({curr.symbol})
+                </option>
+              ))}
             </select>
           </div>
         </div>
