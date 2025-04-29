@@ -13,6 +13,7 @@ Welcome to the JustSplit documentation! This repository contains all the necessa
   - [Code Style](development/code-style.md)
   - [Contributing](development/contributing.md)
   - [Development Workflow](development/development-workflow.md)
+  - [Local Development](development/local-development.md)
 - [Planning](planning)
   - [Project Roadmap](planning/project-roadmap.md)
   - [Milestones](planning/milestones.md)
@@ -31,7 +32,7 @@ Welcome to the JustSplit documentation! This repository contains all the necessa
 
 ## Getting Started
 
-To get started with JustSplit, please refer to the [Contributing](development/contributing.md) guide for instructions on how to set up your development environment and contribute to the project.
+To get started with JustSplit, please refer to the [Local Development Guide](development/local-development.md) for instructions on how to set up your development environment and the [Contributing](development/contributing.md) guide for information on how to contribute to the project.
 
 ## Support
 

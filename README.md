@@ -43,3 +43,19 @@ Designed for quick deployments on static hosting platforms like GitHub Pages, Ju
 
 JustSplit is community-driven! Contributions, ideas, and feedback are welcome.  
 [Learn how to contribute](#) or open an issue to start a discussion.
+
+## Development
+
+### Getting Started
+
+To set up your local development environment, check out our detailed [Local Development Guide](docs/development/local-development.md).
+
+### Testing
+
+JustSplit has comprehensive test coverage. To run the tests:
+
+```bash
+npm run test
+```
+
+For more details on our testing approach and strategies, see our [Local Development Guide](docs/development/local-development.md#testing).

@@ -8,22 +8,25 @@ This document outlines the technical design of the JustSplit application, detail
 
 ### Frontend
 
-- **Framework**: React
-  - **Justification**: React is chosen for its component-based architecture, which promotes reusability and maintainability. It also has a large ecosystem and community support.
+- **Framework**: Next.js
+  - **Justification**: Next.js is chosen for its built-in optimizations, server-side rendering capabilities, and support for static site generation. The App Router provides a more intuitive file-based routing system with support for layouts, loading states, and error handling.
 
-- **State Management**: Redux
-  - **Justification**: Redux is used for managing application state in a predictable way, making it easier to debug and test the application.
+- **Language**: TypeScript
+  - **Justification**: TypeScript adds static typing to JavaScript, providing better code quality, enhanced IDE support, and early error detection, which is crucial for maintaining a robust codebase.
 
-- **Styling**: CSS Modules / Styled Components
-  - **Justification**: CSS Modules provide a modular approach to styling, preventing class name collisions. Styled Components allow for dynamic styling based on component state.
+- **State Management**: React Context API with hooks / Zustand
+  - **Justification**: For simpler state management needs, React's built-in Context API is sufficient. For more complex requirements, Zustand provides a lightweight yet powerful alternative to Redux with better TypeScript integration.
 
-### Backend
+- **Styling**: Tailwind CSS / CSS Modules
+  - **Justification**: Tailwind CSS enables rapid UI development with utility classes, while CSS Modules provide component-scoped styling to prevent class name collisions.
 
-- **Serverless Functions**: AWS Lambda / Netlify Functions
-  - **Justification**: Serverless architecture allows for easy scaling and reduced operational overhead. It is cost-effective for handling backend logic without managing servers.
+### Data Management
 
-- **Database**: Firebase Firestore
-  - **Justification**: Firestore is a NoSQL database that provides real-time data synchronization, making it suitable for collaborative applications like JustSplit.
+- **Client-Side Data Fetching**: SWR / React Query
+  - **Justification**: These libraries provide optimized data fetching with caching, revalidation, and synchronization features, enhancing the user experience with real-time updates.
+
+- **Local Storage**: Persistence Layer
+  - **Justification**: A custom persistence layer with encryption will be used to store user data in the browser's local storage, ensuring data privacy and offline functionality.
 
 ### APIs
 
@@ -32,19 +35,28 @@ This document outlines the technical design of the JustSplit application, detail
 
 ## Architecture
 
-### Client-Side Architecture
+### Next.js App Router Architecture
 
-- The client-side application will be structured into components, with a clear separation of concerns. Each component will handle its own state and UI logic, while global state will be managed by Redux.
+- The application will use the Next.js App Router, which provides a file-system based routing where directories define routes.
+- Each route can have specialized files like `page.tsx`, `layout.tsx`, `loading.tsx`, and `error.tsx` to manage different aspects of the UI.
+- Server components will be used for data fetching and initial rendering, while client components will handle interactive elements.
 
 ### Data Flow
 
-- Data will flow from the client to the serverless functions, which will handle business logic and interact with the Firestore database. The client will receive updates in real-time through Firestore's built-in capabilities.
+- Data will flow from the client to server components for initial rendering, with client-side components taking over for interactive features.
+- SWR or React Query will manage client-side data fetching, caching, and synchronization with the local storage.
 
 ## Security Considerations
 
-- **Data Privacy**: End-to-end encryption will be implemented to ensure that user financial data remains private.
-- **Authentication**: Firebase Authentication will be used to manage user sign-ups and logins securely.
+- **Data Privacy**: End-to-end encryption will be implemented to ensure that user financial data remains private in local storage.
+- **Input Validation**: Zod schema validation will be used to validate all user inputs both on the client and server sides.
+
+## TypeScript Implementation
+
+- Strict TypeScript configuration will be enforced to catch potential errors at compile time.
+- Interface and type definitions will be created for all data models to ensure type safety across the application.
+- Generic types will be leveraged for reusable components and hooks to provide better type inference.
 
 ## Conclusion
 
-The technical design of JustSplit leverages modern technologies and best practices to create a robust, scalable, and user-friendly application for managing shared expenses. This design will facilitate future enhancements and ensure a smooth user experience.
+The technical design of JustSplit leverages Next.js with App Router and TypeScript to create a robust, type-safe, and user-friendly application for managing shared expenses. This architecture provides better performance, developer experience, and code maintainability compared to traditional React applications.

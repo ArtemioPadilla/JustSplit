@@ -31,9 +31,48 @@ The JustSplit application is designed as a client-side web application that faci
 
 ## Diagram
 
-![System Architecture Diagram](path/to/your/diagram.png)
-
-*Note: Replace the path with the actual path to your system architecture diagram image.*
+```plaintext
++------------------------------------------------------+
+|                                                      |
+|                   Client-Side App                    |
+|                                                      |
+| +------------------+  +-------------------------+    |
+| |                  |  |                         |    |
+| | Next.js Frontend |  | State Management        |    |
+| | (App Router)     |  | (React Context/Redux)   |    |
+| |                  |  |                         |    |
+| +------------------+  +-------------------------+    |
+|          |                        |                  |
++----------|------------------------|-----------------+
+           |                        |
+           v                        v
++----------+------------------------+------------------+
+|                                                      |
+|                 External Services                    |
+|                                                      |
+| +------------------+  +-------------------------+    |
+| |                  |  |                         |    |
+| | Payment APIs     |  | Currency Conversion     |    |
+| | (PayPal, Venmo)  |  | APIs                    |    |
+| |                  |  |                         |    |
+| +------------------+  +-------------------------+    |
+|                                                      |
++------------------------------------------------------+
+           |                        |
+           v                        v
++----------+------------------------+------------------+
+|                                                      |
+|                    Data Storage                      |
+|                                                      |
+| +-----------------------------------+                |
+| |                                   |                |
+| | Local Storage with End-to-End     |                |
+| | Encryption                        |                |
+| |                                   |                |
+| +-----------------------------------+                |
+|                                                      |
++------------------------------------------------------+
+```
 
 ## Conclusion
 

@@ -6,7 +6,43 @@ This document provides a detailed component diagram illustrating the various com
 
 ## Component Diagram
 
-![JustSplit Component Diagram](path/to/your/component-diagram.png)
+```plaintext
+                    +-------------------+
+                    |                   |
+                    |  User Interface   |
+                    |                   |
+                    +--------+----------+
+                             |
+                             |
+           +----------------++-----------------+
+           |                |                  |
+           v                v                  v
++----------+------+ +-------+-------+ +--------+---------+
+|                 | |               | |                  |
+| User Management | | Expense Mgmt  | | Payment          |
+| Module          | | Module        | | Integration      |
+|                 | |               | |                  |
++--------+--------+ +-------+-------+ +--------+---------+
+         |                  |                  |
+         |                  |                  |
+         v                  v                  v
++--------+------------------+------------------+--------+
+|                                                       |
+|                     Data Storage                      |
+|                                                       |
++-------------------+-----------------------------------+
+                    |
+                    |
+        +-----------+-----------+
+        |                       |
+        v                       v
++-------+---------+   +---------+--------+
+|                 |   |                  |
+| Real-Time       |   | Analytics and    |
+| Collaboration   |   | Reporting        |
+|                 |   |                  |
++-----------------+   +------------------+
+```
 
 ## Components
 
