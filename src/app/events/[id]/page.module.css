@@ -257,6 +257,21 @@
   border: 1px solid var(--primary-color);
 }
 
+.tertiaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.tertiaryButton:hover {
+  background-color: #e5e7eb;
+}
+
+.tertiaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .actionButton:hover {
   background-color: #45A049; /* Slightly darker shade for hover state */
 }

@@ -116,7 +116,43 @@ export default function ExpenseDetail() {
         </div>
       )}
       
+      {expense.images && expense.images.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Receipts & Evidence</h2>
+          <div className={styles.imageGallery}>
+            {expense.images.map((image, index) => (
+              <div key={index} className={styles.imageContainer}>
+                <a href={image} target="_blank" rel="noopener noreferrer">
+                  <img 
+                    src={image} 
+                    alt={`Receipt ${index + 1}`} 
+                    className={styles.image} 
+                  />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className={styles.actions}>
+        {/* Export to CSV button */}
+        <button 
+          className={`${styles.actionButton} ${styles.secondaryButton}`}
+          onClick={() => {
+            import('../../../utils/csvExport').then(module => {
+              module.exportExpensesToCSV(
+                [expense], 
+                state.users, 
+                state.events, 
+                `expense-${expense.id}.csv`
+              );
+            });
+          }}
+        >
+          Export as CSV
+        </button>
+        
         <button 
           className={`${styles.actionButton} ${styles.editButton}`}
           onClick={() => router.push(`/expenses/edit/${expenseId}`)}

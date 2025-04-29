@@ -21,6 +21,8 @@ export interface Expense {
   participants: string[]; // User IDs
   eventId?: string;
   settled: boolean;
+  notes?: string; // Detailed description/notes
+  images?: string[]; // Array of image URLs
 }
 
 export interface Event {

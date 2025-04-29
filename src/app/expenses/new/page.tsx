@@ -4,6 +4,7 @@ import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import { SUPPORTED_CURRENCIES } from '../../../utils/currencyExchange';
+import ImageUploader from '../../../components/ImageUploader';
 import styles from './page.module.css';
 
 export default function NewExpense() {
@@ -17,6 +18,8 @@ export default function NewExpense() {
   const [paidBy, setPaidBy] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [eventId, setEventId] = useState<string | undefined>(undefined);
+  const [notes, setNotes] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   
   // Add a participant input field
   const [newParticipantName, setNewParticipantName] = useState('');
@@ -64,7 +67,9 @@ export default function NewExpense() {
         paidBy,
         participants,
         eventId,
-        settled: false
+        settled: false,
+        notes,
+        images
       }
     });
     
@@ -244,6 +249,30 @@ export default function NewExpense() {
                 ))}
             </div>
           </div>
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label htmlFor="notes" className={styles.label}>
+            Notes (Optional)
+          </label>
+          <textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={styles.textarea}
+            placeholder="Add any details or notes about this expense"
+            rows={3}
+          />
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label className={styles.label}>
+            Receipt Images (Optional)
+          </label>
+          <ImageUploader 
+            images={images} 
+            onImagesChange={setImages} 
+          />
         </div>
         
         <div className={styles.buttonGroup}>

@@ -4,6 +4,7 @@ import React, { useState, FormEvent, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAppContext } from '../../../../context/AppContext';
 import { SUPPORTED_CURRENCIES } from '../../../../utils/currencyExchange';
+import ImageUploader from '../../../../components/ImageUploader';
 import styles from './page.module.css';
 
 export default function EditExpense() {
@@ -20,6 +21,8 @@ export default function EditExpense() {
   const [eventId, setEventId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [images, setImages] = useState<string[]>([]);
   
   // Add a participant input field
   const [newParticipantName, setNewParticipantName] = useState('');
@@ -37,6 +40,8 @@ export default function EditExpense() {
         setPaidBy(expense.paidBy);
         setParticipants(expense.participants);
         setEventId(expense.eventId);
+        setNotes(expense.notes || '');
+        setImages(expense.images || []);
       } else {
         setNotFound(true);
       }
@@ -89,7 +94,9 @@ export default function EditExpense() {
         paidBy,
         participants,
         eventId,
-        settled: false
+        settled: false,
+        notes,
+        images
       }
     });
     
@@ -292,6 +299,30 @@ export default function EditExpense() {
                 ))}
             </div>
           </div>
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label htmlFor="notes" className={styles.label}>
+            Notes (Optional)
+          </label>
+          <textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={styles.textarea}
+            placeholder="Add any details or notes about this expense"
+            rows={3}
+          />
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label className={styles.label}>
+            Receipt Images (Optional)
+          </label>
+          <ImageUploader 
+            images={images} 
+            onImagesChange={setImages} 
+          />
         </div>
         
         <div className={styles.buttonGroup}>

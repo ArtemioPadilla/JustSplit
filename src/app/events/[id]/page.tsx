@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
+import { exportExpensesToCSV } from '../../../utils/csvExport';
 import styles from './page.module.css';
 
 export default function EventDetail() {
@@ -233,11 +234,25 @@ export default function EventDetail() {
         >
           Add Expense
         </button>
+        
         <button
           className={`${styles.actionButton} ${styles.secondaryButton}`}
           onClick={() => router.push(`/settlements?event=${eventId}`)}
         >
           View Settlements
+        </button>
+        
+        <button
+          className={`${styles.actionButton} ${styles.tertiaryButton}`}
+          onClick={() => exportExpensesToCSV(
+            eventExpenses, 
+            state.users, 
+            state.events, 
+            `${event.name}-expenses.csv`
+          )}
+          disabled={eventExpenses.length === 0}
+        >
+          Export as CSV
         </button>
       </div>
     </div>

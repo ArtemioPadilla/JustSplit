@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  // Get the currency pair from the query parameters
   const searchParams = request.nextUrl.searchParams;
   const pair = searchParams.get('pair');
   const interval = searchParams.get('interval') || '1d';
@@ -9,24 +8,23 @@ export async function GET(request: NextRequest) {
   
   if (!pair) {
     return NextResponse.json(
-      { error: 'Missing currency pair parameter' },
+      { error: 'Pair parameter is required' },
       { status: 400 }
     );
   }
   
   try {
-    // Construct the Yahoo Finance URL
+    // Yahoo Finance API URL
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${pair}?interval=${interval}&range=${range}`;
     
-    // Make the request to Yahoo Finance
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Node.js)', // Basic user agent
-      },
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
     });
     
     if (!response.ok) {
-      throw new Error(`Yahoo Finance API error: ${response.statusText}`);
+      throw new Error(`Yahoo Finance API returned ${response.status}: ${response.statusText}`);
     }
     
     // Get the response data

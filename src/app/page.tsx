@@ -5,6 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { useMemo, useEffect } from 'react';
 import { calculateSettlements } from '../utils/expenseCalculator';
 import CurrencyExchangeTicker from '../components/CurrencyExchangeTicker';
+import { exportExpensesToCSV } from '../utils/csvExport';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -203,6 +204,18 @@ export default function Home() {
         <div className={styles.quickActions}>
           <Link href="/expenses/new" className={styles.button}>Add Expense</Link>
           <Link href="/events/new" className={styles.button}>Create Event</Link>
+          <button 
+            className={`${styles.button} ${styles.secondaryButton}`}
+            onClick={() => exportExpensesToCSV(
+              state.expenses, 
+              state.users, 
+              state.events, 
+              'all-expenses.csv'
+            )}
+            disabled={state.expenses.length === 0}
+          >
+            Export Expenses
+          </button>
         </div>
       </div>
       

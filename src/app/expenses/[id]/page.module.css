@@ -132,6 +132,43 @@
   background-color: #0056b3; /* Slightly darker shade for hover state */
 }
 
+.imageGallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.imageContainer {
+  width: calc(50% - 6px);
+  max-width: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s;
+}
+
+.imageContainer:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.secondaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.secondaryButton:hover {
+  background-color: #e5e7eb;
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;
@@ -145,5 +182,9 @@
   
   .participantsList {
     grid-template-columns: 1fr;
+  }
+  
+  .imageContainer {
+    width: 100%;
   }
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
+import { exportExpensesToCSV } from '../../../utils/csvExport';
 
 export default function ExpenseList() {
   const { state } = useAppContext();
@@ -38,6 +39,19 @@ export default function ExpenseList() {
         <Link href="/expenses/new" className={styles.createButton}>
           Add New Expense
         </Link>
+        
+        <button 
+          className={styles.exportButton}
+          onClick={() => exportExpensesToCSV(
+            filteredExpenses, 
+            state.users, 
+            state.events, 
+            selectedEvent === 'all' ? 'all-expenses.csv' : `${getEventName(selectedEvent)}-expenses.csv`
+          )}
+          disabled={filteredExpenses.length === 0}
+        >
+          Export as CSV
+        </button>
         
         <div className={styles.filter}>
           <label htmlFor="event-filter">Filter by Event:</label>
