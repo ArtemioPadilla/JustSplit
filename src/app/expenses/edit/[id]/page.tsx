@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppContext } from '../../../context/AppContext';
+import React, { useState, FormEvent, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useAppContext } from '../../../../context/AppContext';
 import styles from './page.module.css';
 
-export default function NewExpense() {
+export default function EditExpense() {
   const router = useRouter();
+  const params = useParams();
   const { state, dispatch } = useAppContext();
   
   const [description, setDescription] = useState('');
@@ -16,9 +17,32 @@ export default function NewExpense() {
   const [paidBy, setPaidBy] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
   const [eventId, setEventId] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   
   // Add a participant input field
   const [newParticipantName, setNewParticipantName] = useState('');
+
+  useEffect(() => {
+    if (params.id && state) {
+      const expenseId = params.id as string;
+      const expense = state.expenses.find(exp => exp.id === expenseId);
+      
+      if (expense) {
+        setDescription(expense.description);
+        setAmount(expense.amount.toString());
+        setCurrency(expense.currency);
+        setDate(expense.date);
+        setPaidBy(expense.paidBy);
+        setParticipants(expense.participants);
+        setEventId(expense.eventId);
+      } else {
+        setNotFound(true);
+      }
+      
+      setLoading(false);
+    }
+  }, [params.id, state]);
 
   const handleAddParticipant = () => {
     if (!newParticipantName.trim()) return;
@@ -52,10 +76,11 @@ export default function NewExpense() {
       return;
     }
     
-    // Add the expense
+    // Update the expense
     dispatch({
-      type: 'ADD_EXPENSE',
+      type: 'UPDATE_EXPENSE',
       payload: {
+        id: params.id as string,
         description,
         amount: parseFloat(amount),
         currency,
@@ -67,13 +92,36 @@ export default function NewExpense() {
       }
     });
     
-    // Navigate to expenses list
-    router.push('/expenses/list');
+    // Navigate back to expense details
+    router.push(`/expenses/${params.id}`);
   };
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <h1 className={styles.title}>Loading expense details...</h1>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className={styles.container}>
+        <h1 className={styles.title}>Expense not found</h1>
+        <p>The expense you're trying to edit doesn't exist or has been deleted.</p>
+        <button 
+          onClick={() => router.push('/expenses/list')}
+          className={styles.backButton}
+        >
+          Go back to expenses list
+        </button>
+      </div>
+    );
+  }
   
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>New Expense</h1>
+      <h1 className={styles.title}>Edit Expense</h1>
       
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.formGroup}>
@@ -247,7 +295,7 @@ export default function NewExpense() {
         
         <div className={styles.buttonGroup}>
           <button type="submit" className={styles.submitButton}>
-            Save Expense
+            Save Changes
           </button>
           <button
             type="button"

@@ -1,0 +1,163 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 0;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.emptyState p {
+  color: #6b7280;
+}
+
+.expensesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.expenseCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.expenseCard:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.expenseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.expenseName {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.expenseAmount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+}
+
+.expenseDetails {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #111827;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.viewButton {
+  padding: 6px 12px;
+  background-color: #f3f4f6;
+  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  border-radius: 4px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.viewButton:hover {
+  background-color: #e5e7eb;
+}
+
+@media (max-width: 640px) {
+  .expenseDetails {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .filter {
+    width: 100%;
+  }
+  
+  .select {
+    flex-grow: 1;
+  }
+}
+
+
+
+.createButton {
+    display: inline-block;
+    padding: 10px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-bottom: 24px;
+    transition: background-color 0.2s ease;
+  }
+
+.createButton:hover {
+background-color: #45A049;
+}

@@ -1,113 +1,208 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../../context/AppContext';
 import styles from './page.module.css';
 
 export default function NewEvent() {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    participants: '',
-  });
+  const router = useRouter();
+  const { state, dispatch } = useAppContext();
+  
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState('');
+  const [participants, setParticipants] = useState<string[]>([]);
+  
+  // Add a participant input field
+  const [newParticipantName, setNewParticipantName] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleAddParticipant = () => {
+    if (!newParticipantName.trim()) return;
+    
+    // Check if user already exists
+    const existingUser = state.users.find(
+      user => user.name.toLowerCase() === newParticipantName.toLowerCase()
+    );
+    
+    if (existingUser) {
+      // Use existing user
+      if (!participants.includes(existingUser.id)) {
+        setParticipants([...participants, existingUser.id]);
+      }
+    } else {
+      // Create new user
+      dispatch({
+        type: 'ADD_USER',
+        payload: { name: newParticipantName }
+      });
+    }
+    
+    setNewParticipantName('');
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // TODO: Implement event creation logic
-    console.log('Event data:', formData);
-    alert('This functionality will be implemented soon!');
+    
+    if (!name || !startDate || participants.length === 0) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    // Add the event
+    dispatch({
+      type: 'ADD_EVENT',
+      payload: {
+        name,
+        description,
+        startDate,
+        endDate: endDate || undefined,
+        participants,
+      }
+    });
+    
+    // Navigate to events list
+    router.push('/events/list');
   };
-
+  
   return (
-    <main className={styles.container}>
-      <div className={styles.formContainer}>
-        <h1 className={styles.heading}>Create New Event</h1>
+    <div className={styles.container}>
+      <h1 className={styles.title}>New Event</h1>
+      
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.formGroup}>
+          <label htmlFor="name" className={styles.label}>
+            Event Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className={styles.input}
+            placeholder="e.g., Trip to Paris"
+          />
+        </div>
         
-        <form onSubmit={handleSubmit}>
+        <div className={styles.formGroup}>
+          <label htmlFor="description" className={styles.label}>
+            Description (Optional)
+          </label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={styles.textarea}
+            placeholder="Add any details about the event"
+            rows={3}
+          />
+        </div>
+        
+        <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label htmlFor="name" className={styles.label}>Event Name</label>
+            <label htmlFor="startDate" className={styles.label}>
+              Start Date
+            </label>
             <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={styles.input}
-              required
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="description" className={styles.label}>Description</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              className={styles.textarea}
-            ></textarea>
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="startDate" className={styles.label}>Start Date</label>
-            <input
-              type="date"
               id="startDate"
-              name="startDate"
-              value={formData.startDate}
-              onChange={handleChange}
-              className={styles.input}
-              required
-            />
-          </div>
-          
-          <div className={styles.formGroup}>
-            <label htmlFor="endDate" className={styles.label}>End Date</label>
-            <input
               type="date"
-              id="endDate"
-              name="endDate"
-              value={formData.endDate}
-              onChange={handleChange}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
               className={styles.input}
             />
           </div>
           
           <div className={styles.formGroup}>
-            <label htmlFor="participants" className={styles.label}>Participants (comma-separated)</label>
+            <label htmlFor="endDate" className={styles.label}>
+              End Date (Optional)
+            </label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className={styles.input}
+              min={startDate}
+            />
+          </div>
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Participants</label>
+          
+          <div className={styles.participantsList}>
+            {participants.length > 0 ? (
+              state.users
+                .filter(user => participants.includes(user.id))
+                .map(user => (
+                  <div key={user.id} className={styles.participantItem}>
+                    <span>{user.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setParticipants(participants.filter(id => id !== user.id))}
+                      className={styles.removeButton}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+            ) : (
+              <p className={styles.noParticipants}>No participants selected</p>
+            )}
+          </div>
+          
+          <div className={styles.addParticipant}>
             <input
               type="text"
-              id="participants"
-              name="participants"
-              value={formData.participants}
-              onChange={handleChange}
-              placeholder="e.g., Alice, Bob, Charlie"
-              className={styles.input}
-              required
+              value={newParticipantName}
+              onChange={(e) => setNewParticipantName(e.target.value)}
+              className={styles.participantInput}
+              placeholder="Enter participant name"
             />
-          </div>
-          
-          <div className={styles.formActions}>
-            <Link href="/" className={styles.cancelButton}>
-              Cancel
-            </Link>
-            <button 
-              type="submit" 
-              className={styles.submitButton}
+            <button
+              type="button"
+              onClick={handleAddParticipant}
+              className={styles.addButton}
             >
-              Create Event
+              Add
             </button>
           </div>
-        </form>
-      </div>
-    </main>
+          
+          <div className={styles.existingUsers}>
+            <p className={styles.existingUsersTitle}>Or select existing users:</p>
+            <div className={styles.userList}>
+              {state.users
+                .filter(user => !participants.includes(user.id))
+                .map(user => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setParticipants([...participants, user.id])}
+                    className={styles.userButton}
+                  >
+                    {user.name}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+        
+        <div className={styles.buttonGroup}>
+          <button type="submit" className={styles.submitButton}>
+            Create Event
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className={styles.cancelButton}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
