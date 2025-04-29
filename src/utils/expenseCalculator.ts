@@ -7,12 +7,20 @@ interface DebtMap {
   };
 }
 
+// Enhanced settlement interface with conversion details
 interface Settlement {
   fromUser: string;
   toUser: string;
   amount: number;
   expenseIds: string[];
   eventId?: string;
+  conversionDetails?: {
+    originalCurrency: string;
+    originalAmount: number;
+    targetCurrency: string;
+    exchangeRate: number;
+    date: string;
+  }[];
 }
 
 // Calculate settlements between users
@@ -152,5 +160,36 @@ export const calculateSettlementsWithConversion = async (
   );
   
   // Use the regular settlement calculation with converted expenses
-  return calculateSettlements(convertedExpenses, users, eventId);
+  const settlements = calculateSettlements(convertedExpenses, users, eventId);
+  
+  // Now enrich the settlements with conversion details
+  return settlements.map(settlement => {
+    // Find the expenses for this settlement that had currency conversions
+    const conversionDetails = settlement.expenseIds
+      .map(expId => {
+        const originalExpense = expenses.find(e => e.id === expId);
+        const convertedExpense = convertedExpenses.find(e => e.id === expId);
+        
+        if (originalExpense && convertedExpense && originalExpense.currency !== targetCurrency) {
+          return {
+            originalCurrency: originalExpense.currency,
+            originalAmount: originalExpense.amount,
+            targetCurrency,
+            exchangeRate: convertedExpense.amount / originalExpense.amount,
+            date: new Date().toISOString() // Use current date as the conversion date
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    
+    if (conversionDetails.length > 0) {
+      return {
+        ...settlement,
+        conversionDetails
+      };
+    }
+    
+    return settlement;
+  });
 };

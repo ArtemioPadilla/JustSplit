@@ -326,3 +326,190 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Calculation Details Section */
+.calculationDetails {
+  background-color: white;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.detailHeader {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detailHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--primary-color);
+}
+
+.toggleIcon {
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.detailContent {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.detailContent.expanded {
+  max-height: 1000px;
+}
+
+.detailSection {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detailSection:last-child {
+  border-bottom: none;
+}
+
+.detailSection h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.detailSection h5 {
+  margin: 12px 0 8px 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.currencyBreakdown {
+  margin-top: 12px;
+}
+
+.currencyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.currencyItem {
+  padding: 4px 0;
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+}
+
+.currencyCode {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.exchangeRatesTable {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.ratesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ratesTable th, .ratesTable td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ratesTable th {
+  font-weight: 500;
+  color: #6b7280;
+  background-color: #f8fafc;
+}
+
+.rateValue {
+  font-family: monospace;
+}
+
+.disclaimer {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Settlement Expenses Details */
+.settlementExpenses {
+  margin-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 12px;
+}
+
+.expensesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.detailsToggle {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.expensesDetails {
+  margin-top: 8px;
+}
+
+.expensesList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.expenseItem {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.expenseItem:last-child {
+  border-bottom: none;
+}
+
+.expenseName {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.expenseInfo {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.expenseAmount {
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.convertedAmount {
+  margin-left: 6px;
+  font-style: italic;
+  color: #6b7280;
+}

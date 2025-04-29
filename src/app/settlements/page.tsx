@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { calculateSettlements, calculateSettlementsWithConversion } from '../../utils/expenseCalculator';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
+import { SUPPORTED_CURRENCIES, getExchangeRate } from '../../utils/currencyExchange';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
 
@@ -18,6 +18,31 @@ export default function SettlementsPage() {
   const [displayCurrency, setDisplayCurrency] = useState<string>('USD');
   const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, { rate: number, timestamp: Date }>>({});
+  const [showExpensesBreakdown, setShowExpensesBreakdown] = useState<boolean>(false);
+  
+  // Utility function for formatting currency values
+  const formatCurrency = (amount: number): string => {
+    return amount.toFixed(2);
+  };
+  
+  // Calculate the total unsettled amount
+  const totalUnsettledAmount = useMemo(() => {
+    return pendingSettlements.reduce((sum, settlement) => sum + settlement.amount, 0);
+  }, [pendingSettlements]);
+  
+  // Helper function to get user name
+  const getUserName = (userId: string): string => {
+    const user = state.users.find(user => user.id === userId);
+    return user ? user.name : 'Unknown User';
+  };
+  
+  // Helper function to get event name
+  const getEventName = (eventId?: string): string => {
+    if (!eventId) return 'No Event';
+    const event = state.events.find(event => event.id === eventId);
+    return event ? event.name : 'Unknown Event';
+  };
   
   // Get events with unsettled expenses for the filter
   const eventsWithUnsettledExpenses = useMemo(() => {
@@ -26,11 +51,122 @@ export default function SettlementsPage() {
     return state.events.filter(event => eventIds.includes(event.id));
   }, [state.expenses, state.events]);
   
+  // Get filtered settlement history
+  const filteredSettlementHistory = useMemo(() => {
+    return selectedEventId === 'all'
+      ? state.settlements
+      : state.settlements.filter(s => s.eventId === selectedEventId);
+  }, [state.settlements, selectedEventId]);
+  
+  // Get filtered expenses (unsettled only)
+  const filteredExpenses = useMemo(() => {
+    const unsettledExpenses = state.expenses.filter(exp => !exp.settled);
+    return selectedEventId === 'all' 
+      ? unsettledExpenses
+      : unsettledExpenses.filter(exp => exp.eventId === selectedEventId);
+  }, [state.expenses, selectedEventId]);
+
+  // Get unique currencies in the filtered expenses
+  const expenseCurrencies = useMemo(() => {
+    const currencies = new Set(filteredExpenses.map(exp => exp.currency));
+    return Array.from(currencies);
+  }, [filteredExpenses]);
+  
+  // Calculate user balances for display
+  const balances = useMemo(() => {
+    const result: Record<string, { overall: number, byEvent: Record<string, number> }> = {};
+    
+    // Initialize balances for all users
+    state.users.forEach(user => {
+      result[user.id] = { 
+        overall: 0, 
+        byEvent: {} 
+      };
+      
+      // Initialize balance for each event
+      state.events.forEach(event => {
+        result[user.id].byEvent[event.id] = 0;
+      });
+    });
+    
+    // Calculate balances from expenses
+    state.expenses.filter(exp => !exp.settled).forEach(expense => {
+      const paidBy = expense.paidBy;
+      const participants = expense.participants;
+      const amountPerPerson = expense.amount / participants.length;
+      
+      participants.forEach(participantId => {
+        // Skip the person who paid
+        if (participantId === paidBy) return;
+        
+        // Update overall balance
+        result[participantId].overall -= amountPerPerson;
+        result[paidBy].overall += amountPerPerson;
+        
+        // Update event-specific balance if expense is part of an event
+        if (expense.eventId) {
+          result[participantId].byEvent[expense.eventId] = 
+            (result[participantId].byEvent[expense.eventId] || 0) - amountPerPerson;
+            
+          result[paidBy].byEvent[expense.eventId] = 
+            (result[paidBy].byEvent[expense.eventId] || 0) + amountPerPerson;
+        }
+      });
+    });
+    
+    return result;
+  }, [state.users, state.expenses, state.events]);
+  
+  // Handle settling up
+  const handleSettleUp = (settlement: any) => {
+    dispatch({
+      type: 'ADD_SETTLEMENT',
+      payload: {
+        fromUser: settlement.fromUser,
+        toUser: settlement.toUser,
+        amount: settlement.amount,
+        expenseIds: settlement.expenseIds,
+        eventId: settlement.eventId
+      }
+    });
+    
+    // Recalculate pending settlements
+    const updatedSettlements = pendingSettlements.filter(
+      s => s.fromUser !== settlement.fromUser || s.toUser !== settlement.toUser
+    );
+    setPendingSettlements(updatedSettlements);
+  };
+  
+  // Fetch exchange rates for all currencies
+  const fetchExchangeRates = async () => {
+    const rates: Record<string, { rate: number, timestamp: Date }> = {};
+    
+    for (const currency of expenseCurrencies) {
+      if (currency !== displayCurrency) {
+        try {
+          const rate = await getExchangeRate(currency, displayCurrency);
+          rates[currency] = { 
+            rate, 
+            timestamp: new Date() 
+          };
+        } catch (error) {
+          console.error(`Error fetching rate for ${currency} to ${displayCurrency}:`, error);
+          rates[currency] = { rate: 1, timestamp: new Date() };
+        }
+      }
+    }
+    
+    setExchangeRates(rates);
+  };
+  
   // Calculate pending settlements based on selected event and currency
   useEffect(() => {
     const fetchSettlements = async () => {
       setIsLoading(true);
       try {
+        // Fetch exchange rates first
+        await fetchExchangeRates();
+        
         const settlements = await calculateSettlementsWithConversion(
           state.expenses,
           state.users,
@@ -99,6 +235,79 @@ export default function SettlementsPage() {
         </div>
       </div>
       
+      {/* Calculation Details Section */}
+      <div className={styles.calculationDetails}>
+        <div className={styles.detailHeader} onClick={() => setShowExpensesBreakdown(!showExpensesBreakdown)}>
+          <h3>Calculation Details</h3>
+          <span className={styles.toggleIcon}>{showExpensesBreakdown ? '▼' : '►'}</span>
+        </div>
+        
+        <div className={`${styles.detailContent} ${showExpensesBreakdown ? styles.expanded : ''}`}>
+          <div className={styles.detailSection}>
+            <h4>Expenses Included</h4>
+            <p>
+              <strong>{filteredExpenses.length}</strong> unsettled expenses 
+              {selectedEventId !== 'all' ? ` from event "${getEventName(selectedEventId)}"` : ' across all events'}
+            </p>
+            
+            {filteredExpenses.length > 0 && (
+              <div className={styles.currencyBreakdown}>
+                <h5>Currency Breakdown:</h5>
+                <ul className={styles.currencyList}>
+                  {expenseCurrencies.map(currency => {
+                    const count = filteredExpenses.filter(exp => exp.currency === currency).length;
+                    const total = filteredExpenses
+                      .filter(exp => exp.currency === currency)
+                      .reduce((sum, exp) => sum + exp.amount, 0);
+                    
+                    return (
+                      <li key={currency} className={styles.currencyItem}>
+                        <span className={styles.currencyCode}>{currency}:</span> 
+                        <span>{count} expenses totaling {currency} {total.toFixed(2)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          {expenseCurrencies.length > 1 && (
+            <div className={styles.detailSection}>
+              <h4>Exchange Rates Used</h4>
+              <p>All amounts converted to {displayCurrency} for settlement calculations.</p>
+              
+              <div className={styles.exchangeRatesTable}>
+                <table className={styles.ratesTable}>
+                  <thead>
+                    <tr>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Rate</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(exchangeRates).map(([fromCurrency, data]) => (
+                      <tr key={fromCurrency}>
+                        <td>{fromCurrency}</td>
+                        <td>{displayCurrency}</td>
+                        <td className={styles.rateValue}>1 {fromCurrency} = {data.rate.toFixed(4)} {displayCurrency}</td>
+                        <td>{data.timestamp.toLocaleTimeString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              <p className={styles.disclaimer}>
+                Exchange rates are fetched from Yahoo Finance API and cached for 1 hour.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+      
       <div className={styles.tabs}>
         <button 
           className={`${styles.tabButton} ${activeTab === 'pending' ? styles.activeTab : ''}`}
@@ -136,11 +345,15 @@ export default function SettlementsPage() {
               <div className={styles.summaryCard}>
                 <div className={styles.summaryItem}>
                   <span className={styles.summaryLabel}>Total Unsettled</span>
-                  <span className={styles.summaryValue}>${formatCurrency(totalUnsettledAmount)}</span>
+                  <span className={styles.summaryValue}>{displayCurrency} {formatCurrency(totalUnsettledAmount)}</span>
                 </div>
                 <div className={styles.summaryItem}>
                   <span className={styles.summaryLabel}>Settlements</span>
                   <span className={styles.summaryValue}>{pendingSettlements.length}</span>
+                </div>
+                <div className={styles.summaryItem}>
+                  <span className={styles.summaryLabel}>Expenses Included</span>
+                  <span className={styles.summaryValue}>{filteredExpenses.length}</span>
                 </div>
               </div>
               
@@ -160,7 +373,7 @@ export default function SettlementsPage() {
                         </div>
                       </div>
                       <div className={styles.settlementAmount}>
-                        ${formatCurrency(settlement.amount)}
+                        {displayCurrency} {formatCurrency(settlement.amount)}
                       </div>
                     </div>
                     
@@ -170,6 +383,54 @@ export default function SettlementsPage() {
                         <span className={styles.eventName}>{getEventName(settlement.eventId)}</span>
                       </div>
                     )}
+                    
+                    {/* Add expense details for the settlement */}
+                    <div className={styles.settlementExpenses}>
+                      <div className={styles.expensesHeader} onClick={() => {
+                        // Toggle expense details view (you'll need to add state for this)
+                        // This is a simplified example - in reality, you'd track which settlements are expanded
+                        const element = document.getElementById(`expenses-${index}`);
+                        if (element) {
+                          element.style.display = element.style.display === 'none' ? 'block' : 'none';
+                        }
+                      }}>
+                        <span>Based on {settlement.expenseIds.length} expenses</span>
+                        <span className={styles.detailsToggle}>Show details</span>
+                      </div>
+                      
+                      <div id={`expenses-${index}`} className={styles.expensesDetails} style={{display: 'none'}}>
+                        <ul className={styles.expensesList}>
+                          {settlement.expenseIds.map(expId => {
+                            const expense = state.expenses.find(e => e.id === expId);
+                            if (!expense) return null;
+                            
+                            // If currency conversion was needed, display the original amount
+                            const needsConversion = expense.currency !== displayCurrency;
+                            const convertedAmount = needsConversion 
+                              ? (exchangeRates[expense.currency]?.rate || 1) * expense.amount 
+                              : expense.amount;
+                            
+                            return (
+                              <li key={expId} className={styles.expenseItem}>
+                                <div className={styles.expenseName}>{expense.description}</div>
+                                <div className={styles.expenseInfo}>
+                                  <span>Paid by: {getUserName(expense.paidBy)}</span>
+                                  <span>Date: {new Date(expense.date).toLocaleDateString()}</span>
+                                  <span className={styles.expenseAmount}>
+                                    {expense.currency} {expense.amount.toFixed(2)}
+                                    {needsConversion && (
+                                      <span className={styles.convertedAmount}>
+                                        ≈ {displayCurrency} {convertedAmount.toFixed(2)}
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
                     
                     <div className={styles.settlementActions}>
                       <button 
