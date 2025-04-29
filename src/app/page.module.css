@@ -49,27 +49,50 @@
   gap: 0.75rem;
 }
 
+/* New dashboard summary section for prominent metrics */
+.dashboardSummary {
+  margin-bottom: 2rem;
+}
+
+.summaryCard {
+  background-color: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 .dashboardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
 }
 
 .dashboardCard {
   background-color: white;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  min-height: 300px;
 }
 
 .cardTitle {
   font-size: 1.25rem;
   font-weight: 600;
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+
+.cardTitle::after {
+  content: '';
+  flex-grow: 1;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin-left: 1rem;
 }
 
 .summaryStats {
@@ -83,24 +106,228 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  position: relative;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  background-color: #f9fafb;
+  width: 30%;
 }
 
 .statValue {
   font-size: 2rem;
   font-weight: 700;
   color: var(--primary-color);
+  margin-bottom: 0.25rem;
 }
 
 .statLabel {
   font-size: 0.875rem;
   color: #6b7280;
-  margin-top: 0.25rem;
+}
+
+.statIcon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--secondary-color);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+/* Charts and visualizations */
+.chartContainer {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.barChart {
+  flex-grow: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 180px;
+  margin-bottom: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+  background-color: #f9fafb; /* Light background for better contrast */
+}
+
+.barChart::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+  opacity: 0.5;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative; /* For positioning debug text */
+}
+
+.bar {
+  width: 75%;
+  background-color: var(--primary-color);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+  min-height: 0; /* Allow zero height */
+  border: 1px solid rgba(0,0,0,0.1); /* Add border for better visibility */
+}
+
+.barDebug {
+  position: absolute;
+  top: -20px;
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  width: 100%;
+}
+
+.barLabel {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.chartLegend {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.legendTotal {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.legendValue {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Distribution chart */
+.distributionChart {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.distributionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.distributionLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.categoryColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.distributionBar {
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.distributionFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.distributionValue {
+  font-size: 0.75rem;
+  text-align: right;
+  color: #6b7280;
+}
+
+/* Balance distribution */
+.balanceChart {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.balanceItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.balanceName {
+  width: 25%;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.balanceBarContainer {
+  flex-grow: 1;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.balanceBar {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.positiveBalance {
+  background-color: #10b981; /* green */
+}
+
+.negativeBalance {
+  background-color: #ef4444; /* red */
+}
+
+.balanceValue {
+  width: 20%;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.positive {
+  color: #10b981; /* green */
+}
+
+.negative {
+  color: #ef4444; /* red */
 }
 
 .expensesList, .eventsList, .settlementsList {
   list-style: none;
   padding: 0;
   margin: 0 0 1rem 0;
+  flex-grow: 1;
 }
 
 .expenseItem, .eventItem, .settlementItem {
@@ -137,6 +364,11 @@
   color: #9ca3af;
 }
 
+.cardFooter {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
 .viewAllLink {
   margin-top: auto;
   text-align: center;
@@ -163,6 +395,15 @@
   .dashboardGrid {
     grid-template-columns: 1fr;
   }
+  
+  .summaryStats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .statItem {
+    width: 100%;
+  }
 }
 
 .createButton {
@@ -182,4 +423,15 @@
   color: var(--primary-color);
   margin-top: 0.25rem;
   font-style: italic;
+}
+
+.settlementUsers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.settlementArrow {
+  color: #9ca3af;
 }
