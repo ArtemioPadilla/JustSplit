@@ -12,14 +12,21 @@ export default function SettlementsPage() {
   const { state, dispatch } = useAppContext();
   const [activeTab, setActiveTab] = useState<'pending' | 'history' | 'balance'>('pending');
   
-  // Initialize with event param from URL if available
-  const eventParam = searchParams.get('event');
+  // Get event param from URL - Move this before the state check
+  const eventParam = searchParams?.get('event') || null;
+  
+  // Initialize all state hooks at the top level
   const [selectedEventId, setSelectedEventId] = useState<string>(eventParam || 'all');
   const [displayCurrency, setDisplayCurrency] = useState<string>('USD');
   const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, { rate: number, timestamp: Date }>>({});
   const [showExpensesBreakdown, setShowExpensesBreakdown] = useState<boolean>(false);
+  
+  // Add null check for state AFTER all hooks are declared
+  if (!state) {
+    return <div className={styles.loadingState}>Loading application data...</div>;
+  }
   
   // Utility function for formatting currency values
   const formatCurrency = (amount: number): string => {
@@ -33,34 +40,34 @@ export default function SettlementsPage() {
   
   // Helper function to get user name
   const getUserName = (userId: string): string => {
-    const user = state.users.find(user => user.id === userId);
+    const user = (state.users || []).find(user => user.id === userId);
     return user ? user.name : 'Unknown User';
   };
   
   // Helper function to get event name
   const getEventName = (eventId?: string): string => {
     if (!eventId) return 'No Event';
-    const event = state.events.find(event => event.id === eventId);
+    const event = (state.events || []).find(event => event.id === eventId);
     return event ? event.name : 'Unknown Event';
   };
   
   // Get events with unsettled expenses for the filter
   const eventsWithUnsettledExpenses = useMemo(() => {
-    const unsettledExpenses = state.expenses.filter(exp => !exp.settled);
+    const unsettledExpenses = (state.expenses || []).filter(exp => !exp.settled);
     const eventIds = [...new Set(unsettledExpenses.map(exp => exp.eventId).filter(Boolean))];
-    return state.events.filter(event => eventIds.includes(event.id));
+    return (state.events || []).filter(event => eventIds.includes(event.id));
   }, [state.expenses, state.events]);
   
   // Get filtered settlement history
   const filteredSettlementHistory = useMemo(() => {
     return selectedEventId === 'all'
-      ? state.settlements
-      : state.settlements.filter(s => s.eventId === selectedEventId);
+      ? (state.settlements || [])
+      : (state.settlements || []).filter(s => s.eventId === selectedEventId);
   }, [state.settlements, selectedEventId]);
   
   // Get filtered expenses (unsettled only)
   const filteredExpenses = useMemo(() => {
-    const unsettledExpenses = state.expenses.filter(exp => !exp.settled);
+    const unsettledExpenses = (state.expenses || []).filter(exp => !exp.settled);
     return selectedEventId === 'all' 
       ? unsettledExpenses
       : unsettledExpenses.filter(exp => exp.eventId === selectedEventId);
@@ -77,20 +84,20 @@ export default function SettlementsPage() {
     const result: Record<string, { overall: number, byEvent: Record<string, number> }> = {};
     
     // Initialize balances for all users
-    state.users.forEach(user => {
+    (state.users || []).forEach(user => {
       result[user.id] = { 
         overall: 0, 
         byEvent: {} 
       };
       
       // Initialize balance for each event
-      state.events.forEach(event => {
+      (state.events || []).forEach(event => {
         result[user.id].byEvent[event.id] = 0;
       });
     });
     
     // Calculate balances from expenses
-    state.expenses.filter(exp => !exp.settled).forEach(expense => {
+    (state.expenses || []).filter(exp => !exp.settled).forEach(expense => {
       const paidBy = expense.paidBy;
       const participants = expense.participants;
       const amountPerPerson = expense.amount / participants.length;
@@ -168,8 +175,8 @@ export default function SettlementsPage() {
         await fetchExchangeRates();
         
         const settlements = await calculateSettlementsWithConversion(
-          state.expenses,
-          state.users,
+          state.expenses || [],
+          state.users || [],
           displayCurrency,
           selectedEventId === 'all' ? undefined : selectedEventId
         );
@@ -178,8 +185,8 @@ export default function SettlementsPage() {
         console.error('Error calculating settlements:', error);
         // Fallback to regular calculation without conversion
         const settlements = calculateSettlements(
-          state.expenses,
-          state.users,
+          state.expenses || [],
+          state.users || [],
           selectedEventId === 'all' ? undefined : selectedEventId
         );
         setPendingSettlements(settlements);

@@ -21,16 +21,59 @@ This document outlines the UI components used in the JustSplit application, prov
 - **Usage**: This component is displayed after expenses are entered, helping users understand their financial obligations.
 
 ### 5. Payment Integration Button
-- **Description**: A button that allows users to initiate payments through integrated platforms like PayPal or Venmo.
-- **Usage**: This component is used in the settlement summary to facilitate quick payments between users.
+- **Description**: A button that allows users to settle expenses through a payment provider.
+- **Usage**: This component appears alongside settlement amounts to facilitate quick payments.
 
 ### 6. Notifications
-- **Description**: A component that displays alerts and notifications to users regarding new expenses, payments, or updates.
-- **Usage**: This component is used throughout the application to keep users informed in real-time.
+- **Description**: A component that displays notifications and alerts to users.
+- **Usage**: This component can be shown anywhere in the application to provide feedback to users.
 
 ### 7. Footer
-- **Description**: The footer component contains links to privacy policies, terms of service, and contact information.
-- **Usage**: It is displayed at the bottom of every page for easy access to important information.
+- **Description**: The footer component contains links to additional information and support resources.
+- **Usage**: It is displayed at the bottom of every page to provide consistent access to supplementary information.
+
+### 8. Dashboard Components
+The dashboard is composed of several reusable components:
+
+#### 8.1 Welcome Screen
+- **Description**: Initial screen displayed to new users with no data.
+- **Usage**: Shown instead of the dashboard when a user has no expenses or events.
+
+#### 8.2 Dashboard Header
+- **Description**: Contains the dashboard title and quick action buttons.
+- **Usage**: Positioned at the top of the dashboard for easy access to common actions.
+
+#### 8.3 Financial Summary
+- **Description**: Shows key financial metrics including total tracked expenses, unsettled expenses, and pending settlements.
+- **Usage**: Displayed prominently in the dashboard to give users a quick financial overview.
+
+#### 8.4 Monthly Trends Chart
+- **Description**: Interactive chart showing expense trends over the last 6 months with filtering options.
+- **Usage**: Provides visual representation of spending patterns over time.
+
+#### 8.5 Expense Distribution
+- **Description**: Shows how expenses are distributed across different categories or events.
+- **Usage**: Helps users understand their spending patterns by category.
+
+#### 8.6 Balance Overview
+- **Description**: Visual representation of balances between users.
+- **Usage**: Shows who owes whom and how much at a glance.
+
+#### 8.7 Recent Expenses
+- **Description**: List of the most recent expenses added to the system.
+- **Usage**: Provides quick access to recently added expenses.
+
+#### 8.8 Recent Settlements
+- **Description**: List of the most recent settlements made between users.
+- **Usage**: Shows recent payment activity.
+
+#### 8.9 Upcoming Events
+- **Description**: List of future events with dates and participant counts.
+- **Usage**: Reminds users of upcoming events that may require expense planning.
+
+### 9. Currency Exchange Ticker
+- **Description**: A scrolling ticker showing exchange rates for different currencies.
+- **Usage**: Displayed on the dashboard to provide up-to-date currency exchange information.
 
 ## Component Guidelines
 

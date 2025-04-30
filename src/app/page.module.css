@@ -567,20 +567,15 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.loadingIndicator {
-  font-style: italic;
-  font-size: 0.8rem;
-  opacity: 0.8;
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+  text-align: center;
   animation: pulse 1.5s infinite;
-}
-
-.conversionError {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border-radius: 4px;
-  font-size: 0.85rem;
 }
 
 @keyframes pulse {

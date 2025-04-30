@@ -199,26 +199,41 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+interface AppProviderProps {
+  children: React.ReactNode;
+  initialState?: AppState; // Add this line for testing
+}
 
-  // Load data from localStorage on initial render
+export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState }) => {
+  // Initialize with the provided initialState, or fall back to initialState (default state)
+  const [state, dispatch] = useReducer(reducer, initialState || initialState);
+
+  // Load data from localStorage on initial render - only if initialState is not provided
   useEffect(() => {
-    const savedData = localStorage.getItem('justSplitData');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData) as AppState;
-        dispatch({ type: 'LOAD_DATA', payload: parsedData });
-      } catch (error) {
-        console.error('Failed to parse saved data:', error);
+    if (!initialState) {
+      const savedData = localStorage.getItem('justSplitData');
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData) as AppState;
+          dispatch({ type: 'LOAD_DATA', payload: parsedData });
+        } catch (error) {
+          console.error('Failed to parse saved data:', error);
+          // If parsing fails, initialize with default state to prevent undefined state
+          dispatch({ type: 'LOAD_DATA', payload: { users: [], expenses: [], events: [], settlements: [] } });
+        }
+      } else {
+        // If no saved data, initialize with empty state
+        dispatch({ type: 'LOAD_DATA', payload: { users: [], expenses: [], events: [], settlements: [] } });
       }
     }
-  }, []);
+  }, [initialState]);
 
-  // Save data to localStorage whenever state changes
+  // Save data to localStorage whenever state changes, unless we're in test mode (initialState is provided)
   useEffect(() => {
-    localStorage.setItem('justSplitData', JSON.stringify(state));
-  }, [state]);
+    if (!initialState && state !== initialState) {
+      localStorage.setItem('justSplitData', JSON.stringify(state));
+    }
+  }, [state, initialState]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
