@@ -236,6 +236,13 @@ export default function EventDetail() {
         </button>
         
         <button
+          className={`${styles.actionButton} ${styles.editButton}`}
+          onClick={() => router.push(`/events/edit/${eventId}`)}
+        >
+          Edit Event
+        </button>
+        
+        <button
           className={`${styles.actionButton} ${styles.secondaryButton}`}
           onClick={() => router.push(`/settlements?event=${eventId}`)}
         >

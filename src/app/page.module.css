@@ -450,3 +450,147 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Chart controls */
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.chartControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controlLabel {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.buttonToggle {
+  display: flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.toggleButton {
+  padding: 0.25rem 0.75rem;
+  background-color: #f9fafb;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleActive {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.switchControl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.switchLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Enhanced bar chart */
+.stackedBar {
+  width: 75%;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.barSegment {
+  transition: all 0.3s ease;
+}
+
+.barSegment:hover {
+  filter: brightness(1.1);
+}
+
+/* Legend for chart */
+.legendItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.legendColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.chartLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 180px;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.loadingIndicator {
+  font-style: italic;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  animation: pulse 1.5s infinite;
+}
+
+.conversionError {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}

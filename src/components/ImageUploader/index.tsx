@@ -6,105 +6,114 @@ import styles from './styles.module.css';
 interface ImageUploaderProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
+  maxImages?: number;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ images, onImagesChange }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ 
+  images, 
+  onImagesChange,
+  maxImages = 5
+}) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
     setIsUploading(true);
-    setUploadError(null);
-
-    const file = files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to upload image');
-      }
-
-      const data = await response.json();
+    
+    const files = Array.from(e.target.files);
+    const newImages: string[] = [];
+    
+    // Process each file
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) return;
       
-      // Add the new image URL to the existing images array
-      onImagesChange([...images, data.url]);
-    } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(error instanceof Error ? error.message : 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          newImages.push(event.target.result as string);
+          
+          // If we've processed all files, update state
+          if (newImages.length === files.length) {
+            const combinedImages = [...images, ...newImages].slice(0, maxImages);
+            onImagesChange(combinedImages);
+            setIsUploading(false);
+          }
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    });
   };
-
+  
   const handleRemoveImage = (index: number) => {
     const newImages = [...images];
     newImages.splice(index, 1);
     onImagesChange(newImages);
   };
-
+  
   return (
-    <div className={styles.uploader}>
-      <div className={styles.imageGrid}>
-        {images.map((image, index) => (
-          <div key={index} className={styles.imageContainer}>
-            <img 
-              src={image} 
-              alt={`Receipt ${index + 1}`} 
-              className={styles.thumbnail} 
-            />
-            <button 
-              type="button" 
-              className={styles.removeButton}
-              onClick={() => handleRemoveImage(index)}
-            >
-              ✕
-            </button>
+    <div className={styles.container}>
+      {/* Image preview area */}
+      <div className={styles.previewArea}>
+        {images.length > 0 ? (
+          <div className={styles.imagesGrid}>
+            {images.map((image, index) => (
+              <div key={index} className={styles.imageContainer}>
+                <img 
+                  src={image} 
+                  alt={`Upload ${index + 1}`} 
+                  className={styles.previewImage} 
+                />
+                <button 
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  className={styles.removeButton}
+                  aria-label="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            
+            {images.length < maxImages && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={styles.addMoreButton}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Uploading...' : `+ Add ${images.length === 0 ? 'Images' : 'More'}`}
+              </button>
+            )}
           </div>
-        ))}
-        
-        <label className={styles.uploadButton}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleUpload}
-            className={styles.fileInput}
-            disabled={isUploading}
-          />
-          {isUploading ? (
-            <span>Uploading...</span>
-          ) : (
-            <>
-              <span className={styles.uploadIcon}>+</span>
-              <span>Add Image</span>
-            </>
-          )}
-        </label>
+        ) : (
+          <div className={styles.uploadPrompt}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={styles.uploadButton}
+              disabled={isUploading}
+            >
+              {isUploading ? 'Uploading...' : 'Upload Images'}
+            </button>
+            <p className={styles.uploadText}>
+              Upload receipt images or photos of your expenses
+            </p>
+          </div>
+        )}
       </div>
       
-      {uploadError && (
-        <div className={styles.errorMessage}>{uploadError}</div>
-      )}
-      
-      <p className={styles.helpText}>
-        Upload receipts or other evidence of the expense.
-        Supported formats: JPEG, PNG, WebP. Max size: 5MB.
-      </p>
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        multiple
+        className={styles.fileInput}
+      />
     </div>
   );
 };

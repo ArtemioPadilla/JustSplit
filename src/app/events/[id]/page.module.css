@@ -280,6 +280,15 @@
   background-color: #f0f0f0;
 }
 
+.editButton {
+  background-color: #f59e0b; /* amber color for edit button */
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #d97706; /* darker amber for hover state */
+}
+
 @media (max-width: 640px) {
   .participantsList {
     grid-template-columns: 1fr;
@@ -298,6 +307,11 @@
   
   .actions {
     flex-direction: column;
+    width: 100%;
+  }
+  
+  .actionButton {
+    width: 100%;
   }
   
   .expenseDetails {

@@ -1,195 +1,210 @@
-import { User, Expense } from '../context/AppContext';
+import { Expense, User } from '../context/AppContext';
 import { convertCurrency } from './currencyExchange';
 
-interface DebtMap {
-  [userId: string]: {
-    [creditorId: string]: number;
-  };
-}
-
-// Enhanced settlement interface with conversion details
 interface Settlement {
   fromUser: string;
   toUser: string;
   amount: number;
   expenseIds: string[];
   eventId?: string;
-  conversionDetails?: {
-    originalCurrency: string;
-    originalAmount: number;
-    targetCurrency: string;
-    exchangeRate: number;
-    date: string;
-  }[];
 }
 
-// Calculate settlements between users
-export const calculateSettlements = (
+// Calculate optimal settlements between users
+export function calculateSettlements(
   expenses: Expense[], 
-  users: User[], 
+  users: User[],
   eventId?: string
-): Settlement[] => {
+): Settlement[] {
   // Filter expenses by event if eventId is provided
   const filteredExpenses = eventId 
-    ? expenses.filter(exp => exp.eventId === eventId && !exp.settled)
-    : expenses.filter(exp => !exp.settled);
+    ? expenses.filter(e => e.eventId === eventId && !e.settled)
+    : expenses.filter(e => !e.settled);
   
-  // Create a map of debts between users
-  const debts: DebtMap = {};
-  const expenseIdsByDebtors: Record<string, Record<string, string[]>> = {};
+  if (filteredExpenses.length === 0) return [];
   
-  // Initialize debts map
+  // Calculate net balance for each user
+  const balances: Record<string, number> = {};
+  
+  // Initialize balances
   users.forEach(user => {
-    debts[user.id] = {};
-    users.forEach(otherUser => {
-      if (user.id !== otherUser.id) {
-        debts[user.id][otherUser.id] = 0;
-      }
-    });
+    balances[user.id] = 0;
   });
   
-  // Initialize expense ids tracking
-  users.forEach(user => {
-    expenseIdsByDebtors[user.id] = {};
-    users.forEach(otherUser => {
-      if (user.id !== otherUser.id) {
-        expenseIdsByDebtors[user.id][otherUser.id] = [];
-      }
-    });
-  });
-  
-  // Calculate net amounts for each expense
+  // Calculate balances from expenses
   filteredExpenses.forEach(expense => {
-    // Skip settled expenses
-    if (expense.settled) return;
+    const { paidBy, participants, amount } = expense;
+    const amountPerPerson = amount / participants.length;
     
-    const payerId = expense.paidBy;
-    const participantCount = expense.participants.length;
-    
-    if (participantCount === 0) return;
-    
-    const amountPerPerson = expense.amount / participantCount;
-    
-    expense.participants.forEach(participantId => {
-      if (participantId === payerId) return; // Payer doesn't owe themselves
+    participants.forEach(participantId => {
+      // Skip the person who paid
+      if (participantId === paidBy) return;
       
-      // Participant owes payer
-      debts[participantId][payerId] += amountPerPerson;
+      // Decrease participant balance (they owe money)
+      balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
       
-      // Track which expenses contribute to this debt
-      if (!expenseIdsByDebtors[participantId][payerId]) {
-        expenseIdsByDebtors[participantId][payerId] = [];
-      }
-      expenseIdsByDebtors[participantId][payerId].push(expense.id);
+      // Increase payer balance (they are owed money)
+      balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
     });
   });
   
-  // Simplify debts (cancel out mutual debts)
-  users.forEach(user1 => {
-    users.forEach(user2 => {
-      if (user1.id === user2.id) return;
-      
-      // If both users owe each other, cancel out the smaller amount
-      const user1OwesUser2 = debts[user1.id][user2.id];
-      const user2OwesUser1 = debts[user2.id][user1.id];
-      
-      if (user1OwesUser2 > 0 && user2OwesUser1 > 0) {
-        if (user1OwesUser2 >= user2OwesUser1) {
-          debts[user1.id][user2.id] -= user2OwesUser1;
-          debts[user2.id][user1.id] = 0;
-        } else {
-          debts[user2.id][user1.id] -= user1OwesUser2;
-          debts[user1.id][user2.id] = 0;
-        }
-      }
-    });
+  // Identify debtors and creditors
+  const debtors: { id: string; amount: number }[] = [];
+  const creditors: { id: string; amount: number }[] = [];
+  
+  Object.entries(balances).forEach(([userId, balance]) => {
+    // Skip users with zero balance
+    if (Math.abs(balance) < 0.01) return;
+    
+    if (balance < 0) {
+      debtors.push({ id: userId, amount: -balance }); // Convert to positive amount
+    } else {
+      creditors.push({ id: userId, amount: balance });
+    }
   });
   
-  // Convert to settlements array
+  // Sort debtors and creditors by amount (desc)
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+  
+  // Generate settlements
   const settlements: Settlement[] = [];
   
-  users.forEach(debtor => {
-    users.forEach(creditor => {
-      if (debtor.id === creditor.id) return;
-      
-      const amount = debts[debtor.id][creditor.id];
-      if (amount > 0) {
-        settlements.push({
-          fromUser: debtor.id,
-          toUser: creditor.id,
-          amount,
-          expenseIds: expenseIdsByDebtors[debtor.id][creditor.id],
-          eventId
-        });
-      }
-    });
-  });
-  
-  return settlements;
-};
-
-// Helper function to convert all expenses to a single currency for accurate settlement calculation
-export const calculateSettlementsWithConversion = async (
-  expenses: Expense[],
-  users: User[],
-  targetCurrency: string = 'USD',
-  eventId?: string
-): Promise<Settlement[]> => {
-  // Create a copy of expenses to avoid modifying the original
-  const convertedExpenses = await Promise.all(
-    expenses.map(async (expense) => {
-      if (expense.currency === targetCurrency) {
-        return { ...expense };
-      }
-      
-      // Convert amount to target currency
-      const convertedAmount = await convertCurrency(
-        expense.amount,
-        expense.currency,
-        targetCurrency
-      );
-      
-      return {
-        ...expense,
-        amount: convertedAmount,
-        originalAmount: expense.amount,
-        originalCurrency: expense.currency,
-        currency: targetCurrency
-      };
-    })
-  );
-  
-  // Use the regular settlement calculation with converted expenses
-  const settlements = calculateSettlements(convertedExpenses, users, eventId);
-  
-  // Now enrich the settlements with conversion details
-  return settlements.map(settlement => {
-    // Find the expenses for this settlement that had currency conversions
-    const conversionDetails = settlement.expenseIds
-      .map(expId => {
-        const originalExpense = expenses.find(e => e.id === expId);
-        const convertedExpense = convertedExpenses.find(e => e.id === expId);
-        
-        if (originalExpense && convertedExpense && originalExpense.currency !== targetCurrency) {
-          return {
-            originalCurrency: originalExpense.currency,
-            originalAmount: originalExpense.amount,
-            targetCurrency,
-            exchangeRate: convertedExpense.amount / originalExpense.amount,
-            date: new Date().toISOString() // Use current date as the conversion date
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
+  while (debtors.length > 0 && creditors.length > 0) {
+    const debtor = debtors[0];
+    const creditor = creditors[0];
     
-    if (conversionDetails.length > 0) {
-      return {
-        ...settlement,
-        conversionDetails
-      };
+    // Calculate settlement amount (minimum of what is owed and what is to be received)
+    const settlementAmount = Math.min(debtor.amount, creditor.amount);
+    
+    if (settlementAmount > 0) {
+      // Find related expenses for this settlement
+      const relatedExpenseIds = filteredExpenses
+        .filter(expense => 
+          expense.paidBy === creditor.id && 
+          expense.participants.includes(debtor.id)
+        )
+        .map(expense => expense.id);
+      
+      // Create settlement
+      settlements.push({
+        fromUser: debtor.id,
+        toUser: creditor.id,
+        amount: settlementAmount,
+        expenseIds: relatedExpenseIds,
+        eventId
+      });
+      
+      // Update balances
+      debtor.amount -= settlementAmount;
+      creditor.amount -= settlementAmount;
     }
     
-    return settlement;
+    // Remove users with zero balance
+    if (debtor.amount < 0.01) debtors.shift();
+    if (creditor.amount < 0.01) creditors.shift();
+  }
+  
+  return settlements;
+}
+
+// Calculate settlements with currency conversion
+export async function calculateSettlementsWithConversion(
+  expenses: Expense[], 
+  users: User[],
+  targetCurrency: string,
+  eventId?: string
+): Promise<Settlement[]> {
+  // Filter expenses by event if eventId is provided
+  const filteredExpenses = eventId 
+    ? expenses.filter(e => e.eventId === eventId && !e.settled)
+    : expenses.filter(e => !e.settled);
+  
+  if (filteredExpenses.length === 0) return [];
+  
+  // Calculate net balance for each user, converting currencies as needed
+  const balances: Record<string, number> = {};
+  
+  // Initialize balances
+  users.forEach(user => {
+    balances[user.id] = 0;
   });
-};
+  
+  // Process each expense with currency conversion
+  for (const expense of filteredExpenses) {
+    const { paidBy, participants, amount, currency } = expense;
+    
+    // Convert amount to target currency
+    const convertedAmount = await convertCurrency(amount, currency, targetCurrency);
+    const amountPerPerson = convertedAmount / participants.length;
+    
+    participants.forEach(participantId => {
+      // Skip the person who paid
+      if (participantId === paidBy) return;
+      
+      // Decrease participant balance (they owe money)
+      balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
+      
+      // Increase payer balance (they are owed money)
+      balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
+    });
+  }
+  
+  // Identify debtors and creditors
+  const debtors: { id: string; amount: number }[] = [];
+  const creditors: { id: string; amount: number }[] = [];
+  
+  Object.entries(balances).forEach(([userId, balance]) => {
+    // Skip users with zero balance
+    if (Math.abs(balance) < 0.01) return;
+    
+    if (balance < 0) {
+      debtors.push({ id: userId, amount: -balance }); // Convert to positive amount
+    } else {
+      creditors.push({ id: userId, amount: balance });
+    }
+  });
+  
+  // Sort debtors and creditors by amount (desc)
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+  
+  // Generate settlements
+  const settlements: Settlement[] = [];
+  
+  while (debtors.length > 0 && creditors.length > 0) {
+    const debtor = debtors[0];
+    const creditor = creditors[0];
+    
+    // Calculate settlement amount (minimum of what is owed and what is to be received)
+    const settlementAmount = Math.min(debtor.amount, creditor.amount);
+    
+    if (settlementAmount > 0) {
+      // Find related expenses for this settlement
+      const relatedExpenseIds = filteredExpenses
+        .filter(expense => 
+          expense.paidBy === creditor.id && 
+          expense.participants.includes(debtor.id)
+        )
+        .map(expense => expense.id);
+      
+      // Create settlement
+      settlements.push({
+        fromUser: debtor.id,
+        toUser: creditor.id,
+        amount: settlementAmount,
+        expenseIds: relatedExpenseIds,
+        eventId
+      });
+      
+      // Update balances
+      debtor.amount -= settlementAmount;
+      creditor.amount -= settlementAmount;
+    }
+    
+    // Remove users with zero balance
+    if (debtor.amount < 0.01) debtors.shift();
+    if (creditor.amount < 0.01) creditors.shift();
+  }
+  
+  return settlements;
+}
