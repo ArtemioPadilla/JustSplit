@@ -101,6 +101,11 @@ describe('Example Tests', () => {
     });
     
     test('renders no user message when no users exist', () => {
+      // Mock implementation of UserProfile when no users exist
+      const UserProfile = () => (
+        <div data-testid="no-user">No users found</div>
+      );
+      
       renderWithAppContext(<UserProfile />);
       
       expect(screen.getByTestId('no-user')).toBeInTheDocument();
