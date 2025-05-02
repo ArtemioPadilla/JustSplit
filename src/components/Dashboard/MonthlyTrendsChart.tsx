@@ -19,6 +19,7 @@ interface MonthlyTrendsChartProps {
   preferredCurrency: string;
 }
 
+
 export default function MonthlyTrendsChart({ 
   processedTrends, 
   users, 
@@ -35,6 +36,8 @@ export default function MonthlyTrendsChart({
     const hue = (index / total) * 360;
     return `hsl(${hue}, 70%, 50%)`;
   };
+  // Debugging: Log processedTrends data
+  console.log('Processed Trends:', processedTrends);
   
   if (isLoadingRates) {
     return (
@@ -96,6 +99,9 @@ export default function MonthlyTrendsChart({
           const heightPercentage = month.amount > 0
             ? Math.max(10, (month.amount / maxAmount) * 100)
             : 0;
+
+          // logging: Log month data maximum amount and height percentage
+          console.log(`Month: ${month.month}, Max Amount: ${maxAmount}, Height Percentage: ${heightPercentage}`);
           
           // Get the breakdown data based on selected coloring option
           const breakdown = colorBy === 'event' ? month.byEvent : month.byPayer;
@@ -103,10 +109,15 @@ export default function MonthlyTrendsChart({
           if (!breakdown || breakdown.length === 0) {
             return (
               <div className={styles.barGroup} key={index}>
+                {/* Añade este div para debug temporal */}
+                <div className={styles.barDebug}>
+                  {`${heightPercentage.toFixed(1)}%`}
+                </div>
                 <div className={styles.bar} 
                   style={{ 
                     height: `${heightPercentage}%`,
-                    backgroundColor: month.amount > 0 ? 'var(--primary-color)' : 'transparent'
+                    backgroundColor: month.amount > 0 ? 'var(--primary-color)' : '#e0e0e0',
+                    border: month.amount === 0 ? '1px dashed #aaa' : 'none'
                   }}
                   title={`${preferredCurrency} ${month.amount.toFixed(2)} (${month.count} expenses)`}
                 ></div>
@@ -118,6 +129,9 @@ export default function MonthlyTrendsChart({
           // Otherwise show a stacked bar with segments
           return (
             <div className={styles.barGroup} key={index}>
+              <div className={styles.barDebug}>
+                {`${heightPercentage.toFixed(1)}%`}
+              </div>
               <div 
                 className={styles.stackedBar}
                 style={{ height: `${heightPercentage}%` }}
@@ -125,6 +139,8 @@ export default function MonthlyTrendsChart({
               >
                 {breakdown.map((segment, segIndex) => {
                   const segmentHeight = (segment.percentage / 100) * heightPercentage;
+                  // logging: Log segment data
+                  console.log(`Segment: ${segment.name}, Amount: ${segment.amount}, Percentage: ${segment.percentage}, Height: ${segmentHeight}`);
                   return (
                     <div 
                       key={segIndex}
