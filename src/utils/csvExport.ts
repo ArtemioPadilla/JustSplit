@@ -92,3 +92,39 @@ export const exportExpensesToCSV = (
   const csvContent = expensesToCSV(expenses, users, events);
   downloadCSV(csvContent, filename);
 };
+
+/**
+ * Generic function to export any array of objects to CSV
+ * @param data Array of objects with consistent structure
+ * @param filename Name for the downloaded file
+ */
+export const exportToCSV = <T extends Record<string, any>>(data: T[], filename: string): void => {
+  // Ensure filename ends with .csv
+  const finalFilename = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  
+  // Handle empty data case
+  if (!data || data.length === 0) {
+    console.warn('No data provided for CSV export');
+    // Create empty CSV with just headers
+    const emptyCsv = Object.keys(data[0] || {}).join(',') + '\n';
+    downloadCSV(emptyCsv, finalFilename);
+    return;
+  }
+
+  // Generate headers from the first object's keys
+  const headers = Object.keys(data[0]);
+  
+  // Create CSV content
+  let csvContent = headers.join(',') + '\n';
+  
+  // Add data rows
+  csvContent += data.map(item => {
+    return headers.map(header => {
+      // Handle special characters and ensure the value is properly escaped for CSV
+      const value = item[header] != null ? item[header].toString() : '';
+      return `"${value.replace(/"/g, '""')}"`;
+    }).join(',');
+  }).join('\n');
+  
+  downloadCSV(csvContent, finalFilename);
+};

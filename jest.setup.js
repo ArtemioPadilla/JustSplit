@@ -71,18 +71,10 @@ global.fetch = jest.fn().mockImplementation(() =>
   })
 );
 
-// Mock URL.createObjectURL and URL.revokeObjectURL for image handling
-if (typeof URL.createObjectURL === 'undefined') {
-  Object.defineProperty(URL, 'createObjectURL', {
-    value: jest.fn(() => 'mock-url'),
-  });
-}
-
-if (typeof URL.revokeObjectURL === 'undefined') {
-  Object.defineProperty(URL, 'revokeObjectURL', {
-    value: jest.fn(),
-  });
-}
+// FIX: Direct mock for URL methods instead of using spyOn
+// Jest's environment doesn't have these methods defined
+global.URL.createObjectURL = jest.fn(() => 'mock-url');
+global.URL.revokeObjectURL = jest.fn();
 
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({

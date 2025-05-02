@@ -33,6 +33,15 @@ const customJestConfig = {
       statements: 70,
     },
   },
+  reporters: [
+    'default',
+    ['jest-html-reporter', {
+      pageTitle: 'Test Report',
+      outputPath: './reports/test-report.html',
+      includeFailureMsg: true,
+      includeConsoleLog: true,
+    }],
+  ]
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config

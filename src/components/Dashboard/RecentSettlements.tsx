@@ -1,25 +1,21 @@
+import React from 'react';
 import Link from 'next/link';
-import { Settlement, User, Event } from '../../context/AppContext';
 import styles from '../../app/page.module.css';
+import { useAppContext } from '../../context/AppContext';
 
-interface RecentSettlementsProps {
-  settlements: Settlement[];
-  users: User[];
-  events: Event[];
-}
+const RecentSettlements = () => {
+  const { state } = useAppContext();
+  const { settlements, users } = state;
 
-export default function RecentSettlements({ settlements, users, events }: RecentSettlementsProps) {
-  // Get user name by ID
-  const getUserName = (userId: string) => {
+  // Function to find user name by ID
+  const getUserName = (userId) => {
     const user = users.find(user => user.id === userId);
-    return user ? user.name : 'Unknown';
+    return user ? user.name : 'Unknown User';
   };
 
-  // Get event name by ID
-  const getEventName = (eventId?: string): string => {
-    if (!eventId) return '';
-    const event = events.find(event => event.id === eventId);
-    return event ? event.name : '';
+  // Format settlement display
+  const formatSettlement = (settlement) => {
+    return `${getUserName(settlement.fromUserId)} → ${getUserName(settlement.toUserId)}`;
   };
 
   return (
@@ -29,31 +25,33 @@ export default function RecentSettlements({ settlements, users, events }: Recent
         <ul className={styles.settlementsList}>
           {settlements.map(settlement => (
             <li key={settlement.id} className={styles.settlementItem}>
-              <div className={styles.settlementUsers}>
-                <span>{getUserName(settlement.fromUser)}</span>
-                <span className={styles.settlementArrow}>→</span>
-                <span>{getUserName(settlement.toUser)}</span>
-              </div>
-              <div className={styles.settlementDetails}>
-                <span>{new Date(settlement.date).toLocaleDateString()}</span>
-                <span className={styles.settlementAmount}>
-                  ${settlement.amount.toFixed(2)}
-                </span>
-              </div>
-              {settlement.eventId && (
-                <div className={styles.settlementEvent}>
-                  {getEventName(settlement.eventId)}
+              <Link href={`/settlements/${settlement.id}`}>
+                <div className={styles.settlementDetails}>
+                  <span className={styles.settlementUsers}>
+                    {formatSettlement(settlement)}
+                  </span>
+                  <span className={styles.settlementAmount}>
+                    {settlement.currency === 'USD' ? '$' : '€'}{settlement.amount.toFixed(2)}
+                  </span>
+                  <span className={styles.settlementDate}>
+                    {new Date(settlement.date).toLocaleDateString()}
+                  </span>
+                  <span className={styles.settlementStatus}>
+                    {settlement.status === 'completed' ? 'Completed' : 'Pending'}
+                  </span>
                 </div>
-              )}
+              </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className={styles.emptyMessage}>No settlements yet</p>
+        <p>No settlements yet</p>
       )}
-      <Link href="/settlements" className={styles.viewAllLink}>
-        View all settlements
-      </Link>
+      <div className={styles.viewAllLink}>
+        <Link href="/settlements">View all settlements</Link>
+      </div>
     </div>
   );
-}
+};
+
+export default RecentSettlements;

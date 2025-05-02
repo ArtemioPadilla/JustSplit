@@ -205,8 +205,13 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState }) => {
-  // Initialize with the provided initialState, or fall back to initialState (default state)
-  const [state, dispatch] = useReducer(reducer, initialState || initialState);
+  // Fix: Use the default initialState when no initialState is provided
+  const [state, dispatch] = useReducer(reducer, initialState || {
+    users: [],
+    expenses: [],
+    events: [],
+    settlements: [],
+  });
 
   // Load data from localStorage on initial render - only if initialState is not provided
   useEffect(() => {

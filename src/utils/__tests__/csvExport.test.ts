@@ -1,4 +1,4 @@
-import { expensesToCSV, downloadCSV, exportExpensesToCSV } from '../csvExport';
+import { expensesToCSV, downloadCSV, exportExpensesToCSV, exportToCSV } from '../csvExport';
 
 // Mock document methods for downloadCSV
 const mockAppendChild = jest.fn();
@@ -193,6 +193,68 @@ describe('CSV Export Utilities', () => {
       // Check if link was created and clicked
       expect(document.createElement).toHaveBeenCalledWith('a');
       expect(mockClick).toHaveBeenCalled();
+    });
+  });
+
+  describe('exportToCSV', () => {
+    beforeEach(() => {
+      // Clear all mocks before each test
+      jest.clearAllMocks();
+      
+      // Mock document.createElement
+      document.createElement = jest.fn().mockImplementation((tag) => {
+        if (tag === 'a') {
+          return {
+            setAttribute: jest.fn(),
+            style: { display: '' },
+            click: jest.fn(),
+            remove: jest.fn(),
+          };
+        }
+        return null;
+      });
+      
+      // Mock document.body.appendChild
+      document.body.appendChild = jest.fn();
+      document.body.removeChild = jest.fn();
+    });
+
+    test('exports data to CSV format', () => {
+      const testData = [
+        { name: 'John Doe', email: 'john@example.com', amount: 100 },
+        { name: 'Jane Smith', email: 'jane@example.com', amount: 150 }
+      ];
+      
+      exportToCSV(testData, 'test-export');
+      
+      // Check that URL.createObjectURL was called with a Blob
+      expect(window.URL.createObjectURL).toHaveBeenCalled();
+      
+      const mockCreateElement = document.createElement as jest.Mock;
+      const mockAnchorElement = mockCreateElement.mock.results[0].value;
+      
+      // Check that link was created with correct attributes
+      expect(mockAnchorElement.setAttribute).toHaveBeenCalledWith('href', 'mock-url');
+      expect(mockAnchorElement.setAttribute).toHaveBeenCalledWith('download', 'test-export.csv');
+      
+      // Check that click was called to download the file
+      expect(mockAnchorElement.click).toHaveBeenCalled();
+      
+      // Check that URL was revoked after download
+      expect(window.URL.revokeObjectURL).toHaveBeenCalled();
+    });
+
+    test('handles empty data gracefully', () => {
+      const testData = [];
+      
+      exportToCSV(testData, 'empty-export');
+      
+      // Should still create a CSV with headers only
+      expect(window.URL.createObjectURL).toHaveBeenCalled();
+      
+      const mockCreateElement = document.createElement as jest.Mock;
+      const mockAnchorElement = mockCreateElement.mock.results[0].value;
+      expect(mockAnchorElement.click).toHaveBeenCalled();
     });
   });
 });

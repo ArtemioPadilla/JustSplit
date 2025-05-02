@@ -1,12 +1,32 @@
+import React from 'react';
 import Link from 'next/link';
-import { Event } from '../../context/AppContext';
 import styles from '../../app/page.module.css';
+import { useAppContext } from '../../context/AppContext';
 
-interface UpcomingEventsProps {
-  events: Event[];
-}
+const UpcomingEvents = () => {
+  const { state } = useAppContext();
+  const { events } = state;
 
-export default function UpcomingEvents({ events }: UpcomingEventsProps) {
+  // Format date range using native Date methods instead of date-fns
+  const formatDateRange = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Format dates using toLocaleDateString
+    const startFormatted = start.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const endFormatted = end.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    return `${startFormatted} - ${endFormatted}`;
+  };
+
   return (
     <div className={styles.dashboardCard}>
       <h2 className={styles.cardTitle}>Upcoming Events</h2>
@@ -15,24 +35,25 @@ export default function UpcomingEvents({ events }: UpcomingEventsProps) {
           {events.map(event => (
             <li key={event.id} className={styles.eventItem}>
               <Link href={`/events/${event.id}`}>
-                <div className={styles.eventName}>{event.name}</div>
-                <div className={styles.eventDate}>
-                  {new Date(event.startDate).toLocaleDateString()}
-                  {event.endDate && ` - ${new Date(event.endDate).toLocaleDateString()}`}
-                </div>
-                <div className={styles.eventParticipants}>
-                  {event.participants.length} participants
+                <div className={styles.eventDetails}>
+                  <span className={styles.eventTitle}>{event.title}</span>
+                  <span className={styles.eventLocation}>{event.location}</span>
+                  <span className={styles.eventDate}>
+                    {formatDateRange(event.startDate, event.endDate)}
+                  </span>
                 </div>
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className={styles.emptyMessage}>No upcoming events</p>
+        <p>No upcoming events</p>
       )}
-      <Link href="/events/list" className={styles.viewAllLink}>
-        View all events
-      </Link>
+      <div className={styles.viewAllLink}>
+        <Link href="/events">View all events</Link>
+      </div>
     </div>
   );
-}
+};
+
+export default UpcomingEvents;

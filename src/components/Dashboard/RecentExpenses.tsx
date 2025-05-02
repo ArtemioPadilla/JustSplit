@@ -1,17 +1,17 @@
+import React from 'react';
 import Link from 'next/link';
-import { Expense, User } from '../../context/AppContext';
 import styles from '../../app/page.module.css';
+import { useAppContext } from '../../context/AppContext';
 
-interface RecentExpensesProps {
-  expenses: Expense[];
-  users: User[];
-}
+const RecentExpenses = () => {
+  // Fix: Access expenses from state instead of directly
+  const { state } = useAppContext();
+  const { expenses, users } = state;
 
-export default function RecentExpenses({ expenses, users }: RecentExpensesProps) {
-  // Get user name by ID
-  const getUserName = (userId: string) => {
+  // Function to find user name by ID
+  const getUserName = (userId) => {
     const user = users.find(user => user.id === userId);
-    return user ? user.name : 'Unknown';
+    return user ? user.name : 'Unknown User';
   };
 
   return (
@@ -22,26 +22,30 @@ export default function RecentExpenses({ expenses, users }: RecentExpensesProps)
           {expenses.map(expense => (
             <li key={expense.id} className={styles.expenseItem}>
               <Link href={`/expenses/${expense.id}`}>
-                <div className={styles.expenseName}>{expense.description}</div>
                 <div className={styles.expenseDetails}>
-                  <span>{new Date(expense.date).toLocaleDateString()}</span>
+                  <span className={styles.expenseDescription}>{expense.description}</span>
                   <span className={styles.expenseAmount}>
-                    {expense.currency} {expense.amount.toFixed(2)}
+                    {expense.currency === 'USD' ? '$' : '€'}{expense.amount.toFixed(2)}
                   </span>
-                </div>
-                <div className={styles.expensePaidBy}>
-                  Paid by {getUserName(expense.paidBy)}
+                  <span className={styles.expensePaidBy}>
+                    {getUserName(expense.paidBy)}
+                  </span>
+                  <span className={styles.expenseDate}>
+                    {expense.settled ? 'Settled' : new Date(expense.date).toLocaleDateString()}
+                  </span>
                 </div>
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className={styles.emptyMessage}>No expenses yet</p>
+        <p>No expenses yet</p>
       )}
-      <Link href="/expenses/list" className={styles.viewAllLink}>
-        View all expenses
-      </Link>
+      <div className={styles.viewAllLink}>
+        <Link href="/expenses">View all expenses</Link>
+      </div>
     </div>
   );
-}
+};
+
+export default RecentExpenses;

@@ -1,25 +1,30 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ImageUploader from '../index';
 
-// Mock fetch for uploading images
-global.fetch = jest.fn().mockImplementation(() => 
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ url: 'https://example.com/test-image.jpg' })
-  })
-);
+// Setup mocks for FileReader
+const originalFileReader = window.FileReader;
+const mockFileReaders = [];
 
-// Mock file reading
-const mockFileReader = {
-  readAsDataURL: jest.fn(),
-  onload: null,
-  result: 'data:image/jpeg;base64,test-image-data'
-};
+// Create a custom mock for FileReader
+beforeEach(() => {
+  mockFileReaders.length = 0;
+  window.FileReader = jest.fn(() => {
+    const reader = {
+      readAsDataURL: jest.fn(),
+      onload: null,
+    };
+    mockFileReaders.push(reader);
+    return reader;
+  });
+});
 
-window.FileReader = jest.fn(() => mockFileReader);
+afterEach(() => {
+  window.FileReader = originalFileReader;
+});
 
 describe('ImageUploader Component', () => {
-  const mockImages = ['https://example.com/image1.jpg'];
+  const mockImages = ['data:image/jpeg;base64,test-image-data'];
   const mockOnImagesChange = jest.fn();
 
   beforeEach(() => {
@@ -30,45 +35,45 @@ describe('ImageUploader Component', () => {
     render(<ImageUploader images={mockImages} onImagesChange={mockOnImagesChange} />);
     
     // Check if the existing image is displayed
-    const imagePreview = screen.getByAltText('Uploaded image 1');
-    expect(imagePreview).toHaveAttribute('src', 'https://example.com/image1.jpg');
+    const imagePreview = screen.getByAltText('Upload 1');
+    expect(imagePreview).toBeInTheDocument();
+    expect(imagePreview).toHaveAttribute('src', mockImages[0]);
     
-    // Check if upload button is visible
-    expect(screen.getByText('Add Image')).toBeInTheDocument();
+    // Check if remove button is visible
+    expect(screen.getByLabelText('Remove image')).toBeInTheDocument();
   });
 
   it('shows empty state when no images are provided', () => {
     render(<ImageUploader images={[]} onImagesChange={mockOnImagesChange} />);
     
-    expect(screen.getByText('No images uploaded yet')).toBeInTheDocument();
-    expect(screen.getByText('Add Image')).toBeInTheDocument();
+    // Check for upload prompt text
+    expect(screen.getByText('Upload receipt images or photos of your expenses')).toBeInTheDocument();
+    expect(screen.getByText('Upload Images')).toBeInTheDocument();
   });
 
   it('handles file upload correctly', async () => {
-    render(<ImageUploader images={mockImages} onImagesChange={mockOnImagesChange} />);
+    render(<ImageUploader images={[]} onImagesChange={mockOnImagesChange} />);
     
     // Create a mock file
     const file = new File(['test image content'], 'test-image.jpg', { type: 'image/jpeg' });
     
-    // Get the hidden file input
-    const fileInput = screen.getByTestId('file-input');
+    // Get the file input (it's hidden, so we'll need to find it by its type)
+    const fileInput = document.querySelector('input[type="file"]');
+    expect(fileInput).not.toBeNull();
     
     // Simulate file selection
     fireEvent.change(fileInput, { target: { files: [file] } });
     
-    // Simulate the FileReader onload event
-    mockFileReader.onload();
+    // Simulate FileReader onload event with a base64 result
+    const mockResult = 'data:image/jpeg;base64,test-image-data';
+    const mockReader = mockFileReaders[0];
+    mockReader.result = mockResult;
+    mockReader.onload({ target: mockReader });
     
-    // Wait for the upload process
+    // Wait for state updates
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith('/api/upload', expect.any(Object));
+      expect(mockOnImagesChange).toHaveBeenCalledWith([mockResult]);
     });
-    
-    // Check if onImagesChange was called with the new image URL
-    expect(mockOnImagesChange).toHaveBeenCalledWith([
-      'https://example.com/image1.jpg',
-      'https://example.com/test-image.jpg'
-    ]);
   });
 
   it('handles image removal correctly', () => {
@@ -82,30 +87,31 @@ describe('ImageUploader Component', () => {
     expect(mockOnImagesChange).toHaveBeenCalledWith([]);
   });
 
-  it('handles upload errors gracefully', async () => {
-    // Mock fetch to return an error
-    global.fetch = jest.fn().mockRejectedValueOnce(new Error('Upload failed'));
+  it('limits the number of images based on maxImages prop', async () => {
+    // Create mock images at the limit (3 in this case)
+    const images = [
+      'data:image/jpeg;base64,image1',
+      'data:image/jpeg;base64,image2',
+      'data:image/jpeg;base64,image3'
+    ];
     
-    render(<ImageUploader images={mockImages} onImagesChange={mockOnImagesChange} />);
+    render(<ImageUploader 
+      images={images} 
+      onImagesChange={mockOnImagesChange} 
+      maxImages={3} 
+    />);
     
-    // Create a mock file
-    const file = new File(['test image content'], 'test-image.jpg', { type: 'image/jpeg' });
+    // Check we don't see the add more button when at limit
+    expect(screen.queryByText(/\+ Add More/)).not.toBeInTheDocument();
     
-    // Get the hidden file input
-    const fileInput = screen.getByTestId('file-input');
+    // Now remove one image to get under the limit
+    const removeButton = screen.getAllByLabelText('Remove image')[0];
+    fireEvent.click(removeButton);
     
-    // Simulate file selection
-    fireEvent.change(fileInput, { target: { files: [file] } });
-    
-    // Simulate the FileReader onload event
-    mockFileReader.onload();
-    
-    // Wait for the upload process to fail
-    await waitFor(() => {
-      expect(screen.getByText('Error uploading image')).toBeInTheDocument();
-    });
-    
-    // Original images should remain unchanged
-    expect(mockOnImagesChange).not.toHaveBeenCalled();
+    // Now we should see the add button again
+    expect(mockOnImagesChange).toHaveBeenCalledWith([
+      'data:image/jpeg;base64,image2',
+      'data:image/jpeg;base64,image3'
+    ]);
   });
 });

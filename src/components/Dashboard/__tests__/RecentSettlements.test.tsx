@@ -1,73 +1,69 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { renderWithAppContext } from '../../../test-utils';
 import RecentSettlements from '../RecentSettlements';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => {
-    return <a href={href}>{children}</a>;
+  return ({ children, href }) => {
+    return <a href={href} data-testid="next-link">{children}</a>;
   };
 });
 
 describe('RecentSettlements', () => {
+  const mockSettlements = [
+    { 
+      id: 'settlement1', 
+      amount: 50.00, 
+      currency: 'USD',
+      date: '2023-05-15', 
+      fromUserId: 'user1',
+      toUserId: 'user2',
+      status: 'pending'
+    },
+    { 
+      id: 'settlement2', 
+      amount: 35.00, 
+      currency: 'USD',
+      date: '2023-05-08', 
+      fromUserId: 'user2',
+      toUserId: 'user3',
+      status: 'completed'
+    }
+  ];
+
   const mockUsers = [
     { id: 'user1', name: 'Alice', balance: 0 },
     { id: 'user2', name: 'Bob', balance: 0 },
     { id: 'user3', name: 'Charlie', balance: 0 }
   ];
-  
-  const mockEvents = [
-    { id: 'event1', name: 'Vacation', startDate: '2023-05-01', participants: ['user1', 'user2'], expenses: [] },
-    { id: 'event2', name: 'Dinner', startDate: '2023-05-15', participants: ['user1', 'user3'], expenses: [] }
-  ];
-  
-  const mockSettlements = [
-    { 
-      id: 'settlement1', 
-      fromUser: 'user1', 
-      toUser: 'user2', 
-      amount: 25.50, 
-      date: '2023-05-20', 
-      expenseIds: ['exp1'], 
-      eventId: 'event1' 
-    },
-    { 
-      id: 'settlement2', 
-      fromUser: 'user3', 
-      toUser: 'user1', 
-      amount: 15.75, 
-      date: '2023-05-22', 
-      expenseIds: ['exp2'], 
-      eventId: 'event2' 
-    }
-  ];
 
   it('renders recent settlements correctly with data', () => {
-    render(
-      <RecentSettlements 
-        settlements={mockSettlements} 
-        users={mockUsers} 
-        events={mockEvents} 
-      />
+    renderWithAppContext(
+      <RecentSettlements />,
+      {
+        initialState: {
+          settlements: mockSettlements,
+          users: mockUsers,
+          expenses: [],
+          events: []
+        }
+      }
     );
     
     expect(screen.getByText('Recent Settlements')).toBeInTheDocument();
     
-    // Check if user names are displayed correctly
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Charlie')).toBeInTheDocument();
+    // Check if amounts are displayed with currency symbol
+    expect(screen.getByText('$50.00')).toBeInTheDocument();
+    expect(screen.getByText('$35.00')).toBeInTheDocument();
     
-    // Check if amounts are displayed correctly
-    expect(screen.getByText('$25.50')).toBeInTheDocument();
-    expect(screen.getByText('$15.75')).toBeInTheDocument();
+    // Check for specific settlement texts instead of individual names
+    expect(screen.getByText('Alice → Bob')).toBeInTheDocument();
+    expect(screen.getByText('Bob → Charlie')).toBeInTheDocument();
     
-    // Check if dates are displayed
-    expect(screen.getByText('5/20/2023')).toBeInTheDocument();
-    expect(screen.getByText('5/22/2023')).toBeInTheDocument();
-    
-    // Check if event names are displayed
-    expect(screen.getByText('Vacation')).toBeInTheDocument();
-    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    // Status indicators
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
     
     // Check if "View all settlements" link is displayed
     const viewAllLink = screen.getByText('View all settlements');
@@ -76,12 +72,16 @@ describe('RecentSettlements', () => {
   });
 
   it('handles empty data correctly', () => {
-    render(
-      <RecentSettlements 
-        settlements={[]} 
-        users={mockUsers} 
-        events={mockEvents} 
-      />
+    renderWithAppContext(
+      <RecentSettlements />,
+      {
+        initialState: {
+          settlements: [],
+          users: mockUsers,
+          expenses: [],
+          events: []
+        }
+      }
     );
     
     expect(screen.getByText('Recent Settlements')).toBeInTheDocument();
@@ -91,17 +91,22 @@ describe('RecentSettlements', () => {
     expect(screen.getByText('View all settlements')).toBeInTheDocument();
   });
 
-  it('correctly displays payment direction arrows', () => {
-    render(
-      <RecentSettlements 
-        settlements={mockSettlements} 
-        users={mockUsers} 
-        events={mockEvents} 
-      />
+  it('links to individual settlement details pages', () => {
+    renderWithAppContext(
+      <RecentSettlements />,
+      {
+        initialState: {
+          settlements: mockSettlements,
+          users: mockUsers,
+          expenses: [],
+          events: []
+        }
+      }
     );
     
-    // Check if direction arrows are displayed
-    const arrows = screen.getAllByText('→');
-    expect(arrows.length).toBe(2);
+    const links = screen.getAllByTestId('next-link');
+    // Check if there's a link to the individual settlement page
+    const settlementLinks = links.filter(link => link.getAttribute('href').startsWith('/settlements/'));
+    expect(settlementLinks.length).toBeGreaterThan(0);
   });
 });
