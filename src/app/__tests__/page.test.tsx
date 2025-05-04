@@ -25,8 +25,18 @@ describe('Home', () => {
   test('renders the action buttons', () => {
     renderWithAppContext(<Home />);
     
-    // Your assertions for action buttons
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThan(0);
+    // Look for links instead of buttons
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    
+    // Check for "Add Expense" link
+    const addExpenseLink = screen.getByRole('link', { name: /add expense/i });
+    expect(addExpenseLink).toBeInTheDocument();
+    expect(addExpenseLink).toHaveAttribute('href', '/expenses/new');
+    
+    // Check for "Create Event" link
+    const createEventLink = screen.getByRole('link', { name: /create event/i });
+    expect(createEventLink).toBeInTheDocument();
+    expect(createEventLink).toHaveAttribute('href', '/events/new');
   });
 });

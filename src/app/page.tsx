@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { calculateSettlements } from '../utils/expenseCalculator';
+import { calculateSettlementsWithConversion } from '../utils/expenseCalculator';
 import CurrencyExchangeTicker from '../components/CurrencyExchangeTicker';
 import { getExchangeRate, SUPPORTED_CURRENCIES } from '../utils/currencyExchange';
 
@@ -28,34 +28,46 @@ export default function Home() {
   const hasData = state?.expenses?.length > 0 || state?.events?.length > 0;
   const preferredCurrency = state?.users?.length > 0 ? state.users[0].preferredCurrency || 'USD' : 'USD';
   
-  // Calculate financial summary
-  const financialSummary = useMemo(() => {
-    if (!state) return { totalSpent: 0, unsettledCount: 0, pendingSettlements: [], totalPendingAmount: 0, upcomingEvents: [] };
-    
-    // Calculate how much the user has spent
-    const totalSpent = state.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
-    const currency = SUPPORTED_CURRENCIES.find(c => c.code === preferredCurrency);
-    
-    // Calculate unsettled expenses
-    const unsettledExpenses = state.expenses?.filter(exp => !exp.settled) || [];
-    
-    // Calculate upcoming events (events with start dates in the future)
-    const today = new Date();
-    const upcomingEvents = state.events
-      ?.filter(event => new Date(event.startDate) >= today)
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()) || [];
-    
-    // Calculate pending settlements
-    const pendingSettlements = calculateSettlements(state.expenses || [], state.users || []);
-    const totalPendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
-    
-    return {
-      totalSpent,
-      unsettledCount: unsettledExpenses.length,
-      pendingSettlements,
-      totalPendingAmount,
-      upcomingEvents: upcomingEvents.slice(0, 3) // Show only the next 3 events
+  const [financialSummary, setFinancialSummary] = useState({
+    totalSpent: 0,
+    unsettledCount: 0,
+    pendingSettlements: [],
+    totalPendingAmount: 0,
+    upcomingEvents: []
+  });
+
+  useEffect(() => {
+    const calculateFinancialSummary = async () => {
+      if (!state) return;
+      
+      // Calculate how much the user has spent
+      const totalSpent = state.expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+      const currency = SUPPORTED_CURRENCIES.find(c => c.code === preferredCurrency);
+      
+      // Calculate unsettled expenses
+      const unsettledExpenses = state.expenses?.filter(exp => !exp.settled) || [];
+      
+      // Calculate upcoming events (events with start dates in the future)
+      const today = new Date();
+      const upcomingEvents = state.events
+        ?.filter(event => new Date(event.startDate) >= today)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()) || [];
+      
+      // Calculate pending settlements
+      const pendingSettlements = await calculateSettlementsWithConversion(state.expenses || [], state.users || []);
+      const totalPendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
+      
+      const summary = {
+        totalSpent,
+        unsettledCount: unsettledExpenses.length,
+        pendingSettlements,
+        totalPendingAmount,
+        upcomingEvents: upcomingEvents.slice(0, 3) // Show only the next 3 events
+      };
+      setFinancialSummary(summary);
     };
+
+    calculateFinancialSummary();
   }, [state, preferredCurrency]);
   
   // Get recent expenses

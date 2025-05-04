@@ -128,25 +128,38 @@ export async function calculateSettlementsWithConversion(
   users.forEach(user => {
     balances[user.id] = 0;
   });
-  
-  // Process each expense with currency conversion
-  for (const expense of filteredExpenses) {
-    const { paidBy, participants, amount, currency } = expense;
-    
-    // Convert amount to target currency
-    const convertedAmount = await convertCurrency(amount, currency, targetCurrency);
-    const amountPerPerson = convertedAmount / participants.length;
-    
-    participants.forEach(participantId => {
-      // Skip the person who paid
-      if (participantId === paidBy) return;
+
+  try {
+    // Process each expense with currency conversion
+    for (const expense of filteredExpenses) {
+      const { paidBy, participants, amount, currency } = expense;
+
+      // Convert amount to target currency
+      let convertedAmount = amount;
+      if (currency !== targetCurrency) {
+        try {
+          convertedAmount = await convertCurrency(amount, currency, targetCurrency);
+        } catch (error) {
+          console.error(`Currency conversion failed for expense ${expense.id}:`, error);
+          continue; // Skip this expense if conversion fails
+        }
+      }
+      const amountPerPerson = convertedAmount / participants.length;
       
-      // Decrease participant balance (they owe money)
-      balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
-      
-      // Increase payer balance (they are owed money)
-      balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
-    });
+      participants.forEach(participantId => {
+        // Skip the person who paid
+        if (participantId === paidBy) return;
+        
+        // Decrease participant balance (they owe money)
+        balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
+        
+        // Increase payer balance (they are owed money)
+        balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
+      });
+    }
+  } catch (error) {
+    console.error('Error during settlement calculation:', error);
+    return []; // Return empty settlements to prevent crashing
   }
   
   // Identify debtors and creditors
@@ -208,3 +221,45 @@ export async function calculateSettlementsWithConversion(
   
   return settlements;
 }
+
+/**
+ * Calculate settlements with currency conversion
+//  */
+// export const calculateSettlementsWithConversion = async (
+//   expenses: Expense[],
+//   targetCurrency: string,
+//   eventId?: string
+// ): Promise<Settlement[]> => {
+//   // Filter expenses by event if eventId is provided
+//   const filteredExpenses = eventId
+//     ? expenses.filter(e => e.eventId === eventId && !e.settled)
+//     : expenses.filter(e => !e.settled);
+
+//   if (filteredExpenses.length === 0) {
+//     return [];
+//   }
+
+//   // Convert all expenses to target currency
+//   const convertedExpenses = await Promise.all(
+//     filteredExpenses.map(async (expense) => {
+//       if (expense.currency === targetCurrency) {
+//         return { ...expense };
+//       }
+      
+//       const convertedAmount = await convertCurrency(
+//         expense.amount,
+//         expense.currency,
+//         targetCurrency
+//       );
+      
+//       return {
+//         ...expense,
+//         amount: convertedAmount,
+//         currency: targetCurrency
+//       };
+//     })
+//   );
+
+//   // Calculate settlements with the converted expenses
+//   return calculateSettlements(convertedExpenses);
+// };
