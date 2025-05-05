@@ -1,4 +1,5 @@
 import { Expense, User, Event } from '../context/AppContext';
+import { ensureCSVExtension } from './fileUtils';
 
 /**
  * Function to escape special characters in CSV values
@@ -122,14 +123,13 @@ export const exportExpensesToCSV = (
  */
 export const exportToCSV = <T extends Record<string, any>>(data: T[], filename: string): void => {
   // Ensure filename ends with .csv
-  import { ensureCSVExtension } from './fileUtils';
 
   if (!data || data.length === 0) {
     warn('No data provided for CSV export');
     // Even with no data, we should still create an empty CSV
     // to ensure the download function gets called in tests
     const csvContent = '';
-    downloadCSV(csvContent, ensureCSVExtension(filename || 'export'));
+    downloadCSV(csvContent, ensureCSVExtension(filename || 'export.csv'));
     return;
   }
 
