@@ -30,337 +30,270 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
   { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
   { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
-  { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
 ];
 
 /**
- * Cache for storing exchange rates to avoid unnecessary API calls
- * Format: { 'USD-EUR': { rate: 0.85, timestamp: 1620000000000 } }
+ * Cache for exchange rates to reduce API calls.
+ * Format: { 'USD_EUR': { rate: 0.85, timestamp: 1633028114462, isFallback: false } }
  */
-export const exchangeRateCache: {
-  [key: string]: { rate: number; timestamp: number };
-} = {};
+interface RateCache {
+  [key: string]: {
+    rate: number;
+    timestamp: number;
+    isFallback: boolean;  // Flag to indicate if this rate is from fallback data
+  };
+}
 
 /**
- * Cache validity period in milliseconds (1 hour)
- * After this period, cached rates are considered stale and will be refreshed
+ * Fallback exchange rates to use when the API is unavailable.
+ * These are approximate rates that may not be current but can serve as a fallback.
+ * Format: { 'USD_EUR': 0.85 }
  */
-const CACHE_VALIDITY = 60 * 60 * 1000;
+const FALLBACK_RATES: { [key: string]: number } = {
+  // Base USD to other currencies
+  'USD_EUR': 0.93,
+  'USD_GBP': 0.79,
+  'USD_JPY': 149.5,
+  'USD_CAD': 1.37,
+  'USD_AUD': 1.52,
+  'USD_CHF': 0.89,
+  'USD_CNY': 7.23,
+  'USD_INR': 83.45,
+  'USD_MXN': 17.05,
+  'USD_BRL': 5.05,
+  'USD_RUB': 91.5,
+  'USD_KRW': 1345.8,
+  'USD_SGD': 1.35,
+  'USD_NZD': 1.64,
+  
+  // Base EUR to other currencies
+  'EUR_USD': 1.08,
+  'EUR_GBP': 0.85,
+  'EUR_JPY': 161.3,
+  'EUR_CAD': 1.47,
+  'EUR_AUD': 1.64,
+  'EUR_CHF': 0.96,
+  'EUR_CNY': 7.8,
+  'EUR_INR': 90.1,
+  'EUR_MXN': 18.4,
+  'EUR_BRL': 5.45,
+  'EUR_RUB': 98.7,
+  'EUR_KRW': 1453.0,
+  'EUR_SGD': 1.46,
+  'EUR_NZD': 1.77,
+  
+  // Add more fallback rates as needed based on common currency pairs
+  'GBP_USD': 1.27,
+  'GBP_EUR': 1.18,
+  'JPY_USD': 0.0067,
+  'CAD_USD': 0.73,
+};
+
+// Initialize the exchange rate cache
+export const exchangeRateCache: RateCache = {};
+
+// Cache expiration time in milliseconds (1 hour)
+const CACHE_EXPIRATION = 60 * 60 * 1000;
 
 /**
- * Default fallback rates to use when API calls fail
- * These are approximate and should only be used temporarily when the API is unavailable
- * The outer key is the 'from' currency, inner key is the 'to' currency
+ * Checks if a cached exchange rate is still valid
+ * @param timestamp The time when the rate was cached
+ * @returns Whether the cached rate is still valid or should be refreshed
  */
-const DEFAULT_FALLBACK_RATES: { [key: string]: { [key: string]: number } } = {
-  'USD': { 
-    'EUR': 0.92, 'GBP': 0.78, 'JPY': 150.5, 'CAD': 1.35, 'AUD': 1.52, 
-    'CHF': 0.89, 'CNY': 7.23, 'INR': 83.5, 'MXN': 16.8, 'BRL': 5.05, 
-    'RUB': 91.5, 'KRW': 1345, 'SGD': 1.34, 'NZD': 1.65, 'HKD': 7.82
-  },
-  'EUR': { 
-    'USD': 1.09, 'GBP': 0.85, 'JPY': 163.8, 'CAD': 1.47, 'AUD': 1.65, 
-    'CHF': 0.97, 'CNY': 7.87, 'INR': 91.0, 'MXN': 18.3, 'BRL': 5.50, 
-    'RUB': 100.0, 'KRW': 1465, 'SGD': 1.46, 'NZD': 1.80, 'HKD': 8.52
-  },
-  'GBP': { 
-    'USD': 1.28, 'EUR': 1.18, 'JPY': 193.7, 'CAD': 1.74, 'AUD': 1.95, 
-    'CHF': 1.14, 'CNY': 9.32, 'INR': 107.5, 'MXN': 21.6, 'BRL': 6.50, 
-    'RUB': 118.0, 'KRW': 1730, 'SGD': 1.73, 'NZD': 2.13, 'HKD': 10.06
-  },
-  'SGD': { 
-    'USD': 0.75, 'EUR': 0.68, 'GBP': 0.58, 'JPY': 112.3, 'CAD': 1.01, 
-    'AUD': 1.13, 'CHF': 0.66, 'CNY': 5.40, 'INR': 62.3, 'MXN': 12.5, 
-    'BRL': 3.75, 'RUB': 68.2, 'KRW': 1000, 'NZD': 1.23, 'HKD': 5.83
-  }
+const isCacheValid = (timestamp: number): boolean => {
+  return Date.now() - timestamp < CACHE_EXPIRATION;
 };
 
 /**
- * Map to store pending promises for exchange rates
- * This prevents multiple simultaneous API calls for the same currency pair
+ * Get the exchange rate between two currencies
+ * @param fromCurrency The source currency code
+ * @param toCurrency The target currency code
+ * @returns An object containing the exchange rate and whether it's a fallback rate
  */
-const pendingPromises: {
-  [key: string]: Promise<number>;
-} = {};
-
-/**
- * Validates and normalizes a currency code
- * If undefined or invalid, returns the default currency
- * 
- * @param currencyCode - The currency code to validate
- * @returns A valid currency code
- */
-export const validateCurrency = (currencyCode?: string): string => {
-  if (!currencyCode) {
-    return DEFAULT_CURRENCY;
-  }
-  
-  // Check if currency exists in supported currencies
-  const isValid = SUPPORTED_CURRENCIES.some(c => c.code === currencyCode);
-  return isValid ? currencyCode : DEFAULT_CURRENCY;
-};
-
-/**
- * Gets a fallback exchange rate when API calls fail
- * 
- * @param fromCurrency - The currency to convert from
- * @param toCurrency - The currency to convert to
- * @returns The approximate exchange rate to use as fallback
- */
-const getFallbackRate = (fromCurrency: string, toCurrency: string): number => {
-  // Normalize currency codes
-  fromCurrency = validateCurrency(fromCurrency);
-  toCurrency = validateCurrency(toCurrency);
-  
-  // Same currency always has a rate of 1
-  if (fromCurrency === toCurrency) return 1;
-  
-  // Direct lookup in fallback rates
-  if (DEFAULT_FALLBACK_RATES[fromCurrency]?.[toCurrency]) {
-    return DEFAULT_FALLBACK_RATES[fromCurrency][toCurrency];
-  }
-  
-  // Inverse lookup (e.g., if we need EUR->CAD but only have CAD->EUR)
-  if (DEFAULT_FALLBACK_RATES[toCurrency]?.[fromCurrency]) {
-    return 1 / DEFAULT_FALLBACK_RATES[toCurrency][fromCurrency];
-  }
-  
-  // Triangulation through USD if no direct rate (e.g., BRL->JPY through USD)
-  if (fromCurrency !== 'USD' && DEFAULT_FALLBACK_RATES['USD']?.[toCurrency] && 
-      DEFAULT_FALLBACK_RATES[fromCurrency]?.['USD']) {
-    return DEFAULT_FALLBACK_RATES[fromCurrency]['USD'] * 
-           DEFAULT_FALLBACK_RATES['USD'][toCurrency];
-  }
-  
-  // Default fallback if no specific rate is found
-  return 1;
-};
-
-/**
- * Gets the exchange rate between two currencies
- * 
- * This function will:
- * 1. Check the cache for a recent rate
- * 2. If not available, fetch from API
- * 3. If API fails, use fallback rates
- * 4. Cache the result for future use
- * 
- * @param fromCurrency - The currency to convert from (e.g., 'USD')
- * @param toCurrency - The currency to convert to (e.g., 'EUR')
- * @returns A promise that resolves to the exchange rate (e.g., 0.85 for USD to EUR)
- */
-// Define as normal function (not arrow function) to allow proper mocking in tests
-export function getExchangeRate(
+export const getExchangeRate = async (
   fromCurrency: string,
   toCurrency: string
-): Promise<number> {
+): Promise<{ rate: number; isFallback: boolean }> => {
+  // If currencies are the same, return 1:1 rate
+  if (fromCurrency === toCurrency) {
+    return { rate: 1, isFallback: false };
+  }
+  
+  const cacheKey = `${fromCurrency}_${toCurrency}`;
+  
+  // Check if we have a valid cached rate
+  if (
+    exchangeRateCache[cacheKey] &&
+    isCacheValid(exchangeRateCache[cacheKey].timestamp)
+  ) {
+    return {
+      rate: exchangeRateCache[cacheKey].rate,
+      isFallback: exchangeRateCache[cacheKey].isFallback
+    };
+  }
+  
   try {
-    // Normalize currency codes to prevent undefined errors
-    const validFromCurrency = validateCurrency(fromCurrency);
-    const validToCurrency = validateCurrency(toCurrency);
-
-    // Same currency conversion is always 1:1
-    if (validFromCurrency === validToCurrency) {
-      return Promise.resolve(1);
+    // Format for Yahoo Finance API: USDEUR=X
+    const pair = `${fromCurrency}${toCurrency}=X`;
+    
+    // Use our server-side proxy to fetch the data
+    const response = await fetch(`/api/exchange-rates?pair=${pair}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch exchange rate: ${response.statusText}`);
     }
-
-    // Check cache first to avoid unnecessary API calls
-    const cacheKey = `${validFromCurrency}-${validToCurrency}`;
-    const cachedData = exchangeRateCache[cacheKey];
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_VALIDITY) {
-      return Promise.resolve(cachedData.rate);
-    }
-
-    // If this currency pair is already being fetched, return that promise
-    // to prevent duplicate API calls
-    if (!pendingPromises[cacheKey]) {
-      pendingPromises[cacheKey] = (async () => {
-        try {
-          const url = `/api/exchange-rates?base=${validFromCurrency}&symbols=${validToCurrency}`;
-          let response;
-          
-          // Fetch from API with error handling
-          try {
-            response = await fetch(url);
-          } catch (fetchError) {
-            console.error(`Network error fetching exchange rate: ${fetchError}`);
-            // Use fallback rate when network errors occur
-            const fallbackRate = getFallbackRate(validFromCurrency, validToCurrency);
-            exchangeRateCache[cacheKey] = {
-              rate: fallbackRate,
-              timestamp: Date.now(),
-            };
-            return fallbackRate;
-          }
-
-          // Handle HTTP errors (non-200 responses)
-          if (!response || !response.ok) {
-            console.error(`Failed to fetch exchange rate: ${response?.status}. URL: ${url}`);
-            const fallbackRate = getFallbackRate(validFromCurrency, validToCurrency);
-            exchangeRateCache[cacheKey] = {
-              rate: fallbackRate,
-              // Use shorter cache time for fallbacks so we retry sooner
-              timestamp: Date.now() - CACHE_VALIDITY / 2,
-            };
-            return fallbackRate;
-          }
-
-          // Parse response and extract rate
-          const data = await response.json();
-          
-          // Handle both API formats:
-          // 1. { base: 'USD', rates: { 'EUR': 0.85 } } (standard format)
-          // 2. { chart: { result: [{ meta: { regularMarketPrice: 0.85 } }] } } (Yahoo Finance format)
-          let rate: number;
-          
-          if (data.rates && data.rates[validToCurrency]) {
-            // Standard API format
-            rate = data.rates[validToCurrency];
-          } else if (data.chart?.result?.[0]?.meta?.regularMarketPrice) {
-            // Yahoo Finance format
-            rate = data.chart.result[0].meta.regularMarketPrice;
-          } else {
-            console.error(`Exchange rate not found in response: ${JSON.stringify(data)}`);
-            const fallbackRate = getFallbackRate(validFromCurrency, validToCurrency);
-            exchangeRateCache[cacheKey] = {
-              rate: fallbackRate,
-              timestamp: Date.now() - CACHE_VALIDITY / 2,
-            };
-            return fallbackRate;
-          }
-
-          // Successfully got rate from API, cache it
-          exchangeRateCache[cacheKey] = {
-            rate,
-            timestamp: Date.now(),
-          };
-
-          return rate;
-        } catch (error) {
-          // Catch any other errors that might occur
-          console.error('Error getting exchange rate:', error);
-          // Use fallback rate instead of throwing
-          const fallbackRate = getFallbackRate(validFromCurrency, validToCurrency);
-          exchangeRateCache[cacheKey] = {
-            rate: fallbackRate,
-            timestamp: Date.now() - CACHE_VALIDITY / 2,
-          };
-          return fallbackRate;
-        } finally {
-          // Clean up the pending promise
-          delete pendingPromises[cacheKey];
-        }
-      })();
-    }
-
-    return pendingPromises[cacheKey];
+    
+    const data = await response.json();
+    
+    // Extract the current rate from the response
+    const rate = data.chart.result[0].meta.regularMarketPrice;
+    
+    // Cache the rate
+    exchangeRateCache[cacheKey] = {
+      rate,
+      timestamp: Date.now(),
+      isFallback: false
+    };
+    
+    return { rate, isFallback: false };
   } catch (error) {
-    // Ultimate fallback - return 1 if all else fails
-    console.error('Unexpected error in getExchangeRate:', error);
-    return Promise.resolve(1);
+    console.error(
+      `Error fetching exchange rate from ${fromCurrency} to ${toCurrency}:`,
+      error
+    );
+    
+    // Try to use fallback rate
+    if (FALLBACK_RATES[cacheKey]) {
+      const rate = FALLBACK_RATES[cacheKey];
+      
+      // Cache the fallback rate but with a shorter expiration
+      exchangeRateCache[cacheKey] = {
+        rate,
+        timestamp: Date.now() - (CACHE_EXPIRATION / 2), // Expire sooner for fallback rates
+        isFallback: true
+      };
+      
+      console.log(`Using fallback rate for ${cacheKey}: ${rate}`);
+      return { rate, isFallback: true };
+    }
+    
+    // Try to calculate an inverse rate as another fallback option
+    const inverseKey = `${toCurrency}_${fromCurrency}`;
+    if (FALLBACK_RATES[inverseKey]) {
+      const inverseRate = FALLBACK_RATES[inverseKey];
+      const rate = 1 / inverseRate;
+      
+      // Cache the calculated fallback rate
+      exchangeRateCache[cacheKey] = {
+        rate,
+        timestamp: Date.now() - (CACHE_EXPIRATION / 2), // Expire sooner for fallback rates
+        isFallback: true
+      };
+      
+      console.log(`Using calculated inverse fallback rate for ${cacheKey}: ${rate}`);
+      return { rate, isFallback: true };
+    }
+    
+    // As a last resort, return 1:1 rate if no fallback is available
+    console.warn(`No fallback rate available for ${cacheKey}, using 1:1`);
+    return { rate: 1, isFallback: true };
   }
 };
 
 /**
- * React hook for getting exchange rates
- * 
- * This hook fetches and provides the exchange rate between two currencies,
- * along with loading and error states for UI feedback.
- * 
- * @param fromCurrency - The currency to convert from
- * @param toCurrency - The currency to convert to
- * @returns Object containing the rate, loading state, and any error
+ * React hook to get and automatically refresh an exchange rate
+ * @param fromCurrency The source currency code
+ * @param toCurrency The target currency code
+ * @returns An object containing the exchange rate, loading state, any error, and whether it's a fallback rate
  */
-export function useExchangeRate(fromCurrency: string, toCurrency: string) {
+export const useExchangeRate = (fromCurrency: string, toCurrency: string) => {
   const [rate, setRate] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [isFallback, setIsFallback] = useState<boolean>(false);
+  
   useEffect(() => {
-    let isMounted = true;
-
     const fetchRate = async () => {
       try {
         setLoading(true);
-        
-        // Validate and normalize currencies
-        const validFrom = validateCurrency(fromCurrency);
-        const validTo = validateCurrency(toCurrency);
-        
-        const newRate = await getExchangeRate(validFrom, validTo);
-
-        if (isMounted) {
-          setRate(newRate);
-          setError(null);
-        }
+        const { rate, isFallback } = await getExchangeRate(fromCurrency, toCurrency);
+        setRate(rate);
+        setIsFallback(isFallback);
+        setError(null);
       } catch (err) {
-        if (isMounted) {
-          setError('Failed to fetch exchange rate');
-          // Use fallback rate when there's an error
-          const fallbackRate = getFallbackRate(
-            validateCurrency(fromCurrency), 
-            validateCurrency(toCurrency)
-          );
-          setRate(fallbackRate);
-        }
+        console.error('Error in useExchangeRate:', err);
+        setError(err as Error);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
-
+    
     fetchRate();
-
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [fromCurrency, toCurrency]); // Re-run effect when currencies change
-
-  return { rate, loading, error };
+    
+    // Refresh rate every hour
+    const intervalId = setInterval(fetchRate, CACHE_EXPIRATION);
+    
+    return () => clearInterval(intervalId);
+  }, [fromCurrency, toCurrency]);
+  
+  return { rate, loading, error, isFallback };
 };
 
 /**
- * Converts an amount from one currency to another
- * 
- * @param amount - The amount to convert
- * @param fromCurrency - The currency of the amount
- * @param toCurrency - The target currency to convert to
- * @returns A promise that resolves to the converted amount
+ * Convert an amount from one currency to another
+ * @param amount The amount to convert
+ * @param fromCurrency The source currency code
+ * @param toCurrency The target currency code
+ * @returns The converted amount and whether a fallback rate was used
  */
-export function convertCurrency(
+export const convertCurrency = async (
   amount: number,
-  fromCurrency: string,
-  toCurrency: string
-): Promise<number> {
+  fromCurrency: string = DEFAULT_CURRENCY,
+  toCurrency: string = DEFAULT_CURRENCY
+): Promise<{ convertedAmount: number; isFallback: boolean }> => {
+  // If currencies are the same, return the original amount
+  if (fromCurrency === toCurrency) {
+    return { convertedAmount: amount, isFallback: false };
+  }
+  
   try {
-    // Validate input amount
-    const validAmount = amount && !isNaN(amount) ? amount : 0;
-    
-    // Validate currencies
-    const validFrom = validateCurrency(fromCurrency);
-    const validTo = validateCurrency(toCurrency);
-    
-    // Same currency requires no conversion
-    if (validFrom === validTo) {
-      return Promise.resolve(validAmount);
-    }
-
-    return getExchangeRate(validFrom, validTo).then(rate => validAmount * rate);
+    const { rate, isFallback } = await getExchangeRate(fromCurrency, toCurrency);
+    return {
+      convertedAmount: amount * rate,
+      isFallback
+    };
   } catch (error) {
-    console.error('Error in convertCurrency:', error);
-    return Promise.resolve(amount || 0); // Return original amount if conversion fails
+    console.error('Error converting currency:', error);
+    throw error;
   }
 };
 
-// For backward compatibility
-export default {
-  SUPPORTED_CURRENCIES,
-  DEFAULT_CURRENCY,
-  exchangeRateCache,
-  validateCurrency,
-  getExchangeRate,
-  useExchangeRate,
-  convertCurrency
+/**
+ * Format a currency amount for display
+ * @param amount The amount to format
+ * @param currencyCode The currency code (e.g., 'USD')
+ * @returns A formatted string with the amount and currency symbol
+ */
+export const formatCurrency = (
+  amount: number,
+  currencyCode: string = DEFAULT_CURRENCY
+): string => {
+  const currency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode);
+  
+  if (!currency) {
+    console.warn(`Currency code not found: ${currencyCode}, falling back to ${DEFAULT_CURRENCY}`);
+    return formatCurrency(amount, DEFAULT_CURRENCY);
+  }
+  
+  return `${currency.symbol}${amount.toFixed(2)}`;
+};
+
+/**
+ * Get the currency symbol for a given currency code
+ * @param currencyCode The currency code to look up
+ * @returns The currency symbol or '$' if not found
+ */
+export const getCurrencySymbol = (currencyCode: string = DEFAULT_CURRENCY): string => {
+  const currency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode);
+  return currency ? currency.symbol : '$';
 };
