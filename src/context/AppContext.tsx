@@ -185,7 +185,16 @@ const reducer = (state: AppState, action: Action): AppState => {
       };
 
     case 'LOAD_DATA':
-      return action.payload;
+      // Make sure all expenses have settled property properly set
+      const fixedExpenses = action.payload.expenses.map(expense => ({
+        ...expense,
+        settled: expense.settled === undefined ? false : expense.settled
+      }));
+      
+      return {
+        ...action.payload,
+        expenses: fixedExpenses
+      };
 
     default:
       return state;

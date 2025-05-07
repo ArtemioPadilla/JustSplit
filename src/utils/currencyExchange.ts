@@ -19,6 +19,7 @@ const APP_DATA_STORAGE_KEY = 'justSplitData';
  */
 export const SUPPORTED_CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
@@ -27,7 +28,6 @@ export const SUPPORTED_CURRENCIES = [
   { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
   { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso' },
   { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
   { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
