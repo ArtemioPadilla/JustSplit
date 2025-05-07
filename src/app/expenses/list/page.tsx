@@ -105,7 +105,7 @@ export default function ExpenseList() {
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Split among:</span>
                   <span className={styles.detailValue}>
-                    {expense.splitAmong?.length || 0} people
+                    {expense.participants?.length || 0} people
                   </span>
                 </div>
               </div>

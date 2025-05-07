@@ -23,13 +23,14 @@
 
 ### Short-term Goals (Next 1-2 Weeks)
 1. **Connect Frontend Forms to Logic**:
-   - Add state management for expenses and events
-   - Connect form submissions to the expense calculator
+   - ✅ Add state management for expenses and events (AppContext implemented)
+   - ✅ Connect New Expense form submission to the state/expense calculator
+   - ✅ Connect New Event form submission to the state
 
 2. **Complete Core Functionality**:
-   - Implement expenses list view
-   - Implement events list view
-   - Add ability to view individual expenses/events
+   - ✅ Implement expenses list view
+   - ✅ Implement events list view
+   - ✅ Add ability to view individual expenses/events
 
 3. **Implement Settlements Feature**:
    - Create settlements page UI
@@ -66,9 +67,9 @@
    - Implement lazy loading for historical data
 
 ## Known Issues
-- No data persistence implemented yet
-- Form submissions only log to console
+- No data persistence implemented yet (uses localStorage for now)
 - Navigation between pages needs improvement
+- Settlement calculation and UI are not implemented
 
 ## Contributors Needed For
 - UI/UX improvements

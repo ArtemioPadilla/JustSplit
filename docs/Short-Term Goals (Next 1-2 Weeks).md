@@ -1,12 +1,15 @@
 Short-Term Goals (Next 1-2 Weeks)
 Connect Frontend Forms to Logic:
 
-Implement state management for expenses and events using the React Context API.
-Ensure form submissions update the state and trigger UI updates.
+✅ Implement state management for expenses and events using the React Context API (AppContext implemented).
+✅ Ensure New Expense form submission updates the state and triggers UI updates.
+✅ Ensure New Event form submission updates the state and triggers UI updates.
+
 Complete Core Functionality:
 
-Finalize the expenses list view and events list view.
-Add the ability to view individual expenses/events.
+✅ Finalize the expenses list view and events list view.
+✅ Add the ability to view individual expenses/events.
+
 Implement Settlements Feature:
 
 Create the settlements page UI.

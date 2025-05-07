@@ -109,6 +109,7 @@
 │   │           ├── csvExport.ts.html
 │   │           ├── currencyExchange.ts.html
 │   │           ├── expenseCalculator.ts.html
+│   │           ├── fileUtils.ts.html
 │   │           └── index.html
 │   └── lcov.info
 ├── docs
@@ -26902,6 +26903,7 @@
 │       ├── logo-square.png
 │       ├── logo-white.ai
 │       ├── logo.ai
+│       ├── logo.png
 │       ├── logo.xcf
 │       └── old-justsplit-logo.png
 ├── report.txt
@@ -26975,7 +26977,6 @@
 │   │   │   ├── DashboardHeader.tsx
 │   │   │   ├── ExpenseDistribution.tsx
 │   │   │   ├── FinancialSummary.tsx
-│   │   │   ├── ImageUploader.tsx
 │   │   │   ├── MonthlyTrendsChart.tsx
 │   │   │   ├── RecentExpenses.tsx
 │   │   │   ├── RecentSettlements.tsx
@@ -26987,7 +26988,6 @@
 │   │   │       ├── DashboardHeader.test.tsx
 │   │   │       ├── ExpenseDistribution.test.tsx
 │   │   │       ├── FinancialSummary.test.tsx
-│   │   │       ├── ImageUploader.test.tsx
 │   │   │       ├── MonthlyTrendsChart.test.tsx
 │   │   │       ├── RecentExpenses.test.tsx
 │   │   │       ├── RecentSettlements.test.tsx
@@ -27025,8 +27025,9 @@
 │       │   └── expenseCalculator.test.ts
 │       ├── csvExport.ts
 │       ├── currencyExchange.ts
-│       └── expenseCalculator.ts
+│       ├── expenseCalculator.ts
+│       └── fileUtils.ts
 ├── tree.txt
 └── tsconfig.json
 
-2751 directories, 24279 files
+2751 directories, 24280 files
