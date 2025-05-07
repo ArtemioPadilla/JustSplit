@@ -10,6 +10,9 @@ import { useEffect, useState } from 'react';
 // Default currency to use when none is specified
 export const DEFAULT_CURRENCY = 'USD';
 
+// Local storage key for application data
+const APP_DATA_STORAGE_KEY = 'justSplitData';
+
 /**
  * List of supported currencies in the application
  * Each currency has a code (e.g., 'USD'), symbol (e.g., '$'), and full name
@@ -90,10 +93,51 @@ const FALLBACK_RATES: { [key: string]: number } = {
 };
 
 // Initialize the exchange rate cache
-export const exchangeRateCache: RateCache = {};
+export const exchangeRateCache: RateCache = (() => {
+  // Try to load cached rates from localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const savedData = localStorage.getItem(APP_DATA_STORAGE_KEY);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        if (parsedData.exchange_rates) {
+          return parsedData.exchange_rates;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load exchange rate cache from localStorage:', error);
+    }
+  }
+  return {};
+})();
 
 // Cache expiration time in milliseconds (1 hour)
 const CACHE_EXPIRATION = 60 * 60 * 1000;
+
+/**
+ * Save exchange rates to localStorage as part of the app data
+ */
+const saveExchangeRatesToStorage = (): void => {
+  if (typeof window === 'undefined') return; // Skip on server-side rendering
+  
+  try {
+    const savedData = localStorage.getItem(APP_DATA_STORAGE_KEY);
+    let appData = savedData ? JSON.parse(savedData) : {};
+    
+    // Update exchange_rates in the app data
+    appData.exchange_rates = exchangeRateCache;
+    
+    // Save the updated app data back to localStorage
+    localStorage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(appData));
+  } catch (error) {
+    console.error('Error saving exchange rates to localStorage:', error);
+  }
+};
+
+// Load cached rates from local storage on module initialization
+if (typeof window !== 'undefined') {
+  // The loading is already handled in the IIFE that initializes exchangeRateCache
+}
 
 /**
  * Checks if a cached exchange rate is still valid
@@ -120,12 +164,13 @@ export const getExchangeRate = async (
   }
   
   const cacheKey = `${fromCurrency}_${toCurrency}`;
-  
-  // Check if we have a valid cached rate
+
+  // Check if we have a valid cached rate in memory
   if (
     exchangeRateCache[cacheKey] &&
     isCacheValid(exchangeRateCache[cacheKey].timestamp)
   ) {
+    console.log(`Using cached rate from memory for ${cacheKey}: ${exchangeRateCache[cacheKey].rate}`);
     return {
       rate: exchangeRateCache[cacheKey].rate,
       isFallback: exchangeRateCache[cacheKey].isFallback
@@ -146,16 +191,24 @@ export const getExchangeRate = async (
     const data = await response.json();
     
     // Extract the current rate from the response
-    const rate = data.chart.result[0].meta.regularMarketPrice;
+    const result = data.chart.result[0];
+    const rate = result.meta.regularMarketPrice;
     
-    // Cache the rate
+    // Check if this is fallback data by examining the symbol
+    // The API returns "FALLBACK_DATA" when using fallback rates
+    const isFallback = result.meta.symbol === "FALLBACK_DATA";
+    
+    // Cache the rate in memory
     exchangeRateCache[cacheKey] = {
       rate,
       timestamp: Date.now(),
-      isFallback: false
+      isFallback
     };
     
-    return { rate, isFallback: false };
+    // Save to localStorage
+    saveExchangeRatesToStorage();
+    
+    return { rate, isFallback };
   } catch (error) {
     console.error(
       `Error fetching exchange rate from ${fromCurrency} to ${toCurrency}:`,
@@ -173,6 +226,9 @@ export const getExchangeRate = async (
         isFallback: true
       };
       
+      // Save to localStorage
+      saveExchangeRatesToStorage();
+      
       console.log(`Using fallback rate for ${cacheKey}: ${rate}`);
       return { rate, isFallback: true };
     }
@@ -189,6 +245,9 @@ export const getExchangeRate = async (
         timestamp: Date.now() - (CACHE_EXPIRATION / 2), // Expire sooner for fallback rates
         isFallback: true
       };
+      
+      // Save to localStorage
+      saveExchangeRatesToStorage();
       
       console.log(`Using calculated inverse fallback rate for ${cacheKey}: ${rate}`);
       return { rate, isFallback: true };
@@ -296,4 +355,27 @@ export const formatCurrency = (
 export const getCurrencySymbol = (currencyCode: string = DEFAULT_CURRENCY): string => {
   const currency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode);
   return currency ? currency.symbol : '$';
+};
+
+/**
+ * Clear exchange rate cache (useful for testing or when rates are stale)
+ */
+export const clearExchangeRateCache = (): void => {
+  Object.keys(exchangeRateCache).forEach(key => {
+    delete exchangeRateCache[key];
+  });
+  
+  // Update localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const savedData = localStorage.getItem(APP_DATA_STORAGE_KEY);
+      if (savedData) {
+        const appData = JSON.parse(savedData);
+        appData.exchange_rates = {};
+        localStorage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(appData));
+      }
+    } catch (error) {
+      console.error('Error clearing exchange rate cache in localStorage:', error);
+    }
+  }
 };

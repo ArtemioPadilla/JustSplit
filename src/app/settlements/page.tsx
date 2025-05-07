@@ -151,9 +151,12 @@ export default function SettlementsPage() {
     for (const currency of expenseCurrencies) {
       if (currency !== displayCurrency) {
         try {
-          const rate = await getExchangeRate(currency, displayCurrency);
+          const rateData = await getExchangeRate(currency, displayCurrency);
+          // Extract the actual rate value from the returned object
+          const rateValue = typeof rateData === 'object' && rateData !== null ? rateData.rate : rateData;
+          
           rates[currency] = { 
-            rate, 
+            rate: rateValue, 
             timestamp: new Date() 
           };
         } catch (error) {

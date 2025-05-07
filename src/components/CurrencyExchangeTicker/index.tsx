@@ -46,16 +46,22 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
             const result = data.chart.result[0];
             const currentRate = result.meta.regularMarketPrice;
             
-            // Get previous close for calculating change
-            const previousClose = result.meta.chartPreviousClose;
-            const change = ((currentRate - previousClose) / previousClose) * 100;
+            // Check if this is fallback data from our API
+            const isFallback = result.meta.symbol === "FALLBACK_DATA";
+            
+            // Get previous close for calculating change (only if not fallback)
+            let change = 0;
+            if (!isFallback && result.meta.chartPreviousClose) {
+              const previousClose = result.meta.chartPreviousClose;
+              change = ((currentRate - previousClose) / previousClose) * 100;
+            }
             
             return {
               fromCurrency: baseCurrency,
               toCurrency: currency,
               rate: currentRate,
               change,
-              isFallback: false
+              isFallback
             };
           } catch (err) {
             console.error(`Error fetching ${baseCurrency} to ${currency} rate:`, err);
@@ -69,7 +75,7 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
               toCurrency: currency,
               rate,
               change: 0,
-              isFallback: true
+              isFallback
             };
           }
         });
@@ -136,10 +142,14 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
                   {rate.isFallback && <span className={styles.fallbackItemIndicator} title="Approximate rate">*</span>}
                 </span>
                 <span className={styles.rate}>{rate.rate.toFixed(4)}</span>
-                <span className={`${styles.change} ${rate.change > 0 ? styles.positive : rate.change < 0 ? styles.negative : ''}`}>
-                  {rate.change > 0 ? '▲' : rate.change < 0 ? '▼' : ''}
-                  {Math.abs(rate.change).toFixed(2)}%
-                </span>
+                {rate.isFallback ? (
+                  <span className={styles.changeNeutral}>--</span>
+                ) : (
+                  <span className={`${styles.change} ${rate.change > 0 ? styles.positive : rate.change < 0 ? styles.negative : ''}`}>
+                    {rate.change > 0 ? '▲' : rate.change < 0 ? '▼' : ''}
+                    {Math.abs(rate.change).toFixed(2)}%
+                  </span>
+                )}
               </div>
             ))}
           </div>
