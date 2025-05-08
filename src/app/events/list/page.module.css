@@ -5,9 +5,9 @@
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 24px;
+  font-size: 32px; /* Increased from 28px */
+  font-weight: 700; /* Increased from 600 */
+  margin-bottom: 28px;
   color: #333;
 }
 
@@ -66,9 +66,10 @@
 }
 
 .eventName {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px; /* Increased from 18px */
+  font-weight: 700; /* Increased from 600 */
   margin-bottom: 8px;
+  color: #2d3748; /* Darker color for better contrast */
 }
 
 .eventDescription {
@@ -106,4 +107,190 @@
 
 .viewButton:hover {
   background-color: #e5e7eb;
+}
+
+/* Enhanced Typography */
+.secondaryText {
+  font-size: 13px;
+  font-weight: 400;
+  color: #718096; /* Subtle color for secondary information */
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filters select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #4a5568;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.filters select:hover {
+  border-color: #cbd5e0;
+}
+
+.filters select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+/* Event Metrics */
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.metric {
+  font-size: 13px;
+  padding: 4px 8px;
+  background-color: #f7fafc;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metricIcon {
+  width: 14px;
+  height: 14px;
+  color: #718096;
+}
+
+/* Progress Bar */
+.progressContainer {
+  margin: 12px 0;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #718096;
+}
+
+.progressBar {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #edf2f7;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 3px;
+  transition: width 0.6s ease-in-out;
+}
+
+/* Timeline View */
+.timeline {
+  position: relative;
+  margin: 12px 0;
+  height: 4px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+}
+
+.timelineProgress {
+  position: absolute;
+  height: 100%;
+  background-color: #4299e1;
+  border-radius: 2px;
+}
+
+.timelineDot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #4299e1;
+  transform: translate(-50%, -50%);
+  top: 50%;
+}
+
+.timelineDates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #718096;
+}
+
+/* Dynamic Animations */
+.participantsContainer {
+  margin-top: 12px;
+}
+
+.participantsButton {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.participantsButton:hover {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
+.participantsList {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, margin 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.participantsListExpanded {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.participantItem {
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background-color: #f7fafc;
+  font-size: 13px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .filters {
+    flex-direction: column;
+  }
 }

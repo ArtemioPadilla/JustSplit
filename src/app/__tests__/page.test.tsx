@@ -1,6 +1,7 @@
 import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import Home from '../page';
+import EventList from '../events/list/page';
 import { renderWithAppContext } from '../../test-utils';
 
 jest.mock('next/link', () => {
@@ -12,6 +13,11 @@ jest.mock('next/link', () => {
     );
   };
 });
+
+// Add mock for date-fns format function
+jest.mock('date-fns', () => ({
+  format: jest.fn().mockImplementation(() => 'May 1, 2025'),
+}));
 
 describe('Home', () => {
   test('renders heading and description', () => {
@@ -38,5 +44,36 @@ describe('Home', () => {
     const createEventLink = screen.getByRole('link', { name: /create event/i });
     expect(createEventLink).toBeInTheDocument();
     expect(createEventLink).toHaveAttribute('href', '/events/new');
+  });
+});
+
+describe('EventList', () => {
+  test('displays total amounts by currency', () => {
+    const mockState = {
+      events: [
+        {
+          id: '1',
+          name: 'Event 1',
+          description: 'Description 1',
+          startDate: '2025-05-01',
+          endDate: '2025-05-05',
+          participants: ['user1', 'user2'],
+        },
+      ],
+      users: [
+        { id: 'user1', name: 'Alice', balance: 0 },
+        { id: 'user2', name: 'Bob', balance: 0 },
+      ],
+      expenses: [
+        { id: 'exp1', eventId: '1', amount: 100, currency: 'USD', participants: ['user1'], paidBy: 'user1', date: '2025-05-01', settled: false, description: 'Expense 1' },
+        { id: 'exp2', eventId: '1', amount: 200, currency: 'EUR', participants: ['user1', 'user2'], paidBy: 'user2', date: '2025-05-02', settled: false, description: 'Expense 2' },
+        { id: 'exp3', eventId: '1', amount: 50, currency: 'USD', participants: ['user2'], paidBy: 'user1', date: '2025-05-03', settled: false, description: 'Expense 3' },
+      ],
+    };
+
+    renderWithAppContext(<EventList />, { initialState: mockState });
+
+    expect(screen.getByText(/USD: 150.00/i)).toBeInTheDocument();
+    expect(screen.getByText(/EUR: 200.00/i)).toBeInTheDocument();
   });
 });
