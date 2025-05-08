@@ -32,6 +32,7 @@ export interface Event {
   endDate?: string;
   participants: string[]; // User IDs
   expenses: string[]; // Expense IDs
+  preferredCurrency?: string; // Preferred currency for the event
 }
 
 export interface Settlement {

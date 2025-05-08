@@ -53,10 +53,29 @@ function createFallbackData(pair: string) {
   
   // Common approximate rates (these are just reasonable defaults)
   const commonRates: Record<string, Record<string, number>> = {
-    'USD': { 'EUR': 0.85, 'GBP': 0.75, 'JPY': 110, 'CAD': 1.25, 'AUD': 1.35, 'SGD': 1.35 },
-    'EUR': { 'USD': 1.17, 'GBP': 0.88, 'JPY': 130, 'CAD': 1.47, 'AUD': 1.58, 'SGD': 1.59 },
-    'GBP': { 'USD': 1.33, 'EUR': 1.13, 'JPY': 147, 'CAD': 1.67, 'AUD': 1.80, 'SGD': 1.81 },
-    // Add more common rates as needed
+    'USD': { 
+      'EUR': 0.93, 'GBP': 0.79, 'JPY': 149.5, 'CAD': 1.37, 
+      'AUD': 1.52, 'CHF': 0.89, 'CNY': 7.23, 'INR': 83.45,
+      'MXN': 17.05, 'BRL': 5.05, 'RUB': 91.5, 'KRW': 1345.8,
+      'SGD': 1.35, 'NZD': 1.64
+    },
+    'EUR': { 
+      'USD': 1.08, 'GBP': 0.85, 'JPY': 161.3, 'CAD': 1.47, 
+      'AUD': 1.64, 'CHF': 0.96, 'CNY': 7.8, 'INR': 90.1, 
+      'MXN': 18.4, 'BRL': 5.45, 'RUB': 98.7, 'KRW': 1453.0, 
+      'SGD': 1.46, 'NZD': 1.77
+    },
+    'GBP': { 
+      'USD': 1.27, 'EUR': 1.18, 'JPY': 190.2, 'CAD': 1.73, 
+      'AUD': 1.92, 'CHF': 1.13, 'CNY': 9.15, 'INR': 105.8
+    },
+    'JPY': {
+      'USD': 0.0067, 'EUR': 0.0062, 'GBP': 0.0053
+    },
+    'CAD': {
+      'USD': 0.73, 'EUR': 0.68, 'GBP': 0.58
+    },
+    // Add more as needed
   };
   
   // If same currency, rate is 1
@@ -74,7 +93,23 @@ function createFallbackData(pair: string) {
     return createMockResponse(1 / commonRates[targetCurrency][baseCurrency]);
   }
   
-  // Default fallback
+  // Try transitive rates through USD if USD is not one of the currencies
+  if (baseCurrency !== 'USD' && targetCurrency !== 'USD') {
+    if (commonRates['USD']?.[targetCurrency] && commonRates[baseCurrency]?.['USD']) {
+      // Convert to USD first, then to target currency
+      const baseToUsd = commonRates[baseCurrency]['USD'];
+      const usdToTarget = commonRates['USD'][targetCurrency];
+      return createMockResponse(baseToUsd * usdToTarget);
+    } else if (commonRates['USD']?.[baseCurrency] && commonRates['USD']?.[targetCurrency]) {
+      // Use USD as base for both conversions
+      const usdToBase = commonRates['USD'][baseCurrency];
+      const usdToTarget = commonRates['USD'][targetCurrency];
+      return createMockResponse(usdToTarget / usdToBase);
+    }
+  }
+  
+  // If all else fails, default to 1 with a console warning
+  console.warn(`No fallback rate available for ${baseCurrency} to ${targetCurrency}, using 1:1`);
   return createMockResponse(1);
 }
 

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
+import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 import styles from './page.module.css';
 
 export default function EventDetail() {
@@ -12,6 +13,12 @@ export default function EventDetail() {
   const params = useParams();
   const { state } = useAppContext();
   const eventId = params.id as string;
+  
+  // Selected currency for display
+  const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [convertedAmounts, setConvertedAmounts] = useState<Record<string, number>>({});
+  const [isConverting, setIsConverting] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   const event = useMemo(() => {
     return state.events.find(e => e.id === eventId);
@@ -61,26 +68,100 @@ export default function EventDetail() {
     return balances;
   }, [event, eventExpenses]);
 
-  // Calculate event statistics
+  // Calculate event statistics with currency conversion
   const eventStats = useMemo(() => {
     if (!event) return { totalExpenses: 0, totalAmount: 0, unsettledAmount: 0 };
     
-    const totalAmount = eventExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Default values (without conversion)
+    let totalAmount = eventExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const unsettledExpenses = eventExpenses.filter(exp => !exp.settled);
-    const unsettledAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    let unsettledAmount = unsettledExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    // If we have converted amounts, use them instead
+    if (Object.keys(convertedAmounts).length > 0 && !isConverting) {
+      totalAmount = eventExpenses.reduce((sum, exp) => {
+        return sum + (convertedAmounts[exp.id] || exp.amount);
+      }, 0);
+      
+      unsettledAmount = unsettledExpenses.reduce((sum, exp) => {
+        return sum + (convertedAmounts[exp.id] || exp.amount);
+      }, 0);
+    }
     
     return {
       totalExpenses: eventExpenses.length,
       totalAmount,
       unsettledAmount
     };
-  }, [event, eventExpenses]);
+  }, [event, eventExpenses, convertedAmounts, isConverting]);
 
   // Get user name by ID
   const getUserName = (userId: string) => {
     const user = state.users.find(user => user.id === userId);
     return user ? user.name : 'Unknown';
   };
+
+  // Initialize target currency from event's preferred currency
+  useEffect(() => {
+    if (event?.preferredCurrency) {
+      setTargetCurrency(event.preferredCurrency);
+    }
+  }, [event]);
+
+  // Function to perform currency conversion
+  const performConversion = async () => {
+    if (eventExpenses.length === 0) return;
+    
+    setIsConverting(true);
+    const newConvertedAmounts: Record<string, number> = {};
+    
+    for (const expense of eventExpenses) {
+      if (expense.currency === targetCurrency) {
+        newConvertedAmounts[expense.id] = expense.amount;
+      } else {
+        try {
+          const { convertedAmount } = await convertCurrency(
+            expense.amount,
+            expense.currency,
+            targetCurrency
+          );
+          newConvertedAmounts[expense.id] = convertedAmount;
+        } catch (error) {
+          console.error(`Error converting expense ${expense.id}:`, error);
+          // Fallback to original amount if conversion fails
+          newConvertedAmounts[expense.id] = expense.amount;
+        }
+      }
+    }
+    
+    setConvertedAmounts(newConvertedAmounts);
+    setIsConverting(false);
+  };
+  
+  // Handle refreshing rates
+  const handleRefreshRates = async () => {
+    setIsRefreshing(true);
+    try {
+      // Clear the exchange rate cache
+      clearExchangeRateCache();
+      
+      // Trigger conversion with fresh rates
+      await performConversion();
+      
+      // Show a confirmation
+      alert("Exchange rates have been refreshed!");
+    } catch (error) {
+      console.error("Error refreshing rates:", error);
+      alert("Failed to refresh rates. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Effect to handle currency conversion when target currency changes
+  useEffect(() => {
+    performConversion();
+  }, [targetCurrency, eventExpenses]);
   
   if (!event) {
     return (
@@ -129,17 +210,46 @@ export default function EventDetail() {
       
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Summary</h2>
+        <div className={styles.currencySelector}>
+          <div className={styles.currencyControl}>
+            <label htmlFor="targetCurrency">Display Currency:</label>
+            <select
+              id="targetCurrency"
+              value={targetCurrency}
+              onChange={(e) => setTargetCurrency(e.target.value)}
+              disabled={isConverting || isRefreshing}
+              className={styles.currencySelect}
+            >
+              {SUPPORTED_CURRENCIES.map(currency => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} ({currency.symbol}) - {currency.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleRefreshRates}
+            disabled={isConverting || isRefreshing}
+            className={styles.refreshButton}
+          >
+            {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
+          </button>
+        </div>
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
             <span className={styles.statValue}>{eventStats.totalExpenses}</span>
             <span className={styles.statLabel}>Expenses</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>${eventStats.totalAmount.toFixed(2)}</span>
+            <span className={styles.statValue}>
+              {formatCurrency(eventStats.totalAmount, targetCurrency)}
+            </span>
             <span className={styles.statLabel}>Total Amount</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>${eventStats.unsettledAmount.toFixed(2)}</span>
+            <span className={styles.statValue}>
+              {formatCurrency(eventStats.unsettledAmount, targetCurrency)}
+            </span>
             <span className={styles.statLabel}>Unsettled</span>
           </div>
         </div>
@@ -184,7 +294,13 @@ export default function EventDetail() {
                 <div className={styles.expenseHeader}>
                   <h3 className={styles.expenseName}>{expense.description}</h3>
                   <span className={styles.expenseAmount}>
-                    {expense.currency} {expense.amount.toFixed(2)}
+                    {targetCurrency} {isConverting ? '...' : 
+                      convertedAmounts[expense.id] ? convertedAmounts[expense.id].toFixed(2) : expense.amount.toFixed(2)}
+                    {expense.currency !== targetCurrency && convertedAmounts[expense.id] && (
+                      <small className={styles.originalAmount}>
+                        (Original: {expense.currency} {expense.amount.toFixed(2)})
+                      </small>
+                    )}
                   </span>
                 </div>
                 

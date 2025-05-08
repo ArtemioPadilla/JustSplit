@@ -5,7 +5,7 @@ import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
-import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency } from '../../../utils/currencyExchange';
+import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 
 export default function ExpenseList() {
   const { state } = useAppContext();
@@ -13,6 +13,7 @@ export default function ExpenseList() {
   const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [convertedExpenses, setConvertedExpenses] = useState<Record<string, number>>({});
   const [isConverting, setIsConverting] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Get unique list of events that have expenses
   const eventsWithExpenses = [...new Set(state.expenses.map(expense => expense.eventId))];
@@ -22,6 +23,78 @@ export default function ExpenseList() {
   const filteredExpenses = selectedEvent === 'all' 
     ? state.expenses 
     : state.expenses.filter(expense => expense.eventId === selectedEvent);
+
+  // Set default currency based on event preference or user preference
+  useEffect(() => {
+    if (selectedEvent && selectedEvent !== 'all') {
+      const event = state.events.find(e => e.id === selectedEvent);
+      if (event?.preferredCurrency) {
+        setTargetCurrency(event.preferredCurrency);
+        return;
+      }
+    }
+    
+    // Fall back to the first user's preferred currency or default
+    const userPreferredCurrency = state.users[0]?.preferredCurrency;
+    if (userPreferredCurrency) {
+      setTargetCurrency(userPreferredCurrency);
+    }
+  }, [selectedEvent, state.events, state.users]);
+
+  // Handle refreshing rates
+  const handleRefreshRates = async () => {
+    setIsRefreshing(true);
+    try {
+      // Clear the exchange rate cache
+      clearExchangeRateCache();
+      
+      // Trigger conversion with fresh rates
+      await performConversion();
+      
+      // Show a confirmation (this could be enhanced with a toast notification)
+      alert("Exchange rates have been refreshed!");
+    } catch (error) {
+      console.error("Error refreshing rates:", error);
+      alert("Failed to refresh rates. Please try again.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Function to perform currency conversion
+  const performConversion = async () => {
+    if (filteredExpenses.length === 0) return;
+    
+    setIsConverting(true);
+    const newConvertedExpenses: Record<string, number> = {};
+    
+    for (const expense of filteredExpenses) {
+      if (expense.currency === targetCurrency) {
+        newConvertedExpenses[expense.id] = expense.amount;
+      } else {
+        try {
+          const { convertedAmount } = await convertCurrency(
+            expense.amount,
+            expense.currency,
+            targetCurrency
+          );
+          newConvertedExpenses[expense.id] = convertedAmount;
+        } catch (error) {
+          console.error(`Error converting expense ${expense.id}:`, error);
+          // Fallback to original amount if conversion fails
+          newConvertedExpenses[expense.id] = expense.amount;
+        }
+      }
+    }
+    
+    setConvertedExpenses(newConvertedExpenses);
+    setIsConverting(false);
+  };
+  
+  // Effect to handle currency conversion when target currency changes
+  useEffect(() => {
+    performConversion();
+  }, [filteredExpenses, targetCurrency]);
 
   // Get user name by ID
   const getUserName = (userId: string) => {
@@ -34,40 +107,6 @@ export default function ExpenseList() {
     const event = state.events.find(event => event.id === eventId);
     return event ? event.name : 'No Event';
   };
-  
-  // Effect to handle currency conversion when target currency changes
-  useEffect(() => {
-    const performConversion = async () => {
-      if (filteredExpenses.length === 0) return;
-      
-      setIsConverting(true);
-      const newConvertedExpenses: Record<string, number> = {};
-      
-      for (const expense of filteredExpenses) {
-        if (expense.currency === targetCurrency) {
-          newConvertedExpenses[expense.id] = expense.amount;
-        } else {
-          try {
-            const { convertedAmount } = await convertCurrency(
-              expense.amount,
-              expense.currency,
-              targetCurrency
-            );
-            newConvertedExpenses[expense.id] = convertedAmount;
-          } catch (error) {
-            console.error(`Error converting expense ${expense.id}:`, error);
-            // Fallback to original amount if conversion fails
-            newConvertedExpenses[expense.id] = expense.amount;
-          }
-        }
-      }
-      
-      setConvertedExpenses(newConvertedExpenses);
-      setIsConverting(false);
-    };
-    
-    performConversion();
-  }, [filteredExpenses, targetCurrency]);
 
   return (
     <div className={styles.container}>
@@ -121,6 +160,14 @@ export default function ExpenseList() {
             ))}
           </select>
         </div>
+
+        <button 
+          className={styles.refreshButton}
+          onClick={handleRefreshRates}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
+        </button>
       </div>
       
       {filteredExpenses.length === 0 ? (

@@ -3,6 +3,7 @@
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
+import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY } from '../../../utils/currencyExchange';
 import styles from './page.module.css';
 
 export default function NewEvent() {
@@ -14,6 +15,7 @@ export default function NewEvent() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [participants, setParticipants] = useState<string[]>([]);
+  const [preferredCurrency, setPreferredCurrency] = useState<string>(DEFAULT_CURRENCY);
   
   // Add a participant input field
   const [newParticipantName, setNewParticipantName] = useState('');
@@ -59,6 +61,7 @@ export default function NewEvent() {
         startDate,
         endDate: endDate || undefined,
         participants,
+        preferredCurrency,
       }
     });
     
@@ -128,6 +131,27 @@ export default function NewEvent() {
               min={startDate}
             />
           </div>
+        </div>
+        
+        <div className={styles.formGroup}>
+          <label htmlFor="preferredCurrency" className={styles.label}>
+            Preferred Currency
+          </label>
+          <select
+            id="preferredCurrency"
+            className={styles.input}
+            value={preferredCurrency}
+            onChange={(e) => setPreferredCurrency(e.target.value)}
+          >
+            {SUPPORTED_CURRENCIES.map(currency => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} ({currency.symbol}) - {currency.name}
+              </option>
+            ))}
+          </select>
+          <small className={styles.helpText}>
+            This currency will be used as the default when viewing expenses for this event
+          </small>
         </div>
         
         <div className={styles.formGroup}>
