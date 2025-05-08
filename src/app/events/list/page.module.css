@@ -198,12 +198,36 @@
 }
 
 /* Timeline View */
+.timelineContainer {
+  position: relative;
+  margin: 20px 0;
+}
+
+.preEventZone {
+  position: relative;
+  height: 20px;
+  margin-bottom: 4px;
+}
+
+.preEventLabel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 10px;
+  color: #94a3b8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: #f1f5f9;
+}
+
 .timeline {
   position: relative;
-  margin: 12px 0;
   height: 4px;
   background-color: #e2e8f0;
   border-radius: 2px;
+  overflow: visible;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .timelineProgress {
@@ -211,6 +235,8 @@
   height: 100%;
   background-color: #4299e1;
   border-radius: 2px;
+  opacity: 0.5;
+  z-index: 1;
 }
 
 .timelineDot {
@@ -222,6 +248,67 @@
   border: 2px solid #4299e1;
   transform: translate(-50%, -50%);
   top: 50%;
+  z-index: 2; /* Reduced from 3 to 2 */
+  cursor: help;
+}
+
+/* Expense markers on timeline */
+.expenseMarker {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  z-index: 3; /* Increased from 2 to 3 */
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+}
+
+.expenseMarker:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+  z-index: 5; /* Increased from 4 to 5 to ensure it's always on top when hovered */
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.settledExpense {
+  background-color: #10b981; /* green */
+}
+
+.unsettledExpense {
+  background-color: #ef4444; /* red */
+}
+
+.mixedExpense {
+  background: linear-gradient(135deg, #10b981 50%, #ef4444 50%); /* Split diagonal green/red */
+  position: relative;
+}
+
+.mixedExpense::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.preEventExpense {
+  border: 2px solid #6366f1; /* Make pre-event expenses visually distinct */
+}
+
+.postEventExpense {
+  border: 2px solid #f97316; /* Make post-event expenses visually distinct with orange color */
+}
+
+.groupedExpense {
+  width: 10px;
+  height: 10px;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .timelineDates {
@@ -230,6 +317,39 @@
   margin-top: 6px;
   font-size: 12px;
   color: #718096;
+  width: 100%;
+}
+
+/* Improved Timeline legend */
+.timelineLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: center;
+  font-size: 13px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.legendColor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 /* Dynamic Animations */
@@ -286,6 +406,122 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Hover Card for Grouped Expenses */
+.hoverCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 280px;
+  max-width: 90vw;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+.hoverCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.hoverCardHeader h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.expenseSummary {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #718096;
+  margin-top: 2px;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #a0aec0;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: #f7fafc;
+  color: #718096;
+}
+
+.expensesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.expenseItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f4f8;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.expenseItem:last-child {
+  border-bottom: none;
+}
+
+.expenseItem:hover {
+  background-color: #f7fafc;
+}
+
+.expenseItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.expenseName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.expenseStatus {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.settled {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.unsettled {
+  background-color: #fed7d7;
+  color: #822727;
+}
+
+.expenseAmount {
+  font-size: 13px;
+  color: #718096;
+  margin-bottom: 4px; /* Add space between amount and date */
+}
+
+.expenseDate {
+  font-size: 12px;
+  color: #a0aec0;
+  font-style: italic;
 }
 
 /* Responsive adjustments */
