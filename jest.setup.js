@@ -103,3 +103,30 @@ console.warn = (...args) => {
   }
   originalConsoleWarn(...args);
 };
+
+// Silence console logs during tests
+const originalConsoleLog = console.log;
+const originalConsoleInfo = console.info;
+const originalConsoleDebug = console.debug;
+
+// Only log errors and warnings during tests
+if (process.env.NODE_ENV === 'test') {
+  console.log = (...args) => {
+    // You can enable specific logs if needed for debugging
+    // Uncomment the line below when debugging tests
+    // originalConsoleLog(...args);
+  };
+  
+  console.info = (...args) => {
+    // originalConsoleInfo(...args);
+  };
+  
+  console.debug = (...args) => {
+    // originalConsoleDebug(...args);
+  };
+  
+  // Keep console.error and console.warn enabled
+  // as they are important for test failures
+}
+
+// Rest of your Jest setup code...

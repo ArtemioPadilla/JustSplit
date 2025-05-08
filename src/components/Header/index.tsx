@@ -5,11 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import styles from './styles.module.css';
+import { useAppContext } from '../../context/AppContext';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const pathname = usePathname();
+  const { state } = useAppContext();
+  const currentUser = state.users[0]; // Get the current logged-in user
   
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -79,12 +82,24 @@ const Header = () => {
           >
             Settlements
           </Link>
-          <Link 
-            href="/profile" 
-            className={`${styles.navLink} ${pathname?.startsWith('/profile') ? styles.active : ''}`}
-          >
-            Profile
-          </Link>
+          
+          {currentUser ? (
+            <Link 
+              href="/profile" 
+              className={`${styles.userProfile} ${pathname?.startsWith('/profile') ? styles.active : ''}`}
+              data-testid="user-profile"
+            >
+              <span className={styles.userProfileIcon}>👤</span>
+              {currentUser.name}
+            </Link>
+          ) : (
+            <Link 
+              href="/profile" 
+              className={`${styles.navLink} ${pathname?.startsWith('/profile') ? styles.active : ''}`}
+            >
+              Profile
+            </Link>
+          )}
         </nav>
       </div>
     </header>

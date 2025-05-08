@@ -124,15 +124,19 @@ export async function calculateSettlementsWithConversion(
   // Calculate net balance for each user, converting currencies as needed
   const balances: Record<string, number> = {};
   
+  // Keep track of which expenses were involved in each user relationship
+  const expenseMap: Record<string, Record<string, string[]>> = {};
+  
   // Initialize balances
   users.forEach(user => {
     balances[user.id] = 0;
+    expenseMap[user.id] = {};
   });
 
   try {
     // Process each expense with currency conversion
     for (const expense of filteredExpenses) {
-      const { paidBy, participants, amount, currency } = expense;
+      const { paidBy, participants, amount, currency, id } = expense;
 
       // Convert amount to target currency
       let convertedAmount = amount;
@@ -155,6 +159,22 @@ export async function calculateSettlementsWithConversion(
         
         // Increase payer balance (they are owed money)
         balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
+        
+        // Track this expense for this user relationship
+        if (!expenseMap[participantId][paidBy]) {
+          expenseMap[participantId][paidBy] = [];
+        }
+        if (!expenseMap[paidBy][participantId]) {
+          expenseMap[paidBy][participantId] = [];
+        }
+        
+        // Add expense to both directions for tracking
+        if (!expenseMap[participantId][paidBy].includes(id)) {
+          expenseMap[participantId][paidBy].push(id);
+        }
+        if (!expenseMap[paidBy][participantId].includes(id)) {
+          expenseMap[paidBy][participantId].push(id);
+        }
       });
     }
   } catch (error) {
@@ -192,13 +212,8 @@ export async function calculateSettlementsWithConversion(
     const settlementAmount = Math.min(debtor.amount, creditor.amount);
     
     if (settlementAmount > 0) {
-      // Find related expenses for this settlement
-      const relatedExpenseIds = filteredExpenses
-        .filter(expense => 
-          expense.paidBy === creditor.id && 
-          expense.participants.includes(debtor.id)
-        )
-        .map(expense => expense.id);
+      // Get all expenses involving these two users
+      const relatedExpenseIds = expenseMap[debtor.id][creditor.id] || [];
       
       // Create settlement
       settlements.push({

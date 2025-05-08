@@ -65,6 +65,30 @@
   background-color: #4CAF50; /* Green accent */
 }
 
+/* User profile styling */
+.userProfile {
+  color: white;
+  position: relative;
+  padding: 5px 10px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.userProfile:hover {
+  color: #4CAF50; /* Green accent */
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.userProfileIcon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
 .mobileMenuButton {
   display: none;
   background: none;
