@@ -1,14 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
+import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency } from '../../../utils/currencyExchange';
 
 export default function ExpenseList() {
   const { state } = useAppContext();
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
+  const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [convertedExpenses, setConvertedExpenses] = useState<Record<string, number>>({});
+  const [isConverting, setIsConverting] = useState<boolean>(false);
 
   // Get unique list of events that have expenses
   const eventsWithExpenses = [...new Set(state.expenses.map(expense => expense.eventId))];
@@ -30,6 +34,40 @@ export default function ExpenseList() {
     const event = state.events.find(event => event.id === eventId);
     return event ? event.name : 'No Event';
   };
+  
+  // Effect to handle currency conversion when target currency changes
+  useEffect(() => {
+    const performConversion = async () => {
+      if (filteredExpenses.length === 0) return;
+      
+      setIsConverting(true);
+      const newConvertedExpenses: Record<string, number> = {};
+      
+      for (const expense of filteredExpenses) {
+        if (expense.currency === targetCurrency) {
+          newConvertedExpenses[expense.id] = expense.amount;
+        } else {
+          try {
+            const { convertedAmount } = await convertCurrency(
+              expense.amount,
+              expense.currency,
+              targetCurrency
+            );
+            newConvertedExpenses[expense.id] = convertedAmount;
+          } catch (error) {
+            console.error(`Error converting expense ${expense.id}:`, error);
+            // Fallback to original amount if conversion fails
+            newConvertedExpenses[expense.id] = expense.amount;
+          }
+        }
+      }
+      
+      setConvertedExpenses(newConvertedExpenses);
+      setIsConverting(false);
+    };
+    
+    performConversion();
+  }, [filteredExpenses, targetCurrency]);
 
   return (
     <div className={styles.container}>
@@ -67,6 +105,22 @@ export default function ExpenseList() {
             ))}
           </select>
         </div>
+        
+        <div className={styles.filter}>
+          <label htmlFor="currency-filter">Convert to:</label>
+          <select 
+            id="currency-filter" 
+            className={styles.select}
+            value={targetCurrency}
+            onChange={(e) => setTargetCurrency(e.target.value)}
+          >
+            {SUPPORTED_CURRENCIES.map(currency => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code} ({currency.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       
       {filteredExpenses.length === 0 ? (
@@ -80,7 +134,18 @@ export default function ExpenseList() {
               <div className={styles.expenseHeader}>
                 <h2 className={styles.expenseName}>{expense.description}</h2>
                 <span className={styles.expenseAmount}>
-                  {expense.amount.toFixed(2)} {expense.currency}
+                  {isConverting ? (
+                    <small>Converting...</small>
+                  ) : (
+                    <>
+                      {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
+                      {expense.currency !== targetCurrency && (
+                        <small className={styles.originalAmount}>
+                          (Originally: {formatCurrency(expense.amount, expense.currency)})
+                        </small>
+                      )}
+                    </>
+                  )}
                 </span>
               </div>
               
