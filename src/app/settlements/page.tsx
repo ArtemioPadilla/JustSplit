@@ -22,6 +22,8 @@ export default function SettlementsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, { rate: number, timestamp: Date }>>({});
   const [showExpensesBreakdown, setShowExpensesBreakdown] = useState<boolean>(false);
+  const [convertedSettlementAmounts, setConvertedSettlementAmounts] = useState<Record<string, number>>({});
+  const [convertedBalances, setConvertedBalances] = useState<Record<string, { overall: number, byEvent: Record<string, number> }>>({});
   
   // Add null check for state AFTER all hooks are declared
   if (!state) {
@@ -54,9 +56,18 @@ export default function SettlementsPage() {
   // Get events with unsettled expenses for the filter
   const eventsWithUnsettledExpenses = useMemo(() => {
     const unsettledExpenses = (state.expenses || []).filter(exp => !exp.settled);
-    const eventIds = [...new Set(unsettledExpenses.map(exp => exp.eventId).filter(Boolean))];
+    const eventIds = Array.from(
+      new Set(
+        unsettledExpenses
+          .map(exp => exp.eventId)
+          .filter((id): id is string => id !== undefined)
+      )
+    );
     return (state.events || []).filter(event => eventIds.includes(event.id));
   }, [state.expenses, state.events]);
+
+  // Type helper for filtering undefined/null values
+  type ExcludesFalse<T> = T extends false | null | undefined ? never : T;
   
   // Get filtered settlement history
   const filteredSettlementHistory = useMemo(() => {
@@ -96,7 +107,7 @@ export default function SettlementsPage() {
       });
     });
     
-    // Calculate balances from expenses
+    // Calculate balances from expenses (without currency conversion)
     (state.expenses || []).filter(exp => !exp.settled).forEach(expense => {
       const paidBy = expense.paidBy;
       const participants = expense.participants;
@@ -123,6 +134,70 @@ export default function SettlementsPage() {
     
     return result;
   }, [state.users, state.expenses, state.events]);
+
+  // Calculate balances with currency conversion when display currency changes
+  useEffect(() => {
+    const calculateConvertedBalances = async () => {
+      if (activeTab !== 'balance') return;
+      
+      setIsLoading(true);
+      
+      // Start with a copy of the original balances
+      const result = JSON.parse(JSON.stringify(balances));
+      
+      // Process each expense with currency conversion
+      for (const expense of (state.expenses || []).filter(exp => !exp.settled)) {
+        const paidBy = expense.paidBy;
+        const participants = expense.participants;
+        
+        // Skip if already in the target currency
+        if (expense.currency === displayCurrency) continue;
+        
+        // Calculate the original amount per person (to subtract)
+        const originalAmountPerPerson = expense.amount / participants.length;
+        
+        // Convert amount to target currency
+        let convertedAmount = expense.amount;
+        try {
+          // Use the exchange rates we already fetched if available
+          if (exchangeRates[expense.currency]) {
+            convertedAmount = expense.amount * exchangeRates[expense.currency].rate;
+          } else {
+            // Otherwise fetch the rate
+            const rateData = await getExchangeRate(expense.currency, displayCurrency);
+            const rateValue = typeof rateData === 'object' && rateData !== null ? rateData.rate : 1;
+            convertedAmount = expense.amount * rateValue;
+          }
+        } catch (error) {
+          console.error(`Error converting expense amount:`, error);
+          // Use original amount if conversion fails
+        }
+        
+        const convertedAmountPerPerson = convertedAmount / participants.length;
+        const difference = convertedAmountPerPerson - originalAmountPerPerson;
+        
+        participants.forEach(participantId => {
+          // Skip the person who paid
+          if (participantId === paidBy) return;
+          
+          // Update overall balance with the difference due to conversion
+          result[participantId].overall -= difference;
+          result[paidBy].overall += difference;
+          
+          // Update event-specific balance if expense is part of an event
+          if (expense.eventId) {
+            result[participantId].byEvent[expense.eventId] -= difference;
+            result[paidBy].byEvent[expense.eventId] += difference;
+          }
+        });
+      }
+      
+      setConvertedBalances(result);
+      setIsLoading(false);
+    };
+    
+    calculateConvertedBalances();
+  }, [balances, displayCurrency, exchangeRates, state.expenses, activeTab]);
   
   // Handle settling up
   const handleSettleUp = (settlement: any) => {
@@ -132,6 +207,7 @@ export default function SettlementsPage() {
         fromUser: settlement.fromUser,
         toUser: settlement.toUser,
         amount: settlement.amount,
+        currency: displayCurrency,
         expenseIds: settlement.expenseIds,
         eventId: settlement.eventId
       }
@@ -201,6 +277,39 @@ export default function SettlementsPage() {
     fetchSettlements();
   }, [state.expenses, state.users, selectedEventId, displayCurrency]);
   
+  // Add function to convert historical settlement amounts to display currency
+  const convertSettlementAmounts = async () => {
+    const converted: Record<string, number> = {};
+    
+    // Process each settlement
+    for (const settlement of filteredSettlementHistory) {
+      // Skip if already in the target currency
+      if (settlement.currency === displayCurrency) {
+        converted[settlement.id] = settlement.amount;
+        continue;
+      }
+      
+      try {
+        const rateData = await getExchangeRate(settlement.currency, displayCurrency);
+        const rateValue = typeof rateData === 'object' && rateData !== null ? rateData.rate : 1;
+        converted[settlement.id] = settlement.amount * rateValue;
+      } catch (error) {
+        console.error(`Error converting settlement amount from ${settlement.currency} to ${displayCurrency}:`, error);
+        // Fallback to original amount if conversion fails
+        converted[settlement.id] = settlement.amount;
+      }
+    }
+    
+    setConvertedSettlementAmounts(converted);
+  };
+
+  // Effect hook to convert historical settlement amounts when currency or filter changes
+  useEffect(() => {
+    if (activeTab === 'history' && filteredSettlementHistory.length > 0) {
+      convertSettlementAmounts();
+    }
+  }, [displayCurrency, filteredSettlementHistory, activeTab]);
+
   // Add currency selector UI
   return (
     <div className={styles.container}>
@@ -228,7 +337,7 @@ export default function SettlementsPage() {
         
         <div className={styles.filterItem}>
           <label htmlFor="currency-filter" className={styles.filterLabel}>
-            Display Currency:
+            Settlement Currency:
           </label>
           <select
             id="currency-filter"
@@ -242,6 +351,7 @@ export default function SettlementsPage() {
               </option>
             ))}
           </select>
+          <small className={styles.helpText}>All settlements will be calculated in this currency</small>
         </div>
       </div>
       
@@ -410,7 +520,7 @@ export default function SettlementsPage() {
                       
                       <div id={`expenses-${index}`} className={styles.expensesDetails} style={{display: 'none'}}>
                         <ul className={styles.expensesList}>
-                          {settlement.expenseIds.map(expId => {
+                          {settlement.expenseIds.map((expId: string) => {
                             const expense = state.expenses.find(e => e.id === expId);
                             if (!expense) return null;
                             
@@ -480,9 +590,9 @@ export default function SettlementsPage() {
               </thead>
               <tbody>
                 {state.users.map(user => {
-                  const overallBalance = balances[user.id]?.overall || 0;
+                  const overallBalance = convertedBalances[user.id]?.overall || 0;
                   const eventBalance = selectedEventId !== 'all' 
-                    ? balances[user.id]?.byEvent[selectedEventId] || 0 
+                    ? convertedBalances[user.id]?.byEvent[selectedEventId] || 0 
                     : 0;
                   
                   return (
@@ -528,7 +638,7 @@ export default function SettlementsPage() {
                           {state.users
                             .filter(user => event.participants.includes(user.id))
                             .map(user => {
-                              const balance = balances[user.id]?.byEvent[event.id] || 0;
+                              const balance = convertedBalances[user.id]?.byEvent[event.id] || 0;
                               
                               return (
                                 <tr key={user.id}>
@@ -575,7 +685,12 @@ export default function SettlementsPage() {
                       </div>
                     </div>
                     <div className={styles.settlementAmount}>
-                      ${formatCurrency(settlement.amount)}
+                      {settlement.currency} {formatCurrency(settlement.amount)}
+                      {settlement.currency !== displayCurrency && convertedSettlementAmounts[settlement.id] && (
+                        <span className={styles.convertedAmount}>
+                          ≈ {displayCurrency} {formatCurrency(convertedSettlementAmounts[settlement.id])}
+                        </span>
+                      )}
                     </div>
                   </div>
                   

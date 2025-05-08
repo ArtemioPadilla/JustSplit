@@ -303,7 +303,7 @@ export const useExchangeRate = (fromCurrency: string, toCurrency: string) => {
  * @param amount The amount to convert
  * @param fromCurrency The source currency code
  * @param toCurrency The target currency code
- * @returns The converted amount and whether a fallback rate was used
+ * @returns An object containing the converted amount and whether it's a fallback rate
  */
 export const convertCurrency = async (
   amount: number,
@@ -317,13 +317,39 @@ export const convertCurrency = async (
   
   try {
     const { rate, isFallback } = await getExchangeRate(fromCurrency, toCurrency);
-    return {
-      convertedAmount: amount * rate,
-      isFallback
-    };
+    return { convertedAmount: amount * rate, isFallback };
   } catch (error) {
     console.error('Error converting currency:', error);
-    throw error;
+
+    // Use fallback conversion logic in case of API failure
+    const cacheKey = `${fromCurrency}_${toCurrency}`;
+    if (FALLBACK_RATES[cacheKey]) {
+      return { 
+        convertedAmount: amount * FALLBACK_RATES[cacheKey], 
+        isFallback: true 
+      };
+    }
+    
+    // Try inverse conversion rate if direct rate isn't available
+    const inverseKey = `${toCurrency}_${fromCurrency}`;
+    if (FALLBACK_RATES[inverseKey]) {
+      return { 
+        convertedAmount: amount * (1 / FALLBACK_RATES[inverseKey]), 
+        isFallback: true 
+      };
+    }
+    
+    // For USD-MXN pair specifically, use hardcoded rate as final fallback
+    if (fromCurrency === 'USD' && toCurrency === 'MXN') {
+      return { convertedAmount: amount * 17.05, isFallback: true };
+    }
+    
+    if (fromCurrency === 'MXN' && toCurrency === 'USD') {
+      return { convertedAmount: amount / 17.05, isFallback: true };
+    }
+    
+    // If all else fails, return original amount
+    return { convertedAmount: amount, isFallback: true };
   }
 };
 

@@ -40,6 +40,7 @@ export interface Settlement {
   fromUser: string; // User ID
   toUser: string; // User ID
   amount: number;
+  currency: string; // Currency code (e.g., 'USD', 'EUR')
   date: string;
   expenseIds: string[]; // Related Expense IDs
   eventId?: string; // Optional event ID
