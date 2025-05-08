@@ -1,19 +1,37 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import Header from '../index';
 import { renderWithAppContext } from '../../../test-utils';
 
-// Mock next/link
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/'
+}));
+
+// Mock next/link - pass through all props, not just children and href
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => {
-    return <a href={href}>{children}</a>;
+  return ({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: any }) => {
+    return <a href={href} {...props}>{children}</a>;
   };
 });
 
-// Mock next/image
+// Mock next/image - store the onError callback to call it directly
 jest.mock('next/image', () => {
-  return ({ src, alt, width, height }: any) => {
-    return <img src={src} alt={alt} width={width} height={height} data-testid="logo-image" />;
+  return ({ src, alt, width, height, className, onError, priority }: any) => {
+    // Call onError directly to simulate image loading failure
+    if (onError && src.includes('justsplit-logo')) {
+      // Use setTimeout to ensure this happens after component mount
+      setTimeout(() => onError(), 0);
+    }
+    
+    return <img 
+      src={src} 
+      alt={alt} 
+      width={width} 
+      height={height} 
+      className={className}
+      data-testid="logo-image"
+    />;
   };
 });
 
@@ -29,6 +47,8 @@ describe('Header', () => {
     expect(screen.getByText(/home/i)).toBeInTheDocument();
     expect(screen.getByText(/expenses/i)).toBeInTheDocument();
     expect(screen.getByText(/events/i)).toBeInTheDocument();
+    expect(screen.getByText(/friends/i)).toBeInTheDocument();
+    expect(screen.getByText(/settlements/i)).toBeInTheDocument();
   });
   
   test('displays user name when logged in', () => {
@@ -41,10 +61,31 @@ describe('Header', () => {
     
     renderWithAppContext(<Header />, { initialState });
     
-    // Look for user profile component/element instead of exact text
-    // This is more flexible as the username could be inside a span or other element
     const userElement = screen.getByTestId('user-profile');
     expect(userElement).toBeInTheDocument();
     expect(userElement.textContent).toContain('Test User');
+  });
+
+  test('displays Profile link when not logged in', () => {
+    const initialState = {
+      users: [], // Empty users array means no logged in user
+      expenses: [],
+      events: [],
+      settlements: []
+    };
+    
+    renderWithAppContext(<Header />, { initialState });
+    
+    // Should show 'Profile' link instead of user profile
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+  });
+
+  test('shows text logo when image fails to load', async () => {
+    renderWithAppContext(<Header />);
+    
+    // The mock will automatically trigger the error
+    // Wait for the text to appear
+    const logoText = await screen.findByText('JustSplit');
+    expect(logoText).toBeInTheDocument();
   });
 });
