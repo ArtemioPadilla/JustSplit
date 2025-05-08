@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SUPPORTED_CURRENCIES, getExchangeRate } from '../../utils/currencyExchange';
+import { SUPPORTED_CURRENCIES, getExchangeRate, exchangeRateCache } from '../../utils/currencyExchange';
 import styles from './styles.module.css';
 
 interface ExchangeRate {
@@ -28,69 +28,42 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
           .filter(curr => curr.code !== baseCurrency)
           .map(curr => curr.code);
         
-        // Fetch rates for each currency
-        const ratePromises = currenciesToFetch.map(async (currency) => {
+        const newRates: ExchangeRate[] = [];
+        let anyFallback = false;
+        
+        // First, check if we already have rates in the exchangeRateCache
+        for (const currency of currenciesToFetch) {
           try {
-            const pair = `${baseCurrency}${currency}=X`;
-            
-            // Use our proxy API
-            const response = await fetch(`/api/exchange-rates?pair=${pair}&interval=1d&range=2d`);
-            
-            if (!response.ok) {
-              throw new Error(`Failed to fetch exchange rate: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            // Extract current rate and calculate change
-            const result = data.chart.result[0];
-            const currentRate = result.meta.regularMarketPrice;
-            
-            // Check if this is fallback data from our API
-            const isFallback = result.meta.symbol === "FALLBACK_DATA";
-            
-            // Get previous close for calculating change (only if not fallback)
-            let change = 0;
-            if (!isFallback && result.meta.chartPreviousClose) {
-              const previousClose = result.meta.chartPreviousClose;
-              change = ((currentRate - previousClose) / previousClose) * 100;
-            }
-            
-            return {
-              fromCurrency: baseCurrency,
-              toCurrency: currency,
-              rate: currentRate,
-              change,
-              isFallback
-            };
-          } catch (err) {
-            console.error(`Error fetching ${baseCurrency} to ${currency} rate:`, err);
-            
-            // Use the utility function to get fallback rate
+            // Use our utility function which already handles caching
             const { rate, isFallback } = await getExchangeRate(baseCurrency, currency);
             
-            // Return fallback rate with 0% change
-            return {
+            // If any rate is using fallback data, flag it
+            if (isFallback) {
+              anyFallback = true;
+            }
+            
+            newRates.push({
               fromCurrency: baseCurrency,
               toCurrency: currency,
               rate,
-              change: 0,
+              change: 0, // We don't have historical data from the cache
               isFallback
-            };
+            });
+          } catch (err) {
+            console.error(`Error getting rate for ${baseCurrency} to ${currency}:`, err);
+            // Continue with other currencies even if one fails
           }
-        });
+        }
         
-        const newRates = await Promise.all(ratePromises);
         setRates(newRates);
-        
-        // Check if any rate is using fallback data
-        const anyFallback = newRates.some(rate => rate.isFallback);
         setUsingFallback(anyFallback);
         
         // Only set error to null if we successfully fetched all rates without fallbacks
-        if (!anyFallback) {
+        if (!anyFallback && newRates.length === currenciesToFetch.length) {
           setError(null);
-        } else {
+        } else if (newRates.length < currenciesToFetch.length) {
+          setError('Some rates could not be loaded');
+        } else if (anyFallback) {
           setError('Some rates are approximate');
         }
       } catch (err) {
@@ -103,8 +76,8 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
     
     fetchExchangeRates();
     
-    // Refresh rates every 5 minutes
-    const intervalId = setInterval(fetchExchangeRates, 5 * 60 * 1000);
+    // Refresh rates every 30 minutes instead of 5
+    const intervalId = setInterval(fetchExchangeRates, 30 * 60 * 1000);
     
     return () => clearInterval(intervalId);
   }, [baseCurrency]);
@@ -142,13 +115,13 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
                   {rate.isFallback && <span className={styles.fallbackItemIndicator} title="Approximate rate">*</span>}
                 </span>
                 <span className={styles.rate}>{rate.rate.toFixed(4)}</span>
-                {rate.isFallback ? (
-                  <span className={styles.changeNeutral}>--</span>
-                ) : (
+                {rate.change !== 0 ? (
                   <span className={`${styles.change} ${rate.change > 0 ? styles.positive : rate.change < 0 ? styles.negative : ''}`}>
                     {rate.change > 0 ? '▲' : rate.change < 0 ? '▼' : ''}
                     {Math.abs(rate.change).toFixed(2)}%
                   </span>
+                ) : (
+                  <span className={styles.changeNeutral}>--</span>
                 )}
               </div>
             ))}

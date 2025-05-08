@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User, Event } from '../../context/AppContext';
+import { getCurrencySymbol } from '../../utils/currencyExchange';
 import styles from '../../app/page.module.css';
 
 interface ChartData {
@@ -36,8 +37,6 @@ export default function MonthlyTrendsChart({
     const hue = (index / total) * 360;
     return `hsl(${hue}, 70%, 50%)`;
   };
-  // Debugging: Log processedTrends data
-  console.log('Processed Trends:', processedTrends);
   
   if (isLoadingRates) {
     return (
@@ -51,6 +50,10 @@ export default function MonthlyTrendsChart({
       </div>
     );
   }
+
+  // Calculate max amount for proper scaling
+  const maxAmount = Math.max(...processedTrends.map(m => m.amount), 1);
+  const currencySymbol = getCurrencySymbol(preferredCurrency);
   
   return (
     <div className={styles.dashboardCard}>
@@ -93,33 +96,23 @@ export default function MonthlyTrendsChart({
       
       <div className={styles.barChart}>
         {processedTrends.map((month, index) => {
-          const maxAmount = Math.max(...processedTrends.map(m => m.amount)) || 1;
-          
-          // Force minimum visible height for bars with values (10px)
-          const heightPercentage = month.amount > 0
-            ? Math.max(10, (month.amount / maxAmount) * 100)
-            : 0;
-
-          // logging: Log month data maximum amount and height percentage
-          console.log(`Month: ${month.month}, Max Amount: ${maxAmount}, Height Percentage: ${heightPercentage}`);
+          // Calculate the height percentage of the bar (as percentage of the chart height)
+          const heightPercentage = maxAmount > 0 ? Math.max(1, (month.amount / maxAmount) * 100) : 0;
           
           // Get the breakdown data based on selected coloring option
           const breakdown = colorBy === 'event' ? month.byEvent : month.byPayer;
+          
           // If there's no data, show a simple bar
-          if (!breakdown || breakdown.length === 0) {
+          if (!breakdown || breakdown.length === 0 || month.amount === 0) {
             return (
               <div className={styles.barGroup} key={index}>
-                {/* Añade este div para debug temporal */}
-                <div className={styles.barDebug}>
-                  {`${heightPercentage.toFixed(1)}%`}
-                </div>
                 <div className={styles.bar} 
                   style={{ 
                     height: `${heightPercentage}%`,
                     backgroundColor: month.amount > 0 ? 'var(--primary-color)' : '#e0e0e0',
                     border: month.amount === 0 ? '1px dashed #aaa' : 'none'
                   }}
-                  title={`${preferredCurrency} ${month.amount.toFixed(2)} (${month.count} expenses)`}
+                  title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
                 ></div>
                 <div className={styles.barLabel}>{month.month}</div>
               </div>
@@ -129,18 +122,18 @@ export default function MonthlyTrendsChart({
           // Otherwise show a stacked bar with segments
           return (
             <div className={styles.barGroup} key={index}>
-              <div className={styles.barDebug}>
-                {`${heightPercentage.toFixed(1)}%`}
-              </div>
               <div 
                 className={styles.stackedBar}
-                style={{ height: `${heightPercentage}%` }}
-                title={`${preferredCurrency} ${month.amount.toFixed(2)} (${month.count} expenses)`}
+                style={{ 
+                  height: `${heightPercentage}%`,
+                  // Fix issue with zero height bars
+                  minHeight: month.amount > 0 ? '4px' : '0'
+                }}
+                title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
               >
                 {breakdown.map((segment, segIndex) => {
-                  const segmentHeight = (segment.percentage / 100) * heightPercentage;
-                  // logging: Log segment data
-                  console.log(`Segment: ${segment.name}, Amount: ${segment.amount}, Percentage: ${segment.percentage}, Height: ${segmentHeight}`);
+                  // Calculate segment height as a percentage of the total bar
+                  const segmentHeight = segment.percentage; // We use the precomputed percentage directly
                   return (
                     <div 
                       key={segIndex}
@@ -152,12 +145,16 @@ export default function MonthlyTrendsChart({
                           colorBy === 'event' ? events.length + 1 : users.length
                         )
                       }}
-                      title={`${segment.name}: ${preferredCurrency} ${segment.amount.toFixed(2)} (${segment.percentage.toFixed(1)}%)`}
+                      title={`${segment.name}: ${currencySymbol}${segment.amount.toFixed(2)} (${segment.percentage.toFixed(1)}%)`}
                     ></div>
                   );
                 })}
               </div>
               <div className={styles.barLabel}>{month.month}</div>
+              {/* Show amount below each bar */}
+              <div className={styles.barValue}>
+                {currencySymbol}{month.amount.toFixed(0)}
+              </div>
             </div>
           );
         })}
@@ -165,7 +162,7 @@ export default function MonthlyTrendsChart({
       
       <div className={styles.chartLegend}>
         <div className={styles.legendItems}>
-          {colorBy === 'event' && events.length > 0 && (
+          {colorBy === 'event' && (
             <>
               <div className={styles.legendItem}>
                 <span 
@@ -183,6 +180,11 @@ export default function MonthlyTrendsChart({
                   <span>{event.name}</span>
                 </div>
               ))}
+              {events.length > 5 && (
+                <div className={styles.legendItem}>
+                  <span>+{events.length - 5} more</span>
+                </div>
+              )}
             </>
           )}
           {colorBy === 'spender' && users.length > 0 && (
@@ -196,13 +198,18 @@ export default function MonthlyTrendsChart({
                   <span>{user.name}</span>
                 </div>
               ))}
+              {users.length > 7 && (
+                <div className={styles.legendItem}>
+                  <span>+{users.length - 7} more</span>
+                </div>
+              )}
             </>
           )}
         </div>
         <div className={styles.legendTotal}>
           <span>Last 6 Months Total:</span>
           <span className={styles.legendValue}>
-            {preferredCurrency} {processedTrends.reduce((sum, month) => sum + month.amount, 0).toFixed(2)}
+            {currencySymbol}{processedTrends.reduce((sum, month) => sum + month.amount, 0).toFixed(2)}
           </span>
         </div>
       </div>

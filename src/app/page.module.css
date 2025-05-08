@@ -35,9 +35,15 @@
 
 .dashboardHeader {
   display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.headerTop {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
 }
 
 .dashboardHeader h1 {
@@ -47,6 +53,44 @@
 .quickActions {
   display: flex;
   gap: 0.75rem;
+}
+
+.currencySelector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f3f4f6;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  margin-top: 1rem;
+}
+
+.currencySelector label {
+  font-size: 0.875rem;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.select {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.refreshButton {
+  padding: 0.375rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+}
+
+.refreshButton:hover {
+  background-color: #e5e7eb;
 }
 
 /* New dashboard summary section for prominent metrics */
@@ -186,6 +230,13 @@
   transition: height 0.3s ease;
   min-height: 0; /* Allow zero height */
   border: 1px solid rgba(0,0,0,0.1); /* Add border for better visibility */
+}
+
+.barValue {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 0.2rem;
+  font-weight: 500;
 }
 
 .barDebug {
