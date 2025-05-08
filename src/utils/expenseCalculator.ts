@@ -169,9 +169,9 @@ export async function calculateSettlementsWithConversion(
             // Fetch new rate
             const rateData = await convertCurrency(amount, currency, targetCurrency);
             // Store the conversion rate for future use
-            const rate = rateData / amount;
+            const rate = rateData.convertedAmount / amount;
             exchangeRatesCache[conversionKey] = rate;
-            convertedAmount = rateData;
+            convertedAmount = rateData.convertedAmount;
           }
           
           // Store expense details for debugging
@@ -192,8 +192,11 @@ export async function calculateSettlementsWithConversion(
           } else if (currency === 'USD' && targetCurrency === 'MXN') {
             convertedAmount = amount * 17.05; // Approximate USD to MXN rate
             console.log(`Using fallback conversion: ${amount} USD ≈ ${convertedAmount.toFixed(2)} MXN`);
+          } else {
+            // Assign a default fallback value to avoid undefined
+            convertedAmount = amount; // Use the original amount as a fallback
+            console.log(`Fallback to original amount: ${amount} ${currency}`);
           }
-          // For other currency pairs, we keep the original amount as fallback
           
           // Store the fallback conversion
           expenseDetails[id] = {
@@ -217,27 +220,25 @@ export async function calculateSettlementsWithConversion(
       participants.forEach(participantId => {
         // Skip the person who paid (they don't owe themselves)
         if (participantId === paidBy) return;
-        
+
         // Decrease participant balance (they owe money)
         balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
-        
+
         // Increase payer balance (they are owed money)
         balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
-        
+
         // Track this expense for this user relationship in both directions
-        // From debtor to creditor
         if (!expenseMap[participantId][paidBy]) {
           expenseMap[participantId][paidBy] = { ids: [], eventIds: new Set() };
         }
-        // From creditor to debtor
         if (!expenseMap[paidBy][participantId]) {
           expenseMap[paidBy][participantId] = { ids: [], eventIds: new Set() };
         }
-        
+
         // Add expense to both directions for tracking
         expenseMap[participantId][paidBy].ids.push(id);
         expenseMap[paidBy][participantId].ids.push(id);
-        
+
         // Track event IDs for proper event attribution in settlements
         if (expenseEventId) {
           expenseMap[participantId][paidBy].eventIds.add(expenseEventId);

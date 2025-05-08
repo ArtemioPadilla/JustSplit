@@ -3,8 +3,9 @@ import * as currencyExchange from '../currencyExchange';
 
 // Mock the currency exchange module
 jest.mock('../currencyExchange', () => ({
-  getExchangeRate: jest.fn().mockResolvedValue(1.5),
-  convertCurrency: jest.fn().mockImplementation((amount, from, to) => Promise.resolve(amount * 1.5))
+  getExchangeRate: jest.fn().mockResolvedValue({ rate: 1.5, isFallback: false }),
+  convertCurrency: jest.fn().mockImplementation((amount, from, to) => 
+    Promise.resolve({ convertedAmount: amount * 1.5, isFallback: false }))
 }));
 
 describe('Expense Calculator', () => {
