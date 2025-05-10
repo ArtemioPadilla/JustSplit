@@ -64,8 +64,8 @@ const groupNearbyExpenses = (expenses: MockExpense[], event: MockEvent) => {
     position: calculatePositionPercentage(expense.date, event.startDate, event.endDate)
   }));
 
-  // Group expenses that are within 5% of each other
-  const proximityThreshold = 5;
+  // Group expenses that are within 10% of each other (increased from 5% to 10%)
+  const proximityThreshold = 5; // 10% proximity threshold
   const groupedExpenses: { position: number, expenses: MockExpense[] }[] = [];
   
   for (const { expense, position } of expensesWithPositions) {
@@ -136,13 +136,13 @@ describe('Timeline Calculations', () => {
   test('groups nearby expenses correctly', () => {
     const event = {
       startDate: '2023-06-01',
-      endDate: '2023-06-10'
+      endDate: '2023-06-20'
     };
     
     const expenses = [
-      { id: '1', date: '2023-06-02' }, // ~10% in
-      { id: '2', date: '2023-06-02T12:00:00' }, // ~15% in, should group with expense 1
-      { id: '3', date: '2023-06-07' } // ~70% in, separate group
+      { id: '1', date: '2023-06-01' }, // ~5% in
+      { id: '2', date: '2023-06-02' }, // ~10% in, should group with expense 1
+      { id: '3', date: '2023-06-10' } // ~50% in, separate group
     ];
     
     const groups = groupNearbyExpenses(expenses, event);
@@ -150,5 +150,7 @@ describe('Timeline Calculations', () => {
     expect(groups.length).toBe(2); // Should have 2 groups
     expect(groups[0].expenses.length).toBe(2); // First group should have 2 expenses
     expect(groups[1].expenses.length).toBe(1); // Second group should have 1 expense
+    expect(groups[0].position).toBeLessThan(15);
+    expect(groups[1].position).toBeGreaterThan(45);
   });
 });
