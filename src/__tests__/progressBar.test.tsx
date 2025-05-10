@@ -42,7 +42,8 @@ describe('ProgressBar Component', () => {
 
   test('renders with custom height', () => {
     render(<ProgressBar value={50} height={20} />);
-    const progressBarContainer = screen.getByText('50%').closest('div');
+    // Find the progress container element by its class name
+    const progressBarContainer = screen.getByText('50%').closest('div.progressContainer');
     expect(progressBarContainer).toHaveStyle('height: 20px');
   });
 

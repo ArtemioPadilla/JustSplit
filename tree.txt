@@ -90,9 +90,21 @@
 │   │       │   ├── Header
 │   │       │   │   ├── index.html
 │   │       │   │   └── index.tsx.html
-│   │       │   └── ImageUploader
-│   │       │       ├── index.html
-│   │       │       └── index.tsx.html
+│   │       │   ├── ImageUploader
+│   │       │   │   ├── index.html
+│   │       │   │   └── index.tsx.html
+│   │       │   └── ui
+│   │       │       ├── HoverCard
+│   │       │       │   ├── index.html
+│   │       │       │   └── index.tsx.html
+│   │       │       ├── ProgressBar
+│   │       │       │   ├── index.html
+│   │       │       │   └── index.tsx.html
+│   │       │       ├── ProgressBar.tsx.html
+│   │       │       ├── Timeline
+│   │       │       │   ├── index.html
+│   │       │       │   └── index.tsx.html
+│   │       │       └── index.html
 │   │       ├── context
 │   │       │   ├── AppContext.tsx.html
 │   │       │   ├── Providers.tsx.html
@@ -110,7 +122,10 @@
 │   │           ├── currencyExchange.ts.html
 │   │           ├── expenseCalculator.ts.html
 │   │           ├── fileUtils.ts.html
-│   │           └── index.html
+│   │           ├── index.html
+│   │           └── timelineUtils
+│   │               ├── index.html
+│   │               └── index.ts.html
 │   └── lcov.info
 ├── docs
 │   ├── README.md
@@ -141,6 +156,7 @@
 │   │   ├── project-roadmap.md
 │   │   ├── release-planning.md
 │   │   └── to-do.md
+│   ├── refactor-plan.md
 │   ├── requirements
 │   │   ├── functional-requirements.md
 │   │   ├── non-functional-requirements.md
@@ -37627,6 +37643,7 @@
 │   │   ├── expenseGroups.test.tsx
 │   │   ├── hoverCard.test.tsx
 │   │   ├── postEventExpenses.test.tsx
+│   │   ├── progressBar.test.tsx
 │   │   ├── timeline.test.tsx
 │   │   ├── timelineCalculations.test.tsx
 │   │   └── timelineEvents.test.tsx
@@ -37719,11 +37736,23 @@
 │   │   │   │   └── Header.test.tsx
 │   │   │   ├── index.tsx
 │   │   │   └── styles.module.css
-│   │   └── ImageUploader
-│   │       ├── __tests__
-│   │       │   └── ImageUploader.test.tsx
-│   │       ├── index.tsx
-│   │       └── styles.module.css
+│   │   ├── ImageUploader
+│   │   │   ├── __tests__
+│   │   │   │   └── ImageUploader.test.tsx
+│   │   │   ├── index.tsx
+│   │   │   └── styles.module.css
+│   │   └── ui
+│   │       ├── HoverCard
+│   │       │   ├── index.tsx
+│   │       │   └── styles.module.css
+│   │       ├── ProgressBar
+│   │       │   ├── index.tsx
+│   │       │   └── styles.module.css
+│   │       ├── ProgressBar.module.css
+│   │       ├── ProgressBar.tsx
+│   │       └── Timeline
+│   │           ├── index.tsx
+│   │           └── styles.module.css
 │   ├── context
 │   │   ├── AppContext.tsx
 │   │   ├── Providers.tsx
@@ -37743,12 +37772,15 @@
 │       ├── __tests__
 │       │   ├── csvExport.test.ts
 │       │   ├── currencyExchange.test.ts
-│       │   └── expenseCalculator.test.ts
+│       │   ├── expenseCalculator.test.ts
+│       │   └── timelineCalculations.test.ts
 │       ├── csvExport.ts
 │       ├── currencyExchange.ts
 │       ├── expenseCalculator.ts
-│       └── fileUtils.ts
+│       ├── fileUtils.ts
+│       └── timelineUtils
+│           └── index.ts
 ├── tree.txt
 └── tsconfig.json
 
-3683 directories, 34069 files
+3693 directories, 34091 files

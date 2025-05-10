@@ -93,6 +93,7 @@ const Timeline: React.FC<TimelineProps> = ({
           
           // Determine expense marker class based on settlement status
           let markerClass = styles.unsettledExpense; // Default to unsettled (red)
+          let settlementStatus = 'unsettled';
           
           // If all expenses in the group are settled, use settled style (green)
           const allSettled = group.expenses.every(expense => expense.settled);
@@ -101,14 +102,16 @@ const Timeline: React.FC<TimelineProps> = ({
           
           if (allSettled) {
             markerClass = styles.settledExpense;
+            settlementStatus = 'settled';
           } else if (somesettled && group.expenses.length > 1) {
             markerClass = styles.mixedExpense;
+            settlementStatus = 'partially settled';
           }
           
           // Prepare appropriate tooltip based on number of expenses
           const tooltipContent = group.expenses.length === 1 
-            ? `${group.expenses[0].description || 'Expense'}: ${group.expenses[0].amount} ${group.expenses[0].currency} (${formatTimelineDate(group.expenses[0].date)})` 
-            : `${group.expenses.length} expenses - ${group.expenses.filter(e => e.settled).length} settled, ${group.expenses.filter(e => !e.settled).length} unsettled`;
+            ? `${group.expenses[0].description || 'Expense'} (${settlementStatus}): ${group.expenses[0].amount} ${group.expenses[0].currency} (${formatTimelineDate(group.expenses[0].date)})` 
+            : `${group.expenses.length} expenses (${settlementStatus}) - ${group.expenses.filter(e => e.settled).length} settled, ${group.expenses.filter(e => !e.settled).length} unsettled`;
           
           return (
             <div 

@@ -135,7 +135,10 @@ export const groupNearbyExpenses = (expenses: TimelineExpense[], event: Timeline
  * Format date for display
  */
 export const formatTimelineDate = (dateString: string): string => {
-  return format(new Date(dateString), 'MMM d, yyyy');
+  const date = new Date(dateString);
+  // Add one day to fix the date offset issue
+  date.setDate(date.getDate() + 1);
+  return format(date, 'MMM d, yyyy');
 };
 
 /**
@@ -230,28 +233,32 @@ export const groupExpensesByDate = (expenses: Expense[]): Record<string, Expense
  */
 export const formatDateRange = (startDate: string, endDate?: string): string => {
   const start = new Date(startDate);
+  // Add one day to fix the date offset issue
+  start.setDate(start.getDate() + 1);
   
   if (!endDate) {
-    return start.toLocaleDateString();
+    return `${start.getMonth() + 1}/${start.getDate()}/${start.getFullYear()}`;
   }
   
   const end = new Date(endDate);
+  // Add one day to fix the date offset issue
+  end.setDate(end.getDate() + 1);
   
   // If same day, return just one date
   if (start.toDateString() === end.toDateString()) {
-    return start.toLocaleDateString();
+    return `${start.getMonth() + 1}/${start.getDate()}/${start.getFullYear()}`;
   }
   
-  // If same month and year, show format like "Jan 1-15, 2023"
+  // If same month and year, show format like "Jun 1-15, 2023"
   if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-    return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+    return `${format(start, 'MMM')} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
   }
   
   // If same year, show format like "Jan 1 - Feb 15, 2023"
   if (start.getFullYear() === end.getFullYear()) {
-    return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()} - ${end.toLocaleDateString('en-US', { month: 'short' })} ${end.getDate()}, ${start.getFullYear()}`;
+    return `${format(start, 'MMM')} ${start.getDate()} - ${format(end, 'MMM')} ${end.getDate()}, ${start.getFullYear()}`;
   }
   
-  // Otherwise, show full dates
-  return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
-};
+  // Different years, show format like "12/1/2022 - 1/15/2023"
+  return `${start.getMonth() + 1}/${start.getDate()}/${start.getFullYear()} - ${end.getMonth() + 1}/${end.getDate()}/${end.getFullYear()}`;
+}

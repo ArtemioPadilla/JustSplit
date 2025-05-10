@@ -22,6 +22,14 @@ export interface ProgressBarProps {
    * Additional className for the container
    */
   className?: string;
+  /**
+   * Custom height in pixels
+   */
+  height?: number;
+  /**
+   * Whether to show percentage text
+   */
+  showPercentage?: boolean;
 }
 
 /**
@@ -33,19 +41,26 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   valueLabel,
   variant = 'default',
   className = '',
+  height,
+  showPercentage = true,
 }) => {
   // Ensure value is between 0 and 100
   const safeValue = Math.min(100, Math.max(0, value));
   
   return (
-    <div className={`${styles.progressContainer} ${className}`}>
-      {(label || valueLabel !== undefined) && (
+    <div 
+      className={`${styles.progressContainer} ${className}`}
+      style={height ? { height: `${height}px` } : undefined}
+    >
+      {(label || (valueLabel !== undefined && showPercentage)) && (
         <div className={styles.progressLabel}>
           {label && <span>{label}</span>}
-          <span>{valueLabel !== undefined ? valueLabel : `${Math.round(safeValue)}%`}</span>
+          {showPercentage && <span>{valueLabel !== undefined ? valueLabel : `${Math.round(safeValue)}%`}</span>}
         </div>
       )}
-      <div className={`${styles.progressBar} ${variant !== 'default' ? styles[variant] : ''}`}>
+      <div 
+        className={`${styles.progressBar} ${variant !== 'default' ? styles[variant] : ''}`}
+      >
         <div 
           className={styles.progressFill} 
           style={{ width: `${safeValue}%` }}
