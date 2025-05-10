@@ -2,11 +2,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #102a49;  /* Dark blue */
+  padding: var(--space-md) var(--space-xl);
+  background-color: var(--color-primary);
   color: white;
   height: 60px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .container {
@@ -32,27 +32,27 @@
 
 /* Fallback text logo style - keep for backup */
 .logoText {
-  font-size: 1.8rem;
-  font-weight: bold;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   color: white;
   letter-spacing: 0.5px;
 }
 
 .nav {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .navLink {
   color: white;
   position: relative;
-  padding: 5px 0;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  padding: var(--space-xs) 0;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast) var(--transition-timing-default);
 }
 
 .navLink:hover {
-  color: #4CAF50; /* Green accent */
+  color: var(--color-secondary); /* Green accent */
 }
 
 .active::after {
@@ -62,31 +62,31 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #4CAF50; /* Green accent */
+  background-color: var(--color-secondary);
 }
 
 /* User profile styling */
 .userProfile {
   color: white;
   position: relative;
-  padding: 5px 10px;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  padding: var(--space-xs) var(--space-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast) var(--transition-timing-default);
   cursor: pointer;
   display: flex;
   align-items: center;
-  border-radius: 20px;
+  border-radius: var(--border-radius-full);
   background-color: rgba(255, 255, 255, 0.1);
 }
 
 .userProfile:hover {
-  color: #4CAF50; /* Green accent */
+  color: var(--color-secondary);
   background-color: rgba(255, 255, 255, 0.2);
 }
 
 .userProfileIcon {
-  margin-right: 6px;
-  font-size: 14px;
+  margin-right: var(--space-xs);
+  font-size: var(--font-size-sm);
 }
 
 .mobileMenuButton {
@@ -135,11 +135,11 @@
     right: -100%;
     width: 70%;
     height: 100vh;
-    background-color: #102a49;
+    background-color: var(--color-primary);
     flex-direction: column;
-    padding: 80px 20px 20px;
-    transition: right 0.3s ease;
-    z-index: 10;
+    padding: 80px var(--space-md) var(--space-md);
+    transition: right var(--transition-normal) var(--transition-timing-default);
+    z-index: var(--z-index-modal);
   }
 
   .mobileOpen {

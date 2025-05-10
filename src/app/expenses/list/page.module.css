@@ -1,66 +1,66 @@
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: #333;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xl);
+  color: var(--color-text);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-xl);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .filter {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .select {
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background-color: white;
-  font-size: 14px;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background);
+  font-size: var(--font-size-sm);
 }
 
 .emptyState {
   text-align: center;
-  padding: 40px 0;
-  background-color: #f9fafb;
-  border-radius: 8px;
-  margin-top: 20px;
+  padding: var(--space-2xl) 0;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  margin-top: var(--space-lg);
 }
 
 .emptyState p {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .expensesList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .expenseCard {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  background-color: white;
-  transition: all 0.2s ease;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background-color: var(--color-background);
+  transition: all var(--transition-fast) var(--transition-timing-default);
 }
 
 .expenseCard:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
@@ -68,26 +68,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-sm);
 }
 
 .expenseName {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
   margin: 0;
 }
 
 .expenseAmount {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
 }
 
 .expenseDetails {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .detailItem {
@@ -96,13 +96,13 @@
 }
 
 .detailLabel {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .detailValue {
-  font-size: 14px;
-  color: #111827;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
 .actions {
@@ -111,16 +111,16 @@
 }
 
 .viewButton {
-  padding: 6px 12px;
-  background-color: #f3f4f6;
-  color: #0070f3; /* Changed from #4f46e5 to Next.js blue */
-  border-radius: 4px;
-  font-size: 14px;
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface);
+  color: var(--color-accent);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
   text-decoration: none;
 }
 
 .viewButton:hover {
-  background-color: #e5e7eb;
+  background-color: var(--color-divider);
 }
 
 @media (max-width: 640px) {
@@ -130,7 +130,7 @@
   
   .actions {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-sm);
   }
   
   .filter {
@@ -144,64 +144,43 @@
 
 .createButton {
   display: inline-block;
-  padding: 10px 16px;
-  background-color: var(--primary-color);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-primary);
   color: white;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
 }
 
 .createButton:hover {
-  background-color: #45A049;
+  background-color: var(--color-primary-dark);
 }
 
-.exportButton {
+.exportButton, .refreshButton {
   display: inline-block;
-  padding: 10px 16px;
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
 }
 
-.exportButton:hover {
-  background-color: #e5e7eb;
+.exportButton:hover, .refreshButton:hover {
+  background-color: var(--color-divider);
 }
 
-.exportButton:disabled {
+.exportButton:disabled, .refreshButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 .originalAmount {
   display: block;
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-.refreshButton {
-  display: inline-block;
-  padding: 10px 16px;
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.refreshButton:hover {
-  background-color: #e5e7eb;
-}
-
-.refreshButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
 }

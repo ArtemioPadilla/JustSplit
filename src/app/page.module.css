@@ -1,17 +1,18 @@
+/* Main layout styles */
 .main {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 2rem;
+  padding: var(--space-xl);
   text-align: center;
 }
 
 .buttons {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
 }
 
 .button {
@@ -26,9 +27,9 @@
   background-color: #45A049;
 }
 
-/* Dashboard styles */
+/* Dashboard layout */
 .dashboardMain {
-  padding: 2rem;
+  padding: var(--space-xl);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -36,8 +37,8 @@
 .dashboardHeader {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
+  margin-bottom: var(--space-lg);
+  gap: var(--space-md);
 }
 
 .headerTop {
@@ -52,81 +53,81 @@
 
 .quickActions {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 }
 
 .currencySelector {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background-color: #f3f4f6;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  border: 1px solid #d1d5db;
-  margin-top: 1rem;
+  gap: var(--space-xs);
+  background-color: var(--color-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-md);
+  border: var(--border-width-thin) solid var(--color-border);
+  margin-top: var(--space-md);
 }
 
 .currencySelector label {
-  font-size: 0.875rem;
-  color: #4b5563;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .select {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
+  background-color: var(--color-background);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: calc(var(--space-xs) - 1px) var(--space-xs);
+  font-size: var(--font-size-sm);
 }
 
 .refreshButton {
-  padding: 0.375rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  color: #4b5563;
+  padding: calc(var(--space-xs) - 1px) var(--space-xs);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .refreshButton:hover {
-  background-color: #e5e7eb;
+  background-color: var(--color-divider);
 }
 
-/* New dashboard summary section for prominent metrics */
+/* Dashboard summary section */
 .dashboardSummary {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
 }
 
 .summaryCard {
-  background-color: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .dashboardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .dashboardCard {
-  background-color: white;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   min-height: 300px;
 }
 
 .cardTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
   margin-top: 0;
-  margin-bottom: 1.25rem;
-  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
 }
@@ -135,14 +136,14 @@
   content: '';
   flex-grow: 1;
   height: 1px;
-  background-color: #e5e7eb;
-  margin-left: 1rem;
+  background-color: var(--color-divider);
+  margin-left: var(--space-md);
 }
 
 .summaryStats {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .statItem {
@@ -151,29 +152,29 @@
   align-items: center;
   text-align: center;
   position: relative;
-  padding: 1.25rem;
-  border-radius: 0.5rem;
-  background-color: #f9fafb;
+  padding: var(--space-md);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-surface);
   width: 30%;
 }
 
 .statValue {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin-bottom: 0.25rem;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
 }
 
 .statLabel {
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .statIcon {
   position: absolute;
   top: -10px;
   right: -10px;
-  background-color: var(--secondary-color);
+  background-color: var(--color-secondary);
   color: white;
   width: 30px;
   height: 30px;
@@ -181,7 +182,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
 }
 
 /* Charts and visualizations */
@@ -191,17 +192,18 @@
   flex-direction: column;
 }
 
+/* Chart styles and other specialized elements remain the same */
 .barChart {
   flex-grow: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   height: 180px;
-  margin-bottom: 1rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-lg);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
   position: relative;
-  background-color: #f9fafb; /* Light background for better contrast */
+  background-color: var(--color-surface);
 }
 
 .barChart::before {
@@ -377,13 +379,13 @@
 .expensesList, .eventsList, .settlementsList {
   list-style: none;
   padding: 0;
-  margin: 0 0 1rem 0;
+  margin: 0 0 var(--space-md) 0;
   flex-grow: 1;
 }
 
 .expenseItem, .eventItem, .settlementItem {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--space-sm) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .expenseItem a, .eventItem a {
@@ -393,54 +395,54 @@
 }
 
 .expenseName, .eventName {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-xs);
 }
 
 .expenseDetails, .eventDate {
   display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
 }
 
 .expenseAmount, .settlementAmount {
-  font-weight: 500;
-  color: var(--primary-color);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
 }
 
 .expensePaidBy, .eventParticipants {
-  font-size: 0.75rem;
-  color: #9ca3af;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-disabled);
 }
 
 .cardFooter {
   margin-top: auto;
-  padding-top: 1rem;
+  padding-top: var(--space-md);
 }
 
 .viewAllLink {
   margin-top: auto;
   text-align: center;
-  padding-top: 0.75rem;
-  color: var(--primary-color);
-  font-weight: 500;
-  font-size: 0.875rem;
+  padding-top: var(--space-sm);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
 }
 
 .emptyMessage {
   text-align: center;
-  color: #9ca3af;
+  color: var(--color-text-disabled);
   font-style: italic;
-  padding: 1rem 0;
+  padding: var(--space-md) 0;
 }
 
 @media (max-width: 768px) {
   .dashboardHeader {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: var(--space-md);
   }
   
   .dashboardGrid {
@@ -449,7 +451,7 @@
   
   .summaryStats {
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-md);
   }
   
   .statItem {
@@ -623,8 +625,8 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  font-size: 1.2rem;
-  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
   text-align: center;
   animation: pulse 1.5s infinite;
 }

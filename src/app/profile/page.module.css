@@ -1,58 +1,58 @@
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .profileCard {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
 .profileHeader {
   display: flex;
   align-items: center;
-  padding: 20px;
-  background-color: #f5f5f5;
+  padding: var(--space-lg);
+  background-color: var(--color-surface);
 }
 
 .avatar {
   width: 80px;
   height: 80px;
-  border-radius: 50%;
-  background-color: var(--primary-color);
+  border-radius: var(--border-radius-full);
+  background-color: var(--color-primary);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  margin-right: 20px;
+  font-size: var(--font-size-3xl);
+  margin-right: var(--space-lg);
 }
 
 .profileSection {
-  padding: 20px;
-  border-top: 1px solid #eee;
+  padding: var(--space-lg);
+  border-top: var(--border-width-thin) solid var(--color-divider);
 }
 
 .profileSection h3 {
-  margin-bottom: 15px;
-  color: var(--primary-color);
+  margin-bottom: var(--space-md);
+  color: var(--color-primary);
 }
 
 .infoCard {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
+  background-color: var(--color-surface);
+  padding: var(--space-md);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-md);
 }
 
 .infoItem {
   display: flex;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .infoItem:last-child {
@@ -63,8 +63,8 @@
 
 .infoLabel {
   width: 150px;
-  font-weight: 500;
-  color: #666;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .infoValue {
@@ -74,82 +74,82 @@
 .editForm {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .formGroup label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #555;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .input, .select {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 16px;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
 }
 
 .input:focus, .select:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 1px var(--primary-color);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
 }
 
 .buttonGroup {
   display: flex;
-  gap: 12px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .saveButton, .editButton, .addButton {
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   border: none;
 }
 
 .saveButton, .editButton {
-  background-color: var(--primary-color);
+  background-color: var(--color-primary);
   color: white;
 }
 
 .saveButton:hover, .editButton:hover {
-  background-color: #45A049;
+  background-color: var(--color-primary-dark);
 }
 
 .cancelButton {
-  padding: 10px 16px;
-  background-color: white;
-  color: var(--primary-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 6px;
-  font-weight: 500;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  border: var(--border-width-thin) solid var(--color-primary);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
 }
 
 .addButton {
-  background-color: var(--secondary-color);
+  background-color: var(--color-secondary);
   color: white;
-  margin-top: 10px;
+  margin-top: var(--space-sm);
 }
 
 .addButton:disabled {
-  background-color: #cccccc;
+  background-color: var(--color-text-disabled);
   cursor: not-allowed;
 }
 
 @media (max-width: 600px) {
   .infoItem {
     flex-direction: column;
-    gap: 5px;
+    gap: var(--space-xs);
   }
   
   .infoLabel {

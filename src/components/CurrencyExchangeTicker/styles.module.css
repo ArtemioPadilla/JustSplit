@@ -1,47 +1,47 @@
 .tickerContainer {
   width: 100%;
-  background-color: #102a49;
+  background-color: var(--color-primary);
   color: white;
-  border-radius: 8px;
-  margin-bottom: 24px;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .tickerTitle {
-  padding: 8px 16px;
+  padding: var(--space-xs) var(--space-md);
   background-color: rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
 
 .fallbackIndicator {
-  margin-left: 6px;
+  margin-left: var(--space-xs);
   color: #fcd34d;
-  font-size: 1rem;
-  font-weight: bold;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
   animation: pulse 2s infinite;
 }
 
 .fallbackWarning {
-  padding: 6px 16px;
+  padding: calc(var(--space-xs) - 2px) var(--space-md);
   background-color: rgba(251, 191, 36, 0.2);
   color: #fcd34d;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   text-align: center;
   border-top: 1px dashed rgba(251, 191, 36, 0.5);
   border-bottom: 1px dashed rgba(251, 191, 36, 0.5);
 }
 
 .fallbackItemIndicator {
-  margin-left: 4px;
+  margin-left: var(--space-xs);
   color: #fcd34d;
-  font-size: 0.8rem;
-  font-weight: bold;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
   display: inline-block;
   animation: pulse 2s infinite;
 }
@@ -55,7 +55,7 @@
 .tickerTrack {
   display: flex;
   animation: ticker 30s linear infinite;
-  padding: 8px 0;
+  padding: var(--space-xs) 0;
 }
 
 .tickerTrack:hover {
@@ -65,52 +65,52 @@
 .tickerItem {
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 var(--space-md);
   white-space: nowrap;
   border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .currencyPair {
-  font-weight: 500;
-  margin-right: 8px;
+  font-weight: var(--font-weight-medium);
+  margin-right: var(--space-xs);
 }
 
 .rate {
   font-family: monospace;
-  margin-right: 8px;
+  margin-right: var(--space-xs);
 }
 
 .change {
   font-family: monospace;
   padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
 }
 
 .positive {
   background-color: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .negative {
   background-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .loading, .error {
-  padding: 8px 16px;
+  padding: var(--space-xs) var(--space-md);
   text-align: center;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
 }
 
 .error {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .fallbackMessage {
-  padding: 8px 16px;
+  padding: var(--space-xs) var(--space-md);
   text-align: center;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 

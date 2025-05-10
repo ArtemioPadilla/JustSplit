@@ -1,58 +1,58 @@
 .progressContainer {
   width: 100%;
-  background-color: #e5e7eb;
-  border-radius: 9999px;
+  background-color: var(--color-divider);
+  border-radius: var(--border-radius-full);
   overflow: hidden;
   position: relative;
 }
 
 .progressBar {
   height: 100%;
-  border-radius: 9999px;
-  transition: width 0.5s ease;
+  border-radius: var(--border-radius-full);
+  transition: width var(--transition-normal) var(--transition-timing-out);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .progressText {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: white;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .externalProgressText {
   position: absolute;
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
   left: calc(100% + 6px);
   top: 50%;
   transform: translateY(-50%);
 }
 
 .success {
-  background-color: #22c55e;
+  background-color: var(--color-success);
 }
 
 .info {
-  background-color: #3b82f6;
+  background-color: var(--color-info);
 }
 
 .warning {
-  background-color: #f59e0b;
+  background-color: var(--color-warning);
 }
 
 .danger {
-  background-color: #ef4444;
+  background-color: var(--color-error);
 }
 
 @media (max-width: 640px) {
   .progressText {
-    font-size: 10px;
+    font-size: calc(var(--font-size-xs) - 2px);
   }
   
   .externalProgressText {
-    font-size: 10px;
+    font-size: calc(var(--font-size-xs) - 2px);
   }
 }

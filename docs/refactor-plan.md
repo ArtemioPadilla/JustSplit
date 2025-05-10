@@ -61,90 +61,133 @@ Currently, your application has a mix of page components and reusable components
    - Test interactions between components
    - Verify context and state management
 
-## Timeline and Progress Component Refactoring Plan
 
-Now, let's focus specifically on the timeline and progress functionality that you want to implement first:
 
-### 1. Create Reusable Timeline Component
 
-1. **Extract Timeline Component**
-   - Create a new component at index.tsx
-   - Move the timeline-related JSX and styles from page.tsx
-   - Make it accept props for events, expenses, and callbacks
 
-2. **Timeline Utils**
-   - Create a new file at `/utils/timelineUtils.ts`
-   - Move calculation functions:
-     - `calculateTimelineProgress`
-     - `calculatePositionPercentage`
-     - `groupNearbyExpenses`
+I'll help you create a detailed refactoring plan for your JustSplit application. Looking at your codebase, I can see that you've got a Next.js application with React components, and you'd like to homogenize the design and functionality across pages. Let's start with a high-level plan and then dive into a more detailed implementation strategy.
 
-3. **Timeline Styling**
-   - Create styles at styles.module.css
-   - Extract all timeline-related styles from page.module.css
+## Comprehensive Refactoring Plan
 
-### 2. Create Progress Component
+### 1. Component Architecture Assessment
 
-1. **Extract Progress Component**
-   - Create a new component at index.tsx
-   - Move progress-related JSX from page.tsx
-   - Make it accept props for value, label, and appearance
+First, I'll analyze your current component structure and identify opportunities for better organization and reuse.
 
-2. **Progress Styling**
-   - Create styles at styles.module.css
-   - Extract all progress-related styles
+### 2. Design System Implementation
 
-### 3. Create Expense Card Component
+Based on your existing CSS modules, I'll propose a cohesive design system that can be applied throughout the application.
 
-1. **Extract HoverCard Component**
-   - Create a new component at index.tsx
-   - Move expense hover card JSX and functionality
-   - Make it reusable across the application
+### 3. Shared Components Library
 
-2. **HoverCard Styling**
-   - Create styles at styles.module.css
-   - Extract relevant styles
+I'll identify which components are reused across pages and should be extracted into a shared components library.
 
-### 4. Implementation Steps
+### 4. State Management Optimization
 
-1. **Create the component files**
-   - Set up the directory structure
-   - Create TypeScript interfaces for all component props
-   - Add proper exports
+I'll examine your state management approach and suggest improvements for consistency and performance.
 
-2. **Move and refactor code**
-   - Extract the functionality from the event list page
-   - Refactor to use props instead of direct context access
+### 5. Page Structure Standardization
 
-3. **Apply to other pages**
-   - Update page.tsx to use the new components
-   - Add timeline visualization to page.tsx
-   - Ensure consistent appearance across the application
+I'll create a consistent page structure that can be applied across all routes in your application.
 
-4. **Cleanup and testing**
-   - Remove duplicate code
-   - Add unit tests for the new components
-   - Test all pages that use the new components
+### 6. Code Quality Enhancement
 
-### 5. Additional Enhancements
+I'll suggest patterns for error handling, loading states, and other best practices.
 
-1. **Accessibility Improvements**
-   - Add ARIA attributes to interactive elements
-   - Ensure keyboard navigation works properly
-   - Add proper focus management
+### 7. Testing Strategy
 
-2. **Animation Enhancements**
-   - Add subtle animations for timeline interactions
-   - Implement smooth transitions for progress bars
+I'll review your existing tests and propose a comprehensive testing approach.
 
-## Implementation Plan for First Steps
+## Detailed Implementation Plan for Starting the Refactoring
 
-To begin the refactoring as you requested, here's a detailed implementation plan:
+Let's begin with the most critical areas:
 
-1. **Create the Timeline and ProgressBar components**
-2. **Move utility functions to a dedicated file**
-3. **Update the event list page to use the new components**
-4. **Apply the components to the event detail page**
-5. **Test and ensure consistency**
+### Phase 1: Establish Design System Foundation
 
-Would you like me to start implementing these components for you? I can begin by creating the Timeline component and moving the relevant styles and functionality.
+#### 1. Create a Shared Theme Variables File
+
+```
+1. Create a new file: src/styles/theme.css
+2. Extract all CSS variables from individual module files
+3. Standardize color palette, typography, spacing, and shadows
+4. Import the theme file in globals.css
+```
+
+#### 2. Audit Existing UI Components
+
+```
+1. Review all existing components for visual consistency
+2. Identify design patterns that can be standardized
+3. Document UI inconsistencies for targeted refactoring
+4. Create a design system documentation page
+```
+
+#### 3. Implement Core UI Components
+
+```
+1. Create base components in src/components/ui:
+   - Button (primary, secondary, tertiary variants)
+   - Card
+   - Input
+   - Form elements
+   - Typography components
+2. Ensure components are fully responsive
+3. Add proper accessibility attributes
+4. Include comprehensive props for flexibility
+```
+
+### Phase 2: Page Structure Refactoring
+
+#### 1. Create Layout Components
+
+```
+1. Develop a standard page layout component
+2. Implement consistent header and footer
+3. Create section components for content organization
+4. Build breadcrumb navigation for better UX
+```
+
+#### 2. Standardize Page Structure
+
+```
+1. Establish consistent patterns for:
+   - Page headers
+   - Action buttons placement
+   - Form layouts
+   - List views
+2. Refactor one page at a time, starting with highest traffic pages
+3. Test each refactored page thoroughly
+```
+
+### Phase 3: Integration and Testing
+
+```
+1. Integrate refactored components across all pages
+2. Update tests to reflect new component structure
+3. Perform cross-browser and responsive testing
+4. Conduct usability testing for refactored interfaces
+```
+
+## Immediate First Steps (Day 1-3)
+
+1. **Create Theme Variables File**
+   - Extract common colors from various CSS modules
+   - Define typography scales
+   - Define spacing system
+   - Document usage patterns
+
+2. **Implement Button Component**
+   - Create a reusable Button component with variants
+   - Support for different sizes, states, and icons
+   - Replace all button instances in one page as proof of concept
+
+3. **Refactor Card Components**
+   - Create standardized Card components
+   - Support for different content types
+   - Implement consistent padding, borders, and shadows
+
+4. **Create Testing Suite for New Components**
+   - Unit tests for each new component
+   - Integration tests for component combinations
+   - Visual regression tests to ensure consistency
+
+Let me know if you'd like to start with any specific part of this refactoring plan, and I can help you implement the necessary changes!

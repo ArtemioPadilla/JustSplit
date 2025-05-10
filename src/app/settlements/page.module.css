@@ -1,35 +1,35 @@
 .container {
-  padding: 20px 0;
+  padding: var(--space-lg) 0;
   max-width: 800px;
   margin: 0 auto;
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: var(--primary-color);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xl);
+  color: var(--color-primary);
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 24px;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+  margin-bottom: var(--space-xl);
 }
 
 .tabButton {
-  padding: 12px 20px;
+  padding: var(--space-sm) var(--space-lg);
   background: none;
   border: none;
-  font-size: 16px;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
   cursor: pointer;
   position: relative;
 }
 
 .activeTab {
-  color: var(--primary-color);
+  color: var(--color-primary);
 }
 
 .activeTab::after {
@@ -39,7 +39,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: var(--primary-color);
+  background-color: var(--color-primary);
 }
 
 .tabContent {
@@ -49,11 +49,11 @@
 .summaryCard {
   display: flex;
   justify-content: space-around;
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .summaryItem {
@@ -64,46 +64,46 @@
 }
 
 .summaryLabel {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
 }
 
 .summaryValue {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--primary-color);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
 }
 
 .settlementsList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .settlementCard {
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .completedSettlement {
   opacity: 0.8;
-  background-color: #f9f9f9;
+  background-color: var(--color-surface);
 }
 
 .settlementDetails {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-sm);
 }
 
 .settlementUsers {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .settlementUser {
@@ -112,23 +112,23 @@
 }
 
 .userLabel {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .userName {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .arrowIcon {
-  color: #6b7280;
-  font-size: 20px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
 }
 
 .settlementAmount {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
 }
 
 .settlementActions {
@@ -139,102 +139,102 @@
 .settlementMeta {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  color: #6b7280;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .settlementStatus {
-  color: var(--secondary-color);
-  font-weight: 500;
+  color: var(--color-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .settleButton {
-  padding: 8px 16px;
-  background-color: var(--secondary-color);
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-secondary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
 }
 
 .settleButton:hover {
-  background-color: #3d8b40;
+  background-color: var(--color-secondary-dark);
 }
 
 .emptyState {
-  border: 2px dashed #e0e0e0;
-  border-radius: 8px;
-  padding: 40px;
+  border: 2px dashed var(--color-divider);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-2xl);
   text-align: center;
-  margin: 40px 0;
+  margin: var(--space-2xl) 0;
 }
 
 .emptyState h3 {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
-  color: var(--primary-color);
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
 }
 
 .emptyState p {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .filterContainer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .filterItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .filterLabel {
-  font-size: 14px;
-  font-weight: 500;
-  color: #6b7280;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
 }
 
 .filterSelect {
-  padding: 8px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-  background-color: white;
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-background);
   min-width: 150px;
 }
 
 .loadingState {
-  border: 2px dashed #e0e0e0;
-  border-radius: 8px;
-  padding: 40px;
+  border: 2px dashed var(--color-divider);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-2xl);
   text-align: center;
-  margin: 40px 0;
-  color: #6b7280;
+  margin: var(--space-2xl) 0;
+  color: var(--color-text-secondary);
 }
 
 .balanceHeader {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-lg);
 }
 
 .balanceDescription {
-  font-size: 14px;
-  color: #6b7280;
-  margin-top: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
 }
 
 .balanceTable {
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-xl);
   overflow-x: auto;
 }
 
@@ -245,14 +245,14 @@
 
 .table th,
 .table td {
-  padding: 12px;
+  padding: var(--space-sm);
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .table th {
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
 }
 
 .alignRight {
@@ -260,45 +260,45 @@
 }
 
 .positive {
-  color: #10b981; /* green */
+  color: var(--color-success);
 }
 
 .negative {
-  color: #ef4444; /* red */
+  color: var(--color-error);
 }
 
 .sectionTitle {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 24px 0 16px;
-  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: var(--space-xl) 0 var(--space-md);
+  color: var(--color-primary);
 }
 
 .eventBreakdownList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .eventBreakdownCard {
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .eventBreakdownTitle {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: var(--primary-color);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
 }
 
 @media (max-width: 640px) {
   .settlementDetails {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-sm);
   }
   
   .settlementAmount {
@@ -329,38 +329,38 @@
 
 /* Calculation Details Section */
 .calculationDetails {
-  background-color: white;
-  border-radius: 8px;
-  margin-bottom: 24px;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-xl);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .detailHeader {
-  padding: 16px;
+  padding: var(--space-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f8fafc;
+  background-color: var(--color-surface);
   cursor: pointer;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .detailHeader h3 {
   margin: 0;
-  font-size: 16px;
-  color: var(--primary-color);
+  font-size: var(--font-size-md);
+  color: var(--color-primary);
 }
 
 .toggleIcon {
-  color: var(--primary-color);
-  font-size: 14px;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
 }
 
 .detailContent {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease;
+  transition: max-height var(--transition-normal) var(--transition-timing-default);
 }
 
 .detailContent.expanded {
@@ -368,8 +368,8 @@
 }
 
 .detailSection {
-  padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--space-md);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .detailSection:last-child {
@@ -377,19 +377,20 @@
 }
 
 .detailSection h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #4b5563;
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 
 .detailSection h5 {
-  margin: 12px 0 8px 0;
-  font-size: 13px;
-  color: #6b7280;
+  margin: var(--space-sm) 0 var(--space-xs) 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
+/* Settlement specialized components */
 .currencyBreakdown {
-  margin-top: 12px;
+  margin-top: var(--space-sm);
 }
 
 .currencyList {
@@ -399,38 +400,38 @@
 }
 
 .currencyItem {
-  padding: 4px 0;
-  font-size: 13px;
+  padding: var(--space-xs) 0;
+  font-size: var(--font-size-xs);
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .currencyCode {
-  font-weight: 500;
-  color: var(--primary-color);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
 }
 
 .exchangeRatesTable {
-  margin-top: 12px;
+  margin-top: var(--space-sm);
   overflow-x: auto;
 }
 
 .ratesTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--font-size-xs);
 }
 
 .ratesTable th, .ratesTable td {
-  padding: 8px;
+  padding: var(--space-xs);
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
 }
 
 .ratesTable th {
-  font-weight: 500;
-  color: #6b7280;
-  background-color: #f8fafc;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
 }
 
 .rateValue {
@@ -438,51 +439,51 @@
 }
 
 .disclaimer {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #9ca3af;
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-disabled);
   font-style: italic;
 }
 
 /* Settlement Expenses Details */
 .settlementExpenses {
-  margin-top: 12px;
-  border-top: 1px dashed #e5e7eb;
-  padding-top: 12px;
+  margin-top: var(--space-sm);
+  border-top: 1px dashed var(--color-divider);
+  padding-top: var(--space-sm);
 }
 
 .expensesHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-  color: #6b7280;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .detailsToggle {
-  color: var(--primary-color);
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
 .expensesDetails {
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 
 .expensesList {
   list-style: none;
   padding: 0;
-  margin: 8px 0 0 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
+  margin: var(--space-xs) 0 0 0;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
   overflow: hidden;
 }
 
 .expenseItem {
-  padding: 8px 12px;
-  font-size: 13px;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #f9fafb;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+  background-color: var(--color-surface);
 }
 
 .expenseItem:last-child {
@@ -490,26 +491,26 @@
 }
 
 .expenseName {
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2xs);
 }
 
 .expenseInfo {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
-  color: #6b7280;
-  font-size: 12px;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
 }
 
 .expenseAmount {
-  font-weight: 500;
-  color: var(--primary-color);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
 }
 
 .convertedAmount {
-  margin-left: 6px;
+  margin-left: var(--space-xs);
   font-style: italic;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
