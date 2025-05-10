@@ -90,11 +90,8 @@
 }
 
 .mobileMenuButton {
-  display: none;
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
+  display: none; /* Hide by default on all screens */
+  z-index: 0;
 }
 
 .menuIcon {
@@ -125,10 +122,12 @@
 
 @media (max-width: 768px) {
   .mobileMenuButton {
-    display: block;
-    z-index: 20;
+    display: block; /* Show only on mobile */
+    position: absolute;
+    right: 20px;
+    top: 50%;
   }
-
+  
   .nav {
     position: fixed;
     top: 0;
@@ -144,5 +143,6 @@
 
   .mobileOpen {
     right: 0;
+    z-index: 500;
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import styles from './styles.module.css';
+import Button from '../ui/Button';
 
 interface ImageUploaderProps {
   images: string[];
@@ -66,38 +67,38 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   alt={`Upload ${index + 1}`} 
                   className={styles.previewImage} 
                 />
-                <button 
-                  type="button"
+                <Button 
                   onClick={() => handleRemoveImage(index)}
+                  variant="secondary"
                   className={styles.removeButton}
                   aria-label="Remove image"
                 >
                   ✕
-                </button>
+                </Button>
               </div>
             ))}
             
             {images.length < maxImages && (
-              <button
-                type="button"
+              <Button
                 onClick={() => fileInputRef.current?.click()}
+                variant="primary"
                 className={styles.addMoreButton}
                 disabled={isUploading}
               >
                 {isUploading ? 'Uploading...' : `+ Add ${images.length === 0 ? 'Images' : 'More'}`}
-              </button>
+              </Button>
             )}
           </div>
         ) : (
           <div className={styles.uploadPrompt}>
-            <button
-              type="button"
+            <Button
               onClick={() => fileInputRef.current?.click()}
+              variant="primary"
               className={styles.uploadButton}
               disabled={isUploading}
             >
               {isUploading ? 'Uploading...' : 'Upload Images'}
-            </button>
+            </Button>
             <p className={styles.uploadText}>
               Upload receipt images or photos of your expenses
             </p>

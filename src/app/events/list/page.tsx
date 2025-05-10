@@ -6,6 +6,7 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
+import Button from '../../../components/ui/Button';
 import { 
   calculateSettledPercentage,
   calculateTotalByCurrency,
@@ -177,14 +178,15 @@ export default function EventList() {
                   
                   {/* Participants with Animation */}
                   <div className={styles.participantsContainer}>
-                    <button
+                    <Button
                       aria-label={`Show participants for ${event.name}`}
                       onClick={() => toggleParticipants(event.id)}
+                      variant="primary"
                       className={styles.participantsButton}
                     >
                       {expandedEventId === event.id ? 'Hide Participants' : 'Show Participants'} 
                       ({event.participants.length})
-                    </button>
+                    </Button>
                     
                     <ul className={`${styles.participantsList} ${expandedEventId === event.id ? styles.participantsListExpanded : ''}`}>
                       {event.participants.map((participantId: string) => {

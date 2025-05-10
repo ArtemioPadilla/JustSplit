@@ -3,6 +3,7 @@ import { Expense, User, Event } from '../../context/AppContext';
 import { exportExpensesToCSV } from '../../utils/csvExport';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
 import styles from '../../app/page.module.css';
+import Button from '../ui/Button';
 
 interface DashboardHeaderProps {
   expenses: Expense[];
@@ -40,13 +41,13 @@ export default function DashboardHeader({
               </option>
             ))}
           </select>
-          <button 
-            className={`${styles.button} ${styles.refreshButton}`}
+          <Button 
             onClick={handleRefreshRates}
+            variant="primary"
             title="Refresh exchange rates"
           >
             🔄
-          </button>
+          </Button>
         </div>
       </div>
       
@@ -54,13 +55,13 @@ export default function DashboardHeader({
         <Link href="/expenses/new" className={styles.button}>Add Expense</Link>
         <Link href="/events/new" className={styles.button}>Create Event</Link>
         
-        <button 
-          className={`${styles.button} ${styles.secondaryButton}`}
+        <Button 
           onClick={() => exportExpensesToCSV(expenses, users, 'all-expenses.csv')}
+          variant="secondary"
           disabled={expenses.length === 0}
         >
           Export Expenses
-        </button>
+        </Button>
       </div>
     </div>
   );

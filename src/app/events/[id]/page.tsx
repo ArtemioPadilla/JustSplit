@@ -10,6 +10,7 @@ import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
 import { calculateSettledPercentage } from '../../../utils/timelineUtils';
+import Button from '../../../components/ui/Button';
 
 export default function EventDetail() {
   const router = useRouter();
@@ -257,13 +258,13 @@ export default function EventDetail() {
               ))}
             </select>
           </div>
-          <button
+          <Button
             onClick={handleRefreshRates}
             disabled={isConverting || isRefreshing}
-            className={styles.refreshButton}
+            variant="secondary"
           >
             {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
-          </button>
+          </Button>
         </div>
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
@@ -309,12 +310,12 @@ export default function EventDetail() {
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Expenses</h2>
-          <button 
-            className={styles.addExpenseButton}
+          <Button 
+            variant="primary"
             onClick={() => router.push(`/expenses/new?event=${eventId}`)}
           >
             Add Expense
-          </button>
+          </Button>
         </div>
         
         {eventExpenses.length > 0 ? (
@@ -374,29 +375,29 @@ export default function EventDetail() {
       </div>
       
       <div className={styles.actions}>
-        <button 
-          className={styles.actionButton}
+        <Button 
+          variant="primary"
           onClick={() => router.push(`/expenses/new?event=${eventId}`)}
         >
           Add Expense
-        </button>
+        </Button>
         
-        <button
-          className={`${styles.actionButton} ${styles.editButton}`}
+        <Button
+          variant="secondary"
           onClick={() => router.push(`/events/edit/${eventId}`)}
         >
           Edit Event
-        </button>
+        </Button>
         
-        <button
-          className={`${styles.actionButton} ${styles.secondaryButton}`}
+        <Button
+          variant="secondary"
           onClick={() => router.push(`/settlements?event=${eventId}`)}
         >
           View Settlements
-        </button>
+        </Button>
         
-        <button
-          className={`${styles.actionButton} ${styles.tertiaryButton}`}
+        <Button
+          variant="secondary"
           onClick={() => exportExpensesToCSV(
             eventExpenses, 
             state.users, 
@@ -406,7 +407,7 @@ export default function EventDetail() {
           disabled={eventExpenses.length === 0}
         >
           Export as CSV
-        </button>
+        </Button>
       </div>
     </div>
   );

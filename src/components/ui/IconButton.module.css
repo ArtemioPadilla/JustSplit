@@ -1,0 +1,83 @@
+.iconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  z-index: 1500; /* Ensure it's above other elements */
+}
+
+.iconButton.sandwich {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sandwich {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000; /* Higher z-index than the mobile menu */
+}
+
+.sandwichIcon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.sandwichIcon span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  background-color: white;
+  border-radius: 3px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.close {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  z-index: 1000; /* Higher z-index than the mobile menu */
+}
+
+.closeIcon {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.closeIcon span {
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background-color: white;
+  border-radius: 3px;
+  top: 50%;
+  left: 0;
+}
+
+.closeIcon span:first-child {
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.closeIcon span:last-child {
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.iconButton.default {
+  /* Default icon styles can be added here */
+  background-color: transparent;
+  color: inherit;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}

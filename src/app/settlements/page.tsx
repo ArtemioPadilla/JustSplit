@@ -6,6 +6,7 @@ import { calculateSettlements, calculateSettlementsWithConversion } from '../../
 import { SUPPORTED_CURRENCIES, getExchangeRate } from '../../utils/currencyExchange';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
+import Button from '../../components/ui/Button';
 
 export default function SettlementsPage() {
   const searchParams = useSearchParams();
@@ -553,12 +554,12 @@ export default function SettlementsPage() {
                     </div>
                     
                     <div className={styles.settlementActions}>
-                      <button 
-                        className={styles.settleButton}
+                      <Button 
                         onClick={() => handleSettleUp(settlement)}
+                        variant="primary"
                       >
                         Mark as Settled
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ))}

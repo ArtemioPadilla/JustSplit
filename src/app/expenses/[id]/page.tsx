@@ -6,6 +6,7 @@ import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
+import Button from '../../../components/ui/Button';
 
 export default function ExpenseDetail() {
   const router = useRouter();
@@ -168,8 +169,7 @@ export default function ExpenseDetail() {
       
       <div className={styles.actions}>
         {/* Export to CSV button */}
-        <button 
-          className={`${styles.actionButton} ${styles.secondaryButton}`}
+        <Button 
           onClick={() => {
             import('../../../utils/csvExport').then(module => {
               module.exportExpensesToCSV(
@@ -179,17 +179,18 @@ export default function ExpenseDetail() {
                 `expense-${expense.id}.csv`
               );
             });
-          }}
+          }} 
+          variant="secondary"
         >
           Export as CSV
-        </button>
+        </Button>
         
-        <button 
-          className={`${styles.actionButton} ${styles.editButton}`}
-          onClick={() => router.push(`/expenses/edit/${expenseId}`)}
+        <Button 
+          onClick={() => router.push(`/expenses/edit/${expenseId}`)} 
+          variant="secondary"
         >
           Edit Expense
-        </button>
+        </Button>
       </div>
     </div>
   );

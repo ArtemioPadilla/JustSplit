@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import { SUPPORTED_CURRENCIES } from '../../../utils/currencyExchange';
 import ImageUploader from '../../../components/ImageUploader';
+import Button from '../../../components/ui/Button';
 import styles from './page.module.css';
 
 export default function NewExpense() {
@@ -276,9 +277,9 @@ export default function NewExpense() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <button type="submit" className={styles.submitButton}>
+          <Button type="submit" variant="primary" className={styles.submitButton}>
             Save Expense
-          </button>
+          </Button>
           <button
             type="button"
             onClick={() => router.back()}

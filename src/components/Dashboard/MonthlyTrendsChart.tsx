@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User, Event } from '../../context/AppContext';
 import { getCurrencySymbol } from '../../utils/currencyExchange';
 import styles from '../../app/page.module.css';
+import Button from '../ui/Button';
 
 interface ChartData {
   month: string;
@@ -63,18 +64,20 @@ export default function MonthlyTrendsChart({
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel}>Color by:</label>
             <div className={styles.buttonToggle}>
-              <button 
+              <Button 
                 className={`${styles.toggleButton} ${colorBy === 'event' ? styles.toggleActive : ''}`}
                 onClick={() => setColorBy('event')}
+                variant="secondary"
               >
                 Event
-              </button>
-              <button 
+              </Button>
+              <Button 
                 className={`${styles.toggleButton} ${colorBy === 'spender' ? styles.toggleActive : ''}`}
                 onClick={() => setColorBy('spender')}
+                variant="secondary"
               >
                 Spender
-              </button>
+              </Button>
             </div>
           </div>
           <div className={styles.controlGroup}>

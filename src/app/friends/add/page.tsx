@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import styles from './page.module.css';
+import Button from '../../../components/ui/Button';
 
 export default function AddFriend() {
   const router = useRouter();
@@ -68,9 +69,9 @@ export default function AddFriend() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <button type="submit" className={styles.submitButton}>
+          <Button type="submit" variant="primary" className={styles.submitButton}>
             Add Friend
-          </button>
+          </Button>
           <button
             type="button"
             onClick={() => router.back()}

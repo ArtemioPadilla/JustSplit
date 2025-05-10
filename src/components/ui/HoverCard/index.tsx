@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import styles from './styles.module.css';
 import { TimelineExpense, formatTimelineDate } from '../../../utils/timelineUtils';
+import Button from '../Button';
 
 export interface HoverCardPosition {
   x: number;
@@ -172,16 +173,16 @@ const HoverCard: React.FC<HoverCardProps> = ({
             'Expense Details'
           )}
         </h4>
-        <button 
-          className={styles.closeButton}
+        <Button 
           onClick={(e) => {
             e.stopPropagation();
             onClose();
           }}
+          variant="primary"
           aria-label="Close"
         >
           ✕
-        </button>
+        </Button>
       </div>
       
       <ul className={styles.expensesList}>

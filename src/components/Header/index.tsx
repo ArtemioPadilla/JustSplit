@@ -6,6 +6,33 @@ import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import styles from './styles.module.css';
 import { useAppContext } from '../../context/AppContext';
+import IconButton from '../../components/ui/IconButton';
+
+// Custom hook for media queries
+const useMediaQuery = (query: string) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    
+    const listener = () => {
+      setMatches(media.matches);
+    };
+    
+    // Add event listener
+    media.addEventListener("change", listener);
+    
+    // Clean up
+    return () => {
+      media.removeEventListener("change", listener);
+    };
+  }, [matches, query]);
+
+  return matches;
+};
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -13,6 +40,9 @@ const Header = () => {
   const pathname = usePathname();
   const { state } = useAppContext();
   const currentUser = state.users[0]; // Get the current logged-in user
+  
+  // Check if we're on mobile
+  const isMobile = useMediaQuery("(max-width: 768px)");
   
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -43,13 +73,15 @@ const Header = () => {
           )}
         </Link>
         
-        <button 
-          className={styles.mobileMenuButton} 
-          onClick={toggleMobileMenu}
-          aria-label="Toggle Menu"
-        >
-          <span className={styles.menuIcon}></span>
-        </button>
+        {/* Only render the button on mobile */}
+        {isMobile && (
+          <IconButton 
+            onClick={toggleMobileMenu}
+            variant={isMobileMenuOpen ? 'close' : 'sandwich'}
+            ariaLabel={isMobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+            className={styles.mobileMenuButton}
+          />
+        )}
         
         <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.mobileOpen : ''}`}>
           <Link 
