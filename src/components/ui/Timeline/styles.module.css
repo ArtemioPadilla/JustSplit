@@ -1,6 +1,7 @@
 .timelineContainer {
   margin: var(--space-md) 0;
   position: relative;
+  padding: 10px 0; /* Add padding to give room for hover effects */
 }
 
 .timeline {
@@ -45,14 +46,27 @@
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   z-index: 4;
-  transition: transform var(--transition-fast) var(--transition-timing-default), 
-              box-shadow var(--transition-fast) var(--transition-timing-default);
+  transition: transform 0.15s ease-out, 
+              box-shadow 0.15s ease-out;
 }
 
-.expenseMarker:hover {
-  transform: translate(-50%, -50%) scale(1.3) !important;
+/* Create a larger invisible hit area for small markers to make them easier to click */
+.expenseMarker::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.expenseMarker:hover, .expenseMarker:focus {
+  transform: translate(-50%, -50%) scale(1.4) !important;
   box-shadow: var(--shadow-md);
   z-index: 6;
+  outline: none;
 }
 
 .settledExpense {
@@ -64,7 +78,8 @@
 }
 
 .mixedExpense {
-  background-color: var(--color-warning);
+  background: linear-gradient(135deg, var(--color-success) 50%, var(--color-error) 50%);
+  position: relative;
 }
 
 .preEventExpense {

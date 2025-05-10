@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './styles.module.css';
 import HoverCard, { HoverCardPosition } from '../HoverCard';
 import { 
@@ -50,20 +50,59 @@ const Timeline: React.FC<TimelineProps> = ({
   // Group expenses that are near each other on the timeline
   const groupedExpenses = groupNearbyExpenses(expenses, event);
 
+  // Close hover card on escape key or when clicking elsewhere
+  const closeHoverCard = useCallback(() => setActiveGroup(null), []);
+  
+  useEffect(() => {
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeGroup) {
+        closeHoverCard();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [activeGroup, closeHoverCard]);
+
   // Handle click on expense marker
   const handleExpenseClick = (e: React.MouseEvent, expenses: TimelineExpense[]) => {
-    e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
+    const targetElement = e.currentTarget as HTMLElement;
+    const targetRect = targetElement.getBoundingClientRect();
+    
+    // If we're already showing details for this marker, close it instead
+    if (activeGroup && 
+        activeGroup.position.targetRect &&
+        targetRect.left === activeGroup.position.targetRect.left && 
+        targetRect.top === activeGroup.position.targetRect.top) {
+      closeHoverCard();
+      return;
+    }
+    
     setActiveGroup({
       position: { 
         x: e.clientX, 
-        y: e.clientY 
+        y: e.clientY,
+        targetRect: targetRect // Pass the target element's bounding rectangle
       },
       expenses
     });
   };
 
   return (
-    <div className={`${styles.timelineContainer} ${className}`}>
+    <div 
+      className={`${styles.timelineContainer} ${className}`}
+      onClick={(e) => {
+        // Only close if clicking the container itself, not its children
+        if (e.target === e.currentTarget && activeGroup) {
+          closeHoverCard();
+        }
+      }}
+    >
       <div className={styles.timeline}>
         <div 
           className={styles.timelineProgress} 
@@ -208,7 +247,7 @@ const Timeline: React.FC<TimelineProps> = ({
         <HoverCard
           position={activeGroup.position}
           expenses={activeGroup.expenses}
-          onClose={() => setActiveGroup(null)}
+          onClose={closeHoverCard}
         />
       )}
     </div>

@@ -57,11 +57,15 @@
   border-radius: var(--border-radius-lg);
   padding: var(--space-md);
   transition: all var(--transition-fast) var(--transition-timing-default);
+  position: relative;
+  z-index: 1;
+  background-color: var(--color-background);
 }
 
 .eventCard:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+  z-index: 2;
 }
 
 .eventName {
@@ -419,6 +423,7 @@
   max-width: 90vw;
   overflow: hidden;
   animation: fadeIn 0.2s ease;
+  z-index: 1000;  /* Ensure the hover card appears above other elements */
 }
 
 .hoverCardHeader {
