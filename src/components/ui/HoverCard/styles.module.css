@@ -1,0 +1,112 @@
+.hoverCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 250px;
+  max-width: 350px;
+  border: 1px solid #e5e7eb;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.hoverCardHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hoverCardHeader h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.closeButton:hover {
+  color: #111827;
+  background-color: #f3f4f6;
+}
+
+.expensesList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.expenseItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.expenseItem:last-child {
+  border-bottom: none;
+}
+
+.expenseItem:hover {
+  background-color: #f9fafb;
+}
+
+.expenseItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.expenseName {
+  font-weight: 500;
+  color: #111827;
+}
+
+.expenseStatus {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.expenseStatus.settled {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.expenseStatus.unsettled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.expenseAmount {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0070f3;
+  margin-bottom: 4px;
+}
+
+.expenseDate {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.expenseSummary {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #6b7280;
+  margin-top: 2px;
+}
