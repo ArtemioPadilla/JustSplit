@@ -7,6 +7,9 @@ import Link from 'next/link';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 import styles from './page.module.css';
+import Timeline from '../../../components/ui/Timeline';
+import ProgressBar from '../../../components/ui/ProgressBar';
+import { calculateSettledPercentage } from '../../../utils/timelineUtils';
 
 export default function EventDetail() {
   const router = useRouter();
@@ -36,6 +39,11 @@ export default function EventDetail() {
       .filter(expense => expense.eventId === eventId)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [event, state.expenses, eventId]);
+
+  // Calculate settlement percentage for progress bar
+  const settledPercentage = useMemo(() => {
+    return calculateSettledPercentage(eventExpenses);
+  }, [eventExpenses]);
 
   // Calculate user balances for this event
   const eventBalances = useMemo(() => {
@@ -190,6 +198,28 @@ export default function EventDetail() {
           <p className={styles.description}>{event.description}</p>
         </div>
       )}
+      
+      {/* Timeline Section */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Event Timeline</h2>
+        <Timeline 
+          event={event} 
+          expenses={eventExpenses} 
+        />
+        <div className={styles.timelineFooter}>
+          <div className={styles.settlementProgress}>
+            <p className={styles.progressTitle}>Settlement Progress</p>
+            <ProgressBar 
+              value={settledPercentage} 
+              variant={
+                settledPercentage === 100 ? 'success' :
+                settledPercentage >= 75 ? 'info' :
+                settledPercentage >= 50 ? 'warning' : 'danger'
+              }
+            />
+          </div>
+        </div>
+      </div>
       
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Dates</h2>

@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { Expense, Event } from '../../types';
 
 // Define the Event type explicitly
 export interface TimelineEvent {
@@ -175,4 +176,82 @@ export const calculateUnsettledAmount = (expenses: TimelineExpense[]): Record<st
     }
   });
   return unsettled;
+};
+
+/**
+ * Calculates the timeline position for an expense based on event start and end dates
+ * @param expense The expense to calculate position for
+ * @param event The associated event
+ * @returns A number between 0 and 100 representing the relative position on the timeline
+ */
+export const calculateExpensePosition = (expense: Expense, event: Event): number => {
+  const expenseDate = new Date(expense.date).getTime();
+  const startDate = new Date(event.startDate).getTime();
+  const endDate = event.endDate ? new Date(event.endDate).getTime() : startDate;
+  
+  // If event has no duration (start date equals end date), position expenses relatively to each other
+  if (startDate === endDate) {
+    return 50; // Center position
+  }
+  
+  // Calculate percentage position
+  let position = ((expenseDate - startDate) / (endDate - startDate)) * 100;
+  
+  // Ensure position is within bounds
+  position = Math.min(Math.max(0, position), 100);
+  
+  return position;
+};
+
+/**
+ * Groups expenses by their date
+ * @param expenses Array of expenses to group
+ * @returns An object with dates as keys and arrays of expenses as values
+ */
+export const groupExpensesByDate = (expenses: Expense[]): Record<string, Expense[]> => {
+  return expenses.reduce((groups, expense) => {
+    // Format date as YYYY-MM-DD for grouping
+    const dateKey = new Date(expense.date).toISOString().split('T')[0];
+    
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    
+    groups[dateKey].push(expense);
+    return groups;
+  }, {} as Record<string, Expense[]>);
+};
+
+/**
+ * Formats a date range for display, handling various cases
+ * @param startDate Start date of the range
+ * @param endDate Optional end date of the range
+ * @returns Formatted date range string
+ */
+export const formatDateRange = (startDate: string, endDate?: string): string => {
+  const start = new Date(startDate);
+  
+  if (!endDate) {
+    return start.toLocaleDateString();
+  }
+  
+  const end = new Date(endDate);
+  
+  // If same day, return just one date
+  if (start.toDateString() === end.toDateString()) {
+    return start.toLocaleDateString();
+  }
+  
+  // If same month and year, show format like "Jan 1-15, 2023"
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+  }
+  
+  // If same year, show format like "Jan 1 - Feb 15, 2023"
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${start.toLocaleDateString('en-US', { month: 'short' })} ${start.getDate()} - ${end.toLocaleDateString('en-US', { month: 'short' })} ${end.getDate()}, ${start.getFullYear()}`;
+  }
+  
+  // Otherwise, show full dates
+  return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
 };

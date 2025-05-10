@@ -169,6 +169,33 @@
   background-color: #e5e7eb;
 }
 
+.eventDetails {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.eventLink {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.eventLink:hover {
+  text-decoration: underline;
+}
+
+.settled {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.unsettled {
+  color: #ef4444;
+  font-weight: 500;
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;

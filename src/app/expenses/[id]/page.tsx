@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
+import Timeline from '../../../components/ui/Timeline';
 
 export default function ExpenseDetail() {
   const router = useRouter();
@@ -30,6 +31,12 @@ export default function ExpenseDetail() {
     if (!expense) return [];
     return state.users.filter(user => expense.participants.includes(user.id));
   }, [expense, state.users]);
+  
+  // Get event expenses for timeline
+  const eventExpenses = useMemo(() => {
+    if (!event) return [];
+    return state.expenses.filter(e => e.eventId === event.id);
+  }, [event, state.expenses]);
   
   if (!expense) {
     return (
@@ -58,6 +65,23 @@ export default function ExpenseDetail() {
           <span className={styles.amount}>{expense.amount.toFixed(2)}</span>
         </div>
       </div>
+      
+      {/* Add Timeline section if expense is part of an event */}
+      {event && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Expense Timeline</h2>
+          <Timeline 
+            event={event} 
+            expenses={eventExpenses} 
+          />
+          <div className={styles.eventDetails}>
+            <span className={styles.detailLabel}>Part of Event:</span>
+            <Link href={`/events/${event.id}`} className={styles.eventLink}>
+              {event.name}
+            </Link>
+          </div>
+        </div>
+      )}
       
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Details</h2>
@@ -88,6 +112,13 @@ export default function ExpenseDetail() {
             <span className={styles.detailLabel}>Category</span>
             <span className={styles.detailValue}>
               {expense.category || 'Uncategorized'}
+            </span>
+          </div>
+          
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>Status</span>
+            <span className={`${styles.detailValue} ${expense.settled ? styles.settled : styles.unsettled}`}>
+              {expense.settled ? 'Settled' : 'Unsettled'}
             </span>
           </div>
         </div>

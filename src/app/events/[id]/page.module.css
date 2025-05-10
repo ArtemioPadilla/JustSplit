@@ -342,6 +342,23 @@
   font-weight: normal;
 }
 
+.timelineFooter {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.settlementProgress {
+  margin-top: 8px;
+}
+
+.progressTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #4b5563;
+}
+
 @media (max-width: 640px) {
   .participantsList {
     grid-template-columns: 1fr;
