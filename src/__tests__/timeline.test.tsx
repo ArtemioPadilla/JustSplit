@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useRouter } from 'next/navigation';
+import Timeline from '../components/ui/Timeline';
 
 // Mock data
 const mockEvent = {
@@ -166,44 +167,82 @@ describe('Timeline Position Calculation', () => {
   });
 });
 
-// Integration tests would test the component rendering and interactions
-// However, since the component is complex with many dependencies,
-// here's a sketch of how the tests would look:
-
-/*
+// Integration tests for the Timeline component
 describe('Timeline Component', () => {
-  test('renders timeline with correct expense markers', async () => {
+  beforeEach(() => {
     // Mock router
     (useRouter as jest.Mock).mockReturnValue({
       push: jest.fn(),
     });
+  });
+
+  test('renders timeline with event dates', () => {
+    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
     
-    render(<EventList />);
-    
-    // Check that timeline is rendered
-    expect(screen.getByText('Your Events')).toBeInTheDocument();
-    
-    // Check that expense markers are rendered
-    const markers = screen.getAllByRole('button', { name: /expense/i });
-    expect(markers.length).toBeGreaterThanOrEqual(3); // At least start, mid, and end markers
+    // Check that event dates are displayed
+    expect(screen.getByText(/Jun 1, 2023/)).toBeInTheDocument();
+    expect(screen.getByText(/Jun 10, 2023/)).toBeInTheDocument();
   });
   
-  test('shows hover card when clicking on expense marker', async () => {
-    // Mock router
-    (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-    });
+  test('renders timeline with appropriate expense markers', () => {
+    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
     
-    render(<EventList />);
+    // Check that we have the correct number of expense markers
+    const expenseMarkers = screen.getAllByRole('button');
+    expect(expenseMarkers.length).toBeGreaterThanOrEqual(mockExpenses.length);
+  });
+
+  test('renders settled and unsettled expenses with different styles', () => {
+    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
     
-    // Find a marker and click it
-    const marker = screen.getAllByRole('button', { name: /expense/i })[0];
-    fireEvent.click(marker);
+    // Check that we have both settled and unsettled expense markers
+    const settledMarkers = screen.getAllByTitle(/settled/i);
+    const unsettledMarkers = screen.getAllByTitle(/unsettled/i);
     
-    // Check that hover card appears
+    expect(settledMarkers.length).toBeGreaterThan(0);
+    expect(unsettledMarkers.length).toBeGreaterThan(0);
+  });
+
+  test('shows expense details on hover/click', async () => {
+    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
+    
+    // Find an expense marker and click it
+    const expenseMarkers = screen.getAllByRole('button');
+    fireEvent.click(expenseMarkers[0]);
+    
+    // Wait for the hover card to appear
     await waitFor(() => {
-      expect(screen.getByText(/expense details/i)).toBeInTheDocument();
+      expect(screen.getByText(/expense details/i, { exact: false })).toBeInTheDocument();
     });
   });
+
+  test('renders timeline for event without end date', () => {
+    const eventWithoutEndDate = { ...mockEvent, endDate: undefined };
+    render(<Timeline event={eventWithoutEndDate} expenses={mockExpenses} />);
+    
+    // Check that the timeline is still rendered
+    expect(screen.getByText(/Jun 1, 2023/)).toBeInTheDocument();
+    // Should only show one date
+    expect(screen.queryByText(/Jun 10, 2023/)).not.toBeInTheDocument();
+  });
+
+  test('renders timeline for event without expenses', () => {
+    render(<Timeline event={mockEvent} expenses={[]} />);
+    
+    // Check that the timeline is rendered without expense markers
+    expect(screen.getByText(/Jun 1, 2023/)).toBeInTheDocument();
+    expect(screen.getByText(/Jun 10, 2023/)).toBeInTheDocument();
+    
+    // There should be no expense buttons
+    const expenseMarkers = screen.queryAllByRole('button', { name: /expense/i });
+    expect(expenseMarkers.length).toBe(0);
+  });
+
+  test('renders pre-event and post-event expenses correctly', () => {
+    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
+    
+    // Check that pre-event and post-event sections are shown if needed
+    const preEventSection = screen.getByText(/pre-event/i);
+    expect(preEventSection).toBeInTheDocument();
+  });
 });
-*/

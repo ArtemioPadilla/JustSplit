@@ -1,156 +1,214 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import {
+  calculateTimelineProgress,
+  calculatePositionPercentage,
+  calculateSettledPercentage,
+  calculateTotalByCurrency,
+  calculateUnsettledAmount,
+  groupNearbyExpenses,
+  formatTimelineDate,
+  formatDateRange
+} from '../utils/timelineUtils';
+import { TimelineExpense, TimelineEvent } from '../utils/timelineUtils';
 
-// Import the functions to test (we'll mock them here as they're inside the component)
-// In a real implementation, you would extract these functions to a separate utility file
-// and import them properly
+describe('Timeline Utility Functions', () => {
+  // Mock data
+  const mockEvent: TimelineEvent = {
+    id: 'event1',
+    name: 'Test Event',
+    startDate: '2023-06-01',
+    endDate: '2023-06-10',
+    participants: ['user1', 'user2']
+  };
 
-// Mock implementation of calculatePositionPercentage
-const calculatePositionPercentage = (date: string, startDate: string, endDate?: string): number => {
-  const targetDate = new Date(date).getTime();
-  const start = new Date(startDate).getTime();
-  const end = endDate ? new Date(endDate).getTime() : new Date().getTime();
-  
-  // Calculate the total event duration
-  const totalDuration = end - start;
-  
-  // For pre-event expenses (before start date)
-  if (targetDate < start) {
-    // Allocate 20% of the timeline for pre-event expenses
-    // Find how far back this expense is - up to 30 days before
-    const daysBeforeEvent = (start - targetDate) / (1000 * 60 * 60 * 24);
-    const maxDaysToShow = 30; // Show up to 30 days before
-    const preEventPosition = 20 * Math.min(daysBeforeEvent, maxDaysToShow) / maxDaysToShow;
-    return -Math.min(20, preEventPosition); // Cap at -20%
-  }
-  
-  // For expenses exactly on the start date - shift slightly to avoid dot overlap
-  if (Math.abs(targetDate - start) < 1000 * 60 * 60) { // Within an hour of start
-    return 1; // Position at 1% to avoid overlapping the start dot but still be visible
-  }
-  
-  // For expenses exactly on the end date - shift slightly to avoid dot overlap
-  if (endDate && Math.abs(targetDate - end) < 1000 * 60 * 60) { // Within an hour of end
-    return 99; // Position at 99% to avoid overlapping the end dot but still be visible
-  }
-  
-  // For expenses within the event period
-  if (targetDate >= start && (!endDate || targetDate <= end)) {
-    return Math.max(1, Math.min(99, Math.round(((targetDate - start) / totalDuration) * 100)));
-  }
-  
-  // For expenses after the event end date (if there's no end date specified)
-  return 100;
-};
-
-// Mock implementation of groupNearbyExpenses
-type MockExpense = {
-  id: string;
-  date: string;
-  settled?: boolean;
-  description?: string;
-};
-
-type MockEvent = {
-  startDate: string;
-  endDate?: string;
-};
-
-const groupNearbyExpenses = (expenses: MockExpense[], event: MockEvent) => {
-  // Calculate positions for all expenses
-  const expensesWithPositions = expenses.map(expense => ({
-    expense,
-    position: calculatePositionPercentage(expense.date, event.startDate, event.endDate)
-  }));
-
-  // Group expenses that are within 10% of each other (increased from 5% to 10%)
-  const proximityThreshold = 5; // 10% proximity threshold
-  const groupedExpenses: { position: number, expenses: MockExpense[] }[] = [];
-  
-  for (const { expense, position } of expensesWithPositions) {
-    // Find if there's an existing group close to this position
-    const existingGroup = groupedExpenses.find(
-      group => Math.abs(group.position - position) < proximityThreshold
-    );
-    
-    if (existingGroup) {
-      // Add to existing group and adjust average position
-      existingGroup.expenses.push(expense);
-      // Recalculate the average position for the group
-      existingGroup.position = existingGroup.expenses.reduce(
-        (sum, exp) => sum + calculatePositionPercentage(exp.date, event.startDate, event.endDate),
-        0
-      ) / existingGroup.expenses.length;
-    } else {
-      // Create a new group
-      groupedExpenses.push({ position, expenses: [expense] });
+  const mockExpenses: TimelineExpense[] = [
+    {
+      id: 'exp1',
+      eventId: 'event1',
+      amount: 100,
+      currency: 'USD',
+      settled: true,
+      date: '2023-05-20',
+      description: 'Pre-event expense'
+    },
+    {
+      id: 'exp2',
+      eventId: 'event1',
+      amount: 50,
+      currency: 'USD',
+      settled: false,
+      date: '2023-06-01',
+      description: 'Start date expense'
+    },
+    {
+      id: 'exp3',
+      eventId: 'event1',
+      amount: 200,
+      currency: 'USD',
+      settled: true,
+      date: '2023-06-05',
+      description: 'Mid-event expense'
+    },
+    {
+      id: 'exp4',
+      eventId: 'event1',
+      amount: 75,
+      currency: 'EUR',
+      settled: false,
+      date: '2023-06-05',
+      description: 'Same day expense'
+    },
+    {
+      id: 'exp5',
+      eventId: 'event1',
+      amount: 25,
+      currency: 'USD',
+      settled: false,
+      date: '2023-06-10',
+      description: 'End date expense'
     }
-  }
-  
-  return groupedExpenses;
-};
+  ];
 
-describe('Timeline Calculations', () => {
-  // Test the position calculation for pre-event expenses
-  test('calculates correct position for pre-event expenses', () => {
-    const startDate = '2023-06-01';
-    const eventDate = '2023-05-15'; // 17 days before
-    
-    const position = calculatePositionPercentage(eventDate, startDate);
-    expect(position).toBeLessThan(0); // Should be negative for pre-event
-    expect(position).toBeGreaterThanOrEqual(-20); // Should be within the -20% cap
+  describe('calculateSettledPercentage', () => {
+    test('returns 0 for an empty array of expenses', () => {
+      const percentage = calculateSettledPercentage([]);
+      expect(percentage).toBe(0);
+    });
+
+    test('calculates correct percentage when all expenses are settled', () => {
+      const allSettled = mockExpenses.map(exp => ({ ...exp, settled: true }));
+      const percentage = calculateSettledPercentage(allSettled);
+      expect(percentage).toBe(100);
+    });
+
+    test('calculates correct percentage when no expenses are settled', () => {
+      const noneSettled = mockExpenses.map(exp => ({ ...exp, settled: false }));
+      const percentage = calculateSettledPercentage(noneSettled);
+      expect(percentage).toBe(0);
+    });
+
+    test('calculates correct percentage for mixed settled status', () => {
+      const percentage = calculateSettledPercentage(mockExpenses);
+      // 2 out of 5 expenses are settled (40%)
+      expect(percentage).toBe(40);
+    });
   });
-  
-  // Test the position calculation for expenses on the exact start date
-  test('calculates position for expenses on the start date', () => {
-    const startDate = '2023-06-01';
-    const expenseDate = '2023-06-01';
-    
-    const position = calculatePositionPercentage(expenseDate, startDate);
-    expect(position).toBe(1); // Should be positioned at 1% to be visible but not overlap
+
+  describe('calculateTotalByCurrency', () => {
+    test('returns empty object for empty expenses array', () => {
+      const totals = calculateTotalByCurrency([]);
+      expect(totals).toEqual({});
+    });
+
+    test('calculates correct totals for multiple currencies', () => {
+      const totals = calculateTotalByCurrency(mockExpenses);
+      expect(totals['USD']).toBe(375); // 100 + 50 + 200 + 25
+      expect(totals['EUR']).toBe(75);
+    });
   });
-  
-  // Test the position calculation for expenses on the exact end date
-  test('calculates position for expenses on the end date', () => {
-    const startDate = '2023-06-01';
-    const endDate = '2023-06-10';
-    const expenseDate = '2023-06-10';
-    
-    const position = calculatePositionPercentage(expenseDate, startDate, endDate);
-    expect(position).toBe(99); // Should be positioned at 99% to be visible but not overlap
+
+  describe('calculateUnsettledAmount', () => {
+    test('returns empty object for empty expenses array', () => {
+      const unsettled = calculateUnsettledAmount([]);
+      expect(unsettled).toEqual({});
+    });
+
+    test('returns empty object when all expenses are settled', () => {
+      const allSettled = mockExpenses.map(exp => ({ ...exp, settled: true }));
+      const unsettled = calculateUnsettledAmount(allSettled);
+      expect(unsettled).toEqual({});
+    });
+
+    test('calculates correct unsettled amounts for multiple currencies', () => {
+      const unsettled = calculateUnsettledAmount(mockExpenses);
+      expect(unsettled['USD']).toBe(75); // 50 + 25
+      expect(unsettled['EUR']).toBe(75);
+    });
   });
-  
-  // Test the position calculation for normal expenses within the event period
-  test('calculates correct position for expenses within event period', () => {
-    const startDate = '2023-06-01';
-    const endDate = '2023-06-10'; // 10 day event
-    const expenseDate = '2023-06-05'; // Halfway through
-    
-    const position = calculatePositionPercentage(expenseDate, startDate, endDate);
-    expect(position).toBeGreaterThanOrEqual(40);
-    expect(position).toBeLessThanOrEqual(60);
+
+  describe('formatTimelineDate', () => {
+    test('formats date correctly', () => {
+      const formatted = formatTimelineDate('2023-06-01');
+      expect(formatted).toBe('Jun 1, 2023');
+    });
   });
-  
-  // Test the grouping functionality
-  test('groups nearby expenses correctly', () => {
-    const event = {
-      startDate: '2023-06-01',
-      endDate: '2023-06-20'
-    };
+
+  describe('formatDateRange', () => {
+    test('formats single date correctly', () => {
+      const formatted = formatDateRange('2023-06-01');
+      expect(formatted).toBe('6/1/2023');
+    });
+
+    test('formats same-day range correctly', () => {
+      const formatted = formatDateRange('2023-06-01', '2023-06-01');
+      expect(formatted).toBe('6/1/2023');
+    });
+
+    test('formats same-month range correctly', () => {
+      const formatted = formatDateRange('2023-06-01', '2023-06-15');
+      expect(formatted).toBe('Jun 1-15, 2023');
+    });
+
+    test('formats same-year range correctly', () => {
+      const formatted = formatDateRange('2023-01-01', '2023-02-15');
+      expect(formatted).toBe('Jan 1 - Feb 15, 2023');
+    });
+
+    test('formats different-year range correctly', () => {
+      const formatted = formatDateRange('2022-12-01', '2023-01-15');
+      expect(formatted).toBe('12/1/2022 - 1/15/2023');
+    });
+  });
+
+  describe('groupNearbyExpenses', () => {
+    test('groups expenses that are close to each other', () => {
+      // Create expenses with very close dates
+      const closeExpenses: TimelineExpense[] = [
+        {
+          id: 'exp1',
+          amount: 100,
+          currency: 'USD',
+          date: '2023-06-05T12:00:00',
+          description: 'Expense 1'
+        },
+        {
+          id: 'exp2',
+          amount: 200,
+          currency: 'USD',
+          date: '2023-06-05T12:30:00', // 30 minutes later
+          description: 'Expense 2'
+        }
+      ];
+      
+      const grouped = groupNearbyExpenses(closeExpenses, mockEvent);
+      expect(grouped.length).toBe(1); // Expenses should be grouped together
+      expect(grouped[0].expenses.length).toBe(2);
+    });
     
-    const expenses = [
-      { id: '1', date: '2023-06-01' }, // ~5% in
-      { id: '2', date: '2023-06-02' }, // ~10% in, should group with expense 1
-      { id: '3', date: '2023-06-10' } // ~50% in, separate group
-    ];
-    
-    const groups = groupNearbyExpenses(expenses, event);
-    
-    expect(groups.length).toBe(2); // Should have 2 groups
-    expect(groups[0].expenses.length).toBe(2); // First group should have 2 expenses
-    expect(groups[1].expenses.length).toBe(1); // Second group should have 1 expense
-    expect(groups[0].position).toBeLessThan(15);
-    expect(groups[1].position).toBeGreaterThan(45);
+    test('keeps separate groups for distant expenses', () => {
+      // Create expenses with distant dates
+      const distantExpenses: TimelineExpense[] = [
+        {
+          id: 'exp1',
+          amount: 100,
+          currency: 'USD',
+          date: '2023-06-02',
+          description: 'Expense 1'
+        },
+        {
+          id: 'exp2',
+          amount: 200,
+          currency: 'USD',
+          date: '2023-06-08', // 6 days later
+          description: 'Expense 2'
+        }
+      ];
+      
+      const grouped = groupNearbyExpenses(distantExpenses, mockEvent);
+      expect(grouped.length).toBe(2); // Expenses should be in separate groups
+      expect(grouped[0].expenses.length).toBe(1);
+      expect(grouped[1].expenses.length).toBe(1);
+    });
   });
 });
