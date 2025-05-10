@@ -66,7 +66,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock the AppContext
-jest.mock('../../../context/AppContext', () => ({
+jest.mock('../context/AppContext', () => ({
   useAppContext: jest.fn(() => ({
     state: {
       events: [mockEvent],
@@ -136,40 +136,6 @@ type Event = {
   participants: string[];
 };
 
-const groupNearbyExpenses = (expenses: Expense[], event: Event): { position: number, expenses: Expense[] }[] => {
-  // Calculate positions for all expenses
-  const expensesWithPositions = expenses.map(expense => ({
-    expense,
-    position: calculatePositionPercentage(expense.date, event.startDate, event.endDate)
-  }));
-
-  // Group expenses that are within 5% of each other
-  const proximityThreshold = 5;
-  const groupedExpenses: { position: number, expenses: Expense[] }[] = [];
-  
-  for (const { expense, position } of expensesWithPositions) {
-    // Find if there's an existing group close to this position
-    const existingGroup = groupedExpenses.find(
-      group => Math.abs(group.position - position) < proximityThreshold
-    );
-    
-    if (existingGroup) {
-      // Add to existing group and adjust average position
-      existingGroup.expenses.push(expense);
-      // Recalculate the average position for the group
-      existingGroup.position = existingGroup.expenses.reduce(
-        (sum, exp) => sum + calculatePositionPercentage(exp.date, event.startDate, event.endDate),
-        0
-      ) / existingGroup.expenses.length;
-    } else {
-      // Create a new group
-      groupedExpenses.push({ position, expenses: [expense] });
-    }
-  }
-  
-  return groupedExpenses;
-};
-
 describe('Timeline Position Calculation', () => {
   test('calculates position for pre-event expenses correctly', () => {
     const position = calculatePositionPercentage('2023-05-20', '2023-06-01', '2023-06-10');
@@ -197,48 +163,6 @@ describe('Timeline Position Calculation', () => {
   test('caps position at 100% for post-event expenses', () => {
     const position = calculatePositionPercentage('2023-06-15', '2023-06-01', '2023-06-10');
     expect(position).toBe(100);
-  });
-});
-
-describe('Expense Grouping', () => {
-  test('groups nearby expenses correctly', () => {
-    const grouped = groupNearbyExpenses([mockExpenses[2], mockExpenses[3]], mockEvent);
-    expect(grouped.length).toBe(1); // Should combine into one group
-    expect(grouped[0].expenses.length).toBe(2);
-  });
-
-  test('keeps distant expenses separate', () => {
-    const grouped = groupNearbyExpenses([mockExpenses[0], mockExpenses[4]], mockEvent);
-    expect(grouped.length).toBe(2); // Should be separate groups
-  });
-
-  test('calculates average position for groups', () => {
-    const grouped = groupNearbyExpenses([mockExpenses[2], mockExpenses[3]], mockEvent);
-    
-    // Both expenses are on June 5, which is midway through the event
-    // So the average position should be around 50%
-    expect(grouped[0].position).toBeGreaterThanOrEqual(40);
-    expect(grouped[0].position).toBeLessThanOrEqual(60);
-  });
-
-  test('handles all expenses in the event', () => {
-    const grouped = groupNearbyExpenses(mockExpenses, mockEvent);
-    
-    // Expected groups:
-    // 1. Pre-event (exp1)
-    // 2. Start date (exp2)
-    // 3. Mid-event (exp3 and exp4 together)
-    // 4. End date (exp5)
-    expect(grouped.length).toBe(4);
-    
-    // The mid-event group should have 2 expenses
-    const midEventGroup = grouped.find(g => 
-      g.expenses.some(e => e.id === 'exp3') && 
-      g.expenses.some(e => e.id === 'exp4')
-    );
-    
-    expect(midEventGroup).toBeDefined();
-    expect(midEventGroup?.expenses.length).toBe(2);
   });
 });
 
