@@ -148,6 +148,11 @@
   box-shadow: 0 0 0 1px var(--color-primary);
 }
 
+/* Button Container */
+.buttonContainer {
+  margin-bottom: var(--space-xl);
+}
+
 /* Event Metrics */
 .metrics {
   display: flex;

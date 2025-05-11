@@ -80,9 +80,11 @@ export default function EventList() {
         </div>
       ) : (
         <>
-          <Link href="/events/new">
-            <Button variant="primary">Create New Event</Button>
-          </Link>
+          <div className={styles.buttonContainer}>
+            <Link href="/events/new">
+              <Button variant="primary">Create New Event</Button>
+            </Link>
+          </div>
 
           <div className={styles.filters}>
             <select 
