@@ -202,13 +202,14 @@ export default function NewExpense() {
                 .map(user => (
                   <div key={user.id} className={styles.participantItem}>
                     <span>{user.name}</span>
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setParticipants(participants.filter(id => id !== user.id))}
-                      className={styles.removeButton}
+                      variant="secondary"
+                      size="small"
                     >
                       ✕
-                    </button>
+                    </Button>
                   </div>
                 ))
             ) : (
@@ -224,13 +225,14 @@ export default function NewExpense() {
               className={styles.participantInput}
               placeholder="Enter participant name"
             />
-            <button
+            <Button
               type="button"
               onClick={handleAddParticipant}
-              className={styles.addButton}
+              variant="secondary"
+              size="small"
             >
               Add
-            </button>
+            </Button>
           </div>
           
           <div className={styles.existingUsers}>
@@ -239,14 +241,15 @@ export default function NewExpense() {
               {state.users
                 .filter(user => !participants.includes(user.id))
                 .map(user => (
-                  <button
+                  <Button
                     key={user.id}
                     type="button"
                     onClick={() => setParticipants([...participants, user.id])}
-                    className={styles.userButton}
+                    variant="tertiary"
+                    size="small"
                   >
                     {user.name}
-                  </button>
+                  </Button>
                 ))}
             </div>
           </div>
@@ -280,13 +283,13 @@ export default function NewExpense() {
           <Button type="submit" variant="primary" className={styles.submitButton}>
             Save Expense
           </Button>
-          <button
+          <Button
             type="button"
             onClick={() => router.back()}
-            className={styles.cancelButton}
+            variant="tertiary"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

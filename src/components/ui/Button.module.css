@@ -27,6 +27,27 @@
   background-color: #5a6268;
 }
 
+.secondarylight {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+.secondarylight:hover {
+  background-color: #e2e6ea;
+}
+.secondarydark {
+  background-color: #343a40;
+  color: white;
+}
+.secondarydark:hover {
+  background-color: #23272b;
+}
+.success {
+  background-color: #28a745;
+  color: white;
+}
+.success:hover {
+  background-color: #218838;
+}
 .tertiary {
   background-color: transparent;
   color: #007bff;

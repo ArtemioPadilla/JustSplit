@@ -43,7 +43,7 @@ export default function DashboardHeader({
           </select>
           <Button 
             onClick={handleRefreshRates}
-            variant="primary"
+            variant="secondarylight"
             title="Refresh exchange rates"
           >
             🔄
@@ -52,8 +52,12 @@ export default function DashboardHeader({
       </div>
       
       <div className={styles.quickActions}>
-        <Link href="/expenses/new" className={styles.button}>Add Expense</Link>
-        <Link href="/events/new" className={styles.button}>Create Event</Link>
+        <Link href="/expenses/new" passHref>
+          <Button variant="primary">Add Expense</Button>
+        </Link>
+        <Link href="/events/new" passHref>
+          <Button variant="primary">Create Event</Button>
+        </Link>
         
         <Button 
           onClick={() => exportExpensesToCSV(expenses, users, 'all-expenses.csv')}

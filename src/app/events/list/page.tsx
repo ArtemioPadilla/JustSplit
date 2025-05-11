@@ -74,14 +74,14 @@ export default function EventList() {
       {state.events.length === 0 ? (
         <div className={styles.emptyState}>
           <p>You haven't created any events yet.</p>
-          <Link href="/events/new" className={styles.createButton}>
-            Create Your First Event
+          <Link href="/events/new">
+            <Button variant="primary">Create Your First Event</Button>
           </Link>
         </div>
       ) : (
         <>
-          <Link href="/events/new" className={styles.createButton}>
-            Create New Event
+          <Link href="/events/new">
+            <Button variant="primary">Create New Event</Button>
           </Link>
 
           <div className={styles.filters}>
@@ -207,8 +207,8 @@ export default function EventList() {
                   </div>
                   
                   <div className={styles.actions}>
-                    <Link href={`/events/${event.id}`} className={styles.viewButton}>
-                      View Details
+                    <Link href={`/events/${event.id}`}>
+                      <Button variant="secondary">View Details</Button>
                     </Link>
                   </div>
                 </div>
