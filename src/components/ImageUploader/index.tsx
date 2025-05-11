@@ -36,10 +36,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           newImages.push(event.target.result as string);
           
           // If we've processed all files, update state
-          if (newImages.length === files.length) {
+          if (newImages.length === files.filter(f => f.type.startsWith('image/')).length) {
             const combinedImages = [...images, ...newImages].slice(0, maxImages);
             onImagesChange(combinedImages);
             setIsUploading(false);
+            
+            // Reset file input to allow selecting same files again
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
           }
         }
       };
@@ -67,14 +72,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
                   alt={`Upload ${index + 1}`} 
                   className={styles.previewImage} 
                 />
-                <Button 
+                <button 
                   onClick={() => handleRemoveImage(index)}
-                  variant="secondary"
                   className={styles.removeButton}
                   aria-label="Remove image"
+                  title="Remove image"
                 >
                   ✕
-                </Button>
+                </button>
               </div>
             ))}
             
@@ -91,6 +96,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
           </div>
         ) : (
           <div className={styles.uploadPrompt}>
+            <p className={styles.uploadText}>
+              Upload receipt images or photos of your expenses
+            </p>
             <Button
               onClick={() => fileInputRef.current?.click()}
               variant="primary"
@@ -99,9 +107,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             >
               {isUploading ? 'Uploading...' : 'Upload Images'}
             </Button>
-            <p className={styles.uploadText}>
-              Upload receipt images or photos of your expenses
-            </p>
           </div>
         )}
       </div>
@@ -114,6 +119,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         accept="image/*"
         multiple
         className={styles.fileInput}
+        data-testid="file-input"
       />
     </div>
   );

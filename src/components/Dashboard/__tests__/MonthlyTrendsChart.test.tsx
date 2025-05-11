@@ -109,16 +109,20 @@ describe('MonthlyTrendsChart', () => {
       />
     );
     
-    // Initially should show Event view
-    expect(screen.getByText('Event')).toHaveClass('toggleActive');
-    expect(screen.getByText('Spender')).not.toHaveClass('toggleActive');
+    // Find the Event and Spender toggle buttons by text
+    const eventButton = screen.getByText('Event');
+    const spenderButton = screen.getByText('Spender');
+    
+    // Initially Event should have the toggleActive class
+    expect(eventButton.className).toContain('toggleActive');
+    expect(spenderButton.className).not.toContain('toggleActive');
     
     // Click on Spender button
-    fireEvent.click(screen.getByText('Spender'));
+    fireEvent.click(spenderButton);
     
     // Now Spender should be active
-    expect(screen.getByText('Event')).not.toHaveClass('toggleActive');
-    expect(screen.getByText('Spender')).toHaveClass('toggleActive');
+    expect(eventButton.className).not.toContain('toggleActive');
+    expect(spenderButton.className).toContain('toggleActive');
     
     // And we should see the user legend items
     expect(screen.getByText('User 1')).toBeInTheDocument();

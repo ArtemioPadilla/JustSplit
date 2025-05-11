@@ -13,6 +13,12 @@ const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
+    // Mock implementation for testing environments
+    if (typeof window.matchMedia !== 'function') {
+      // Default to desktop view in test environment
+      return;
+    }
+
     const media = window.matchMedia(query);
     if (media.matches !== matches) {
       setMatches(media.matches);
@@ -39,7 +45,7 @@ const Header = () => {
   const [imageError, setImageError] = useState(false);
   const pathname = usePathname();
   const { state } = useAppContext();
-  const currentUser = state.users[0]; // Get the current logged-in user
+  const currentUser = state?.users?.[0]; // Get the current logged-in user
   
   // Check if we're on mobile
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -52,6 +58,10 @@ const Header = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   return (
     <header className={styles.header}>
@@ -67,7 +77,7 @@ const Header = () => {
               width={150}
               height={40}
               className={styles.logo}
-              onError={() => setImageError(true)}
+              onError={handleImageError}
               priority
             />
           )}

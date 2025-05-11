@@ -21,7 +21,6 @@ interface MonthlyTrendsChartProps {
   preferredCurrency: string;
 }
 
-
 export default function MonthlyTrendsChart({ 
   processedTrends, 
   users, 
@@ -56,6 +55,67 @@ export default function MonthlyTrendsChart({
   const maxAmount = Math.max(...processedTrends.map(m => m.amount), 1);
   const currencySymbol = getCurrencySymbol(preferredCurrency);
   
+  // Create bar chart elements
+  const renderBarChart = () => {
+    return processedTrends.map((month, index) => {
+      // Calculate the height percentage of the bar
+      const heightPercentage = maxAmount > 0 ? Math.max(1, (month.amount / maxAmount) * 100) : 0;
+      
+      // Get the breakdown data based on selected coloring option
+      const breakdown = colorBy === 'event' ? month.byEvent : month.byPayer;
+      
+      // If there's no data, show a simple bar
+      if (!breakdown || breakdown.length === 0 || month.amount === 0) {
+        return (
+          <div className={styles.barGroup} key={index}>
+            <div className={styles.bar} 
+              style={{ 
+                height: `${heightPercentage}%`,
+                backgroundColor: month.amount > 0 ? 'var(--primary-color)' : '#e0e0e0',
+                border: month.amount === 0 ? '1px dashed #aaa' : 'none'
+              }}
+              title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
+            ></div>
+            <div className={styles.barLabel}>{month.month}</div>
+          </div>
+        );
+      }
+      
+      // Otherwise show a stacked bar with segments
+      return (
+        <div className={styles.barGroup} key={index}>
+          <div 
+            className={styles.stackedBar}
+            style={{ 
+              height: `${heightPercentage}%`,
+              minHeight: month.amount > 0 ? '4px' : '0'
+            }}
+            title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
+          >
+            {breakdown.map((segment, segIndex) => (
+              <div 
+                key={segIndex}
+                className={styles.barSegment}
+                style={{ 
+                  height: `${segment.percentage}%`,
+                  backgroundColor: getColorForIndex(
+                    segIndex, 
+                    colorBy === 'event' ? events.length + 1 : users.length || 1
+                  )
+                }}
+                title={`${segment.name}: ${currencySymbol}${segment.amount.toFixed(2)} (${segment.percentage.toFixed(1)}%)`}
+              ></div>
+            ))}
+          </div>
+          <div className={styles.barLabel}>{month.month}</div>
+          <div className={styles.barValue}>
+            {currencySymbol}{month.amount.toFixed(0)}
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <div className={styles.dashboardCard}>
       <div className={styles.cardHeader}>
@@ -64,20 +124,20 @@ export default function MonthlyTrendsChart({
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel}>Color by:</label>
             <div className={styles.buttonToggle}>
-              <Button 
+              <button
                 className={`${styles.toggleButton} ${colorBy === 'event' ? styles.toggleActive : ''}`}
                 onClick={() => setColorBy('event')}
-                variant="secondary"
+                data-testid="toggle-event"
               >
                 Event
-              </Button>
-              <Button 
+              </button>
+              <button
                 className={`${styles.toggleButton} ${colorBy === 'spender' ? styles.toggleActive : ''}`}
                 onClick={() => setColorBy('spender')}
-                variant="secondary"
+                data-testid="toggle-spender"
               >
                 Spender
-              </Button>
+              </button>
             </div>
           </div>
           <div className={styles.controlGroup}>
@@ -86,6 +146,7 @@ export default function MonthlyTrendsChart({
                 type="checkbox"
                 checked={isConvertingCurrencies}
                 onChange={() => setIsConvertingCurrencies(!isConvertingCurrencies)}
+                aria-label="Convert currencies"
               />
               <span className={styles.switchLabel}>Convert currencies</span>
             </label>
@@ -98,69 +159,7 @@ export default function MonthlyTrendsChart({
       )}
       
       <div className={styles.barChart}>
-        {processedTrends.map((month, index) => {
-          // Calculate the height percentage of the bar (as percentage of the chart height)
-          const heightPercentage = maxAmount > 0 ? Math.max(1, (month.amount / maxAmount) * 100) : 0;
-          
-          // Get the breakdown data based on selected coloring option
-          const breakdown = colorBy === 'event' ? month.byEvent : month.byPayer;
-          
-          // If there's no data, show a simple bar
-          if (!breakdown || breakdown.length === 0 || month.amount === 0) {
-            return (
-              <div className={styles.barGroup} key={index}>
-                <div className={styles.bar} 
-                  style={{ 
-                    height: `${heightPercentage}%`,
-                    backgroundColor: month.amount > 0 ? 'var(--primary-color)' : '#e0e0e0',
-                    border: month.amount === 0 ? '1px dashed #aaa' : 'none'
-                  }}
-                  title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
-                ></div>
-                <div className={styles.barLabel}>{month.month}</div>
-              </div>
-            );
-          }
-          
-          // Otherwise show a stacked bar with segments
-          return (
-            <div className={styles.barGroup} key={index}>
-              <div 
-                className={styles.stackedBar}
-                style={{ 
-                  height: `${heightPercentage}%`,
-                  // Fix issue with zero height bars
-                  minHeight: month.amount > 0 ? '4px' : '0'
-                }}
-                title={`${currencySymbol}${month.amount.toFixed(2)} (${month.count} expenses)`}
-              >
-                {breakdown.map((segment, segIndex) => {
-                  // Calculate segment height as a percentage of the total bar
-                  const segmentHeight = segment.percentage; // We use the precomputed percentage directly
-                  return (
-                    <div 
-                      key={segIndex}
-                      className={styles.barSegment}
-                      style={{ 
-                        height: `${segmentHeight}%`,
-                        backgroundColor: getColorForIndex(
-                          segIndex, 
-                          colorBy === 'event' ? events.length + 1 : users.length
-                        )
-                      }}
-                      title={`${segment.name}: ${currencySymbol}${segment.amount.toFixed(2)} (${segment.percentage.toFixed(1)}%)`}
-                    ></div>
-                  );
-                })}
-              </div>
-              <div className={styles.barLabel}>{month.month}</div>
-              {/* Show amount below each bar */}
-              <div className={styles.barValue}>
-                {currencySymbol}{month.amount.toFixed(0)}
-              </div>
-            </div>
-          );
-        })}
+        {renderBarChart()}
       </div>
       
       <div className={styles.chartLegend}>
