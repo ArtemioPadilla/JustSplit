@@ -38,6 +38,10 @@ export interface HoverCardProps {
    * Mouse leave event handler
    */
   onMouseLeave?: () => void;
+  /**
+   * Children to render inside the hover card
+   */
+  children?: React.ReactNode;
 }
 
 type ArrowPosition = 'top' | 'bottom' | 'left' | 'right';
@@ -51,7 +55,8 @@ const HoverCard: React.FC<HoverCardProps> = ({
   onClose,
   className = '',
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
+  children
 }) => {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -228,59 +233,97 @@ const HoverCard: React.FC<HoverCardProps> = ({
       onMouseLeave={onMouseLeave}
     >
       <div className={getArrowClassName()} />
-      <div className={styles.hoverCardHeader}>
-        <h4>
-          {expenses.length > 1 ? (
-            <>
-              {expenses.length} Expenses
-              <span className={styles.expenseSummary}>
-                {expenses.filter(e => e.settled).length} settled, 
-                {expenses.filter(e => !e.settled).length} unsettled
-              </span>
-            </>
-          ) : (
-            'Expense Details'
-          )}
-        </h4>
-        <Button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          variant="primary"
-          aria-label="Close"
-        >
-          ✕
-        </Button>
-      </div>
-      
-      <ul className={styles.expensesList}>
-        {expenses.map(expense => (
-          <li key={expense.id} className={styles.expenseItem}>
-            <button
-              className={styles.expenseButton}
-              onClick={() => handleExpenseClick(expense.id)}
-              aria-label={`View expense: ${expense.description ?? 'Expense'}, ${expense.amount.toFixed(2)} ${expense.currency}, ${expense.settled ? 'Settled' : 'Unsettled'}`}
+      {children ? (
+        children
+      ) : (
+        <>
+          <div className={styles.hoverCardHeader}>
+            <h4>
+              {expenses.length > 1 ? (
+                <>
+                  {expenses.length} Expenses
+                  <span className={styles.expenseSummary}>
+                    {expenses.filter(e => e.settled).length} settled, 
+                    {expenses.filter(e => !e.settled).length} unsettled
+                  </span>
+                </>
+              ) : (
+                'Expense Details'
+              )}
+            </h4>
+            <Button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              variant="primary"
+              aria-label="Close"
             >
-              <div className={styles.expenseItemHeader}>
-                <span className={styles.expenseName}>{expense.description ?? 'Expense'}</span>
-                <span className={`${styles.expenseStatus} ${expense.settled ? styles.settled : styles.unsettled}`}>
-                  {expense.settled ? 'Settled' : 'Unsettled'}
-                </span>
-              </div>
-              <div className={styles.expenseAmount}>
-                {expense.amount.toFixed(2)} {expense.currency}
-              </div>
-              <div className={styles.expenseDate}>
-                {formatTimelineDate(expense.date)}
-              </div>
-              <div className={styles.expensePaidBy}>
-                Paid by: {state.users.find(user => user.id === expense.paidBy)?.name ?? 'Unknown'}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
+              ✕
+            </Button>
+          </div>
+          <ul className={styles.expensesList}>
+            {expenses.map(expense => {
+              // Calculate how much the user owes/is owed for this expense
+              let userShare = null;
+              if (expense.participants && expense.paidBy) {
+                const n = expense.participants.length;
+                // Find the two users involved in the relative balance (if any)
+                // For relative balance, show the share for the current user vs the other
+                // For general, show the share for the current user
+                // Try to infer from props if possible
+                // We'll show the share for each participant
+                userShare = expense.participants.map(pid => {
+                  const user = state.users.find(u => u.id === pid);
+                  let share = 0;
+                  if (expense.paidBy === pid) {
+                    // Payer: paid for others, so receives from each
+                    share = expense.amount / n * (n - 1);
+                  } else {
+                    // Owes their share
+                    share = -expense.amount / n;
+                  }
+                  return { name: user?.name || pid, share };
+                });
+              }
+              return (
+                <li key={expense.id} className={styles.expenseItem}>
+                  <button
+                    className={styles.expenseButton}
+                    onClick={() => handleExpenseClick(expense.id)}
+                    aria-label={`View expense: ${expense.description ?? 'Expense'}, ${expense.amount.toFixed(2)} ${expense.currency}, ${expense.settled ? 'Settled' : 'Unsettled'}`}
+                  >
+                    <div className={styles.expenseItemHeader}>
+                      <span className={styles.expenseName}>{expense.description ?? 'Expense'}</span>
+                      <span className={`${styles.expenseStatus} ${expense.settled ? styles.settled : styles.unsettled}`}>
+                        {expense.settled ? 'Settled' : 'Unsettled'}
+                      </span>
+                    </div>
+                    <div className={styles.expenseAmount}>
+                      {expense.amount.toFixed(2)} {expense.currency}
+                    </div>
+                    <div className={styles.expenseDate}>
+                      {formatTimelineDate(expense.date)}
+                    </div>
+                    <div className={styles.expensePaidBy}>
+                      Paid by: {state.users.find(user => user.id === expense.paidBy)?.name ?? 'Unknown'}
+                    </div>
+                    {userShare && (
+                      <div className={styles.expenseShares}>
+                        {userShare.map((s, idx) => (
+                          <div key={idx} style={{ color: s.share < 0 ? '#F44336' : '#4CAF50', fontSize: '0.85em' }}>
+                            {s.name}: {s.share > 0 ? '+' : ''}{s.share.toFixed(2)} {expense.currency}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
 

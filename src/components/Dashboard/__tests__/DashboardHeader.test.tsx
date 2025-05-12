@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import DashboardHeader from '../DashboardHeader';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
+import { renderWithAppContext } from '../../../test-utils';
 
 // Mock dependencies
 jest.mock('../../../utils/csvExport', () => ({
@@ -27,13 +28,33 @@ describe('DashboardHeader', () => {
   ];
 
   it('renders dashboard title correctly', () => {
-    render(<DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />);
+    renderWithAppContext(
+      <DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />,
+      {
+        initialState: {
+          users: mockUsers,
+          expenses: mockExpenses,
+          events: mockEvents,
+          settlements: []
+        }
+      }
+    );
     
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
   it('renders action buttons with correct links', () => {
-    render(<DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />);
+    renderWithAppContext(
+      <DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />,
+      {
+        initialState: {
+          users: mockUsers,
+          expenses: mockExpenses,
+          events: mockEvents,
+          settlements: []
+        }
+      }
+    );
     
     const addExpenseButton = screen.getByText('Add Expense');
     const createEventButton = screen.getByText('Create Event');
@@ -46,7 +67,17 @@ describe('DashboardHeader', () => {
   });
 
   it('calls exportExpensesToCSV when export button is clicked', () => {
-    render(<DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />);
+    renderWithAppContext(
+      <DashboardHeader expenses={mockExpenses} users={mockUsers} events={mockEvents} />,
+      {
+        initialState: {
+          users: mockUsers,
+          expenses: mockExpenses,
+          events: mockEvents,
+          settlements: []
+        }
+      }
+    );
     
     const exportButton = screen.getByText('Export Expenses');
     fireEvent.click(exportButton);
@@ -55,7 +86,17 @@ describe('DashboardHeader', () => {
   });
 
   it('disables export button when there are no expenses', () => {
-    render(<DashboardHeader expenses={[]} users={mockUsers} events={mockEvents} />);
+    renderWithAppContext(
+      <DashboardHeader expenses={[]} users={mockUsers} events={mockEvents} />,
+      {
+        initialState: {
+          users: mockUsers,
+          expenses: [],
+          events: mockEvents,
+          settlements: []
+        }
+      }
+    );
     
     const exportButton = screen.getByText('Export Expenses');
     expect(exportButton).toBeDisabled();

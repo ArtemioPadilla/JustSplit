@@ -20,21 +20,12 @@ import UpcomingEvents from '../components/Dashboard/UpcomingEvents';
 import styles from './page.module.css';
 
 export default function Home() {
-  const { state, isConvertingCurrencies, setIsConvertingCurrencies } = useAppContext();
+  const { state, isConvertingCurrencies, setIsConvertingCurrencies, preferredCurrency, setPreferredCurrency } = useAppContext();
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [conversionError, setConversionError] = useState<string | null>(null);
   
   // Define these safely regardless of whether state exists (moved from conditional)
   const hasData = state?.expenses?.length > 0 || state?.events?.length > 0;
-  const userPreferredCurrency = state?.users?.length > 0 ? state.users[0].preferredCurrency || DEFAULT_CURRENCY : DEFAULT_CURRENCY;
-  
-  // Add state for selected currency
-  const [selectedCurrency, setSelectedCurrency] = useState(userPreferredCurrency);
-  
-  // Update selected currency when user preference changes
-  useEffect(() => {
-    setSelectedCurrency(userPreferredCurrency);
-  }, [userPreferredCurrency]);
   
   // Function to handle refreshing exchange rates
   const handleRefreshRates = async () => {
@@ -70,16 +61,16 @@ export default function Home() {
       // Calculate how much the user has spent
       let totalSpent = 0;
       
-      // Convert all expenses to selected currency if conversion is enabled
+      // Convert all expenses to preferred currency if conversion is enabled
       for (const exp of state.expenses || []) {
-        if (exp.currency === selectedCurrency || !isConvertingCurrencies) {
+        if (exp.currency === preferredCurrency || !isConvertingCurrencies) {
           totalSpent += exp.amount;
         } else {
           try {
-            const { rate } = await getExchangeRate(exp.currency, selectedCurrency);
+            const { rate } = await getExchangeRate(exp.currency, preferredCurrency);
             totalSpent += exp.amount * rate;
           } catch (error) {
-            console.error(`Error converting ${exp.currency} to ${selectedCurrency}:`, error);
+            console.error(`Error converting ${exp.currency} to ${preferredCurrency}:`, error);
             // If conversion fails, just add original amount
             totalSpent += exp.amount;
           }
@@ -99,7 +90,7 @@ export default function Home() {
       const pendingSettlements = await calculateSettlementsWithConversion(
         state.expenses || [], 
         state.users || [], 
-        selectedCurrency, 
+        preferredCurrency, 
         isConvertingCurrencies
       );
       const totalPendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
@@ -123,7 +114,7 @@ export default function Home() {
 
   useEffect(() => {
     calculateFinancialSummary();
-  }, [state, selectedCurrency, isConvertingCurrencies]);
+  }, [state, preferredCurrency, isConvertingCurrencies]);
   
   // Get recent expenses
   const recentExpenses = useMemo(() => {
@@ -198,8 +189,8 @@ export default function Home() {
           let amount = expense.amount;
           
           // Convert currency if needed and enabled
-          if (expense.currency !== selectedCurrency && isConvertingCurrencies) {
-            const rate = await getRate(expense.currency, selectedCurrency);
+          if (expense.currency !== preferredCurrency && isConvertingCurrencies) {
+            const rate = await getRate(expense.currency, preferredCurrency);
             amount = amount * rate;
           }
           
@@ -252,7 +243,7 @@ export default function Home() {
     }
     
     return Promise.all(trends);
-  }, [state, selectedCurrency, isConvertingCurrencies]);
+  }, [state, preferredCurrency, isConvertingCurrencies]);
   
   // State to hold the processed trends data
   const [processedTrends, setProcessedTrends] = useState<any[]>([]);
@@ -355,14 +346,12 @@ export default function Home() {
         expenses={state.expenses || []} 
         users={state.users || []} 
         events={state.events || []} 
-        selectedCurrency={selectedCurrency}
-        setSelectedCurrency={setSelectedCurrency}
         handleRefreshRates={handleRefreshRates}
         isConvertingCurrencies={isConvertingCurrencies}
         setIsConvertingCurrencies={setIsConvertingCurrencies}
       />
       
-      <CurrencyExchangeTicker baseCurrency={selectedCurrency} />
+      <CurrencyExchangeTicker baseCurrency={preferredCurrency} />
       
       <div className={styles.dashboardSummary}>
         <FinancialSummary
@@ -378,7 +367,7 @@ export default function Home() {
             events={state.events || []}
             isLoadingRates={isLoadingRates}
             conversionError={conversionError}
-            preferredCurrency={selectedCurrency}
+            preferredCurrency={preferredCurrency}
             isConvertingCurrencies={isConvertingCurrencies}
           />
         </div>
@@ -386,18 +375,18 @@ export default function Home() {
       
       <ExpenseDistribution 
         categoryDistribution={categoryDistribution} 
-        preferredCurrency={selectedCurrency}
+        preferredCurrency={preferredCurrency}
       />
       
       <BalanceOverview 
         balanceDistribution={balanceDistribution} 
-        preferredCurrency={selectedCurrency}
+        preferredCurrency={preferredCurrency}
       />
       
       <RecentExpenses 
         expenses={recentExpenses} 
         users={state.users || []} 
-        preferredCurrency={selectedCurrency}
+        preferredCurrency={preferredCurrency}
         isConvertingCurrencies={isConvertingCurrencies}
       />
       
@@ -405,7 +394,7 @@ export default function Home() {
         settlements={recentSettlements}
         users={state.users || []}
         events={state.events || []}
-        preferredCurrency={selectedCurrency}
+        preferredCurrency={preferredCurrency}
         isConvertingCurrencies={isConvertingCurrencies}
       />
       
