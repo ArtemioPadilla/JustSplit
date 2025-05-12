@@ -109,4 +109,35 @@ describe('UpcomingEvents', () => {
     const eventLinks = links.filter(link => link.getAttribute('href').startsWith('/events/'));
     expect(eventLinks.length).toBeGreaterThan(0);
   });
+
+  it('renders event cards with correct info', () => {
+    render(<UpcomingEvents events={mockEvents} users={mockUsers} />);
+    expect(screen.getByText('Upcoming Events')).toBeInTheDocument();
+    expect(screen.getByText('Trip')).toBeInTheDocument();
+    expect(screen.getByText('Conference')).toBeInTheDocument();
+    expect(screen.getByText('Past Event')).toBeInTheDocument();
+    expect(screen.getByText('Beach')).toBeInTheDocument();
+    expect(screen.getByText('Old Place')).toBeInTheDocument();
+    expect(screen.getByText('No location')).toBeInTheDocument();
+    expect(screen.getByText('2 participants')).toBeInTheDocument();
+    expect(screen.getByText('Alice, Bob')).toBeInTheDocument();
+    expect(screen.getByText('Bob, Charlie')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+  });
+
+  it('shows status badge for upcoming and past events', () => {
+    render(<UpcomingEvents events={mockEvents} users={mockUsers} />);
+    expect(screen.getAllByText('Upcoming').length).toBeGreaterThan(0);
+    expect(screen.getByText('Past')).toBeInTheDocument();
+  });
+
+  it('shows "No upcoming events" if empty', () => {
+    render(<UpcomingEvents events={[]} users={mockUsers} />);
+    expect(screen.getByText('No upcoming events')).toBeInTheDocument();
+  });
+
+  it('shows "View all events" link', () => {
+    render(<UpcomingEvents events={mockEvents} users={mockUsers} />);
+    expect(screen.getByText('View all events')).toBeInTheDocument();
+  });
 });

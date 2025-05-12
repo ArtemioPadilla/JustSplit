@@ -358,8 +358,9 @@ export default function Home() {
           totalSpent={financialSummary.totalSpent}
           unsettledCount={financialSummary.unsettledCount}
           totalPendingAmount={financialSummary.totalPendingAmount}
+          preferredCurrency={preferredCurrency}
+          isConvertingCurrencies={isConvertingCurrencies}
         />
-        
         <div className={styles.chartContainer}>
           <MonthlyTrendsChart 
             processedTrends={processedTrends}
@@ -372,10 +373,10 @@ export default function Home() {
           />
         </div>
       </div>
-      
       <ExpenseDistribution 
         categoryDistribution={categoryDistribution} 
         preferredCurrency={preferredCurrency}
+        isConvertingCurrencies={isConvertingCurrencies}
       />
       
       <BalanceOverview 

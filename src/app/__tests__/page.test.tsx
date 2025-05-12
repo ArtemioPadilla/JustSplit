@@ -1,8 +1,9 @@
 import React from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, render } from '@testing-library/react';
 import Home from '../page';
 import EventList from '../events/list/page';
 import { renderWithAppContext } from '../../test-utils';
+import { AppProvider } from '../../context/AppContext';
 
 jest.mock('next/link', () => {
   return ({ children, href, className }: { children: React.ReactNode; href: string; className?: string }) => {
@@ -75,5 +76,65 @@ describe('EventList', () => {
 
     expect(screen.getByText(/USD: 150.00/i)).toBeInTheDocument();
     expect(screen.getByText(/EUR: 200.00/i)).toBeInTheDocument();
+  });
+});
+
+const mockState = {
+  users: [
+    { id: 'u1', name: 'Alice', balance: 0 },
+    { id: 'u2', name: 'Bob', balance: 0 }
+  ],
+  events: [
+    { id: 'e1', name: 'Trip', startDate: '2025-05-13', endDate: '2025-05-15', participants: ['u1', 'u2'], expenses: [] }
+  ],
+  expenses: [
+    { id: 'exp1', description: 'Dinner', amount: 100, currency: 'USD', date: '2025-05-01', paidBy: 'u1', participants: ['u1', 'u2'], settled: false },
+    { id: 'exp2', description: 'Lunch', amount: 50, currency: 'USD', date: '2025-04-01', paidBy: 'u2', participants: ['u1', 'u2'], settled: true }
+  ],
+  settlements: [
+    { id: 's1', fromUser: 'u2', toUser: 'u1', amount: 50, currency: 'USD', expenseIds: ['exp2'], date: '2025-05-10', status: 'completed' }
+  ]
+};
+
+describe('Home Dashboard Page', () => {
+  it('renders dashboard sections and KPIs', async () => {
+    render(
+      <AppProvider initialState={mockState}>
+        <Home />
+      </AppProvider>
+    );
+    // Dashboard header
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
+    // Financial summary KPIs
+    expect(screen.getByText('Financial Summary')).toBeInTheDocument();
+    expect(screen.getByText('Total Expenses')).toBeInTheDocument();
+    expect(screen.getByText('Avg. Expense (All Time)')).toBeInTheDocument();
+    expect(screen.getByText('Avg. Expense (Last Month)')).toBeInTheDocument();
+    expect(screen.getByText('Avg. Expense (Last Year)')).toBeInTheDocument();
+    expect(screen.getByText('Total Events')).toBeInTheDocument();
+    expect(screen.getByText('Total Settlements')).toBeInTheDocument();
+    expect(screen.getByText('Unsettled Settlements')).toBeInTheDocument();
+    // Category breakdown
+    expect(screen.getByText('Category Breakdown')).toBeInTheDocument();
+    // Recent expenses
+    expect(screen.getByText('Recent Expenses')).toBeInTheDocument();
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    // Recent settlements
+    expect(screen.getByText('Recent Settlements')).toBeInTheDocument();
+    // Upcoming events
+    expect(screen.getByText('Upcoming Events')).toBeInTheDocument();
+    // Balance overview
+    expect(screen.getByText('Balance Overview')).toBeInTheDocument();
+    // Expense distribution
+    expect(screen.getByText('Expense Distribution')).toBeInTheDocument();
+  });
+
+  it('shows WelcomeScreen if no data', () => {
+    render(
+      <AppProvider initialState={{ users: [], events: [], expenses: [], settlements: [] }}>
+        <Home />
+      </AppProvider>
+    );
+    expect(screen.getByText(/Welcome/i)).toBeInTheDocument();
   });
 });

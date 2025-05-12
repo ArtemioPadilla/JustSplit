@@ -117,4 +117,84 @@ describe('RecentExpenses', () => {
     const expenseLinks = links.filter(link => link.getAttribute('href').startsWith('/expenses/'));
     expect(expenseLinks.length).toBeGreaterThan(0);
   });
+
+  it('renders table headers and rows correctly', () => {
+    render(
+      <RecentExpenses
+        expenses={mockExpenses}
+        users={mockUsers}
+        events={mockEvents}
+        preferredCurrency="USD"
+        isConvertingCurrencies={false}
+      />
+    );
+    // Table headers
+    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByText('Amount')).toBeInTheDocument();
+    expect(screen.getByText('Paid By')).toBeInTheDocument();
+    expect(screen.getByText('Participants')).toBeInTheDocument();
+    expect(screen.getByText('Event')).toBeInTheDocument();
+    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Status')).toBeInTheDocument();
+    expect(screen.getByText('Notes')).toBeInTheDocument();
+    // Data rows
+    expect(screen.getByText('gasto1')).toBeInTheDocument();
+    expect(screen.getByText('tren')).toBeInTheDocument();
+    expect(screen.getByText('museo')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Charlie')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('Europe')).toBeInTheDocument();
+    expect(screen.getByText('Museo del prado')).toBeInTheDocument();
+  });
+
+  it('shows Settled and Unsettled status badges', () => {
+    render(
+      <RecentExpenses
+        expenses={mockExpenses}
+        users={mockUsers}
+        events={mockEvents}
+        preferredCurrency="USD"
+        isConvertingCurrencies={false}
+      />
+    );
+    expect(screen.getByText('Settled')).toBeInTheDocument();
+    expect(screen.getByText('Unsettled')).toBeInTheDocument();
+  });
+
+  it('shows converted amount if currency differs and conversion is enabled', async () => {
+    render(
+      <RecentExpenses
+        expenses={mockExpenses}
+        users={mockUsers}
+        events={mockEvents}
+        preferredCurrency="EUR"
+        isConvertingCurrencies={true}
+      />
+    );
+    // Wait for conversion to finish
+    expect(await screen.findByText(/≈/)).toBeInTheDocument();
+  });
+
+  it('shows participant count and event name', () => {
+    render(
+      <RecentExpenses
+        expenses={mockExpenses}
+        users={mockUsers}
+        events={mockEvents}
+        preferredCurrency="USD"
+        isConvertingCurrencies={false}
+      />
+    );
+    expect(screen.getByText('(2)')).toBeInTheDocument();
+    expect(screen.getByText('(3)')).toBeInTheDocument();
+    expect(screen.getByText('Europe')).toBeInTheDocument();
+  });
+
+  it('shows "No expenses yet" if empty', () => {
+    render(
+      <RecentExpenses expenses={[]} users={mockUsers} events={mockEvents} preferredCurrency="USD" />
+    );
+    expect(screen.getByText('No expenses yet')).toBeInTheDocument();
+  });
 });

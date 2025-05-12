@@ -5,6 +5,7 @@ import styles from './styles.module.css';
 import { TimelineExpense, formatTimelineDate } from '../../../utils/timelineUtils';
 import Button from '../Button';
 import { useAppContext } from '../../../context/AppContext';
+import { convertCurrency, formatCurrency } from '../../../utils/currencyExchange';
 
 export interface HoverCardPosition {
   x: number;
@@ -62,7 +63,9 @@ const HoverCard: React.FC<HoverCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const { state } = useAppContext();
-  
+  const preferredCurrency = state?.preferredCurrency || 'USD';
+  const [convertedAmounts, setConvertedAmounts] = useState<Record<string, { amount: number, isFallback: boolean }>>({});
+
   // Use fixed positioning to be independent of scroll containers
   const [cardStyle, setCardStyle] = useState({
     position: 'fixed' as const,
@@ -80,6 +83,35 @@ const HoverCard: React.FC<HoverCardProps> = ({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  // Fetch converted amounts when expenses or preferredCurrency changes
+  useEffect(() => {
+    let isMounted = true;
+    const fetchConversions = async () => {
+      const conversions: Record<string, { amount: number, isFallback: boolean }> = {};
+      await Promise.all(
+        expenses.map(async (expense) => {
+          if (expense.currency === preferredCurrency) {
+            conversions[expense.id] = { amount: expense.amount, isFallback: false };
+          } else {
+            try {
+              const { convertedAmount, isFallback } = await convertCurrency(
+                expense.amount,
+                expense.currency,
+                preferredCurrency
+              );
+              conversions[expense.id] = { amount: convertedAmount, isFallback };
+            } catch {
+              conversions[expense.id] = { amount: expense.amount, isFallback: true };
+            }
+          }
+        })
+      );
+      if (isMounted) setConvertedAmounts(conversions);
+    };
+    fetchConversions();
+    return () => { isMounted = false; };
+  }, [expenses, preferredCurrency]);
 
   // Position the hover card when it mounts or position changes
   useEffect(() => {
@@ -300,7 +332,13 @@ const HoverCard: React.FC<HoverCardProps> = ({
                       </span>
                     </div>
                     <div className={styles.expenseAmount}>
-                      {expense.amount.toFixed(2)} {expense.currency}
+                      {formatCurrency(expense.amount, expense.currency)}
+                      {expense.currency !== preferredCurrency && convertedAmounts[expense.id] && (
+                        <span style={{ marginLeft: 8, color: '#888', fontSize: '0.95em' }}>
+                          (≈ {formatCurrency(convertedAmounts[expense.id].amount, preferredCurrency)}
+                          {convertedAmounts[expense.id].isFallback ? ' *' : ''})
+                        </span>
+                      )}
                     </div>
                     <div className={styles.expenseDate}>
                       {formatTimelineDate(expense.date)}
