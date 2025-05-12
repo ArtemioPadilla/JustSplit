@@ -12,6 +12,8 @@ interface DashboardHeaderProps {
   selectedCurrency: string;
   setSelectedCurrency: (currency: string) => void;
   handleRefreshRates: () => Promise<void>;
+  isConvertingCurrencies: boolean;
+  setIsConvertingCurrencies: (convert: boolean) => void;
 }
 
 export default function DashboardHeader({ 
@@ -20,34 +22,50 @@ export default function DashboardHeader({
   events, 
   selectedCurrency, 
   setSelectedCurrency, 
-  handleRefreshRates 
+  handleRefreshRates,
+  isConvertingCurrencies,
+  setIsConvertingCurrencies
 }: DashboardHeaderProps) {
   return (
     <div className={styles.dashboardHeader}>
       <div className={styles.headerTop}>
         <h1>Dashboard</h1>
         
-        <div className={styles.currencySelector}>
-          <label htmlFor="currency-selector">Currency: </label>
-          <select
-            id="currency-selector"
-            value={selectedCurrency}
-            onChange={(e) => setSelectedCurrency(e.target.value)}
-            className={styles.select}
-          >
-            {SUPPORTED_CURRENCIES.map(currency => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} ({currency.symbol})
-              </option>
-            ))}
-          </select>
-          <Button 
-            onClick={handleRefreshRates}
-            variant="secondarylight"
-            title="Refresh exchange rates"
-          >
-            🔄
-          </Button>
+        <div className={styles.currencyControls}>
+          <div className={styles.currencySelector}>
+            <label htmlFor="currency-selector">Currency: </label>
+            <select
+              id="currency-selector"
+              value={selectedCurrency}
+              onChange={(e) => setSelectedCurrency(e.target.value)}
+              className={styles.select}
+            >
+              {SUPPORTED_CURRENCIES.map(currency => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} ({currency.symbol})
+                </option>
+              ))}
+            </select>
+            <Button 
+              onClick={handleRefreshRates}
+              variant="secondarylight"
+              title="Refresh exchange rates"
+            >
+              🔄
+            </Button>
+          </div>
+          
+          <div className={styles.conversionToggle}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={isConvertingCurrencies}
+                onChange={(e) => setIsConvertingCurrencies(e.target.checked)}
+                className={styles.checkbox}
+              />
+              <span className={styles.checkboxText}>Convert currencies</span>
+            </label>
+          </div>
         </div>
       </div>
       

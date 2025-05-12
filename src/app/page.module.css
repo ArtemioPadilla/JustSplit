@@ -196,11 +196,11 @@
 .barChart {
   flex-grow: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-end; /* Align items at bottom */
   justify-content: space-between;
   height: 180px;
   margin-bottom: var(--space-md);
-  padding-bottom: var(--space-lg);
+  padding: 1rem;
   border-bottom: var(--border-width-thin) solid var(--color-divider);
   position: relative;
   background-color: var(--color-surface);
@@ -222,7 +222,8 @@
   flex-direction: column;
   align-items: center;
   flex: 1;
-  position: relative; /* For positioning debug text */
+  position: relative;
+  height: 100%;
 }
 
 .bar {
@@ -232,6 +233,9 @@
   transition: height 0.3s ease;
   min-height: 0; /* Allow zero height */
   border: 1px solid rgba(0,0,0,0.1); /* Add border for better visibility */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .barValue {
@@ -573,10 +577,13 @@
   border-radius: 4px 4px 0 0;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.1);
+  background-color: #f0f0f0; /* Light background to show empty bars */
+  transition: height 0.3s ease;
 }
 
 .barSegment {
   transition: all 0.3s ease;
+  min-height: 4px;
 }
 
 .barSegment:hover {

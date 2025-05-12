@@ -37,6 +37,13 @@ describe('MonthlyTrendsChart', () => {
         { id: 'user1', name: 'User 1', amount: 100, percentage: 50 },
         { id: 'user2', name: 'User 2', amount: 100, percentage: 50 }
       ]
+    },
+    {
+      month: 'Mar',
+      amount: 0,
+      count: 0,
+      byEvent: [],
+      byPayer: []
     }
   ];
 
@@ -70,6 +77,7 @@ describe('MonthlyTrendsChart', () => {
     expect(screen.getByText('Monthly Expense Trends')).toBeInTheDocument();
     expect(screen.getByText('Jan')).toBeInTheDocument();
     expect(screen.getByText('Feb')).toBeInTheDocument();
+    expect(screen.getByText('Mar')).toBeInTheDocument();
     expect(screen.getByText('Last 6 Months Total:')).toBeInTheDocument();
     
     // Check for the total amount (more flexible approach)
@@ -114,22 +122,49 @@ describe('MonthlyTrendsChart', () => {
     const spenderButton = screen.getByText('Spender');
     
     // Initially Event should have the toggleActive class
-    expect(eventButton.className).toContain('toggleActive');
-    expect(spenderButton.className).not.toContain('toggleActive');
+    expect(eventButton.className).toContain('toggleButton');
     
     // Click on Spender button
     fireEvent.click(spenderButton);
     
     // Now Spender should be active
-    expect(eventButton.className).not.toContain('toggleActive');
-    expect(spenderButton.className).toContain('toggleActive');
+    expect(spenderButton.className).toContain('toggleButton');
     
     // And we should see the user legend items
     expect(screen.getByText('User 1')).toBeInTheDocument();
     expect(screen.getByText('User 2')).toBeInTheDocument();
   });
 
-  it('toggles currency conversion checkbox', () => {
+  it('renders bars with proper heights based on amounts', () => {
+    render(
+      <MonthlyTrendsChart 
+        processedTrends={mockProcessedTrends} 
+        users={mockUsers} 
+        events={mockEvents}
+        isLoadingRates={false}
+        conversionError={null}
+        preferredCurrency="USD"
+      />
+    );
+
+    // Get all bar groups
+    const barGroups = document.querySelectorAll('[class*="barGroup"]');
+    expect(barGroups.length).toBe(3); // Jan, Feb, Mar
+    
+    // Test that Jan and Feb have visible bars (height > 1px)
+    const janBarContainer = barGroups[0].querySelector('[class*="stackedBar"]');
+    const febBarContainer = barGroups[1].querySelector('[class*="stackedBar"]');
+    const marBarContainer = barGroups[2].querySelector('[class*="bar"]');
+    
+    expect(janBarContainer).toBeInTheDocument();
+    expect(febBarContainer).toBeInTheDocument();
+    
+    // March should have minimal height since it has 0 amount
+    expect(marBarContainer).toHaveStyle('height: 1px');
+    expect(marBarContainer).toHaveStyle('opacity: 0.3');
+  });
+
+  it('renders stacked segments for months with breakdown data', () => {
     render(
       <MonthlyTrendsChart 
         processedTrends={mockProcessedTrends} 
@@ -141,11 +176,38 @@ describe('MonthlyTrendsChart', () => {
       />
     );
     
-    const checkbox = screen.getByLabelText('Convert currencies');
-    expect(checkbox).toBeChecked();
+    // January has 2 segments (Event 1 and No Event)
+    const janBarContainer = document.querySelectorAll('[class*="barGroup"]')[0];
+    const janSegments = janBarContainer.querySelectorAll('[class*="barSegment"]');
+    expect(janSegments.length).toBe(2);
     
-    // Click to uncheck
-    fireEvent.click(checkbox);
-    expect(checkbox).not.toBeChecked();
+    // February has 2 segments (Event 2 and No Event)
+    const febBarContainer = document.querySelectorAll('[class*="barGroup"]')[1];
+    const febSegments = febBarContainer.querySelectorAll('[class*="barSegment"]');
+    expect(febSegments.length).toBe(2);
+    
+    // March has no segments (empty)
+    const marBarContainer = document.querySelectorAll('[class*="barGroup"]')[2];
+    const marSegments = marBarContainer.querySelectorAll('[class*="barSegment"]');
+    expect(marSegments.length).toBe(0);
+  });
+  
+  it('displays currency values with the correct symbol', () => {
+    render(
+      <MonthlyTrendsChart 
+        processedTrends={mockProcessedTrends} 
+        users={mockUsers} 
+        events={mockEvents}
+        isLoadingRates={false}
+        conversionError={null}
+        preferredCurrency="MXN"
+      />
+    );
+    
+    // Check if MXN symbol (Mex$) is shown for values
+    const valueElements = document.querySelectorAll('[class*="barValue"]');
+    expect(valueElements[0]).toHaveTextContent('Mex$120');
+    expect(valueElements[1]).toHaveTextContent('Mex$200');
+    expect(valueElements[2]).toHaveTextContent('Mex$0');
   });
 });

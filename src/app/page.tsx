@@ -20,7 +20,7 @@ import UpcomingEvents from '../components/Dashboard/UpcomingEvents';
 import styles from './page.module.css';
 
 export default function Home() {
-  const { state } = useAppContext();
+  const { state, isConvertingCurrencies, setIsConvertingCurrencies } = useAppContext();
   const [isLoadingRates, setIsLoadingRates] = useState(false);
   const [conversionError, setConversionError] = useState<string | null>(null);
   
@@ -70,9 +70,9 @@ export default function Home() {
       // Calculate how much the user has spent
       let totalSpent = 0;
       
-      // Convert all expenses to selected currency
+      // Convert all expenses to selected currency if conversion is enabled
       for (const exp of state.expenses || []) {
-        if (exp.currency === selectedCurrency) {
+        if (exp.currency === selectedCurrency || !isConvertingCurrencies) {
           totalSpent += exp.amount;
         } else {
           try {
@@ -96,7 +96,12 @@ export default function Home() {
         .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()) || [];
       
       // Calculate pending settlements
-      const pendingSettlements = await calculateSettlementsWithConversion(state.expenses || [], state.users || [], selectedCurrency);
+      const pendingSettlements = await calculateSettlementsWithConversion(
+        state.expenses || [], 
+        state.users || [], 
+        selectedCurrency, 
+        isConvertingCurrencies
+      );
       const totalPendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
       
       const summary = {
@@ -118,7 +123,7 @@ export default function Home() {
 
   useEffect(() => {
     calculateFinancialSummary();
-  }, [state, selectedCurrency]);
+  }, [state, selectedCurrency, isConvertingCurrencies]);
   
   // Get recent expenses
   const recentExpenses = useMemo(() => {
@@ -153,7 +158,7 @@ export default function Home() {
       if (exchangeRateCache[cacheKey]) return exchangeRateCache[cacheKey];
       
       try {
-        const rate = await getExchangeRate(fromCurrency, toCurrency);
+        const { rate } = await getExchangeRate(fromCurrency, toCurrency);
         exchangeRateCache[cacheKey] = rate;
         return rate;
       } catch (error) {
@@ -192,7 +197,7 @@ export default function Home() {
           let amount = expense.amount;
           
           // Convert currency if needed and enabled
-          if (expense.currency !== selectedCurrency) {
+          if (expense.currency !== selectedCurrency && isConvertingCurrencies) {
             const rate = await getRate(expense.currency, selectedCurrency);
             amount = amount * rate;
           }
@@ -228,8 +233,13 @@ export default function Home() {
           };
         }).sort((a, b) => b.amount - a.amount);
         
+        // Format the month in a standardized way that's easy to parse: "Jan 2025"
+        const monthName = month.toLocaleString('en-US', { month: 'short' });
+        const year = month.getFullYear();
+        const formattedMonth = `${monthName} ${year}`;
+        
         return {
-          month: month.toLocaleDateString('default', { month: 'short' }),
+          month: formattedMonth,
           amount: totalAmount,
           count: monthlyExpenses.length,
           byEvent: eventBreakdown,
@@ -237,13 +247,11 @@ export default function Home() {
         };
       };
       
-      // Use a promise-based approach for async processing but don't await here
-      // We'll handle the async nature in useEffect
       trends.push(processMonthlyExpenses());
     }
     
     return Promise.all(trends);
-  }, [state, selectedCurrency]);
+  }, [state, selectedCurrency, isConvertingCurrencies]);
   
   // State to hold the processed trends data
   const [processedTrends, setProcessedTrends] = useState<any[]>([]);
@@ -349,6 +357,8 @@ export default function Home() {
         selectedCurrency={selectedCurrency}
         setSelectedCurrency={setSelectedCurrency}
         handleRefreshRates={handleRefreshRates}
+        isConvertingCurrencies={isConvertingCurrencies}
+        setIsConvertingCurrencies={setIsConvertingCurrencies}
       />
       
       <CurrencyExchangeTicker baseCurrency={selectedCurrency} />
@@ -368,20 +378,34 @@ export default function Home() {
             isLoadingRates={isLoadingRates}
             conversionError={conversionError}
             preferredCurrency={selectedCurrency}
+            isConvertingCurrencies={isConvertingCurrencies}
           />
         </div>
       </div>
       
-      <ExpenseDistribution categoryDistribution={categoryDistribution} />
+      <ExpenseDistribution 
+        categoryDistribution={categoryDistribution} 
+        preferredCurrency={selectedCurrency}
+      />
       
-      <BalanceOverview balanceDistribution={balanceDistribution} />
+      <BalanceOverview 
+        balanceDistribution={balanceDistribution} 
+        preferredCurrency={selectedCurrency}
+      />
       
-      <RecentExpenses expenses={recentExpenses} users={state.users || []} />
+      <RecentExpenses 
+        expenses={recentExpenses} 
+        users={state.users || []} 
+        preferredCurrency={selectedCurrency}
+        isConvertingCurrencies={isConvertingCurrencies}
+      />
       
       <RecentSettlements 
         settlements={recentSettlements}
         users={state.users || []}
         events={state.events || []}
+        preferredCurrency={selectedCurrency}
+        isConvertingCurrencies={isConvertingCurrencies}
       />
       
       <UpcomingEvents events={financialSummary.upcomingEvents} />

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { DEFAULT_CURRENCY } from '../utils/currencyExchange';
 
 // Types based on data models
 export interface User {
@@ -206,6 +207,10 @@ const reducer = (state: AppState, action: Action): AppState => {
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
+  preferredCurrency: string; 
+  isConvertingCurrencies: boolean;
+  setIsConvertingCurrencies: (value: boolean) => void;
+  setPreferredCurrency: (currency: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -223,6 +228,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
     events: [],
     settlements: [],
   });
+
+  const [preferredCurrency, setPreferredCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [isConvertingCurrencies, setIsConvertingCurrencies] = useState<boolean>(true);
 
   // Load data from localStorage on initial render - only if initialState is not provided
   useEffect(() => {
@@ -252,7 +260,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialState
   }, [state, initialState]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, preferredCurrency, isConvertingCurrencies, setIsConvertingCurrencies, setPreferredCurrency }}>
       {children}
     </AppContext.Provider>
   );

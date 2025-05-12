@@ -112,8 +112,16 @@ export async function calculateSettlementsWithConversion(
   expenses: Expense[], 
   users: User[],
   targetCurrency: string,
+  isConvertingCurrencies: boolean = true,
   eventId?: string
 ): Promise<Settlement[]> {
+  // If not converting currencies, fall back to standard calculations with original currency
+  if (!isConvertingCurrencies) {
+    // Just calculate settlements in original currencies (matching logic below but without conversions)
+    const settlements = calculateSettlements(expenses, users, eventId);
+    return settlements;
+  }
+
   // Filter expenses by event if eventId is provided
   const filteredExpenses = eventId 
     ? expenses.filter(e => e.eventId === eventId && !e.settled)
@@ -149,16 +157,17 @@ export async function calculateSettlementsWithConversion(
   try {
     console.log(`Starting settlement calculation with target currency: ${targetCurrency}`);
     console.log(`Total expenses to process: ${filteredExpenses.length}`);
+    console.log(`Currency conversion is ${isConvertingCurrencies ? 'enabled' : 'disabled'}`);
     
     // Process each expense with currency conversion
     for (const expense of filteredExpenses) {
       const { paidBy, participants, amount, currency, id, eventId: expenseEventId } = expense;
 
-      // Convert amount to target currency
+      // Convert amount to target currency if currency conversion is enabled
       let convertedAmount = amount;
       
-      // Only perform conversion if currencies differ
-      if (currency !== targetCurrency) {
+      // Only perform conversion if currencies differ and conversion is enabled
+      if (currency !== targetCurrency && isConvertingCurrencies) {
         const conversionKey = `${currency}_${targetCurrency}`;
         
         try {
