@@ -210,4 +210,85 @@ describe('MonthlyTrendsChart', () => {
     expect(valueElements[1]).toHaveTextContent('Mex$200');
     expect(valueElements[2]).toHaveTextContent('Mex$0');
   });
+
+  it('applies correct styling to active and inactive toggle buttons', () => {
+    render(
+      <MonthlyTrendsChart 
+        processedTrends={mockProcessedTrends} 
+        users={mockUsers} 
+        events={mockEvents}
+        isLoadingRates={false}
+        conversionError={null}
+        preferredCurrency="USD"
+      />
+    );
+    
+    // Find the Event and Spender toggle buttons
+    const eventButton = screen.getByTestId('toggle-event');
+    const spenderButton = screen.getByTestId('toggle-spender');
+    
+    // Event button should be active initially
+    expect(eventButton).toHaveStyle({
+      backgroundColor: '#1a56db',
+      color: '#ffffff',
+      fontWeight: 'bold',
+      border: '1px solid #1a56db',
+    });
+    
+    // Spender button should be inactive initially
+    expect(spenderButton).toHaveStyle({
+      backgroundColor: '#f9fafb',
+      color: '#374151',
+      fontWeight: '500',
+      border: '1px solid #e5e7eb',
+    });
+    
+    // Click on Spender button to toggle
+    fireEvent.click(spenderButton);
+    
+    // Now Spender button should be active
+    expect(spenderButton).toHaveStyle({
+      backgroundColor: '#1a56db',
+      color: '#ffffff',
+      fontWeight: 'bold',
+      border: '1px solid #1a56db',
+    });
+    
+    // And Event button should be inactive
+    expect(eventButton).toHaveStyle({
+      backgroundColor: '#f9fafb',
+      color: '#374151',
+      fontWeight: '500',
+      border: '1px solid #e5e7eb',
+    });
+  });
+  
+  it('ensures toggle buttons transition between states correctly', () => {
+    render(
+      <MonthlyTrendsChart 
+        processedTrends={mockProcessedTrends} 
+        users={mockUsers} 
+        events={mockEvents}
+        isLoadingRates={false}
+        conversionError={null}
+        preferredCurrency="USD"
+      />
+    );
+    
+    // Find the Event and Spender toggle buttons
+    const eventButton = screen.getByTestId('toggle-event');
+    const spenderButton = screen.getByTestId('toggle-spender');
+    
+    // Check for transition property
+    expect(eventButton).toHaveStyle('transition: all 0.2s ease');
+    expect(spenderButton).toHaveStyle('transition: all 0.2s ease');
+    
+    // Check additional styling properties
+    expect(eventButton).toHaveStyle('boxShadow: 0 2px 4px rgba(0,0,0,0.1)');
+    expect(spenderButton).not.toHaveStyle('boxShadow: 0 2px 4px rgba(0,0,0,0.1)');
+    
+    // Verify padding is applied correctly
+    expect(eventButton).toHaveStyle('padding: 0.4rem 0.75rem');
+    expect(spenderButton).toHaveStyle('padding: 0.4rem 0.75rem');
+  });
 });

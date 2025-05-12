@@ -165,11 +165,14 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
   // Enhanced custom toggle style with better contrast
   const toggleButtonStyle = (isActive: boolean) => {
     return {
-      backgroundColor: isActive ? 'var(--primary-color)' : '#f9fafb',
-      color: isActive ? 'white' : '#374151', // Darker text for inactive state for better contrast
-      fontWeight: isActive ? 'bold' : 'normal',
-      textShadow: isActive ? '0px 1px 1px rgba(0, 0, 0, 0.2)' : 'none', // Text shadow for better readability
-      border: isActive ? 'none' : '1px solid #e5e7eb',
+      backgroundColor: isActive ? '#1a56db' : '#f9fafb', // Darker blue for active state
+      color: isActive ? '#ffffff' : '#374151', // White text on active, dark gray on inactive
+      fontWeight: isActive ? 'bold' : '500', // Bold for active, medium for inactive
+      textShadow: isActive ? 'none' : 'none', // Remove text shadow
+      border: isActive ? '1px solid #1a56db' : '1px solid #e5e7eb', // Add border to active state
+      padding: '0.4rem 0.75rem', // Slightly more padding
+      boxShadow: isActive ? '0 2px 4px rgba(0,0,0,0.1)' : 'none', // Add subtle shadow to active state
+      transition: 'all 0.2s ease', // Smooth transition between states
     };
   };
 
