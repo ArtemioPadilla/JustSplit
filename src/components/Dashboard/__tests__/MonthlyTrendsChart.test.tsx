@@ -1,5 +1,37 @@
+import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import MonthlyTrendsChart from '../MonthlyTrendsChart';
+import { useAppContext } from '../../../context/AppContext';
+
+// Mock the AppContext hook
+jest.mock('../../../context/AppContext', () => ({
+  useAppContext: jest.fn(() => ({
+    state: {
+      expenses: [
+        { 
+          id: 'exp1', 
+          description: 'Test Expense 1',
+          amount: 100,
+          currency: 'USD',
+          date: '2025-01-15',
+          paidBy: 'user1',
+          participants: ['user1', 'user2'],
+          eventId: 'event1'
+        },
+        {
+          id: 'exp2',
+          description: 'Test Expense 2',
+          amount: 50,
+          currency: 'USD',
+          date: '2025-02-15',
+          paidBy: 'user2',
+          participants: ['user1', 'user2'],
+          eventId: 'event2'
+        }
+      ]
+    }
+  }))
+}));
 
 describe('MonthlyTrendsChart', () => {
   const mockUsers = [
@@ -78,7 +110,7 @@ describe('MonthlyTrendsChart', () => {
     expect(screen.getByText('Jan')).toBeInTheDocument();
     expect(screen.getByText('Feb')).toBeInTheDocument();
     expect(screen.getByText('Mar')).toBeInTheDocument();
-    expect(screen.getByText('Last 6 Months Total:')).toBeInTheDocument();
+    expect(screen.getByText('Total:')).toBeInTheDocument();
     
     // Check for the total amount (more flexible approach)
     const legendValue = screen.getByText((content, element) => {
@@ -160,8 +192,8 @@ describe('MonthlyTrendsChart', () => {
     expect(febBarContainer).toBeInTheDocument();
     
     // March should have minimal height since it has 0 amount
-    expect(marBarContainer).toHaveStyle('height: 1px');
-    expect(marBarContainer).toHaveStyle('opacity: 0.3');
+    expect(marBarContainer).toHaveStyle({ height: '1px' });
+    expect(marBarContainer).toHaveStyle({ opacity: 0.3 });
   });
 
   it('renders stacked segments for months with breakdown data', () => {
@@ -204,11 +236,11 @@ describe('MonthlyTrendsChart', () => {
       />
     );
     
-    // Check if MXN symbol (Mex$) is shown for values
+    // Check if MXN symbol ($) is shown for values
     const valueElements = document.querySelectorAll('[class*="barValue"]');
-    expect(valueElements[0]).toHaveTextContent('Mex$120');
-    expect(valueElements[1]).toHaveTextContent('Mex$200');
-    expect(valueElements[2]).toHaveTextContent('Mex$0');
+    expect(valueElements[0]).toHaveTextContent('$120');
+    expect(valueElements[1]).toHaveTextContent('$200');
+    expect(valueElements[2]).toHaveTextContent('$0');
   });
 
   it('applies correct styling to active and inactive toggle buttons', () => {

@@ -192,3 +192,9 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+.expensePaidBy {
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}

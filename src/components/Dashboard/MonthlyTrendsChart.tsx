@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Event } from '../../context/AppContext';
+import { useAppContext } from '../../context/AppContext';
 import { getCurrencySymbol } from '../../utils/currencyExchange';
 import styles from '../../app/page.module.css';
+import HoverCard, { HoverCardPosition } from '../ui/HoverCard';
+import { TimelineExpense } from '../../utils/timelineUtils';
 
 interface ChartData {
   month: string;
@@ -30,7 +33,27 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
   preferredCurrency,
   isConvertingCurrencies = true // Default value
 }) => {
+  const { state } = useAppContext();
   const [colorBy, setColorBy] = useState<'event' | 'spender'>('event');
+  const [hoverCardPosition, setHoverCardPosition] = useState<HoverCardPosition | null>(null);
+  const [hoverExpenses, setHoverExpenses] = useState<TimelineExpense[]>([]);
+  const [showHoverCard, setShowHoverCard] = useState(false);
+  const [activeSegment, setActiveSegment] = useState<string | null>(null);
+  const [isHoveringCard, setIsHoveringCard] = useState(false);
+  
+  // Effect to update hover card visibility based on active segment
+  useEffect(() => {
+    if (!activeSegment && !isHoveringCard) {
+      // If there's no active segment and not hovering the card,
+      // start a short timer to hide the hover card
+      // This allows time for the mouse to move to the hover card before hiding
+      const timer = setTimeout(() => {
+        setShowHoverCard(false);
+      }, 300); // Increased delay to give more time to reach the hover card
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeSegment, isHoveringCard]);
   
   // Helper for generating colors
   const getColorForIndex = (index: number, total: number) => {
@@ -38,6 +61,119 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
     const divisor = Math.max(total, 1);
     const hue = (index / divisor) * 360;
     return `hsl(${hue}, 70%, 50%)`;
+  };
+  
+  // Handle mouse enter on a bar segment
+  const handleSegmentHover = (
+    event: React.MouseEvent, 
+    month: ChartData, 
+    segment: { id: string; name: string; amount: number; percentage: number }
+  ) => {
+    // Get the target element for positioning
+    const targetRect = (event.target as HTMLElement).getBoundingClientRect();
+    
+    // Set the active segment identifier (combine month and segment id)
+    const segmentIdentifier = `${month.month}-${segment.id}`;
+    setActiveSegment(segmentIdentifier);
+    
+    // Parse the month and year from the month string (e.g., "May 2025")
+    const parts = month.month.split(' ');
+    const monthName = parts[0];
+    const year = parseInt(parts[1] || `${currentYear}`);
+    const monthNum = monthNameToNumber(monthName);
+    
+    // Create date range for the month
+    const startDate = new Date(year, monthNum, 1);
+    const endDate = new Date(year, monthNum + 1, 0); // Last day of month
+    
+    // Format dates to yyyy-mm-dd string for reliable comparison
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
+    // Filter expenses that fall within this month and match the segment criteria
+    let filteredExpenses = state.expenses.filter(expense => {
+      const expenseDate = expense.date.split('T')[0]; // Get yyyy-mm-dd part only
+      return expenseDate >= startDateStr && expenseDate <= endDateStr;
+    });
+    
+    // Further filter based on the segment type (event or spender)
+    if (colorBy === 'event') {
+      if (segment.id === 'no-event') {
+        filteredExpenses = filteredExpenses.filter(expense => !expense.eventId);
+      } else {
+        filteredExpenses = filteredExpenses.filter(expense => expense.eventId === segment.id);
+      }
+    } else { // spender
+      filteredExpenses = filteredExpenses.filter(expense => expense.paidBy === segment.id);
+    }
+    
+    // Convert the expenses to TimelineExpense type for the HoverCard
+    const expensesToShow: TimelineExpense[] = filteredExpenses.map(expense => ({
+      ...expense,
+      // Add any missing properties required by TimelineExpense
+      participants: expense.participants || []
+    }));
+    
+    // Position the hover card to the side of the bar with window boundary awareness
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Default to positioning on the right side of the bar
+    let x = targetRect.right + 10; // 10px offset from the bar
+    
+    // Check if there's enough space on the right, otherwise place on the left
+    if (x + 300 > viewportWidth) { // Assuming hover card width of ~300px
+      x = targetRect.left - 10; // Position to the left with a small offset
+    }
+    
+    // For vertical positioning, try to center with the mouse pointer
+    const y = Math.min(targetRect.top + targetRect.height / 2, viewportHeight - 20);
+    
+    setHoverExpenses(expensesToShow);
+    setHoverCardPosition({
+      x,
+      y,
+      targetRect,
+      preferredPlacement: 'side' // Add a hint for preferred placement
+    });
+    setShowHoverCard(true);
+  };
+  
+  // Helper to convert month name to number (0-11)
+  const monthNameToNumber = (month: string): number => {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return monthNames.indexOf(month);
+  };
+  
+  // Handle mouse leave
+  const handleMouseLeave = (e: React.MouseEvent, month: ChartData, segment: { id: string; name: string; amount: number; percentage: number }) => {
+    // Clear the active segment only if it's not a click event
+    // This prevents the hover card from disappearing when clicking
+    if (e.type !== 'click') {
+      setActiveSegment(null);
+    }
+  };
+  
+  // Handle click on segment to keep hover card visible
+  const handleSegmentClick = (e: React.MouseEvent, month: ChartData, segment: { id: string; name: string; amount: number; percentage: number }) => {
+    // Prevent the default action and stop propagation
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Keep the hover card visible
+    const segmentIdentifier = `${month.month}-${segment.id}`;
+    setActiveSegment(segmentIdentifier);
+    
+    // Ensure we're showing the hover card
+    if (!showHoverCard) {
+      handleSegmentHover(e, month, segment);
+    }
+  };
+  
+  // Handle hover card close
+  const handleHoverCardClose = () => {
+    setShowHoverCard(false);
+    setActiveSegment(null);
   };
   
   if (isLoadingRates) {
@@ -143,6 +279,9 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
                     )
                   }}
                   title={`${segment.name}: ${currencySymbol}${segment.amount.toFixed(2)} (${segment.percentage.toFixed(1)}%)`}
+                  onMouseEnter={(e) => handleSegmentHover(e, month, segment)}
+                  onMouseLeave={(e) => handleMouseLeave(e, month, segment)}
+                  onClick={(e) => handleSegmentClick(e, month, segment)}
                 />
               );
             })}
@@ -176,108 +315,130 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
     };
   };
 
-  return (
-    <div className={styles.dashboardCard}>
-      <div className={styles.cardHeader}>
-        <h2 className={styles.cardTitle}>Monthly Expense Trends</h2>
-        <div className={styles.chartControls}>
-          <div className={styles.controlGroup}>
-            <label className={styles.controlLabel}>Color by:</label>
-            <div className={styles.buttonToggle}>
-              <button
-                className={styles.toggleButton}
-                style={toggleButtonStyle(colorBy === 'event')}
-                onClick={() => setColorBy('event')}
-                data-testid="toggle-event"
-              >
-                Event
-              </button>
-              <button
-                className={styles.toggleButton}
-                style={toggleButtonStyle(colorBy === 'spender')}
-                onClick={() => setColorBy('spender')}
-                data-testid="toggle-spender"
-              >
-                Spender
-              </button>
-            </div>
-          </div>
-          {/* Currency conversion checkbox removed - now controlled at parent level */}
-        </div>
-      </div>
-      
-      {conversionError && (
-        <div className={styles.conversionError} style={{ 
-          color: '#e53e3e', 
+  return React.createElement(
+    'div',
+    { className: styles.dashboardCard },
+    React.createElement(
+      'div',
+      { className: styles.cardHeader },
+      React.createElement('h2', { className: styles.cardTitle }, 'Monthly Expense Trends'),
+      React.createElement(
+        'div',
+        { className: styles.chartControls },
+        React.createElement(
+          'div',
+          { className: styles.controlGroup },
+          React.createElement('label', { className: styles.controlLabel }, 'Color by:'),
+          React.createElement(
+            'div',
+            { className: styles.buttonToggle },
+            React.createElement(
+              'button',
+              {
+                className: styles.toggleButton,
+                style: toggleButtonStyle(colorBy === 'event'),
+                onClick: () => setColorBy('event'),
+                'data-testid': 'toggle-event'
+              },
+              'Event'
+            ),
+            React.createElement(
+              'button',
+              {
+                className: styles.toggleButton,
+                style: toggleButtonStyle(colorBy === 'spender'),
+                onClick: () => setColorBy('spender'),
+                'data-testid': 'toggle-spender'
+              },
+              'Spender'
+            )
+          )
+        )
+      )
+    ),
+    conversionError && React.createElement(
+      'div',
+      {
+        className: styles.conversionError,
+        style: {
+          color: '#e53e3e',
           fontSize: '0.875rem',
           marginBottom: '0.5rem',
           padding: '0.5rem',
           backgroundColor: '#fff5f5',
           borderRadius: '0.25rem',
           border: '1px solid #feb2b2'
-        }}>
-          {conversionError}
-        </div>
-      )}
-      
-      <div className={styles.barChart}>
-        {renderBarChart()}
-      </div>
-      
-      <div className={styles.chartLegend}>
-        <div className={styles.legendItems}>
-          {colorBy === 'event' && (
-            <>
-              <div className={styles.legendItem}>
-                <span 
-                  className={styles.legendColor}
-                  style={{ backgroundColor: getColorForIndex(events.length, events.length + 1) }}
-                />
-                <span>No Event</span>
-              </div>
-              {events.slice(0, 5).map((event, idx) => (
-                <div key={event.id} className={styles.legendItem}>
-                  <span 
-                    className={styles.legendColor}
-                    style={{ backgroundColor: getColorForIndex(idx, events.length + 1) }}
-                  />
-                  <span>{event.name}</span>
-                </div>
-              ))}
-              {events.length > 5 && (
-                <div className={styles.legendItem}>
-                  <span>+{events.length - 5} more</span>
-                </div>
-              )}
-            </>
-          )}
-          {colorBy === 'spender' && users.length > 0 && (
-            <>
-              {users.slice(0, 7).map((user, idx) => (
-                <div key={user.id} className={styles.legendItem}>
-                  <span 
-                    className={styles.legendColor}
-                    style={{ backgroundColor: getColorForIndex(idx, users.length) }}
-                  />
-                  <span>{user.name}</span>
-                </div>
-              ))}
-              {users.length > 7 && (
-                <div className={styles.legendItem}>
-                  <span>+{users.length - 7} more</span>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        <div className={styles.legendTotal}>
-          <span>Last 6 Months Total:</span>
-          <span className={styles.legendValue}>
-            {currencySymbol}{total.toFixed(2)}
-          </span>
-        </div>
-      </div>
-    </div>
+        }
+      },
+      conversionError
+    ),
+    React.createElement('div', { className: styles.barChart }, renderBarChart()),
+    React.createElement(
+      'div',
+      { className: styles.chartLegend },
+      React.createElement(
+        'div',
+        { className: styles.legendItems },
+        colorBy === 'event' && [
+          React.createElement(
+            'div',
+            { className: styles.legendItem, key: 'no-event' },
+            React.createElement('span', {
+              className: styles.legendColor,
+              style: { backgroundColor: getColorForIndex(events.length, events.length + 1) }
+            }),
+            React.createElement('span', {}, 'No Event')
+          ),
+          ...events.slice(0, 5).map((event, idx) =>
+            React.createElement(
+              'div',
+              { key: event.id, className: styles.legendItem },
+              React.createElement('span', {
+                className: styles.legendColor,
+                style: { backgroundColor: getColorForIndex(idx, events.length + 1) }
+              }),
+              React.createElement('span', {}, event.name)
+            )
+          ),
+          events.length > 5 && React.createElement(
+            'div',
+            { className: styles.legendItem, key: 'more-events' },
+            React.createElement('span', {}, `+${events.length - 5} more`)
+          )
+        ],
+        colorBy === 'spender' && users.length > 0 && [
+          ...users.slice(0, 7).map((user, idx) =>
+            React.createElement(
+              'div',
+              { key: user.id, className: styles.legendItem },
+              React.createElement('span', {
+                className: styles.legendColor,
+                style: { backgroundColor: getColorForIndex(idx, users.length) }
+              }),
+              React.createElement('span', {}, user.name)
+            )
+          ),
+          users.length > 7 && React.createElement(
+            'div',
+            { className: styles.legendItem, key: 'more-users' },
+            React.createElement('span', {}, `+${users.length - 7} more`)
+          )
+        ]
+      ),
+      React.createElement(
+        'div',
+        { className: styles.legendTotal },
+        React.createElement('span', {}, 'Total:'),
+        React.createElement('span', { className: styles.legendValue }, `${currencySymbol}${total.toFixed(2)}`)
+      )
+    ),
+    showHoverCard && hoverCardPosition && React.createElement(HoverCard, {
+      position: hoverCardPosition,
+      expenses: hoverExpenses,
+      onClose: handleHoverCardClose,
+      onMouseEnter: () => setIsHoveringCard(true),
+      onMouseLeave: () => setIsHoveringCard(false)
+    })
   );
 };
 

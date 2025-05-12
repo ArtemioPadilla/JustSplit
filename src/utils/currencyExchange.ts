@@ -19,20 +19,20 @@ const APP_DATA_STORAGE_KEY = 'justSplitData';
  */
 export const SUPPORTED_CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso' },
+  { code: 'MXN', symbol: '$', name: 'Mexican Peso' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: '$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: '$', name: 'Australian Dollar' },
   { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
   { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+  { code: 'BRL', symbol: '$', name: 'Brazilian Real' },
   { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
-  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
-  { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
+  { code: 'SGD', symbol: '$', name: 'Singapore Dollar' },
+  { code: 'NZD', symbol: '$', name: 'New Zealand Dollar' },
 ];
 
 /**

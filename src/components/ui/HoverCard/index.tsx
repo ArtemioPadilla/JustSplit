@@ -4,11 +4,13 @@ import { createPortal } from 'react-dom';
 import styles from './styles.module.css';
 import { TimelineExpense, formatTimelineDate } from '../../../utils/timelineUtils';
 import Button from '../Button';
+import { useAppContext } from '../../../context/AppContext';
 
 export interface HoverCardPosition {
   x: number;
   y: number;
   targetRect?: DOMRect; // Add targetRect to track the position of the target element
+  preferredPlacement?: 'top' | 'bottom' | 'left' | 'right' | 'side'; // Add preferred placement
 }
 
 export interface HoverCardProps {
@@ -28,6 +30,14 @@ export interface HoverCardProps {
    * Additional class name
    */
   className?: string;
+  /**
+   * Mouse enter event handler
+   */
+  onMouseEnter?: () => void;
+  /**
+   * Mouse leave event handler
+   */
+  onMouseLeave?: () => void;
 }
 
 type ArrowPosition = 'top' | 'bottom' | 'left' | 'right';
@@ -40,10 +50,13 @@ const HoverCard: React.FC<HoverCardProps> = ({
   expenses,
   onClose,
   className = '',
+  onMouseEnter,
+  onMouseLeave
 }) => {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const { state } = useAppContext();
   
   // Use fixed positioning to be independent of scroll containers
   const [cardStyle, setCardStyle] = useState({
@@ -77,38 +90,92 @@ const HoverCard: React.FC<HoverCardProps> = ({
 
       if (position.targetRect) {
         const targetRect = position.targetRect;
-
-        // Calculate if we have enough space below the target
-        const spaceBelow = viewportHeight - targetRect.bottom;
-        const spaceNeeded = cardRect.height + 20;
-
-        let newTop, newArrowPosition;
-
-        // Position above or below based on available space
-        if (spaceBelow >= spaceNeeded) {
-          newTop = targetRect.bottom;
-          newArrowPosition = 'top';
+        let newTop, newLeft, newArrowPosition, newTransform = '';
+        
+        // Handle side placement if requested 
+        if (position.preferredPlacement === 'side') {
+          // Check if we have enough space on the right side
+          const spaceOnRight = viewportWidth - targetRect.right - 20; // 20px margin
+          const spaceOnLeft = targetRect.left - 20; // 20px margin
+          
+          if (spaceOnRight >= cardRect.width) {
+            // Position on the right
+            newLeft = targetRect.right + 10; // 10px gap
+            newTop = Math.max(20, Math.min(
+              position.y - (cardRect.height / 2), 
+              viewportHeight - cardRect.height - 20
+            ));
+            newArrowPosition = 'left';
+            newTransform = '';
+          } else if (spaceOnLeft >= cardRect.width) {
+            // Position on the left
+            newLeft = targetRect.left - cardRect.width - 10; // 10px gap
+            newTop = Math.max(20, Math.min(
+              position.y - (cardRect.height / 2), 
+              viewportHeight - cardRect.height - 20
+            ));
+            newArrowPosition = 'right';
+            newTransform = '';
+          } else {
+            // Fallback to top/bottom placement
+            if (position.y > viewportHeight / 2) {
+              // Position above
+              newTop = Math.max(20, targetRect.top - cardRect.height - 10);
+              newArrowPosition = 'bottom';
+            } else {
+              // Position below
+              newTop = Math.min(viewportHeight - cardRect.height - 20, targetRect.bottom + 10);
+              newArrowPosition = 'top';
+            }
+            // Center horizontally
+            newLeft = Math.max(cardRect.width / 2 + 20, 
+                      Math.min(targetRect.left + (targetRect.width / 2), 
+                              viewportWidth - (cardRect.width / 2) - 20));
+            newTransform = 'translateX(-50%)';
+          }
         } else {
-          newTop = targetRect.top - cardRect.height;
-          newArrowPosition = 'bottom';
+          // Original top/bottom placement logic
+          const spaceBelow = viewportHeight - targetRect.bottom;
+          const spaceNeeded = cardRect.height + 20;
+
+          // Position above or below based on available space
+          if (spaceBelow >= spaceNeeded) {
+            newTop = targetRect.bottom + 10; // 10px gap
+            newArrowPosition = 'top';
+          } else {
+            newTop = targetRect.top - cardRect.height - 10; // 10px gap
+            newArrowPosition = 'bottom';
+          }
+
+          // Center horizontally, but ensure it stays within viewport
+          newLeft = targetRect.left + targetRect.width / 2;
+          newTransform = 'translateX(-50%)';
         }
 
-        // Center horizontally, but ensure it stays within viewport
-        let newLeft = targetRect.left + targetRect.width / 2;
-        const halfCardWidth = cardRect.width / 2;
-        newLeft = Math.max(halfCardWidth, Math.min(viewportWidth - halfCardWidth, newLeft));
-
+        // Ensure card stays within viewport boundaries
+        newTop = Math.max(20, Math.min(viewportHeight - cardRect.height - 20, newTop));
+        
         setCardStyle({
           position: 'fixed',
           top: `${newTop}px`,
           left: `${newLeft}px`,
-          transform: 'translateX(-50%)',
+          transform: newTransform,
           opacity: 1,
           zIndex: 2000,
           pointerEvents: 'auto',
         });
 
-        setArrowPosition(newArrowPosition);
+        setArrowPosition(newArrowPosition as ArrowPosition);
+      } else {
+        // Fallback for when targetRect is not provided
+        setCardStyle({
+          position: 'fixed',
+          top: `${position.y}px`,
+          left: `${position.x}px`,
+          opacity: 1,
+          zIndex: 2000,
+          pointerEvents: 'auto',
+        });
       }
     };
 
@@ -157,6 +224,8 @@ const HoverCard: React.FC<HoverCardProps> = ({
       style={cardStyle}
       ref={cardRef}
       onClick={(e) => e.stopPropagation()}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div className={getArrowClassName()} />
       <div className={styles.hoverCardHeader}>
@@ -204,6 +273,9 @@ const HoverCard: React.FC<HoverCardProps> = ({
               </div>
               <div className={styles.expenseDate}>
                 {formatTimelineDate(expense.date)}
+              </div>
+              <div className={styles.expensePaidBy}>
+                Paid by: {state.users.find(user => user.id === expense.paidBy)?.name ?? 'Unknown'}
               </div>
             </button>
           </li>

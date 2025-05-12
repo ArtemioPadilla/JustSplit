@@ -141,12 +141,13 @@ export default function Home() {
       .slice(0, 3); // Show only the 3 most recent settlements
   }, [state?.settlements]);
   
-  // Calculate monthly expense trends for the last 6 months
+  // Calculate monthly expense trends for all 12 months of the year
   const monthlyTrends = useMemo(() => {
     if (!state) return Promise.resolve([]);
     
     const trends = [];
     const now = new Date();
+    const currentYear = now.getFullYear();
     
     // Cache for storing already fetched exchange rates to avoid duplicate API calls
     const exchangeRateCache: Record<string, number> = {};
@@ -167,21 +168,21 @@ export default function Home() {
       }
     };
     
-    // Process each month's data
-    for (let i = 5; i >= 0; i--) {
-      // Create start date as first day of month
-      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    // Process all 12 months of the current year
+    for (let month = 0; month < 12; month++) {
+      // Create start date as first day of month for current year
+      const monthStart = new Date(currentYear, month, 1);
       // Create end date as last day of month
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const monthEnd = new Date(currentYear, month + 1, 0);
       
       // Format dates to yyyy-mm-dd string for reliable comparison
-      const monthStr = month.toISOString().split('T')[0];
+      const monthStartStr = monthStart.toISOString().split('T')[0];
       const monthEndStr = monthEnd.toISOString().split('T')[0];
       
       // Filter expenses that fall within this month
       const monthlyExpenses = (state.expenses || []).filter(expense => {
         const expenseDate = expense.date.split('T')[0]; // Get yyyy-mm-dd part only
-        return expenseDate >= monthStr && expenseDate <= monthEndStr;
+        return expenseDate >= monthStartStr && expenseDate <= monthEndStr;
       });
       
       // Process the expenses with currency conversion if needed
@@ -234,8 +235,8 @@ export default function Home() {
         }).sort((a, b) => b.amount - a.amount);
         
         // Format the month in a standardized way that's easy to parse: "Jan 2025"
-        const monthName = month.toLocaleString('en-US', { month: 'short' });
-        const year = month.getFullYear();
+        const monthName = monthStart.toLocaleString('en-US', { month: 'short' });
+        const year = monthStart.getFullYear();
         const formattedMonth = `${monthName} ${year}`;
         
         return {
