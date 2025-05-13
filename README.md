@@ -29,21 +29,17 @@ Designed for quick deployments on static hosting platforms like GitHub Pages, Ju
 > 
 > JustSplit calculates the balance automatically: Bob and Charlie owe Alice, with minimal payments needed.
 
-## Roadmap
-
-- 🛠️ Core expense tracking and settlement
-- 🛠️ Multi-currency support
-- 🛠️ Payment platform integrations
-- 🛠️ Export reports (CSV, PDF)
-- 🛠️ Push notifications for new expenses and payments
-- 🛠️ API for third-party integrations
-
 ## Get Involved
 
 JustSplit is community-driven! Contributions, ideas, and feedback are welcome.  
 [Learn how to contribute](#) or open an issue to start a discussion.
 
+## Detailes on Features and Roadmap
+
+To get a deepdive on features and our roadmap check the [JustSplit Consolidated Feature Matrix and Detailed Roadmap documentation.](/docs/JustSplit%20Consolidated%20Feature%20Matrix%20and%20Detailed%20Roadmap.markdown)
+
 ## Development
+
 
 ### Getting Started
 
