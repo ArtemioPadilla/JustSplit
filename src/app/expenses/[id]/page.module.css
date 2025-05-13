@@ -196,6 +196,19 @@
   font-weight: 500;
 }
 
+.updating {
+  animation: fadeUpdateAnimation 0.5s ease;
+}
+
+@keyframes fadeUpdateAnimation {
+  0% {
+    background-color: var(--color-primary-alpha-20);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;

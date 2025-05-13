@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppContext, User } from '../../../context/AppContext';
+import { useAppContext, Event as AppEvent, User } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
 import Button from '../../../components/ui/Button';
+import EditableText from '../../../components/ui/EditableText';
 import { 
   calculateSettledPercentage,
   calculateTotalByCurrency,
@@ -15,24 +16,11 @@ import {
   TimelineExpense
 } from '../../../utils/timelineUtils';
 
-// Define the Event type explicitly
-interface Event extends TimelineEvent {
-  participants: string[];
-}
-
-// Define the Expense type explicitly
-interface Expense extends TimelineExpense {
-  eventId: string | undefined;
-}
-
 export default function EventList() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [filters, setFilters] = useState({ date: '', type: '', status: '' });
-  
-  // Extract unique types and statuses for filter options
-  const eventTypes = [...new Set(state.events.map(event => event.type || 'Unspecified'))];
-  const eventStatuses = [...new Set(state.events.map(event => event.status || 'Unspecified'))];
+  const [updatingEvents, setUpdatingEvents] = useState<Record<string, boolean>>({});
   
   // Get current date range for date filter
   const currentYear = new Date().getFullYear();
@@ -46,22 +34,32 @@ export default function EventList() {
     setFilters({ ...filters, [filterType]: value });
   };
 
-  const filteredEvents = state.events.filter((event: Event) => {
+  const handleEventNameUpdate = (eventId: string, newName: string) => {
+    setUpdatingEvents({ ...updatingEvents, [eventId]: true });
+    
+    // Find the event to update
+    const eventToUpdate = state.events.find(event => event.id === eventId);
+    
+    if (eventToUpdate) {
+      // Create updated event with new name
+      const updatedEvent = { ...eventToUpdate, name: newName };
+      
+      // Dispatch update action
+      dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
+      
+      // Clear updating status after a short delay to show feedback
+      setTimeout(() => {
+        setUpdatingEvents(prev => ({ ...prev, [eventId]: false }));
+      }, 500);
+    }
+  };
+
+  const filteredEvents = state.events.filter((event) => {
     // Apply date filter
     if (filters.date && filters.date !== 'All Dates') {
       const year = parseInt(filters.date.split(' ')[0]);
       const eventYear = new Date(event.startDate).getFullYear();
       if (eventYear !== year) return false;
-    }
-    
-    // Apply type filter
-    if (filters.type && event.type !== filters.type && filters.type !== 'All Types') {
-      return false;
-    }
-    
-    // Apply status filter
-    if (filters.status && event.status !== filters.status && filters.status !== 'All Statuses') {
-      return false;
     }
     
     return true;
@@ -96,48 +94,35 @@ export default function EventList() {
                 <option key={range} value={range}>{range}</option>
               ))}
             </select>
-            
-            <select 
-              value={filters.type} 
-              onChange={(e) => handleFilterChange('type', e.target.value)}
-            >
-              <option value="">All Types</option>
-              {eventTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-            
-            <select 
-              value={filters.status} 
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              {eventStatuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
           </div>
           
           <div className={styles.eventsList}>
-            {filteredEvents.map((event: Event) => {
+            {filteredEvents.map((event) => {
               // Get event expenses
-              const eventExpenses = state.expenses.filter((expense: Expense) => expense.eventId === event.id);
+              const eventExpenses = state.expenses.filter(expense => expense.eventId === event.id);
               const totalByCurrency = calculateTotalByCurrency(eventExpenses);
               const unsettledAmounts = calculateUnsettledAmount(eventExpenses);
               
               // Calculate metrics
               const totalExpenses = Object.values(totalByCurrency).reduce((sum, total) => sum + total, 0);
               const settledPercentage = calculateSettledPercentage(eventExpenses);
+              const isUpdating = updatingEvents[event.id] || false;
 
               return (
                 <div key={event.id} className={styles.eventCard}>
-                  <h2 className={styles.eventName}>{event.name}</h2>
+                  {/* Replace static event name with editable component */}
+                  <EditableText 
+                    as="h2"
+                    value={event.name}
+                    onSave={(newName) => handleEventNameUpdate(event.id, newName)}
+                    className={`${styles.eventName} ${isUpdating ? styles.updating : ''}`}
+                  />
                   
                   {event.description && (
                     <p className={styles.eventDescription}>{event.description}</p>
                   )}
                   
-                  {/* Use our new Timeline component */}
+                  {/* Use our Timeline component */}
                   <Timeline 
                     event={event} 
                     expenses={eventExpenses} 
@@ -167,24 +152,28 @@ export default function EventList() {
                     )}
                   </div>
                   
-                  {/* Use our new ProgressBar component */}
-                  <ProgressBar
-                    value={settledPercentage}
-                    label="Settlement Progress"
-                    variant={
-                      settledPercentage === 100 ? 'success' :
-                      settledPercentage >= 75 ? 'info' :
-                      settledPercentage >= 50 ? 'warning' : 'danger'
-                    }
-                  />
+                  {/* Settlement progress */}
+                  <div className={styles.progressContainer}>
+                    <div className={styles.progressLabel}>
+                      <span>Settlement Progress</span>
+                      <span>{settledPercentage}%</span>
+                    </div>
+                    <ProgressBar
+                      value={settledPercentage}
+                      variant={
+                        settledPercentage === 100 ? 'success' :
+                        settledPercentage >= 75 ? 'info' :
+                        settledPercentage >= 50 ? 'warning' : 'danger'
+                      }
+                    />
+                  </div>
                   
-                  {/* Participants with Animation */}
+                  {/* Participants */}
                   <div className={styles.participantsContainer}>
                     <Button
                       aria-label={`Show participants for ${event.name}`}
                       onClick={() => toggleParticipants(event.id)}
                       variant="primary"
-                      className={styles.participantsButton}
                     >
                       {expandedEventId === event.id ? 'Hide Participants' : 'Show Participants'} 
                       ({event.participants.length})

@@ -6,14 +6,16 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
+import EditableText from '../../../components/ui/EditableText';
 
 export default function ExpenseList() {
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [convertedExpenses, setConvertedExpenses] = useState<Record<string, number>>({});
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [updatingExpenses, setUpdatingExpenses] = useState<Record<string, boolean>>({});
 
   // Get unique list of events that have expenses
   const eventsWithExpenses = [...new Set(state.expenses.map(expense => expense.eventId))];
@@ -96,6 +98,27 @@ export default function ExpenseList() {
     performConversion();
   }, [filteredExpenses, targetCurrency]);
 
+  // Handle expense description update
+  const handleExpenseDescriptionUpdate = (expenseId: string, newDescription: string) => {
+    setUpdatingExpenses({ ...updatingExpenses, [expenseId]: true });
+    
+    // Find the expense to update
+    const expenseToUpdate = state.expenses.find(expense => expense.id === expenseId);
+    
+    if (expenseToUpdate) {
+      // Create updated expense with new description
+      const updatedExpense = { ...expenseToUpdate, description: newDescription };
+      
+      // Dispatch update action
+      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+      
+      // Clear updating status after a short delay to show feedback
+      setTimeout(() => {
+        setUpdatingExpenses(prev => ({ ...prev, [expenseId]: false }));
+      }, 500);
+    }
+  };
+
   // Get user name by ID
   const getUserName = (userId: string) => {
     const user = state.users.find(user => user.id === userId);
@@ -176,59 +199,68 @@ export default function ExpenseList() {
         </div>
       ) : (
         <div className={styles.expensesList}>
-          {filteredExpenses.map(expense => (
-            <div key={expense.id} className={styles.expenseCard}>
-              <div className={styles.expenseHeader}>
-                <h2 className={styles.expenseName}>{expense.description}</h2>
-                <span className={styles.expenseAmount}>
-                  {isConverting ? (
-                    <small>Converting...</small>
-                  ) : (
-                    <>
-                      {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
-                      {expense.currency !== targetCurrency && (
-                        <small className={styles.originalAmount}>
-                          (Originally: {formatCurrency(expense.amount, expense.currency)})
-                        </small>
-                      )}
-                    </>
-                  )}
-                </span>
-              </div>
-              
-              <div className={styles.expenseDetails}>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Paid by:</span>
-                  <span className={styles.detailValue}>{getUserName(expense.paidBy)}</span>
-                </div>
-                
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Date:</span>
-                  <span className={styles.detailValue}>
-                    {new Date(expense.date).toLocaleDateString()}
+          {filteredExpenses.map(expense => {
+            const isUpdating = updatingExpenses[expense.id] || false;
+            return (
+              <div key={expense.id} className={styles.expenseCard}>
+                <div className={styles.expenseHeader}>
+                  {/* Replace static expense description with editable component */}
+                  <EditableText 
+                    as="h2"
+                    value={expense.description}
+                    onSave={(newDescription) => handleExpenseDescriptionUpdate(expense.id, newDescription)}
+                    className={`${styles.expenseName} ${isUpdating ? styles.updating : ''}`}
+                  />
+                  <span className={styles.expenseAmount}>
+                    {isConverting ? (
+                      <small>Converting...</small>
+                    ) : (
+                      <>
+                        {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
+                        {expense.currency !== targetCurrency && (
+                          <small className={styles.originalAmount}>
+                            (Originally: {formatCurrency(expense.amount, expense.currency)})
+                          </small>
+                        )}
+                      </>
+                    )}
                   </span>
                 </div>
                 
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Event:</span>
-                  <span className={styles.detailValue}>{getEventName(expense.eventId)}</span>
+                <div className={styles.expenseDetails}>
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Paid by:</span>
+                    <span className={styles.detailValue}>{getUserName(expense.paidBy)}</span>
+                  </div>
+                  
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Date:</span>
+                    <span className={styles.detailValue}>
+                      {new Date(expense.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Event:</span>
+                    <span className={styles.detailValue}>{getEventName(expense.eventId)}</span>
+                  </div>
+                  
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Split among:</span>
+                    <span className={styles.detailValue}>
+                      {expense.participants?.length || 0} people
+                    </span>
+                  </div>
                 </div>
                 
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Split among:</span>
-                  <span className={styles.detailValue}>
-                    {expense.participants?.length || 0} people
-                  </span>
+                <div className={styles.actions}>
+                  <Link href={`/expenses/${expense.id}`} className={styles.viewButton}>
+                    View Details
+                  </Link>
                 </div>
               </div>
-              
-              <div className={styles.actions}>
-                <Link href={`/expenses/${expense.id}`} className={styles.viewButton}>
-                  View Details
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

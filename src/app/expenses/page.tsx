@@ -1,20 +1,26 @@
 'use client';
 
-import { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
+import styles from './page.module.css';
+import Button from '../../components/ui/Button';
 
 export default function ExpensesPage() {
   const router = useRouter();
   
-  useEffect(() => {
-    // Redirect to the expenses list page
-    router.push('/expenses/list');
-  }, [router]);
-  
-  // This will briefly show while the redirect happens
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <p>Redirecting to expenses list...</p>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Expenses</h1>
+      <p>View and manage all your expenses here.</p>
+      
+      <div className={styles.actions}>
+        <Button 
+          variant="primary" 
+          onClick={() => router.push('/expenses/new')}
+        >
+          Add New Expense
+        </Button>
+      </div>
     </div>
   );
 }

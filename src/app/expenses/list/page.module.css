@@ -77,6 +77,34 @@
   margin: 0;
 }
 
+/* Add animation for updating expense description */
+.updating {
+  position: relative;
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.updating {
+  animation: fadeUpdateAnimation 0.5s ease;
+}
+
+@keyframes fadeUpdateAnimation {
+  0% {
+    background-color: var(--color-primary-alpha-20);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
 .expenseAmount {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);

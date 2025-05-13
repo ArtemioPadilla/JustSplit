@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import Button from '../../../components/ui/Button';
+import EditableText from '../../../components/ui/EditableText';
 
 export default function ExpenseDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const expenseId = params.id as string;
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   
   const expense = useMemo(() => {
     return state.expenses.find(e => e.id === expenseId);
@@ -39,6 +41,24 @@ export default function ExpenseDetail() {
     return state.expenses.filter(e => e.eventId === event.id);
   }, [event, state.expenses]);
   
+  // Handle expense description update
+  const handleExpenseDescriptionUpdate = (newDescription: string) => {
+    if (!expense) return;
+    
+    setIsUpdating(true);
+    
+    // Create updated expense with new description
+    const updatedExpense = { ...expense, description: newDescription };
+    
+    // Dispatch update action
+    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+    
+    // Clear updating status after a short delay to show feedback
+    setTimeout(() => {
+      setIsUpdating(false);
+    }, 500);
+  };
+  
   if (!expense) {
     return (
       <div className={styles.container}>
@@ -54,7 +74,12 @@ export default function ExpenseDetail() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{expense.description}</h1>
+        <EditableText
+          as="h1"
+          value={expense.description}
+          onSave={handleExpenseDescriptionUpdate}
+          className={`${styles.title} ${isUpdating ? styles.updating : ''}`}
+        />
         <Link href="/expenses/list" className={styles.backButton}>
           Back to Expenses
         </Link>

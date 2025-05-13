@@ -75,6 +75,21 @@
   color: var(--color-text);
 }
 
+/* Add animation for updating event name */
+.updating {
+  position: relative;
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .eventDescription {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);

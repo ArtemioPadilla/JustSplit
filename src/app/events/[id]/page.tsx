@@ -11,11 +11,12 @@ import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
 import { calculateSettledPercentage } from '../../../utils/timelineUtils';
 import Button from '../../../components/ui/Button';
+import EditableText from '../../../components/ui/EditableText';
 
 export default function EventDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state } = useAppContext();
+  const { state, dispatch } = useAppContext();
   const eventId = params.id as string;
   
   // Selected currency for display
@@ -23,6 +24,7 @@ export default function EventDetail() {
   const [convertedAmounts, setConvertedAmounts] = useState<Record<string, number>>({});
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   
   const event = useMemo(() => {
     return state.events.find(e => e.id === eventId);
@@ -171,6 +173,24 @@ export default function EventDetail() {
   useEffect(() => {
     performConversion();
   }, [targetCurrency, eventExpenses]);
+
+  // Handle event name update
+  const handleEventNameUpdate = (newName: string) => {
+    if (!event) return;
+    
+    setIsUpdating(true);
+    
+    // Create updated event with new name
+    const updatedEvent = { ...event, name: newName };
+    
+    // Dispatch update action
+    dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
+    
+    // Clear updating status after a short delay to show feedback
+    setTimeout(() => {
+      setIsUpdating(false);
+    }, 500);
+  };
   
   if (!event) {
     return (
@@ -187,7 +207,12 @@ export default function EventDetail() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>{event.name}</h1>
+        <EditableText
+          as="h1"
+          value={event.name}
+          onSave={handleEventNameUpdate}
+          className={`${styles.title} ${isUpdating ? styles.updating : ''}`}
+        />
         <Link href="/events/list" className={styles.backButton}>
           Back to Events
         </Link>
