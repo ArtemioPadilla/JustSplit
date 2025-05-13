@@ -135,6 +135,7 @@ describe('Home Dashboard Page', () => {
         <Home />
       </AppProvider>
     );
-    expect(screen.getByText(/Welcome/i)).toBeInTheDocument();
+    expect(screen.getByText('JustSplit')).toBeInTheDocument();
+    expect(screen.getByText('Fair expense splitting, made simple.')).toBeInTheDocument();
   });
 });

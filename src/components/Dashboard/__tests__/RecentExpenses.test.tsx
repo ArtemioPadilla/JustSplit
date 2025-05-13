@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { renderWithAppContext } from '../../../test-utils';
 import RecentExpenses from '../RecentExpenses';
 
@@ -9,6 +9,13 @@ jest.mock('next/link', () => {
     return <a href={href} data-testid="next-link">{children}</a>;
   };
 });
+
+// Mock currency conversion functions
+jest.mock('../../../utils/currencyExchange', () => ({
+  formatCurrency: (amount, currency) => `$${amount.toFixed(2)}`,
+  convertCurrency: async () => ({ convertedAmount: 100, isFallback: false }),
+  getCurrencySymbol: () => '$'
+}));
 
 describe('RecentExpenses', () => {
   const mockExpenses = [
@@ -20,7 +27,9 @@ describe('RecentExpenses', () => {
       date: '2023-05-10', 
       paidBy: 'user1',
       participants: ['user1', 'user2'],
-      settled: false 
+      settled: false,
+      eventId: 'event1',
+      notes: 'Birthday dinner'
     },
     { 
       id: 'exp2', 
@@ -30,7 +39,9 @@ describe('RecentExpenses', () => {
       date: '2023-05-08', 
       paidBy: 'user2',
       participants: ['user1', 'user2', 'user3'],
-      settled: true 
+      settled: true,
+      eventId: 'event2',
+      notes: 'Weekly shopping'
     }
   ];
 
@@ -40,7 +51,12 @@ describe('RecentExpenses', () => {
     { id: 'user3', name: 'Charlie', balance: 0 }
   ];
 
-  it('renders recent expenses correctly with data', () => {
+  const mockEvents = [
+    { id: 'event1', name: 'Dinner Party', date: '2023-05-10' },
+    { id: 'event2', name: 'Europe', date: '2023-05-08' }
+  ];
+
+  it('renders recent expenses correctly with data', async () => {
     // Use renderWithAppContext instead of render to provide context
     renderWithAppContext(
       <RecentExpenses />,
@@ -48,7 +64,7 @@ describe('RecentExpenses', () => {
         initialState: {
           expenses: mockExpenses,
           users: mockUsers,
-          events: [],
+          events: mockEvents,
           settlements: []
         }
       }
@@ -56,22 +72,28 @@ describe('RecentExpenses', () => {
     
     expect(screen.getByText('Recent Expenses')).toBeInTheDocument();
     
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     // Check if descriptions are displayed
-    expect(screen.getByText('Dinner')).toBeInTheDocument();
-    expect(screen.getByText('Groceries')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Dinner')).toBeInTheDocument();
+      expect(screen.getByText('Groceries')).toBeInTheDocument();
+    });
     
     // Check if amounts are displayed (with currency symbol)
     expect(screen.getByText('$50.75')).toBeInTheDocument();
     expect(screen.getByText('$35.20')).toBeInTheDocument();
     
-    // Check for user names instead of directly checking for dates
-    // which may be formatted differently in the component
+    // Check for user names
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
     
-    // Test for status indicators instead of exact dates
-    const settledIndicator = screen.getByText('Settled');
-    expect(settledIndicator).toBeInTheDocument();
+    // Test for status indicators
+    expect(screen.getByText('Settled')).toBeInTheDocument();
+    expect(screen.getByText('Unsettled')).toBeInTheDocument();
     
     // Check if "View all expenses" link is displayed
     const viewAllLink = screen.getByText('View all expenses');
@@ -79,38 +101,49 @@ describe('RecentExpenses', () => {
     expect(viewAllLink.closest('a')).toHaveAttribute('href', '/expenses');
   });
 
-  it('handles empty data correctly', () => {
+  it('handles empty data correctly', async () => {
     renderWithAppContext(
       <RecentExpenses />,
       {
         initialState: {
           expenses: [],
           users: mockUsers,
-          events: [],
+          events: mockEvents,
           settlements: []
         }
       }
     );
     
     expect(screen.getByText('Recent Expenses')).toBeInTheDocument();
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     expect(screen.getByText('No expenses yet')).toBeInTheDocument();
     
     // View all link should still be present
     expect(screen.getByText('View all expenses')).toBeInTheDocument();
   });
 
-  it('links to individual expense details pages', () => {
+  it('links to individual expense details pages', async () => {
     renderWithAppContext(
       <RecentExpenses />,
       {
         initialState: {
           expenses: mockExpenses,
           users: mockUsers,
-          events: [],
+          events: mockEvents,
           settlements: []
         }
       }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
     
     const links = screen.getAllByTestId('next-link');
     // Check if there's a link to the individual expense page
@@ -118,16 +151,24 @@ describe('RecentExpenses', () => {
     expect(expenseLinks.length).toBeGreaterThan(0);
   });
 
-  it('renders table headers and rows correctly', () => {
-    render(
-      <RecentExpenses
-        expenses={mockExpenses}
-        users={mockUsers}
-        events={mockEvents}
-        preferredCurrency="USD"
-        isConvertingCurrencies={false}
-      />
+  it('renders table headers and rows correctly', async () => {
+    renderWithAppContext(
+      <RecentExpenses />,
+      {
+        initialState: {
+          expenses: mockExpenses,
+          users: mockUsers,
+          events: mockEvents,
+          settlements: []
+        }
+      }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     // Table headers
     expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.getByText('Amount')).toBeInTheDocument();
@@ -137,64 +178,110 @@ describe('RecentExpenses', () => {
     expect(screen.getByText('Date')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
-    // Data rows
-    expect(screen.getByText('gasto1')).toBeInTheDocument();
-    expect(screen.getByText('tren')).toBeInTheDocument();
-    expect(screen.getByText('museo')).toBeInTheDocument();
+    
+    // Data rows - check for content we know exists
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    expect(screen.getByText('Groceries')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Charlie')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Europe')).toBeInTheDocument();
-    expect(screen.getByText('Museo del prado')).toBeInTheDocument();
   });
 
-  it('shows Settled and Unsettled status badges', () => {
-    render(
-      <RecentExpenses
-        expenses={mockExpenses}
-        users={mockUsers}
-        events={mockEvents}
-        preferredCurrency="USD"
-        isConvertingCurrencies={false}
-      />
+  it('shows Settled and Unsettled status badges', async () => {
+    renderWithAppContext(
+      <RecentExpenses />,
+      {
+        initialState: {
+          expenses: mockExpenses,
+          users: mockUsers,
+          events: mockEvents,
+          settlements: []
+        }
+      }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     expect(screen.getByText('Settled')).toBeInTheDocument();
     expect(screen.getByText('Unsettled')).toBeInTheDocument();
   });
 
   it('shows converted amount if currency differs and conversion is enabled', async () => {
-    render(
-      <RecentExpenses
-        expenses={mockExpenses}
-        users={mockUsers}
-        events={mockEvents}
-        preferredCurrency="EUR"
-        isConvertingCurrencies={true}
-      />
+    renderWithAppContext(
+      <RecentExpenses />,
+      {
+        initialState: {
+          expenses: [
+            { 
+              ...mockExpenses[0],
+              currency: 'EUR' 
+            },
+            ...mockExpenses.slice(1)
+          ],
+          users: mockUsers,
+          events: mockEvents,
+          settlements: []
+        },
+        preferredCurrency: 'USD',
+        isConvertingCurrencies: true
+      }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     // Wait for conversion to finish
-    expect(await screen.findByText(/≈/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/≈/)).toBeInTheDocument();
+    });
   });
 
-  it('shows participant count and event name', () => {
-    render(
-      <RecentExpenses
-        expenses={mockExpenses}
-        users={mockUsers}
-        events={mockEvents}
-        preferredCurrency="USD"
-        isConvertingCurrencies={false}
-      />
+  it('shows participant count and event name', async () => {
+    renderWithAppContext(
+      <RecentExpenses />,
+      {
+        initialState: {
+          expenses: mockExpenses,
+          users: mockUsers,
+          events: mockEvents,
+          settlements: []
+        }
+      }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     expect(screen.getByText('(2)')).toBeInTheDocument();
     expect(screen.getByText('(3)')).toBeInTheDocument();
+    expect(screen.getByText('Dinner Party')).toBeInTheDocument();
     expect(screen.getByText('Europe')).toBeInTheDocument();
   });
 
-  it('shows "No expenses yet" if empty', () => {
-    render(
-      <RecentExpenses expenses={[]} users={mockUsers} events={mockEvents} preferredCurrency="USD" />
+  it('shows "No expenses yet" if empty', async () => {
+    renderWithAppContext(
+      <RecentExpenses />,
+      {
+        initialState: {
+          expenses: [],
+          users: mockUsers,
+          events: mockEvents,
+          settlements: []
+        }
+      }
     );
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+    });
+    
     expect(screen.getByText('No expenses yet')).toBeInTheDocument();
   });
 });
