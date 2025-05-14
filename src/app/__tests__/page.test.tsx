@@ -105,26 +105,25 @@ describe('Home Dashboard Page', () => {
     );
     // Dashboard header
     expect(await screen.findByText('Dashboard')).toBeInTheDocument();
-    // Financial summary KPIs
-    expect(screen.getByText('Financial Summary')).toBeInTheDocument();
-    expect(screen.getByText('Total Expenses')).toBeInTheDocument();
-    expect(screen.getByText('Avg. Expense (All Time)')).toBeInTheDocument();
-    expect(screen.getByText('Avg. Expense (Last Month)')).toBeInTheDocument();
-    expect(screen.getByText('Avg. Expense (Last Year)')).toBeInTheDocument();
-    expect(screen.getByText('Total Events')).toBeInTheDocument();
-    expect(screen.getByText('Total Settlements')).toBeInTheDocument();
-    expect(screen.getByText('Unsettled Settlements')).toBeInTheDocument();
-    // Category breakdown
-    expect(screen.getByText('Category Breakdown')).toBeInTheDocument();
+    
+    // Financial summary sections
+    expect(screen.getByText('Period Summary')).toBeInTheDocument();
+    expect(screen.getByText('Balance Situation')).toBeInTheDocument();
+    expect(screen.getByText('Your Insights')).toBeInTheDocument();
+    
     // Recent expenses
     expect(screen.getByText('Recent Expenses')).toBeInTheDocument();
     expect(screen.getByText('Dinner')).toBeInTheDocument();
+    
     // Recent settlements
     expect(screen.getByText('Recent Settlements')).toBeInTheDocument();
+    
     // Upcoming events
     expect(screen.getByText('Upcoming Events')).toBeInTheDocument();
+    
     // Balance overview
     expect(screen.getByText('Balance Overview')).toBeInTheDocument();
+    
     // Expense distribution
     expect(screen.getByText('Expense Distribution')).toBeInTheDocument();
   });

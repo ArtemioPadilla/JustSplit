@@ -49,7 +49,17 @@ export default function Home() {
     unsettledCount: 0,
     pendingSettlements: [],
     totalPendingAmount: 0,
-    upcomingEvents: []
+    upcomingEvents: [],
+    // New fields for enhanced dashboard
+    compareWithLastMonth: 0,
+    activeEvents: 0,
+    activeParticipants: 0,
+    inactiveParticipants: 0,
+    youOwe: 0,
+    othersOwe: 0,
+    mostExpensiveCategory: { name: 'Uncategorized', amount: 0 },
+    highestExpense: 0,
+    avgPerDay: 0
   });
 
   // Function to calculate financial summary
@@ -58,27 +68,126 @@ export default function Home() {
     
     setIsLoadingRates(true);
     try {
-      // Calculate how much the user has spent
+      // Get current date info for filtering
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      
+      // Calculate total spent overall
       let totalSpent = 0;
+      let currentMonthTotal = 0;
+      let lastMonthTotal = 0;
+      let highestExpense = 0;
+      
+      // Track spending by category for insights
+      const categorySpending = {};
       
       // Convert all expenses to preferred currency if conversion is enabled
       for (const exp of state.expenses || []) {
-        if (exp.currency === preferredCurrency || !isConvertingCurrencies) {
-          totalSpent += exp.amount;
-        } else {
+        let convertedAmount = exp.amount;
+        
+        if (exp.currency !== preferredCurrency && isConvertingCurrencies) {
           try {
             const { rate } = await getExchangeRate(exp.currency, preferredCurrency);
-            totalSpent += exp.amount * rate;
+            convertedAmount = exp.amount * rate;
           } catch (error) {
             console.error(`Error converting ${exp.currency} to ${preferredCurrency}:`, error);
-            // If conversion fails, just add original amount
-            totalSpent += exp.amount;
+            // If conversion fails, just use original amount
+            convertedAmount = exp.amount;
           }
+        }
+        
+        totalSpent += convertedAmount;
+        
+        // Track highest expense
+        if (convertedAmount > highestExpense) {
+          highestExpense = convertedAmount;
+        }
+        
+        // Track spending by category
+        const category = exp.category || 'Uncategorized';
+        categorySpending[category] = (categorySpending[category] || 0) + convertedAmount;
+        
+        // Check if expense is from current month
+        const expDate = new Date(exp.date);
+        const expMonth = expDate.getMonth();
+        const expYear = expDate.getFullYear();
+        
+        if (expMonth === currentMonth && expYear === currentYear) {
+          currentMonthTotal += convertedAmount;
+        } else if (expMonth === lastMonth && expYear === lastMonthYear) {
+          lastMonthTotal += convertedAmount;
         }
       }
       
+      // Find most expensive category
+      let mostExpensiveCategory = { name: 'Uncategorized', amount: 0 };
+      for (const [category, amount] of Object.entries(categorySpending)) {
+        if (amount > mostExpensiveCategory.amount) {
+          mostExpensiveCategory = { name: category, amount: amount as number };
+        }
+      }
+      
+      // Calculate monthly comparison
+      const compareWithLastMonth = currentMonthTotal - lastMonthTotal;
+      
       // Calculate unsettled expenses
       const unsettledExpenses = state.expenses?.filter(exp => !exp.settled) || [];
+      
+      // Calculate active events (events with expenses in the last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentExpenses = state.expenses?.filter(exp => 
+        new Date(exp.date) >= thirtyDaysAgo
+      ) || [];
+      
+      const activeEventIds = new Set(
+        recentExpenses.map(exp => exp.eventId).filter(Boolean)
+      );
+      
+      // Calculate active/inactive participants
+      const activeParticipantIds = new Set();
+      const allParticipantIds = new Set();
+      
+      for (const exp of recentExpenses) {
+        activeParticipantIds.add(exp.paidBy);
+        for (const participant of exp.participants || []) {
+          allParticipantIds.add(participant);
+        }
+      }
+      
+      for (const user of state.users || []) {
+        allParticipantIds.add(user.id);
+      }
+      
+      const activeParticipants = activeParticipantIds.size;
+      const inactiveParticipants = allParticipantIds.size - activeParticipantIds.size;
+      
+      // Calculate personal balances
+      const currentUserIds = state.users?.map(u => u.id) || [];
+      const currentUserId = currentUserIds[0]; // Assuming first user is current user
+      
+      let youOwe = 0;
+      let othersOwe = 0;
+      
+      // For each expense, calculate balances
+      for (const exp of unsettledExpenses) {
+        const paidBy = exp.paidBy;
+        const participants = exp.participants || [];
+        const amountPerPerson = exp.amount / participants.length;
+        
+        if (paidBy === currentUserId) {
+          // Current user paid, others owe
+          const otherParticipants = participants.filter(id => id !== currentUserId);
+          othersOwe += amountPerPerson * otherParticipants.length;
+        } else if (participants.includes(currentUserId)) {
+          // Someone else paid, current user owes
+          youOwe += amountPerPerson;
+        }
+      }
       
       // Calculate upcoming events (events with start dates in the future)
       const today = new Date();
@@ -95,13 +204,46 @@ export default function Home() {
       );
       const totalPendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
       
+      // Calculate daily average for last 30 days
+      const expenses30Days = state.expenses?.filter(exp => 
+        new Date(exp.date) >= thirtyDaysAgo
+      ) || [];
+      
+      let total30Days = 0;
+      for (const exp of expenses30Days) {
+        if (exp.currency === preferredCurrency || !isConvertingCurrencies) {
+          total30Days += exp.amount;
+        } else {
+          try {
+            const { rate } = await getExchangeRate(exp.currency, preferredCurrency);
+            total30Days += exp.amount * rate;
+          } catch (error) {
+            console.error(`Error converting ${exp.currency} to ${preferredCurrency}:`, error);
+            total30Days += exp.amount;
+          }
+        }
+      }
+      
+      const avgPerDay = total30Days / 30;
+      
       const summary = {
         totalSpent,
         unsettledCount: unsettledExpenses.length,
         pendingSettlements,
         totalPendingAmount,
-        upcomingEvents: upcomingEvents.slice(0, 3) // Show only the next 3 events
+        upcomingEvents: upcomingEvents.slice(0, 3), // Show only the next 3 events
+        // New fields
+        compareWithLastMonth,
+        activeEvents: activeEventIds.size,
+        activeParticipants,
+        inactiveParticipants,
+        youOwe,
+        othersOwe,
+        mostExpensiveCategory,
+        highestExpense,
+        avgPerDay
       };
+      
       setFinancialSummary(summary);
       setConversionError(null);
     } catch (error) {
@@ -360,6 +502,15 @@ export default function Home() {
           totalPendingAmount={financialSummary.totalPendingAmount}
           preferredCurrency={preferredCurrency}
           isConvertingCurrencies={isConvertingCurrencies}
+          compareWithLastMonth={financialSummary.compareWithLastMonth}
+          activeEvents={financialSummary.activeEvents}
+          activeParticipants={financialSummary.activeParticipants}
+          inactiveParticipants={financialSummary.inactiveParticipants}
+          youOwe={financialSummary.youOwe}
+          othersOwe={financialSummary.othersOwe}
+          mostExpensiveCategory={financialSummary.mostExpensiveCategory}
+          highestExpense={financialSummary.highestExpense}
+          avgPerDay={financialSummary.avgPerDay}
         />
         <div className={styles.chartContainer}>
           <MonthlyTrendsChart 
