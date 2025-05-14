@@ -102,6 +102,83 @@
 }
 
 .netBalance {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.pendingActionsContainer {
+  display: flex;
+  justify-content: space-between; /* Distributes space between items */
+  gap: 1rem; /* Space between the two boxes if they are next to each other */
+  margin-top: 1rem; /* Space above the container */
+}
+
+.pendingSettlements {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  background-color: #f9f9f9;
+  flex: 1; /* Allows the boxes to grow and fill the space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* Pushes button to bottom if content is short */
+  min-width: 0; /* Prevents flex items from overflowing if content is too wide */
+}
+
+/* Specific styling for the receipts box if needed, can inherit from pendingSettlements */
+.pendingReceipts {
+  /* background-color: #f0f9ff; /* Example: different background */
+  /* border-color: #cce7ff;   /* Example: different border */
+}
+
+.pendingLabel {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.25rem;
+}
+
+.pendingAmount {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.settlementButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  width: 100%; /* Make button take full width of its container */
+  margin-top: auto; /* Pushes button to the bottom if flex container */
+}
+
+.settlementButton:hover {
+  background-color: #0056b3;
+}
+
+.remindButton {
+  background-color: #28a745; /* Green for remind */
+}
+
+.remindButton:hover {
+  background-color: #1e7e34;
+}
+
+.balanceDivider {
+  margin: 0 12px;
+  color: #ccc;
+}
+
+.netBalance {
   font-size: 1rem;
   font-weight: 600;
   margin: 16px 0;

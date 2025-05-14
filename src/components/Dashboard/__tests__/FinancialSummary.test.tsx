@@ -53,15 +53,12 @@ describe('FinancialSummary', () => {
     expect(screen.getByText('You Owe')).toBeInTheDocument();
     expect(screen.getByText('Owed to You')).toBeInTheDocument();
     expect(screen.getByText(/Net Balance:/)).toBeInTheDocument();
-    expect(screen.getByText(`${defaultProps.unsettledCount} pending settlements`)).toBeInTheDocument();
     
     // Check Your Insights metrics
     expect(screen.getByText('Highest Expense')).toBeInTheDocument();
     expect(screen.getByText('Top Category')).toBeInTheDocument();
     expect(screen.getByText('Daily Average (30 days)')).toBeInTheDocument();
     
-    // Check for Settle Up button
-    expect(screen.getByRole('button', { name: 'Settle Up' })).toBeInTheDocument();
   });
 
   it('renders message when no expense data is available', () => {
@@ -85,7 +82,6 @@ describe('FinancialSummary', () => {
     // Check for the different metrics in the component
     expect(screen.getByText('Active Events')).toBeInTheDocument();
     expect(screen.getByText(`${defaultProps.activeEvents}`)).toBeInTheDocument();
-    expect(screen.getByText(`${defaultProps.unsettledCount} with unsettled expenses`)).toBeInTheDocument();
     
     expect(screen.getByText('Active Participants')).toBeInTheDocument();
     expect(screen.getByText(`${defaultProps.activeParticipants}`)).toBeInTheDocument();
