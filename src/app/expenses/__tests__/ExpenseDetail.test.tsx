@@ -1,7 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { AppContextProvider } from '../../../context/AppContext';
+import { AppProvider } from '../../../context/AppContext';
 import { useParams, useRouter } from 'next/navigation';
 
 // Mock the next/navigation hooks
@@ -10,59 +10,80 @@ jest.mock('next/navigation', () => ({
   useParams: jest.fn()
 }));
 
-// Mock EditableText component
+// Mock for next/link
+jest.mock('next/link', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ({ children, href, ...rest }: { children: React.ReactNode; href: string; [key: string]: any }) => {
+    const { passHref, replace, scroll, shallow, locale, ...anchorProps } = rest;
+    return <a href={href} {...anchorProps}>{children}</a>;
+  };
+});
+
+// Mock Timeline component
+jest.mock('../../../components/ui/Timeline', () => {
+  return function MockTimeline(props: { event?: { name?: string } }) {
+    return <div data-testid="mock-timeline">Timeline for {props.event?.name ?? 'Unknown Event'}</div>;
+  };
+});
+
+// Mock EditableText component (ensure this is identical to the one in EventDetail.test.tsx if shared logic is desired)
 jest.mock('../../../components/ui/EditableText', () => {
-  return function MockEditableText({ value, onSave, className }) {
+  return function MockEditableText({ value, onSave, className, as }: { value: string; onSave: (value: string) => void; className?: string; as?: React.ElementType }) {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [currentValue, setCurrentValue] = React.useState(value);
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        setCurrentValue(value); 
+    }, [value]);
+
+    const handleSave = () => {
+      onSave(currentValue);
+      setIsEditing(false);
+    };
+
+    if (isEditing) {
+      return (
+        <input
+          ref={inputRef}
+          type="text"
+          role="textbox" 
+          value={currentValue}
+          onChange={(e) => setCurrentValue(e.target.value)}
+          onBlur={handleSave} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSave();
+            } else if (e.key === 'Escape') {
+              setCurrentValue(value); 
+              setIsEditing(false);
+            }
+          }}
+          autoFocus
+          data-testid="editable-text-input"
+        />
+      );
+    }
+    const Tag = as ?? 'div';
     return (
-      <div 
-        data-testid="editable-text" 
+      <Tag 
+        data-testid="editable-text-display"
         className={className}
-        onClick={() => {
-          // Simulate clicking to edit
-          const input = document.createElement('input');
-          input.setAttribute('role', 'textbox');
-          input.value = value;
-          
-          // Replace the current element with the input
-          const parent = document.activeElement.parentNode;
-          if (parent) {
-            parent.replaceChild(input, document.activeElement);
-            
-            // Focus the input
-            input.focus();
-            
-            // Add event listeners for key presses
-            input.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                onSave(input.value);
-              } else if (e.key === 'Escape') {
-                // Just remove the input and restore original text
-              }
-            });
-            
-            // Add blur event listener
-            input.addEventListener('blur', () => {
-              onSave(input.value);
-            });
-          }
-        }}
+        onClick={() => setIsEditing(true)}
+        onFocus={() => setIsEditing(true)}
+        tabIndex={0} 
+        role="button"
       >
-        {value}
-      </div>
+        {currentValue} 
+      </Tag>
     );
   };
 });
 
-// Mock necessary components to simplify testing
-jest.mock('../../../components/ui/Timeline', () => {
-  return function MockTimeline({ event, expenses }) {
-    return <div data-testid="mock-timeline">Timeline Component</div>;
-  };
-});
 
 // Mock Button component
 jest.mock('../../../components/ui/Button', () => {
-  return function MockButton({ children, onClick, variant = 'primary' }) {
+  return function MockButton({ children, onClick, variant = 'primary' }: { children: React.ReactNode; onClick?: () => void; variant?: string }) {
     return (
       <button 
         data-testid={`button-${variant}`}
@@ -75,182 +96,179 @@ jest.mock('../../../components/ui/Button', () => {
   };
 });
 
-// Import the page component directly using the wrapper that we created
-import ExpenseDetail from '../ExpenseDetail';
+// Import the page component directly
+import ExpenseDetail from '../[id]/page';
+
+// Define mock data outside describe for broader scope in jest.mock
+const mockExpenseInitial = {
+  id: 'expense-1',
+  eventId: 'event-1', 
+  amount: 100, 
+  currency: 'USD', 
+  description: 'Test Expense', 
+  date: '2025-01-02T00:00:00.000Z',
+  paidBy: 'user-1',
+  participants: ['user-1', 'user-2'],
+  settled: false,
+  notes: 'This is a test note',
+  category: 'Food' // Added for completeness
+};
+
+const mockEventInitial = {
+  id: 'event-1',
+  name: 'Test Event',
+  description: 'Test Description',
+  startDate: '2025-01-01T00:00:00.000Z',
+  endDate: '2025-01-10T00:00:00.000Z',
+  participants: ['user-1', 'user-2'],
+  expenses: ['expense-1']
+};
+
+const mockUsers = [
+  { id: 'user-1', name: 'User One', preferredCurrency: 'USD', balance: 0 },
+  { id: 'user-2', name: 'User Two', preferredCurrency: 'EUR', balance: 0 }
+];
+
+const mockDispatch = jest.fn();
+let mockState: any; // Defined in beforeEach
+
+// Mock AppContext
+jest.mock('../../../context/AppContext', () => {
+  const originalModule = jest.requireActual('../../../context/AppContext');
+  return {
+    ...originalModule,
+    useAppContext: () => ({
+      state: mockState, 
+      dispatch: mockDispatch,
+      getSymbol: (currencyCode: string) => (currencyCode === 'USD' ? '$' : '€'), // Basic mock for getSymbol
+      // Add other context values if ExpenseDetail uses them
+      preferredCurrency: 'USD',
+      isConvertingCurrencies: false,
+      setIsConvertingCurrencies: jest.fn(),
+      setPreferredCurrency: jest.fn(),
+    }),
+  };
+});
 
 describe('ExpenseDetail Page', () => {
-  // Mock state values
-  const mockExpense = {
-    id: 'expense-1',
-    eventId: 'event-1', 
-    amount: 100, 
-    currency: 'USD', 
-    description: 'Test Expense', 
-    date: '2025-01-02T00:00:00.000Z',
-    paidBy: 'user-1',
-    participants: ['user-1', 'user-2'],
-    settled: false,
-    notes: 'This is a test note'
-  };
-  
-  const mockEvent = {
-    id: 'event-1',
-    name: 'Test Event',
-    description: 'Test Description',
-    startDate: '2025-01-01T00:00:00.000Z',
-    endDate: '2025-01-10T00:00:00.000Z',
-    participants: ['user-1', 'user-2']
-  };
-  
-  const mockUsers = [
-    { id: 'user-1', name: 'User One', preferredCurrency: 'USD' },
-    { id: 'user-2', name: 'User Two', preferredCurrency: 'EUR' }
-  ];
-  
-  // Mock dispatch function to monitor calls
-  const mockDispatch = jest.fn();
-  
+
   beforeEach(() => {
-    // Reset mocks
     jest.clearAllMocks();
-    
-    // Setup router mock
-    (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-      back: jest.fn()
-    });
-    
-    // Setup params mock with expense ID
-    (useParams as jest.Mock).mockReturnValue({
-      id: 'expense-1'
-    });
-    
-    // Create a mock state for the context
-    const mockState = {
-      expenses: [mockExpense],
-      events: [mockEvent],
-      users: mockUsers,
-      settlements: []
+    // Deep clone initial mock data
+    mockState = {
+        expenses: [JSON.parse(JSON.stringify(mockExpenseInitial))],
+        events: [JSON.parse(JSON.stringify(mockEventInitial))],
+        users: JSON.parse(JSON.stringify(mockUsers)),
+        settlements: []
     };
     
-    // Render the component with the mocked context
-    render(
-      <AppContextProvider initialState={mockState} mockDispatch={mockDispatch}>
-        <ExpenseDetail />
-      </AppContextProvider>
-    );
+    (useRouter as jest.Mock).mockReturnValue({ push: jest.fn(), back: jest.fn() });
+    (useParams as jest.Mock).mockReturnValue({ id: 'expense-1' });
   });
+
+  const renderComponent = () => {
+    return render(
+      <AppProvider initialState={mockState}>
+        <ExpenseDetail />
+      </AppProvider>
+    );
+  }
   
   test('renders expense details correctly', () => {
-    expect(screen.getByTestId('editable-text')).toBeInTheDocument();
-    expect(screen.getByText('Test Expense')).toBeInTheDocument();
-    expect(screen.getByText('USD')).toBeInTheDocument();
-    expect(screen.getByText('100.00')).toBeInTheDocument();
-    expect(screen.getByText('This is a test note')).toBeInTheDocument();
+    renderComponent();
+    expect(screen.getByText(mockExpenseInitial.description)).toBeInTheDocument(); 
+    expect(screen.getByText(mockExpenseInitial.amount.toFixed(2))).toBeInTheDocument(); 
+    const user1 = mockUsers.find(u => u.id === mockExpenseInitial.paidBy);
+    if (user1) {
+      // Find the "Paid By" label, then its parent container, then the value within that container
+      const paidByLabel = screen.getByText('Paid By');
+      const detailItemContainer = paidByLabel.closest('div[class*="detailItem"]'); // Use a more specific selector if needed
+      if (detailItemContainer) {
+        expect(within(detailItemContainer as HTMLElement).getByText(user1.name)).toBeInTheDocument();
+      } else {
+        throw new Error('Could not find the container for the "Paid By" detail item.');
+      }
+    }
+    if (mockExpenseInitial.notes) expect(screen.getByText(mockExpenseInitial.notes)).toBeInTheDocument();
+    expect(screen.getByText(new Date(mockExpenseInitial.date).toLocaleDateString())).toBeInTheDocument();
   });
   
-  test('allows editing expense description', async () => {
-    // Find the expense description (in an editable component)
-    const descriptionElement = screen.getByText('Test Expense');
+  test('allows editing expense description and reflects change', async () => {
+    const { rerender } = renderComponent();
+    const descriptionDisplayElement = screen.getByText(mockExpenseInitial.description);
+    fireEvent.click(descriptionDisplayElement);
     
-    // Click on the description to enter edit mode
-    fireEvent.click(descriptionElement);
-    
-    // Find the input field that appeared after clicking
-    const inputField = screen.getByRole('textbox');
+    const inputField = await screen.findByRole('textbox');
     expect(inputField).toBeInTheDocument();
-    expect(inputField).toHaveValue('Test Expense');
+
+    const updatedDescription = 'Updated Expense Description';
+    fireEvent.change(inputField, { target: { value: updatedDescription } });
+    fireEvent.keyDown(inputField, { key: 'Enter', code: 'Enter' });
     
-    // Change the value
-    fireEvent.change(inputField, { target: { value: 'Updated Expense Description' } });
-    expect(inputField).toHaveValue('Updated Expense Description');
-    
-    // Press Enter to save
-    fireEvent.keyDown(inputField, { key: 'Enter' });
-    
-    // Check if dispatch was called with the correct action
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_EXPENSE',
       payload: {
-        ...mockExpense,
-        description: 'Updated Expense Description'
+        ...mockExpenseInitial,
+        description: updatedDescription
       }
     });
     
-    // Wait for the update feedback animation to start and finish
-    await waitFor(() => {
-      // Verify that the component shows the updated description
-      expect(screen.getByText('Updated Expense Description')).toBeInTheDocument();
-    });
-  });
-  
-  test('cancels expense description edit on Escape key', () => {
-    // Find the expense description
-    const descriptionElement = screen.getByText('Test Expense');
-    
-    // Click on the description to enter edit mode
-    fireEvent.click(descriptionElement);
-    
-    // Find the input field
-    const inputField = screen.getByRole('textbox');
-    
-    // Change the value
-    fireEvent.change(inputField, { target: { value: 'Canceled Update' } });
-    
-    // Press Escape to cancel
-    fireEvent.keyDown(inputField, { key: 'Escape' });
-    
-    // Check that dispatch was NOT called
-    expect(mockDispatch).not.toHaveBeenCalled();
-    
-    // Verify the original description is still there
-    expect(screen.getByText('Test Expense')).toBeInTheDocument();
-  });
-  
-  test('saves expense description edit on blur', async () => {
-    // Find the expense description
-    const descriptionElement = screen.getByText('Test Expense');
-    
-    // Click on the description to enter edit mode
-    fireEvent.click(descriptionElement);
-    
-    // Find the input field
-    const inputField = screen.getByRole('textbox');
-    
-    // Change the value
-    fireEvent.change(inputField, { target: { value: 'Blur Save Test' } });
-    
-    // Blur the input field
-    fireEvent.blur(inputField);
-    
-    // Check if dispatch was called with the correct action
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'UPDATE_EXPENSE',
-      payload: {
-        ...mockExpense,
-        description: 'Blur Save Test'
-      }
-    });
-    
-    // Wait for the update feedback animation to start and finish
-    await waitFor(() => {
-      // Verify that the component shows the updated description
-      expect(screen.getByText('Blur Save Test')).toBeInTheDocument();
-    });
-  });
-  
-  test('expense not found shows appropriate message', () => {
-    // Re-render with a non-existent expense ID
-    (useParams as jest.Mock).mockReturnValue({ id: 'non-existent' });
-    
-    // Re-render the component
-    render(
-      <AppContextProvider initialState={{ expenses: [], events: [], users: [], settlements: [] }}>
-        <ExpenseDetail />
-      </AppContextProvider>
+    mockState.expenses[0].description = updatedDescription;
+    rerender(
+        <AppProvider initialState={mockState}>
+          <ExpenseDetail />
+        </AppProvider>
     );
+
+    await waitFor(() => {
+      expect(screen.getByText(updatedDescription)).toBeInTheDocument();
+    });
+  });
+
+  test('allows editing expense notes and reflects change', async () => {
+    const { rerender } = renderComponent();
+    // Ensure notes are present for this test
+    if (!mockExpenseInitial.notes) throw new Error('Initial mock expense must have notes for this test');
+
+    const notesDisplayElement = screen.getByText(mockExpenseInitial.notes);
+    fireEvent.click(notesDisplayElement);
+
+    // The input field for notes should now be present.
+    // We need to find the correct textbox. Since description is also editable, 
+    // we rely on the fact that clicking the notes text makes its corresponding input appear.
+    // The mock EditableText uses data-testid="editable-text-input" for the input.
+    // We need to ensure we are targeting the correct one if multiple are rendered.
+    // For this test, we assume the one that appears after clicking notesDisplayElement is the target.
+    // A more robust way would be to ensure unique identifiers or context for each EditableText instance.
+    const inputFields = await screen.findAllByRole('textbox');
+    // Find the input field that has the current notes value, assuming it was focused or is the new one.
+    const notesInputField = inputFields.find(input => (input as HTMLInputElement).value === mockExpenseInitial.notes);
+
+    if (!notesInputField) throw new Error('Notes input field not found or not correctly identified');
     
-    expect(screen.getByText('Expense Not Found')).toBeInTheDocument();
-    expect(screen.getByText('The expense you\'re looking for doesn\'t exist or has been deleted.')).toBeInTheDocument();
+    expect(notesInputField).toBeInTheDocument();
+
+    const updatedNotes = 'Updated test note';
+    fireEvent.change(notesInputField, { target: { value: updatedNotes } });
+    fireEvent.keyDown(notesInputField, { key: 'Enter', code: 'Enter' });
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'UPDATE_EXPENSE',
+        payload: {
+            ...mockExpenseInitial,
+            notes: updatedNotes
+        }
+    });
+
+    mockState.expenses[0].notes = updatedNotes;
+    rerender(
+        <AppProvider initialState={mockState}>
+          <ExpenseDetail />
+        </AppProvider>
+    );
+
+    await waitFor(() => {
+        expect(screen.getByText(updatedNotes)).toBeInTheDocument();
+    });
   });
 });

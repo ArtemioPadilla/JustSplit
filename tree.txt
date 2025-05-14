@@ -22,6 +22,7 @@
 │   │       │   │       ├── index.html
 │   │       │   │       └── route.ts.html
 │   │       │   ├── events
+│   │       │   │   ├── EventDetail.tsx.html
 │   │       │   │   ├── [id]
 │   │       │   │   │   ├── index.html
 │   │       │   │   │   └── page.tsx.html
@@ -38,6 +39,7 @@
 │   │       │   │   │   └── page.tsx.html
 │   │       │   │   └── page.tsx.html
 │   │       │   ├── expenses
+│   │       │   │   ├── ExpenseDetail.tsx.html
 │   │       │   │   ├── [id]
 │   │       │   │   │   ├── index.html
 │   │       │   │   │   └── page.tsx.html
@@ -76,6 +78,7 @@
 │   │       │   │   ├── index.html
 │   │       │   │   └── index.tsx.html
 │   │       │   ├── Dashboard
+│   │       │   │   ├── BalanceLine.tsx.html
 │   │       │   │   ├── BalanceOverview.tsx.html
 │   │       │   │   ├── DashboardHeader.tsx.html
 │   │       │   │   ├── ExpenseDistribution.tsx.html
@@ -95,6 +98,7 @@
 │   │       │   │   └── index.tsx.html
 │   │       │   └── ui
 │   │       │       ├── Button.tsx.html
+│   │       │       ├── EditableText.tsx.html
 │   │       │       ├── HoverCard
 │   │       │       │   ├── index.html
 │   │       │       │   └── index.tsx.html
@@ -130,6 +134,7 @@
 │   │               └── index.ts.html
 │   └── lcov.info
 ├── docs
+│   ├── JustSplit Consolidated Feature Matrix and Detailed Roadmap.markdown
 │   ├── README.md
 │   ├── Short-Term Goals (Next 1-2 Weeks).md
 │   ├── api
@@ -152,18 +157,16 @@
 │   │   ├── development-workflow.md
 │   │   ├── local-development.md
 │   │   └── logo-creation.md
-│   ├── feature-roadmap.md
 │   ├── planning
 │   │   ├── milestones.md
 │   │   ├── project-roadmap.md
 │   │   ├── release-planning.md
 │   │   └── to-do.md
 │   ├── refactor-plan.md
-│   ├── requirements
-│   │   ├── functional-requirements.md
-│   │   ├── non-functional-requirements.md
-│   │   └── user-stories.md
-│   └── testing-improvement-plan.md
+│   └── requirements
+│       ├── functional-requirements.md
+│       ├── non-functional-requirements.md
+│       └── user-stories.md
 ├── jest.config.js
 ├── jest.setup.js
 ├── next-env.d.ts
@@ -37659,9 +37662,12 @@
 │   │   │   └── upload
 │   │   │       └── route.ts
 │   │   ├── events
+│   │   │   ├── EventDetail.tsx
 │   │   │   ├── [id]
 │   │   │   │   ├── page.module.css
 │   │   │   │   └── page.tsx
+│   │   │   ├── __tests__
+│   │   │   │   └── EventDetail.test.tsx
 │   │   │   ├── edit
 │   │   │   │   └── [id]
 │   │   │   │       ├── page.module.css
@@ -37672,11 +37678,15 @@
 │   │   │   ├── new
 │   │   │   │   ├── page.module.css
 │   │   │   │   └── page.tsx
+│   │   │   ├── page.module.css
 │   │   │   └── page.tsx
 │   │   ├── expenses
+│   │   │   ├── ExpenseDetail.tsx
 │   │   │   ├── [id]
 │   │   │   │   ├── page.module.css
 │   │   │   │   └── page.tsx
+│   │   │   ├── __tests__
+│   │   │   │   └── ExpenseDetail.test.tsx
 │   │   │   ├── edit
 │   │   │   │   └── [id]
 │   │   │   │       ├── page.module.css
@@ -37687,6 +37697,7 @@
 │   │   │   ├── new
 │   │   │   │   ├── page.module.css
 │   │   │   │   └── page.tsx
+│   │   │   ├── page.module.css
 │   │   │   └── page.tsx
 │   │   ├── friends
 │   │   │   ├── [id]
@@ -37712,6 +37723,7 @@
 │   │   │   ├── index.tsx
 │   │   │   └── styles.module.css
 │   │   ├── Dashboard
+│   │   │   ├── BalanceLine.tsx
 │   │   │   ├── BalanceOverview.tsx
 │   │   │   ├── DashboardHeader.tsx
 │   │   │   ├── ExpenseDistribution.tsx
@@ -37746,6 +37758,8 @@
 │   │   └── ui
 │   │       ├── Button.module.css
 │   │       ├── Button.tsx
+│   │       ├── EditableText.module.css
+│   │       ├── EditableText.tsx
 │   │       ├── HoverCard
 │   │       │   ├── index.tsx
 │   │       │   └── styles.module.css
@@ -37756,9 +37770,13 @@
 │   │       │   └── styles.module.css
 │   │       ├── ProgressBar.module.css
 │   │       ├── ProgressBar.tsx
-│   │       └── Timeline
-│   │           ├── index.tsx
-│   │           └── styles.module.css
+│   │       ├── Timeline
+│   │       │   ├── index.tsx
+│   │       │   └── styles.module.css
+│   │       ├── __mocks__
+│   │       │   └── Button.tsx
+│   │       └── __tests__
+│   │           └── EditableText.test.tsx
 │   ├── context
 │   │   ├── AppContext.tsx
 │   │   ├── Providers.tsx
@@ -37793,4 +37811,4 @@
 ├── tree.txt
 └── tsconfig.json
 
-3695 directories, 34099 files
+3699 directories, 34113 files
