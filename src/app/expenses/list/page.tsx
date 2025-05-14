@@ -17,80 +17,28 @@ export default function ExpenseList() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [updatingExpenses, setUpdatingExpenses] = useState<Record<string, boolean>>({});
 
-  // Get unique list of events that have expenses
-  const eventsWithExpenses = [...new Set(state.expenses.map(expense => expense.eventId))];
-  const events = state.events.filter(event => eventsWithExpenses.includes(event.id));
+  // Get unique list of events that have expenses - use optional chaining for safety
+  const eventsWithExpenses = [...new Set(state.expenses?.map(expense => expense.eventId) || [])];
+  const events = state.events?.filter(event => eventsWithExpenses.includes(event.id)) || [];
 
   // Filter expenses based on selected event
   const filteredExpenses = selectedEvent === 'all' 
-    ? state.expenses 
-    : state.expenses.filter(expense => expense.eventId === selectedEvent);
+    ? state.expenses || []
+    : (state.expenses || []).filter(expense => expense.eventId === selectedEvent);
 
   // Set default currency based on event preference or user preference
   useEffect(() => {
-    if (selectedEvent && selectedEvent !== 'all') {
-      const event = state.events.find(e => e.id === selectedEvent);
-      if (event?.preferredCurrency) {
-        setTargetCurrency(event.preferredCurrency);
-        return;
-      }
-    }
-    
-    // Fall back to the first user's preferred currency or default
-    const userPreferredCurrency = state.users[0]?.preferredCurrency;
-    if (userPreferredCurrency) {
-      setTargetCurrency(userPreferredCurrency);
-    }
+    // ...existing code...
   }, [selectedEvent, state.events, state.users]);
 
   // Handle refreshing rates
   const handleRefreshRates = async () => {
-    setIsRefreshing(true);
-    try {
-      // Clear the exchange rate cache
-      clearExchangeRateCache();
-      
-      // Trigger conversion with fresh rates
-      await performConversion();
-      
-      // Show a confirmation (this could be enhanced with a toast notification)
-      alert("Exchange rates have been refreshed!");
-    } catch (error) {
-      console.error("Error refreshing rates:", error);
-      alert("Failed to refresh rates. Please try again.");
-    } finally {
-      setIsRefreshing(false);
-    }
+    // ...existing code...
   };
   
   // Function to perform currency conversion
   const performConversion = async () => {
-    if (filteredExpenses.length === 0) return;
-    
-    setIsConverting(true);
-    const newConvertedExpenses: Record<string, number> = {};
-    
-    for (const expense of filteredExpenses) {
-      if (expense.currency === targetCurrency) {
-        newConvertedExpenses[expense.id] = expense.amount;
-      } else {
-        try {
-          const { convertedAmount } = await convertCurrency(
-            expense.amount,
-            expense.currency,
-            targetCurrency
-          );
-          newConvertedExpenses[expense.id] = convertedAmount;
-        } catch (error) {
-          console.error(`Error converting expense ${expense.id}:`, error);
-          // Fallback to original amount if conversion fails
-          newConvertedExpenses[expense.id] = expense.amount;
-        }
-      }
-    }
-    
-    setConvertedExpenses(newConvertedExpenses);
-    setIsConverting(false);
+    // ...existing code...
   };
   
   // Effect to handle currency conversion when target currency changes
@@ -100,23 +48,7 @@ export default function ExpenseList() {
 
   // Handle expense description update
   const handleExpenseDescriptionUpdate = (expenseId: string, newDescription: string) => {
-    setUpdatingExpenses({ ...updatingExpenses, [expenseId]: true });
-    
-    // Find the expense to update
-    const expenseToUpdate = state.expenses.find(expense => expense.id === expenseId);
-    
-    if (expenseToUpdate) {
-      // Create updated expense with new description
-      const updatedExpense = { ...expenseToUpdate, description: newDescription };
-      
-      // Dispatch update action
-      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-      
-      // Clear updating status after a short delay to show feedback
-      setTimeout(() => {
-        setUpdatingExpenses(prev => ({ ...prev, [expenseId]: false }));
-      }, 500);
-    }
+    // ...existing code...
   };
 
   // Get user name by ID
@@ -135,133 +67,143 @@ export default function ExpenseList() {
     <div className={styles.container}>
       <h1 className={styles.title}>Expenses</h1>
       
-      <div className={styles.actions}>
-        <Link href="/expenses/new" className={styles.createButton}>
-          Add New Expense
-        </Link>
-        
-        <button 
-          className={styles.exportButton}
-          onClick={() => exportExpensesToCSV(
-            filteredExpenses, 
-            state.users, 
-            state.events, 
-            selectedEvent === 'all' ? 'all-expenses.csv' : `${getEventName(selectedEvent)}-expenses.csv`
-          )}
-          disabled={filteredExpenses.length === 0}
-        >
-          Export as CSV
-        </button>
-        
-        <div className={styles.filter}>
-          <label htmlFor="event-filter">Filter by Event:</label>
-          <select 
-            id="event-filter" 
-            className={styles.select}
-            value={selectedEvent}
-            onChange={(e) => setSelectedEvent(e.target.value)}
-          >
-            <option value="all">All Events</option>
-            {events.map(event => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div className={styles.filter}>
-          <label htmlFor="currency-filter">Convert to:</label>
-          <select 
-            id="currency-filter" 
-            className={styles.select}
-            value={targetCurrency}
-            onChange={(e) => setTargetCurrency(e.target.value)}
-          >
-            {SUPPORTED_CURRENCIES.map(currency => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code} ({currency.symbol})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button 
-          className={styles.refreshButton}
-          onClick={handleRefreshRates}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
-        </button>
-      </div>
-      
-      {filteredExpenses.length === 0 ? (
+      {!state.expenses || state.expenses.length === 0 ? (
         <div className={styles.emptyState}>
           <p>No expenses found. Start by adding your first expense!</p>
+          <Link href="/expenses/new" className={styles.createButton}>
+            Add Your First Expense
+          </Link>
         </div>
       ) : (
-        <div className={styles.expensesList}>
-          {filteredExpenses.map(expense => {
-            const isUpdating = updatingExpenses[expense.id] || false;
-            return (
-              <div key={expense.id} className={styles.expenseCard}>
-                <div className={styles.expenseHeader}>
-                  {/* Replace static expense description with editable component */}
-                  <EditableText 
-                    as="h2"
-                    value={expense.description}
-                    onSave={(newDescription) => handleExpenseDescriptionUpdate(expense.id, newDescription)}
-                    className={`${styles.expenseName} ${isUpdating ? styles.updating : ''}`}
-                  />
-                  <span className={styles.expenseAmount}>
-                    {isConverting ? (
-                      <small>Converting...</small>
-                    ) : (
-                      <>
-                        {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
-                        {expense.currency !== targetCurrency && (
-                          <small className={styles.originalAmount}>
-                            (Originally: {formatCurrency(expense.amount, expense.currency)})
-                          </small>
+        <>
+          <div className={styles.actions}>
+            <Link href="/expenses/new" className={styles.createButton}>
+              Add New Expense
+            </Link>
+            
+            <button 
+              className={styles.exportButton}
+              onClick={() => exportExpensesToCSV(
+                filteredExpenses, 
+                state.users, 
+                state.events, 
+                selectedEvent === 'all' ? 'all-expenses.csv' : `${getEventName(selectedEvent)}-expenses.csv`
+              )}
+              disabled={filteredExpenses.length === 0}
+            >
+              Export as CSV
+            </button>
+            
+            <div className={styles.filter}>
+              <label htmlFor="event-filter">Filter by Event:</label>
+              <select 
+                id="event-filter" 
+                className={styles.select}
+                value={selectedEvent}
+                onChange={(e) => setSelectedEvent(e.target.value)}
+              >
+                <option value="all">All Events</option>
+                {events.map(event => (
+                  <option key={event.id} value={event.id}>{event.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className={styles.filter}>
+              <label htmlFor="currency-filter">Convert to:</label>
+              <select 
+                id="currency-filter" 
+                className={styles.select}
+                value={targetCurrency}
+                onChange={(e) => setTargetCurrency(e.target.value)}
+              >
+                {SUPPORTED_CURRENCIES.map(currency => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} ({currency.symbol})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button 
+              className={styles.refreshButton}
+              onClick={handleRefreshRates}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
+            </button>
+          </div>
+
+          {filteredExpenses.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No expenses found for the selected filters.</p>
+            </div>
+          ) : (
+            <div className={styles.expensesList}>
+              {filteredExpenses.map(expense => {
+                const isUpdating = updatingExpenses[expense.id] || false;
+                return (
+                  <div key={expense.id} className={styles.expenseCard}>
+                    <div className={styles.expenseHeader}>
+                      <EditableText 
+                        as="h2"
+                        value={expense.description}
+                        onSave={(newDescription) => handleExpenseDescriptionUpdate(expense.id, newDescription)}
+                        className={`${styles.expenseName} ${isUpdating ? styles.updating : ''}`}
+                      />
+                      <span className={styles.expenseAmount}>
+                        {isConverting ? (
+                          <small>Converting...</small>
+                        ) : (
+                          <>
+                            {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
+                            {expense.currency !== targetCurrency && (
+                              <small className={styles.originalAmount}>
+                                (Originally: {formatCurrency(expense.amount, expense.currency)})
+                              </small>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                  </span>
-                </div>
-                
-                <div className={styles.expenseDetails}>
-                  <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Paid by:</span>
-                    <span className={styles.detailValue}>{getUserName(expense.paidBy)}</span>
+                      </span>
+                    </div>
+                    
+                    <div className={styles.expenseDetails}>
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Paid by:</span>
+                        <span className={styles.detailValue}>{getUserName(expense.paidBy)}</span>
+                      </div>
+                      
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Date:</span>
+                        <span className={styles.detailValue}>
+                          {new Date(expense.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Event:</span>
+                        <span className={styles.detailValue}>{getEventName(expense.eventId)}</span>
+                      </div>
+                      
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Split among:</span>
+                        <span className={styles.detailValue}>
+                          {expense.participants?.length || 0} people
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className={styles.actions}>
+                      <Link href={`/expenses/${expense.id}`} className={styles.viewButton}>
+                        View Details
+                      </Link>
+                    </div>
                   </div>
-                  
-                  <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Date:</span>
-                    <span className={styles.detailValue}>
-                      {new Date(expense.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Event:</span>
-                    <span className={styles.detailValue}>{getEventName(expense.eventId)}</span>
-                  </div>
-                  
-                  <div className={styles.detailItem}>
-                    <span className={styles.detailLabel}>Split among:</span>
-                    <span className={styles.detailValue}>
-                      {expense.participants?.length || 0} people
-                    </span>
-                  </div>
-                </div>
-                
-                <div className={styles.actions}>
-                  <Link href={`/expenses/${expense.id}`} className={styles.viewButton}>
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
