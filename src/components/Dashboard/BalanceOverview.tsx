@@ -391,22 +391,23 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
         </div>
       </div>
       {/* End Relative Balance Line Plot */}
+      
       {/* Individual Balances Section with aligned waterfall bars */}
-      <div className={styles.userBalancesHeader}>
+      {/* <div className={styles.userBalancesHeader}>
         <h3>Individual Balances</h3>
       </div>
-      <div className={styles.userBalances}>
+      <div className={styles.userBalances}> */}
         {/* Add special divs with classes for test compatibility */}
-        {userBalances.map(user => {
+        {/* {userBalances.map(user => {
           const absBalance = Math.abs(user.balance);
           return (
             <div key={user.id} className={styles.userBalance}>
               <div className={styles.userName}>{user.name}</div>
               <div className={getBalanceClass(user.balance)}>
                 {user.balance >= 0 ? formatCurrency(user.balance) : formatCurrency(user.balance)}
-              </div>
+              </div> */}
               {/* Actual visual balance line */}
-              <BalanceLine
+              {/* <BalanceLine
                 key={`balance-${user.id}`}
                 label=""
                 value={user.balance}
@@ -421,7 +422,7 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
             </div>
           );
         })}
-      </div>
+      </div> */}
       
       {showHoverCard && hoverCardPosition && hoverData && (
         <HoverCard
