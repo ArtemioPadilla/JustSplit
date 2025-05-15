@@ -2,18 +2,37 @@
 
 import { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import NotificationModule from '../../context/NotificationContext';
 import Link from 'next/link';
 import styles from './page.module.css';
 
 export default function FriendsPage() {
   const { state } = useAppContext();
+  const { showNotification } = NotificationModule.useNotification();
   const [searchTerm, setSearchTerm] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
   
   // Filter friends based on search term
   const filteredFriends = state.users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  // Handle social network connection
+  const handleSocialConnect = (network: 'facebook' | 'google' | 'twitter') => {
+    setIsLoading(network);
+    
+    // Simulate API call with timeout
+    setTimeout(() => {
+      setIsLoading(null);
+      showNotification(
+        `Successfully connected to ${network}! Friends import feature will be available soon.`, 
+        'success',
+        5000
+      );
+      setIsImportModalOpen(false);
+    }, 1500);
+  };
 
   return (
     <div className={styles.container}>
@@ -54,7 +73,15 @@ export default function FriendsPage() {
           {filteredFriends.map(friend => (
             <div key={friend.id} className={styles.friendCard}>
               <div className={styles.friendAvatar}>
-                <span>{friend.name.charAt(0)}</span>
+                {friend.avatarUrl ? (
+                  <img 
+                    src={friend.avatarUrl} 
+                    alt={`${friend.name}'s avatar`}
+                    className={styles.friendAvatarImage}
+                  />
+                ) : (
+                  <span>{friend.name.charAt(0)}</span>
+                )}
               </div>
               <div className={styles.friendInfo}>
                 <h3 className={styles.friendName}>{friend.name}</h3>
@@ -75,14 +102,26 @@ export default function FriendsPage() {
           <div className={styles.modal}>
             <h2>Import Friends</h2>
             <div className={styles.socialButtons}>
-              <button className={`${styles.socialButton} ${styles.facebook}`}>
-                Connect Facebook
+              <button 
+                className={`${styles.socialButton} ${styles.facebook}`}
+                onClick={() => handleSocialConnect('facebook')}
+                disabled={isLoading === 'facebook'}
+              >
+                {isLoading === 'facebook' ? 'Connecting...' : 'Connect Facebook'}
               </button>
-              <button className={`${styles.socialButton} ${styles.google}`}>
-                Connect Google
+              <button 
+                className={`${styles.socialButton} ${styles.google}`}
+                onClick={() => handleSocialConnect('google')}
+                disabled={isLoading === 'google'}
+              >
+                {isLoading === 'google' ? 'Connecting...' : 'Connect Google'}
               </button>
-              <button className={`${styles.socialButton} ${styles.twitter}`}>
-                Connect Twitter
+              <button 
+                className={`${styles.socialButton} ${styles.twitter}`}
+                onClick={() => handleSocialConnect('twitter')}
+                disabled={isLoading === 'twitter'}
+              >
+                {isLoading === 'twitter' ? 'Connecting...' : 'Connect Twitter'}
               </button>
             </div>
             <p className={styles.modalNote}>

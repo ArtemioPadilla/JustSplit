@@ -10,6 +10,7 @@ export interface User {
   phoneNumber?: string;
   preferredCurrency?: string;
   balance: number;
+  avatarUrl?: string;
 }
 
 export interface Expense {
@@ -56,7 +57,7 @@ interface AppState {
 
 type Action =
   | { type: 'ADD_USER'; payload: Omit<User, 'id' | 'balance'> }
-  | { type: 'UPDATE_USER'; payload: { id: string, name: string, email?: string, phoneNumber?: string, preferredCurrency?: string } }
+  | { type: 'UPDATE_USER'; payload: { id: string, name: string, email?: string, phoneNumber?: string, preferredCurrency?: string, avatarUrl?: string } }
   | { type: 'ADD_EXPENSE'; payload: Omit<Expense, 'id'> }
   | { type: 'UPDATE_EXPENSE'; payload: Expense }
   | { type: 'DELETE_EXPENSE'; payload: string }

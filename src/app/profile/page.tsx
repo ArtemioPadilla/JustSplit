@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import NotificationModule from '../../context/NotificationContext';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
+import AvatarUploader from '../../components/AvatarUploader';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
   const { state, dispatch } = useAppContext();
+  const { showNotification } = NotificationModule.useNotification();
   
   // Get the current user (consider the first user as the current user for this app)
   const currentUser = state.users.length > 0 ? state.users[0] : null;
@@ -16,22 +19,72 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [preferredCurrency, setPreferredCurrency] = useState('USD');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  // Validation states
+  const [emailError, setEmailError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   
   // Load user data into form fields when user data is available
   useEffect(() => {
     if (currentUser) {
-      setName(currentUser.name || '');
-      setEmail(currentUser.email || '');
-      setPhoneNumber(currentUser.phoneNumber || '');
-      setPreferredCurrency(currentUser.preferredCurrency || 'USD');
+      setName(currentUser.name ?? '');
+      setEmail(currentUser.email ?? '');
+      setPhoneNumber(currentUser.phoneNumber ?? '');
+      setPreferredCurrency(currentUser.preferredCurrency ?? 'USD');
+      setAvatarUrl(currentUser.avatarUrl ?? null);
     }
   }, [currentUser]);
+
+  // Validate email format
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true; // Empty email is valid (optional field)
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email);
+    
+    setEmailError(isValid ? '' : 'Please enter a valid email address');
+    return isValid;
+  };
+  
+  // Validate phone number format
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true; // Empty phone is valid (optional field)
+    
+    // Simple validation for international phone numbers
+    const phoneRegex = /^\+?[(]?\d{1,4}[)]?[-\s.]?\d{1,4}[-\s.]?\d{1,9}$/;
+    const isValid = phoneRegex.test(phone);
+    
+    setPhoneError(isValid ? '' : 'Please enter a valid phone number');
+    return isValid;
+  };
+  
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    validateEmail(newEmail);
+  };
+  
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPhone = e.target.value;
+    setPhoneNumber(newPhone);
+    validatePhone(newPhone);
+  };
   
   const handleSave = () => {
     if (!currentUser) return;
     
     if (!name.trim()) {
-      alert('Name cannot be empty');
+      showNotification('Name cannot be empty', 'error');
+      return;
+    }
+    
+    // Validate email and phone
+    const isEmailValid = validateEmail(email);
+    const isPhoneValid = validatePhone(phoneNumber);
+    
+    if (!isEmailValid || !isPhoneValid) {
+      showNotification('Please correct the form errors before saving', 'error');
       return;
     }
     
@@ -40,12 +93,14 @@ export default function ProfilePage() {
       payload: {
         id: currentUser.id,
         name: name.trim(),
-        email: email.trim() || undefined,
-        phoneNumber: phoneNumber.trim() || undefined,
-        preferredCurrency
+        email: email.trim() ? email.trim() : undefined,
+        phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : undefined,
+        preferredCurrency,
+        avatarUrl: avatarUrl ?? undefined
       }
     });
     
+    showNotification('Profile updated successfully', 'success');
     setIsEditing(false);
   };
   
@@ -64,9 +119,25 @@ export default function ProfilePage() {
       
       <div className={styles.profileCard}>
         <div className={styles.profileHeader}>
-          <div className={styles.avatar}>
-            <span>{currentUser.name.charAt(0)}</span>
-          </div>
+          {isEditing ? (
+            <AvatarUploader 
+              avatarUrl={avatarUrl} 
+              onAvatarChange={setAvatarUrl}
+              name={name}
+            />
+          ) : (
+            <div className={styles.avatar}>
+              {currentUser.avatarUrl ? (
+                <img 
+                  src={currentUser.avatarUrl} 
+                  alt={`${currentUser.name}'s avatar`} 
+                  className={styles.avatarImage}
+                />
+              ) : (
+                <span>{currentUser.name.charAt(0)}</span>
+              )}
+            </div>
+          )}
           <div>
             <h2>{currentUser.name}</h2>
             {currentUser.email && <p>{currentUser.email}</p>}
@@ -96,9 +167,10 @@ export default function ProfilePage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   className={styles.input}
                 />
+                {emailError && <p className={styles.error}>{emailError}</p>}
               </div>
               
               <div className={styles.formGroup}>
@@ -107,9 +179,10 @@ export default function ProfilePage() {
                   id="phoneNumber"
                   type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={handlePhoneChange}
                   className={styles.input}
                 />
+                {phoneError && <p className={styles.error}>{phoneError}</p>}
               </div>
               
               <div className={styles.formGroup}>
@@ -152,21 +225,21 @@ export default function ProfilePage() {
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Email:</span>
                   <span className={styles.infoValue}>
-                    {currentUser.email || 'Not provided'}
+                    {currentUser.email ?? 'Not provided'}
                   </span>
                 </div>
                 
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Phone:</span>
                   <span className={styles.infoValue}>
-                    {currentUser.phoneNumber || 'Not provided'}
+                    {currentUser.phoneNumber ?? 'Not provided'}
                   </span>
                 </div>
                 
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Preferred Currency:</span>
                   <span className={styles.infoValue}>
-                    {currentUser.preferredCurrency || 'USD'}
+                    {currentUser.preferredCurrency ?? 'USD'}
                   </span>
                 </div>
               </div>
