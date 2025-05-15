@@ -7,6 +7,7 @@ import { SUPPORTED_CURRENCIES } from '../../../utils/currencyExchange';
 import ImageUploader from '../../../components/ImageUploader';
 import Button from '../../../components/ui/Button';
 import styles from './page.module.css';
+import ExpenseSplitter from '../../../components/ExpenseSplitter';
 
 export default function NewExpense() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function NewExpense() {
   const [eventId, setEventId] = useState<string | undefined>(undefined);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [splitMethod, setSplitMethod] = useState('equal');
+  const [participantShares, setParticipantShares] = useState<{ id: string; name: string; share: number; }[]>([]);
   
   // Add a participant input field
   const [newParticipantName, setNewParticipantName] = useState('');
@@ -37,6 +40,7 @@ export default function NewExpense() {
       // Use existing user
       if (!participants.includes(existingUser.id)) {
         setParticipants([...participants, existingUser.id]);
+        setParticipantShares([...participantShares, { id: existingUser.id, name: existingUser.name, share: 0 }]);
       }
     } else {
       // Create new user
@@ -70,7 +74,9 @@ export default function NewExpense() {
         eventId,
         settled: false,
         notes,
-        images
+        images,
+        splitMethod,
+        participantShares
       }
     });
     
@@ -204,7 +210,10 @@ export default function NewExpense() {
                     <span>{user.name}</span>
                     <Button
                       type="button"
-                      onClick={() => setParticipants(participants.filter(id => id !== user.id))}
+                      onClick={() => {
+                        setParticipants(participants.filter(id => id !== user.id));
+                        setParticipantShares(participantShares.filter(p => p.id !== user.id));
+                      }}
                       variant="secondary"
                       size="small"
                     >
@@ -244,7 +253,10 @@ export default function NewExpense() {
                   <Button
                     key={user.id}
                     type="button"
-                    onClick={() => setParticipants([...participants, user.id])}
+                    onClick={() => {
+                      setParticipants([...participants, user.id]);
+                      setParticipantShares([...participantShares, { id: user.id, name: user.name, share: 0 }]);
+                    }}
                     variant="tertiary"
                     size="small"
                   >
@@ -254,6 +266,16 @@ export default function NewExpense() {
             </div>
           </div>
         </div>
+        
+        {participants.length > 0 && (
+          <ExpenseSplitter
+            participants={participantShares}
+            totalAmount={parseFloat(amount)}
+            splitMethod={splitMethod}
+            onSplitMethodChange={setSplitMethod}
+            onSharesChange={setParticipantShares}
+          />
+        )}
         
         <div className={styles.formGroup}>
           <label htmlFor="notes" className={styles.label}>

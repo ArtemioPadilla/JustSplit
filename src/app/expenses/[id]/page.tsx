@@ -150,6 +150,12 @@ export default function ExpenseDetail() {
               {expense.settled ? 'Settled' : 'Unsettled'}
             </span>
           </div>
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>Split Method</span>
+            <span className={styles.detailValue}>
+              {expense.splitMethod === 'equal' ? 'Split Equally' : expense.splitMethod === 'custom' ? 'Custom Split' : 'Percentage Split'}
+            </span>
+          </div>
         </div>
       </div>
 

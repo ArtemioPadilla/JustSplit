@@ -1,344 +1,363 @@
-'use client';
+"use client";
 
-import React, { useState, FormEvent, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useAppContext } from '../../../../context/AppContext';
-import { SUPPORTED_CURRENCIES } from '../../../../utils/currencyExchange';
-import ImageUploader from '../../../../components/ImageUploader';
-import Button from '../../../../components/ui/Button';
-import styles from './page.module.css';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  TextField, 
+  Button, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem,
+  Paper,
+  Divider,
+  CircularProgress
+} from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import ExpenseSplitter from '../../../../components/ExpenseSplitter';
 
-export default function EditExpense() {
-  const router = useRouter();
+// Mock data - replace with your actual data fetching
+const mockUsers = [
+  { id: '1', name: 'User 1' },
+  { id: '2', name: 'User 2' },
+  { id: '3', name: 'User 3' }
+];
+
+// Mock expense - replace with your API call
+const getMockExpense = (id: string) => ({
+  id,
+  title: 'Dinner at Restaurant',
+  amount: 150,
+  date: new Date(),
+  description: 'Group dinner',
+  paidById: '1',
+  currency: 'USD',
+  category: 'food',
+  splitMethod: 'equal',
+  participants: [
+    { id: '1', name: 'User 1', share: 50 },
+    { id: '2', name: 'User 2', share: 50 },
+    { id: '3', name: 'User 3', share: 50 }
+  ]
+});
+
+type Participant = {
+  id: string;
+  name: string;
+  share: number;
+};
+
+const EditExpensePage = () => {
   const params = useParams();
-  const { state, dispatch } = useAppContext();
+  const router = useRouter();
+  const expenseId = params.id as string;
   
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('USD');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paidBy, setPaidBy] = useState('');
-  const [participants, setParticipants] = useState<string[]>([]);
-  const [eventId, setEventId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [images, setImages] = useState<string[]>([]);
-  
-  // Add a participant input field
-  const [newParticipantName, setNewParticipantName] = useState('');
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState<number>(0);
+  const [date, setDate] = useState<Date | null>(new Date());
+  const [description, setDescription] = useState('');
+  const [paidById, setPaidById] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [category, setCategory] = useState('');
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [splitMethod, setSplitMethod] = useState('equal');
+  const [participantShares, setParticipantShares] = useState<Participant[]>([]);
 
   useEffect(() => {
-    if (params.id && state) {
-      const expenseId = params.id as string;
-      const expense = state.expenses.find(exp => exp.id === expenseId);
-      
-      if (expense) {
-        setDescription(expense.description);
-        setAmount(expense.amount.toString());
-        setCurrency(expense.currency);
-        setDate(expense.date);
-        setPaidBy(expense.paidBy);
-        setParticipants(expense.participants);
-        setEventId(expense.eventId);
-        setNotes(expense.notes || '');
-        setImages(expense.images || []);
-      } else {
-        setNotFound(true);
+    // Fetch expense data
+    const fetchExpense = async () => {
+      try {
+        // In a real app, you would fetch from your API
+        // const response = await fetch(`/api/expenses/${expenseId}`);
+        // const data = await response.json();
+        
+        // Using mock data for this example
+        const data = getMockExpense(expenseId);
+        
+        setTitle(data.title);
+        setAmount(data.amount);
+        setDate(new Date(data.date));
+        setDescription(data.description);
+        setPaidById(data.paidById);
+        setCurrency(data.currency);
+        setCategory(data.category);
+        setSplitMethod(data.splitMethod);
+        
+        const participantIds = data.participants.map(p => p.id);
+        setSelectedParticipants(participantIds);
+        setParticipantShares(data.participants);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching expense:', error);
+        setLoading(false);
       }
-      
-      setLoading(false);
-    }
-  }, [params.id, state]);
+    };
+    
+    fetchExpense();
+  }, [expenseId]);
 
-  const handleAddParticipant = () => {
-    if (!newParticipantName.trim()) return;
-    
-    // Check if user already exists
-    const existingUser = state.users.find(
-      user => user.name.toLowerCase() === newParticipantName.toLowerCase()
-    );
-    
-    if (existingUser) {
-      // Use existing user
-      if (!participants.includes(existingUser.id)) {
-        setParticipants([...participants, existingUser.id]);
+  const handleAddParticipant = (userId: string) => {
+    if (!selectedParticipants.includes(userId)) {
+      const newSelectedParticipants = [...selectedParticipants, userId];
+      setSelectedParticipants(newSelectedParticipants);
+      
+      // Add user to participants with shares
+      const user = mockUsers.find(u => u.id === userId);
+      if (user) {
+        setParticipantShares(prev => [
+          ...prev,
+          {
+            id: user.id,
+            name: user.name,
+            share: 0 // Will be calculated by ExpenseSplitter based on method
+          }
+        ]);
       }
-    } else {
-      // Create new user
-      dispatch({
-        type: 'ADD_USER',
-        payload: { name: newParticipantName }
-      });
     }
-    
-    setNewParticipantName('');
   };
-  
-  const handleSubmit = (e: FormEvent) => {
+
+  const handleRemoveParticipant = (userId: string) => {
+    setSelectedParticipants(selectedParticipants.filter(id => id !== userId));
+    setParticipantShares(participantShares.filter(p => p.id !== userId));
+  };
+
+  const handleSharesChange = (updatedParticipants: Participant[]) => {
+    setParticipantShares(updatedParticipants);
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAmount = parseFloat(e.target.value) || 0;
+    setAmount(newAmount);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!description || !amount || !paidBy || participants.length === 0) {
-      alert('Please fill in all required fields');
-      return;
-    }
+    // Construct expense object
+    const expenseData = {
+      id: expenseId,
+      title,
+      amount,
+      date,
+      description,
+      paidById,
+      currency,
+      category,
+      splitMethod,
+      participants: participantShares,
+      // Add other necessary fields
+    };
     
-    // Update the expense
-    dispatch({
-      type: 'UPDATE_EXPENSE',
-      payload: {
-        id: params.id as string,
-        description,
-        amount: parseFloat(amount),
-        currency,
-        date,
-        paidBy,
-        participants,
-        eventId,
-        settled: false,
-        notes,
-        images
-      }
-    });
+    console.log('Updating expense:', expenseData);
+    // Call your API to update the expense
+    // ...
     
-    // Navigate back to expense details
-    router.push(`/expenses/${params.id}`);
+    // Redirect back to expense detail view
+    router.push(`/expenses/${expenseId}`);
   };
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <h1 className={styles.title}>Loading expense details...</h1>
-      </div>
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Container>
     );
   }
 
-  if (notFound) {
-    return (
-      <div className={styles.container}>
-        <h1 className={styles.title}>Expense not found</h1>
-        <p>The expense you're trying to edit doesn't exist or has been deleted.</p>
-        <button 
-          onClick={() => router.push('/expenses/list')}
-          className={styles.backButton}
-        >
-          Go back to expenses list
-        </button>
-      </div>
-    );
-  }
-  
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Edit Expense</h1>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Edit Expense
+      </Typography>
       
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formGroup}>
-          <label htmlFor="description" className={styles.label}>
-            Description
-          </label>
-          <input
-            id="description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            className={styles.input}
-            placeholder="e.g., Dinner at restaurant"
-          />
-        </div>
-        
-        <div className={styles.formRow}>
-          <div className={styles.formGroup}>
-            <label htmlFor="amount" className={styles.label}>
-              Amount
-            </label>
-            <input
-              id="amount"
-              type="number"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Title"
+              fullWidth
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
-              className={styles.input}
-              placeholder="0.00"
+              margin="normal"
             />
-          </div>
+          </Box>
           
-          <div className={styles.formGroup}>
-            <label htmlFor="currency" className={styles.label}>
-              Currency
-            </label>
-            <select
-              id="currency"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className={styles.select}
-            >
-              {SUPPORTED_CURRENCIES.map(curr => (
-                <option key={curr.code} value={curr.code}>
-                  {curr.code} ({curr.symbol})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="date" className={styles.label}>
-            Date
-          </label>
-          <input
-            id="date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className={styles.input}
-          />
-        </div>
-        
-        {state.events.length > 0 && (
-          <div className={styles.formGroup}>
-            <label htmlFor="event" className={styles.label}>
-              Event (Optional)
-            </label>
-            <select
-              id="event"
-              value={eventId || ''}
-              onChange={(e) => setEventId(e.target.value || undefined)}
-              className={styles.select}
-            >
-              <option value="">None</option>
-              {state.events.map(event => (
-                <option key={event.id} value={event.id}>
-                  {event.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="paidBy" className={styles.label}>
-            Paid By
-          </label>
-          <select
-            id="paidBy"
-            value={paidBy}
-            onChange={(e) => setPaidBy(e.target.value)}
-            required
-            className={styles.select}
-          >
-            <option value="" disabled>
-              Select who paid
-            </option>
-            {state.users.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Participants</label>
-          
-          <div className={styles.participantsList}>
-            {participants.length > 0 ? (
-              state.users
-                .filter(user => participants.includes(user.id))
-                .map(user => (
-                  <div key={user.id} className={styles.participantItem}>
-                    <span>{user.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setParticipants(participants.filter(id => id !== user.id))}
-                      className={styles.removeButton}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))
-            ) : (
-              <p className={styles.noParticipants}>No participants selected</p>
-            )}
-          </div>
-          
-          <div className={styles.addParticipant}>
-            <input
-              type="text"
-              value={newParticipantName}
-              onChange={(e) => setNewParticipantName(e.target.value)}
-              className={styles.participantInput}
-              placeholder="Enter participant name"
+          <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+            <TextField
+              label="Amount"
+              type="number"
+              value={amount}
+              onChange={handleAmountChange}
+              required
+              sx={{ flexGrow: 1 }}
             />
-            <button
-              type="button"
-              onClick={handleAddParticipant}
-              className={styles.addButton}
-            >
-              Add
-            </button>
-          </div>
+            
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel>Currency</InputLabel>
+              <Select
+                value={currency}
+                label="Currency"
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                <MenuItem value="USD">USD</MenuItem>
+                <MenuItem value="EUR">EUR</MenuItem>
+                <MenuItem value="GBP">GBP</MenuItem>
+                <MenuItem value="MXN">MXN</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
           
-          <div className={styles.existingUsers}>
-            <p className={styles.existingUsersTitle}>Or select existing users:</p>
-            <div className={styles.userList}>
-              {state.users
-                .filter(user => !participants.includes(user.id))
-                .map(user => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => setParticipants([...participants, user.id])}
-                    className={styles.userButton}
-                  >
+          <Box sx={{ mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Date"
+                value={date}
+                onChange={(newDate) => setDate(newDate)}
+                sx={{ width: '100%' }}
+              />
+            </LocalizationProvider>
+          </Box>
+          
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              margin="normal"
+            />
+          </Box>
+          
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={category}
+                label="Category"
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <MenuItem value="food">Food & Drinks</MenuItem>
+                <MenuItem value="transportation">Transportation</MenuItem>
+                <MenuItem value="accommodation">Accommodation</MenuItem>
+                <MenuItem value="entertainment">Entertainment</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <InputLabel>Paid By</InputLabel>
+              <Select
+                value={paidById}
+                label="Paid By"
+                onChange={(e) => setPaidById(e.target.value)}
+                required
+              >
+                {mockUsers.map((user) => (
+                  <MenuItem key={user.id} value={user.id}>
                     {user.name}
-                  </button>
+                  </MenuItem>
                 ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="notes" className={styles.label}>
-            Notes (Optional)
-          </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className={styles.textarea}
-            placeholder="Add any details or notes about this expense"
-            rows={3}
-          />
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label className={styles.label}>
-            Receipt Images (Optional)
-          </label>
-          <ImageUploader 
-            images={images} 
-            onImagesChange={setImages} 
-          />
-        </div>
-        
-        <div className={styles.buttonGroup}>
-          <Button type="submit" variant="primary" className={styles.submitButton}>
-            Save Changes
-          </Button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className={styles.cancelButton}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+              </Select>
+            </FormControl>
+          </Box>
+          
+          <Divider sx={{ my: 3 }} />
+          
+          <Typography variant="h6" gutterBottom>
+            Participants
+          </Typography>
+          
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <InputLabel>Add Participant</InputLabel>
+              <Select
+                value=""
+                label="Add Participant"
+                onChange={(e) => handleAddParticipant(e.target.value)}
+              >
+                {mockUsers
+                  .filter(user => !selectedParticipants.includes(user.id))
+                  .map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Box>
+          
+          <Box sx={{ mb: 3 }}>
+            {selectedParticipants.length > 0 ? (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                  Selected Participants:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {selectedParticipants.map(id => {
+                    const user = mockUsers.find(u => u.id === id);
+                    return user ? (
+                      <Button 
+                        key={id}
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleRemoveParticipant(id)}
+                        sx={{ mb: 1 }}
+                      >
+                        {user.name} ✕
+                      </Button>
+                    ) : null;
+                  })}
+                </Box>
+              </>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No participants selected. Add at least one participant.
+              </Typography>
+            )}
+          </Box>
+          
+          {selectedParticipants.length > 0 && (
+            <ExpenseSplitter
+              participants={participantShares}
+              totalAmount={amount}
+              splitMethod={splitMethod}
+              onSplitMethodChange={setSplitMethod}
+              onSharesChange={handleSharesChange}
+            />
+          )}
+          
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+            <Button 
+              variant="outlined"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="contained" 
+              color="primary"
+              type="submit"
+              disabled={selectedParticipants.length === 0 || !paidById}
+            >
+              Update Expense
+            </Button>
+          </Box>
+        </form>
+      </Paper>
+    </Container>
   );
-}
+};
+
+export default EditExpensePage;
