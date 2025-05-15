@@ -11,9 +11,9 @@ The feature matrix lists all unique features, including the four previously miss
 | Feature                                  | Priority   | Status      | Detail                                                               |
 |------------------------------------------|------------|-------------|----------------------------------------------------------------------|
 | Add expenses manually                    | Must Have  | Implemented | Users can input expenses with description, amount, and date.         |
-| Split expenses equally/custom/percentage | Must Have  | Partially Implemented | Allow different methods to divide the amount among participants.     |
-| Multi-currency support                   | Must Have  | Partially Implemented | Support entry of expenses in different currencies.                   |
-| Debt simplification                      | Must Have  | Could Improve | Automatically calculate minimal transactions to settle debts.        |
+| Split expenses equally/custom/percentage | Must Have  | Implemented | Allow different methods to divide the amount among participants.     |
+| Multi-currency support                   | Must Have  | Implemented | Support entry of expenses in different currencies.                   |
+| Debt simplification                      | Must Have  | Implemented | Automatically calculate minimal transactions to settle debts.        |
 | Scan receipts via OCR                    | Could Have | Planned | Use optical character recognition to extract text from receipts.     |
 | Recurring expenses                       | Could Have | Planned | Create expenses that repeat on a schedule.                           |
 | Manual expense settlement                | Must Have  | Planned     | Mark expenses as settled manually without automated balance logic.   |
