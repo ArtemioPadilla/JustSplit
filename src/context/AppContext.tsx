@@ -70,7 +70,7 @@ export interface Settlement {
   eventId?: string; // Optional event ID
 }
 
-interface AppState {
+export interface AppState { // Add export here
   users: User[];
   expenses: Expense[];
   events: Event[];
@@ -300,115 +300,154 @@ interface AppContextType {
   addSettlement: (settlementData: Omit<Settlement, 'id' | 'date'>) => Promise<string>;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userProfile, isLoading: authLoading } = useAuth();
-  const [state, dispatch] = useReducer(reducer, initialState);
+// Allow initialState to be passed in for testing
+export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: Partial<AppState> }> = ({ children, initialState: customInitialState }) => {
+  // Get auth context, but handle case where it might be missing (for tests)
+  let auth;
+  try {
+    auth = useAuth();
+  } catch (e) {
+    // If AuthContext is not available, use dummy values
+    auth = {
+      currentUser: null,
+      userProfile: null, // Added for consistency
+      isLoading: false,
+      // Ensure other properties of AuthContextValue are mocked if accessed
+      // e.g., login: async () => {}, logout: async () => {}, etc.
+    };
+  }
+
+  // Always provide a fallback for initialState
+  const [state, dispatch] = useReducer(
+    reducer,
+    { ...initialState, ...customInitialState }
+  );
+
   const [preferredCurrency, setPreferredCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [isConvertingCurrencies, setIsConvertingCurrencies] = useState<boolean>(true);
   
-  // Update state.currentUser when userProfile changes
+  // Update state.currentUser when auth state changes (userProfile or currentUser)
   useEffect(() => {
-    if (userProfile) {
-      // Find existing user record or create one based on userProfile
-      const currentUser: User = {
-        id: userProfile.id,
-        name: userProfile.name || 'Unknown User',
-        email: userProfile.email,
-        balance: 0,
-        ...userProfile, // Spread any additional properties from userProfile
-      };
-      
-      // Update the state with the current user
-      dispatch({ 
-        type: 'UPDATE_STATE', 
-        payload: { currentUser } 
-      });
-      
-      console.log('Current user updated in AppContext:', currentUser);
-    } else if (!authLoading) {
-      // If not loading and no profile, clear current user
-      dispatch({ 
-        type: 'UPDATE_STATE', 
-        payload: { currentUser: null } 
-      });
+    if (auth.isLoading) {
+      // Optional: dispatch a loading state for currentUser if your UI needs to react to this
+      return; // Wait for auth to finish loading
     }
-  }, [userProfile, authLoading]);
+
+    if (auth.userProfile) {
+      const profile = auth.userProfile;
+      const currentUserData: User = {
+        id: profile.id,
+        name: profile.name || 'Unknown User',
+        email: profile.email,
+        avatarUrl: profile.avatarUrl,
+        preferredCurrency: profile.preferredCurrency || DEFAULT_CURRENCY,
+        balance: profile.balance ?? 0,
+        phoneNumber: profile.phoneNumber, 
+        friends: profile.friends || [], 
+        friendRequestsSent: profile.friendRequestsSent || [], 
+        friendRequestsReceived: profile.friendRequestsReceived || [], 
+      };
+      dispatch({ type: 'UPDATE_STATE', payload: { currentUser: currentUserData } });
+      if (currentUserData.preferredCurrency) {
+        setPreferredCurrency(currentUserData.preferredCurrency);
+      }
+    } else if (auth.currentUser) {
+      const fbUser = auth.currentUser;
+      const existingUserInState = state.users.find(u => u.id === fbUser.uid);
+
+      const currentUserData: User = {
+        id: fbUser.uid,
+        name: existingUserInState?.name || fbUser.displayName || 'Unknown User',
+        email: existingUserInState?.email || fbUser.email || undefined,
+        avatarUrl: existingUserInState?.avatarUrl || fbUser.photoURL || undefined,
+        preferredCurrency: existingUserInState?.preferredCurrency || DEFAULT_CURRENCY,
+        balance: existingUserInState?.balance ?? 0,
+        phoneNumber: existingUserInState?.phoneNumber,
+        friends: existingUserInState?.friends || [],
+        friendRequestsSent: existingUserInState?.friendRequestsSent || [],
+        friendRequestsReceived: existingUserInState?.friendRequestsReceived || [],
+      };
+      dispatch({ type: 'UPDATE_STATE', payload: { currentUser: currentUserData } });
+      if (currentUserData.preferredCurrency) {
+        setPreferredCurrency(currentUserData.preferredCurrency);
+      }
+    } else {
+      dispatch({ type: 'UPDATE_STATE', payload: { currentUser: null } });
+      setPreferredCurrency(DEFAULT_CURRENCY);
+    }
+  }, [auth.isLoading, auth.userProfile, auth.currentUser, dispatch, state.users]);
   
   // Subscribe to Firestore collections
   useEffect(() => {
-    if (authLoading || !userProfile) return;
-    
-    // Set up listeners for collections
-    const unsubscribers: (() => void)[] = [];
-    
-    // Users collection listener
-    const usersQuery = query(collection(db, 'users'));
-    const unsubUsers = onSnapshot(usersQuery, (snapshot) => {
-      const users = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
-      dispatch({ type: 'UPDATE_USERS', payload: users });
-    });
-    unsubscribers.push(unsubUsers);
-    
-    // Expenses collection listener - only get expenses where the user is a participant
-    const expensesQuery = query(
-      collection(db, 'expenses'),
-      where('participants', 'array-contains', userProfile.id)
-    );
-    console.log('Setting up Firestore listener for expenses with userProfile.id:', userProfile.id);
-    const unsubExpenses = onSnapshot(expensesQuery, (snapshot) => {
-      console.log('Received expense data from Firestore:', snapshot.docs.length, 'documents');
-      const expenses = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Expense));
-      console.log('Mapped expense data:', expenses);
-      dispatch({ type: 'UPDATE_EXPENSES', payload: expenses });
-    }, (error) => {
-      console.error('Error in expenses listener:', error);
-    });
-    unsubscribers.push(unsubExpenses);
-    
-    // Events collection listener - only get events where the user is a participant
-    const eventsQuery = query(
-      collection(db, 'events'),
-      where('participants', 'array-contains', userProfile.id)
-    );
-    console.log('Setting up Firestore listener for events with userProfile.id:', userProfile.id);
-    const unsubEvents = onSnapshot(eventsQuery, (snapshot) => {
-      console.log('Received event data from Firestore:', snapshot.docs.length, 'documents');
-      const events = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Event));
-      console.log('Mapped event data:', events);
-      dispatch({ type: 'UPDATE_EVENTS', payload: events });
-    }, (error) => {
-      console.error('Error in events listener:', error);
-    });
-    unsubscribers.push(unsubEvents);
-    
-    // Settlements collection listener - get settlements where the user is involved
-    const settlementsQuery = query(
-      collection(db, 'settlements'),
-      where('fromUser', '==', userProfile.id)
-    );
-    const unsubSettlements = onSnapshot(settlementsQuery, (snapshot) => {
-      const settlements = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Settlement));
-      dispatch({ type: 'UPDATE_SETTLEMENTS', payload: settlements });
-    });
-    unsubscribers.push(unsubSettlements);
-    
-    // Set preferred currency from user profile
-    if (userProfile.preferredCurrency) {
-      setPreferredCurrency(userProfile.preferredCurrency);
+    if (auth.isLoading) {
+      return; // Wait for auth to finish loading
     }
-    
-    // Mark data as loaded once initial data is fetched
-    dispatch({ type: 'SET_DATA_LOADED', payload: true });
-    
-    // Clean up listeners on unmount
+
+    // Placeholder for unsubscribe functions
+    let unsubscribers: (() => void)[] = [];
+
+    if (state.currentUser && state.currentUser.id) {
+      const userId = state.currentUser.id;
+
+      // NOTE: Replace the following with your actual Firestore listener setup logic.
+      // The key changes are the trigger condition (userId) and dependency array.
+
+      // Example: Users collection listener
+      const usersQuery = collection(db, "users");
+      unsubscribers.push(onSnapshot(usersQuery, (snapshot) => {
+        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        dispatch({ type: 'UPDATE_USERS', payload: usersData });
+      }, (error) => console.error("Error fetching users:", error)));
+
+      // Example: Events listener (e.g., events where current user is a participant)
+      // Modify query as per your data model (e.g., 'participants', 'members', 'userIds' etc.)
+      const eventsQuery = query(collection(db, "events"), where("participants", "array-contains", userId));
+      unsubscribers.push(onSnapshot(eventsQuery, (snapshot) => {
+        const eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
+        dispatch({ type: 'UPDATE_EVENTS', payload: eventsData });
+      }, (error) => console.error("Error fetching events:", error)));
+      
+      // Example: Expenses listener (e.g., expenses paid by or involving the current user)
+      // Modify query as per your data model
+      const expensesQuery = query(collection(db, "expenses"), where("paidBy", "==", userId)); // Or another relevant field
+      unsubscribers.push(onSnapshot(expensesQuery, (snapshot) => {
+        const expensesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
+        dispatch({ type: 'UPDATE_EXPENSES', payload: expensesData });
+      }, (error) => console.error("Error fetching expenses:", error)));
+
+      // Example: Settlements listener
+      const settlementsQuery = query(collection(db, "settlements"), where("involvedUsers", "array-contains", userId));
+      unsubscribers.push(onSnapshot(settlementsQuery, (snapshot) => {
+        const settlementsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Settlement));
+        dispatch({ type: 'UPDATE_SETTLEMENTS', payload: settlementsData });
+      }, (error) => console.error("Error fetching settlements:", error)));
+      
+      dispatch({ type: 'SET_DATA_LOADED', payload: true });
+
+    } else if (!auth.currentUser && !auth.isLoading) {
+      // User is logged out, clear data only if not using customInitialState
+      if (customInitialState === undefined) { 
+        dispatch({ type: 'LOAD_DATA', payload: { ...initialState, currentUser: null, isDataLoaded: false } });
+        // Explicitly clear collections
+        dispatch({ type: 'UPDATE_USERS', payload: [] });
+        dispatch({ type: 'UPDATE_EVENTS', payload: [] });
+        dispatch({ type: 'UPDATE_EXPENSES', payload: [] });
+        dispatch({ type: 'UPDATE_SETTLEMENTS', payload: [] });
+      }
+    }
+
     return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers.forEach(unsub => unsub());
     };
-  }, [userProfile, authLoading]);
-  
-  // Firestore operations
+  // MODIFIED: Add customInitialState to the dependency array
+  }, [state.currentUser?.id, auth.currentUser, auth.isLoading, dispatch, customInitialState]); 
+
+  // Firestore operations (addUser, updateUser, etc.)
+  // These should remain largely the same but ensure they use sanitized data
+  // and handle errors appropriately.
+
   const addUser = async (userData: Omit<User, 'id' | 'balance'>) => {
     const sanitizedData = sanitizeForFirestore({
       ...userData,

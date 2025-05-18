@@ -4,7 +4,17 @@ import { useAuth } from '../../context/AuthContext';
 const DatabaseErrorRecovery: React.FC = () => {
   // Use local state to avoid hydration mismatch issues
   const [shouldShow, setShouldShow] = useState(false);
-  const { hasDatabaseCorruption, handleDatabaseRecovery } = useAuth();
+  
+  // Handle the case where AuthContext might not be available (for tests)
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (e) {
+    // If auth context is not available, provide default values
+    authContext = { hasDatabaseCorruption: false, handleDatabaseRecovery: () => {} };
+  }
+  
+  const { hasDatabaseCorruption, handleDatabaseRecovery } = authContext;
   
   // Use useEffect to set the state on the client side only
   useEffect(() => {

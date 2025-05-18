@@ -7,26 +7,42 @@ import {
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { clearCachesAndReload } from '../utils/indexedDBReset';
 
-// For debugging - shows if env vars are loaded
-console.log("Firebase Config:", {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "PRESENT" : "MISSING",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? "PRESENT" : "MISSING",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "PRESENT" : "MISSING",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? "PRESENT" : "MISSING",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? "PRESENT" : "MISSING",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? "PRESENT" : "MISSING",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ? "PRESENT" : "MISSING"
-});
+// Check if we're in a test environment
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
+// For debugging - shows if env vars are loaded (only in non-test environments)
+if (!isTestEnv) {
+  console.log("Firebase Config:", {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "PRESENT" : "MISSING",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? "PRESENT" : "MISSING",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "PRESENT" : "MISSING",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? "PRESENT" : "MISSING",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? "PRESENT" : "MISSING",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? "PRESENT" : "MISSING",
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ? "PRESENT" : "MISSING"
+  });
+}
+
+// Use mock config for testing, real config for production/development
+const firebaseConfig = isTestEnv ? 
+  {
+    apiKey: "test-api-key",
+    authDomain: "test-auth-domain",
+    projectId: "test-project-id",
+    storageBucket: "test-bucket",
+    messagingSenderId: "test-sender-id",
+    appId: "test-app-id",
+    measurementId: "test-measurement-id"
+  } :
+  {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  };
 
 // Initialize Firebase
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -34,11 +50,11 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Connect to emulators BEFORE any other Firestore operations
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && !isTestEnv) {
   console.log("Connecting to Firebase EMULATORS");
   try {
     connectAuthEmulator(auth, "http://localhost:9099");
-    connectFirestoreEmulator(db, 'localhost', 8080); // FIXED: Note format is 'localhost' (string) and 8080 (number)
+    connectFirestoreEmulator(db, 'localhost', 8080);
     console.log("Successfully connected to emulators");
   } catch (error) {
     console.error("Error connecting to emulators:", error);
@@ -47,7 +63,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Set up offline persistence AFTER emulator connection
 // with advanced error handling and recovery
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !isTestEnv) {
   // Check for existing IndexedDB issues - safely with try/catch for SSR
   const hasExistingIssue = (() => {
     try {

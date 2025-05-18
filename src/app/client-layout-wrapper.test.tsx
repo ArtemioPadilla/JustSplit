@@ -1,11 +1,32 @@
 import { render, screen } from '@testing-library/react';
 import ClientLayoutWrapper from './client-layout-wrapper';
 import { usePathname } from 'next/navigation';
+import { AuthProvider } from '../context/AuthContext';
 
 // Mock child components and Providers
 jest.mock('../context/Providers', () => ({
   __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="providers">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="providers">
+      <AuthProvider value={{
+        user: null,
+        isLoading: false,
+        error: null,
+        signIn: jest.fn(),
+        signUp: jest.fn(),
+        signOut: jest.fn(),
+        signInWithProvider: jest.fn(),
+        updateProfile: jest.fn(),
+        userProfile: null,
+        isAuthenticated: false,
+        currentUser: null,
+        hasDatabaseCorruption: false,
+        handleDatabaseRecovery: jest.fn()
+      }}>
+        {children}
+      </AuthProvider>
+    </div>
+  ),
 }));
 
 jest.mock('../components/Header', () => ({
@@ -85,14 +106,17 @@ describe('ClientLayoutWrapper', () => {
     expect(screen.queryByTestId('protected-route')).not.toBeInTheDocument();
   });
 
-  it('correctly identifies various non-auth routes', () => {
+  it('correctly identifies root path as non-auth route', () => {
     mockUsePathname.mockReturnValue('/');
     mockIsAuthenticated = true;
     render(<ClientLayoutWrapper><TestChildren /></ClientLayoutWrapper>);
     expect(screen.getByTestId('protected-route')).toBeInTheDocument();
     expect(screen.getByTestId('header')).toBeInTheDocument();
+  });
 
+  it('correctly identifies profile settings path as non-auth route', () => {
     mockUsePathname.mockReturnValue('/profile/settings');
+    mockIsAuthenticated = true;
     render(<ClientLayoutWrapper><TestChildren /></ClientLayoutWrapper>);
     expect(screen.getByTestId('protected-route')).toBeInTheDocument();
     expect(screen.getByTestId('header')).toBeInTheDocument();

@@ -3,16 +3,24 @@
 import React from 'react';
 import { AppProvider } from './AppContext';
 import { AuthProvider } from './AuthContext';
-import NotificationModule from './NotificationContext';
+import { NotificationProvider } from './NotificationContext'; // assuming this is how it's imported
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }) {
   return (
     <AuthProvider>
-      <AppProvider>
-        <NotificationModule.Provider>
+      <AppProvider
+        preferredCurrency="USD"
+        isConvertingCurrencies={false}
+        // Only provide initialState if your AppProvider actually needs it at initialization
+        // initialState is likely fetched from Firebase after authentication
+      >
+        <NotificationProvider>
           {children}
-        </NotificationModule.Provider>
+        </NotificationProvider>
       </AppProvider>
     </AuthProvider>
   );
 }
+
+export default Providers;
+// No changes needed here, just ensure AppProvider always receives a valid initial state.

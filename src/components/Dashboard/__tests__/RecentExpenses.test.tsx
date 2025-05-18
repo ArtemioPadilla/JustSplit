@@ -13,7 +13,11 @@ jest.mock('next/link', () => {
 // Mock currency conversion functions
 jest.mock('../../../utils/currencyExchange', () => ({
   formatCurrency: (amount, currency) => `$${amount.toFixed(2)}`,
-  convertCurrency: async () => ({ convertedAmount: 100, isFallback: false }),
+  convertCurrency: async (amount, fromCurrency, toCurrency) => {
+    // Make sure to return a properly convertedAmount that's different from the original
+    // This ensures the component will display the converted amount
+    return { convertedAmount: amount * 1.2, isFallback: false };
+  },
   getCurrencySymbol: () => '$'
 }));
 
@@ -209,17 +213,22 @@ describe('RecentExpenses', () => {
   });
 
   it('shows converted amount if currency differs and conversion is enabled', async () => {
+    console.log('Starting test: shows converted amount if currency differs and conversion is enabled');
+    
+    // Create a specific test expense with European currency
+    const euroExpense = {
+      ...mockExpenses[0],
+      currency: 'EUR'
+    };
+    
+    console.log('Test expense:', euroExpense);
+    
+    // Rendering component with test data
     renderWithAppContext(
       <RecentExpenses />,
       {
         initialState: {
-          expenses: [
-            { 
-              ...mockExpenses[0],
-              currency: 'EUR' 
-            },
-            ...mockExpenses.slice(1)
-          ],
+          expenses: [euroExpense, ...mockExpenses.slice(1)],
           users: mockUsers,
           events: mockEvents,
           settlements: []
@@ -229,14 +238,29 @@ describe('RecentExpenses', () => {
       }
     );
     
+    console.log('Component rendered');
+    
     // Wait for loading to complete
     await waitFor(() => {
-      expect(screen.queryByText('Converting currencies...')).not.toBeInTheDocument();
+      const loadingElement = screen.queryByText('Converting currencies...');
+      console.log('Loading element present:', !!loadingElement);
+      expect(loadingElement).not.toBeInTheDocument();
     });
+    
+    console.log('Loading complete');
+    
+    // Debug: log all text content in the document
+    console.log('Document text content:', document.body.textContent);
+    
+    // Debug: Check for specific element with data-testid
+    const convertedElement = screen.queryByTestId('converted-amount');
+    console.log('Converted element:', convertedElement);
     
     // Wait for conversion to finish
     await waitFor(() => {
-      expect(screen.queryByText(/≈/)).toBeInTheDocument();
+      const convertedElement = screen.queryByTestId('converted-amount');
+      console.log('Converted element after wait:', convertedElement);
+      expect(convertedElement).toBeInTheDocument();
     });
   });
 

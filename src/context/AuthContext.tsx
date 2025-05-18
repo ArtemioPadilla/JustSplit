@@ -20,11 +20,24 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { User, sanitizeForFirestore } from './AppContext';
 import { hasIndexedDBCorruption, recoverFromCorruption } from '../utils/indexedDBReset';
 
 
-interface AuthContextType {
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  balance: number;
+  avatarUrl?: string;
+  preferredCurrency: string;
+  // Add the new optional fields
+  phoneNumber?: string; 
+  friends?: string[]; 
+  friendRequestsSent?: string[]; 
+  friendRequestsReceived?: string[];
+}
+
+export interface AuthContextType { // Add export here
   currentUser: FirebaseUser | null;
   userProfile: User | null;
   isLoading: boolean;
@@ -39,7 +52,7 @@ interface AuthContextType {
   hasDatabaseCorruption: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -120,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             preferredCurrency: 'USD'
           };
           
-          await setDoc(userDocRef, sanitizeForFirestore(newUser));
+          await setDoc(userDocRef, newUser);
           setUserProfile(newUser);
         }
       } else {
@@ -159,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       preferredCurrency: 'USD'
     };
     
-    await setDoc(doc(db, 'users', result.user.uid), sanitizeForFirestore(newUser));
+    await setDoc(doc(db, 'users', result.user.uid), newUser);
   };
 
   const signInWithProvider = async (providerName: 'google' | 'facebook' | 'twitter') => {
@@ -184,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userDocRef = doc(db, 'users', currentUser.uid);
     
     // Update Firestore
-    await setDoc(userDocRef, sanitizeForFirestore({ ...userProfile, ...data }), { merge: true });
+    await setDoc(userDocRef, { ...userProfile, ...data }, { merge: true });
     
     // Update display name in Firebase Auth if needed
     if (data.name && data.name !== currentUser.displayName) {

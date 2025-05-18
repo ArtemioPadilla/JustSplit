@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { AppProvider, useAppContext } from '../AppContext';
+import { AuthProvider } from '../AuthContext';
 
 // Custom renderHook utility to replace @testing-library/react-hooks
 function renderHook(callback, { wrapper: Wrapper } = {}) {
@@ -18,6 +19,26 @@ function renderHook(callback, { wrapper: Wrapper } = {}) {
   return { result };
 }
 
+// Create a mock AuthProvider wrapper for testing
+const AuthProviderWrapper = ({ children }) => {
+  const mockAuthValue = {
+    user: null,
+    isLoading: false,
+    error: null,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    signInWithProvider: jest.fn(),
+    updateProfile: jest.fn(),
+    userProfile: null,
+    isAuthenticated: false,
+    currentUser: null,
+    hasDatabaseCorruption: false,
+    handleDatabaseRecovery: jest.fn()
+  };
+  return <AuthProvider value={mockAuthValue}>{children}</AuthProvider>;
+};
+
 describe('AppContext', () => {
   test('initializes with default state when no initialState is provided', () => {
     const TestComponent = () => {
@@ -33,9 +54,11 @@ describe('AppContext', () => {
     };
 
     render(
-      <AppProvider>
-        <TestComponent />
-      </AppProvider>
+      <AuthProviderWrapper>
+        <AppProvider>
+          <TestComponent />
+        </AppProvider>
+      </AuthProviderWrapper>
     );
 
     expect(screen.getByTestId('user-count').textContent).toBe('0');
