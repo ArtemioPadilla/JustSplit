@@ -98,6 +98,10 @@ const CurrencyExchangeTicker = ({ baseCurrency = 'USD' }) => {
           <span className={styles.fallbackIndicator} title="Using approximate rates">*</span>
         )}
       </div>
+      <div className={styles.attribution}>
+          <a href="https://exchangerate-api.com" target="_blank" rel="noopener noreferrer">Rates By Exchange Rate API</a>
+      </div>
+
       
       {usingFallback && (
         <div className={styles.fallbackWarning}>

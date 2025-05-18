@@ -147,3 +147,11 @@
     opacity: 0.6;
   }
 }
+
+.attribution {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+  text-align: right;
+  padding: 0 var(--space-md);
+}

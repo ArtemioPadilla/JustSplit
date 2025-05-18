@@ -47,10 +47,11 @@ describe('Currency Exchange Utilities', () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce({
-          chart: { 
-            result: [{ 
-              meta: { regularMarketPrice: 1.2 }
-            }]
+          result: 'success',
+          base_code: 'EUR',
+          rates: {
+            USD: 1.2,
+            GBP: 0.85
           }
         })
       });
@@ -58,7 +59,7 @@ describe('Currency Exchange Utilities', () => {
       // First call will store in cache
       await getExchangeRate('EUR', 'USD');
       
-      // Second call should use cache
+      // Second call should use cache without making another fetch
       const result = await getExchangeRate('EUR', 'USD');
       
       // Should only call fetch once (for the first call)
@@ -95,17 +96,18 @@ describe('Currency Exchange Utilities', () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce({
-          chart: { 
-            result: [{ 
-              meta: { regularMarketPrice: 1.5 }
-            }]
+          result: 'success',
+          base_code: 'EUR',
+          rates: {
+            USD: 1.5,
+            GBP: 0.85
           }
         })
       });
       
-      // Clear any cached rates for EUR-USD
+      // Clear any cached rates for EUR
       Object.keys(currencyExchangeModule.exchangeRateCache).forEach(key => {
-        if (key.includes('EUR_USD')) {
+        if (key === 'EUR') {
           delete currencyExchangeModule.exchangeRateCache[key];
         }
       });
@@ -120,7 +122,7 @@ describe('Currency Exchange Utilities', () => {
       // Verify the fetch was called correctly
       expect(fetch).toHaveBeenCalled();
       const fetchUrl = (fetch as jest.Mock).mock.calls[0][0];
-      expect(fetchUrl).toContain('pair=EURUSD');
+      expect(fetchUrl).toBe('https://open.er-api.com/v6/latest/EUR');
     });
     
     it('should use fallback rates when API fails', async () => {
@@ -129,7 +131,7 @@ describe('Currency Exchange Utilities', () => {
       
       // Clear any cached rates
       Object.keys(currencyExchangeModule.exchangeRateCache).forEach(key => {
-        if (key.includes('EUR_USD')) {
+        if (key === 'EUR') {
           delete currencyExchangeModule.exchangeRateCache[key];
         }
       });

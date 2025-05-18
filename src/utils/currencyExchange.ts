@@ -36,14 +36,26 @@ export const SUPPORTED_CURRENCIES = [
 ];
 
 /**
+ * Interface for exchange rate API response
+ */
+interface ExchangeRateApiResponse {
+  result: string;
+  time_last_update_unix: number;
+  time_next_update_unix: number;
+  base_code: string;
+  rates: {
+    [key: string]: number;
+  };
+}
+
+/**
  * Cache for exchange rates to reduce API calls.
- * Format: { 'USD_EUR': { rate: 0.85, timestamp: 1633028114462, isFallback: false } }
+ * Format: { 'USD': { data: ExchangeRateApiResponse, timestamp: number } }
  */
 interface RateCache {
   [key: string]: {
-    rate: number;
+    data: ExchangeRateApiResponse;
     timestamp: number;
-    isFallback: boolean;  // Flag to indicate if this rate is from fallback data
   };
 }
 
@@ -111,8 +123,8 @@ export const exchangeRateCache: RateCache = (() => {
   return {};
 })();
 
-// Cache expiration time in milliseconds (1 hour)
-const CACHE_EXPIRATION = 60 * 60 * 1000;
+// Cache expiration time in milliseconds (6 hours)
+const CACHE_EXPIRATION = 6 * 60 * 60 * 1000;
 
 /**
  * Save exchange rates to localStorage as part of the app data
@@ -134,11 +146,6 @@ const saveExchangeRatesToStorage = (): void => {
   }
 };
 
-// Load cached rates from local storage on module initialization
-if (typeof window !== 'undefined') {
-  // The loading is already handled in the IIFE that initializes exchangeRateCache
-}
-
 /**
  * Checks if a cached exchange rate is still valid
  * @param timestamp The time when the rate was cached
@@ -146,6 +153,34 @@ if (typeof window !== 'undefined') {
  */
 const isCacheValid = (timestamp: number): boolean => {
   return Date.now() - timestamp < CACHE_EXPIRATION;
+};
+
+/**
+ * Fetch exchange rates from the API for a specific base currency
+ * @param baseCurrency The base currency to fetch rates for
+ * @returns The API response with exchange rates
+ */
+const fetchExchangeRates = async (baseCurrency: string): Promise<ExchangeRateApiResponse> => {
+  const url = `https://open.er-api.com/v6/latest/${baseCurrency}`;
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.result !== 'success') {
+      throw new Error(`API returned error: ${data.error || 'Unknown error'}`);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`Error fetching exchange rates for ${baseCurrency}:`, error);
+    throw error;
+  }
 };
 
 /**
@@ -163,74 +198,56 @@ export const getExchangeRate = async (
     return { rate: 1, isFallback: false };
   }
   
-  const cacheKey = `${fromCurrency}_${toCurrency}`;
-
-  // Check if we have a valid cached rate in memory
-  if (
-    exchangeRateCache[cacheKey] &&
-    isCacheValid(exchangeRateCache[cacheKey].timestamp)
-  ) {
-    console.log(`Using cached rate from memory for ${cacheKey}: ${exchangeRateCache[cacheKey].rate}`);
-    return {
-      rate: exchangeRateCache[cacheKey].rate,
-      isFallback: exchangeRateCache[cacheKey].isFallback
-    };
-  }
-  
   try {
-    // Format for Yahoo Finance API: USDEUR=X
-    const pair = `${fromCurrency}${toCurrency}=X`;
-    
-    // Use our server-side proxy to fetch the data
-    const response = await fetch(`/api/exchange-rates?pair=${pair}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch exchange rate: ${response.statusText}`);
+    // First, check if we have a valid cached rate for the base currency
+    if (
+      exchangeRateCache[fromCurrency] &&
+      isCacheValid(exchangeRateCache[fromCurrency].timestamp)
+    ) {
+      const cachedData = exchangeRateCache[fromCurrency].data;
+      
+      // Check if the target currency exists in the cached rates
+      if (cachedData.rates[toCurrency]) {
+        console.log(`Using cached rate for ${fromCurrency} to ${toCurrency}: ${cachedData.rates[toCurrency]}`);
+        return {
+          rate: cachedData.rates[toCurrency],
+          isFallback: false
+        };
+      }
     }
     
-    const data = await response.json();
+    // If not in cache or cache expired, fetch fresh data
+    const data = await fetchExchangeRates(fromCurrency);
     
-    // Extract the current rate from the response
-    const result = data.chart.result[0];
-    const rate = result.meta.regularMarketPrice;
-    
-    // Check if this is fallback data by examining the symbol
-    // The API returns "FALLBACK_DATA" when using fallback rates
-    const isFallback = result.meta.symbol === "FALLBACK_DATA";
-    
-    // Cache the rate in memory
-    exchangeRateCache[cacheKey] = {
-      rate,
-      timestamp: Date.now(),
-      isFallback
+    // Store in cache
+    exchangeRateCache[fromCurrency] = {
+      data,
+      timestamp: Date.now()
     };
     
     // Save to localStorage
     saveExchangeRatesToStorage();
     
-    return { rate, isFallback };
+    // Return the requested rate
+    if (data.rates[toCurrency]) {
+      return {
+        rate: data.rates[toCurrency],
+        isFallback: false
+      };
+    } else {
+      throw new Error(`Rate not found for ${toCurrency}`);
+    }
   } catch (error) {
-    console.error(
-      `Error fetching exchange rate from ${fromCurrency} to ${toCurrency}:`,
-      error
-    );
+    console.error(`Error getting exchange rate from ${fromCurrency} to ${toCurrency}:`, error);
     
     // Try to use fallback rate
+    const cacheKey = `${fromCurrency}_${toCurrency}`;
     if (FALLBACK_RATES[cacheKey]) {
-      const rate = FALLBACK_RATES[cacheKey];
-      
-      // Cache the fallback rate but with a shorter expiration
-      exchangeRateCache[cacheKey] = {
-        rate,
-        timestamp: Date.now() - (CACHE_EXPIRATION / 2), // Expire sooner for fallback rates
-        isFallback: true
+      console.log(`Using fallback rate for ${cacheKey}: ${FALLBACK_RATES[cacheKey]}`);
+      return { 
+        rate: FALLBACK_RATES[cacheKey], 
+        isFallback: true 
       };
-      
-      // Save to localStorage
-      saveExchangeRatesToStorage();
-      
-      console.log(`Using fallback rate for ${cacheKey}: ${rate}`);
-      return { rate, isFallback: true };
     }
     
     // Try to calculate an inverse rate as another fallback option
@@ -238,16 +255,6 @@ export const getExchangeRate = async (
     if (FALLBACK_RATES[inverseKey]) {
       const inverseRate = FALLBACK_RATES[inverseKey];
       const rate = 1 / inverseRate;
-      
-      // Cache the calculated fallback rate
-      exchangeRateCache[cacheKey] = {
-        rate,
-        timestamp: Date.now() - (CACHE_EXPIRATION / 2), // Expire sooner for fallback rates
-        isFallback: true
-      };
-      
-      // Save to localStorage
-      saveExchangeRatesToStorage();
       
       console.log(`Using calculated inverse fallback rate for ${cacheKey}: ${rate}`);
       return { rate, isFallback: true };
@@ -289,7 +296,7 @@ export const useExchangeRate = (fromCurrency: string, toCurrency: string) => {
     
     fetchRate();
     
-    // Refresh rate every hour
+    // Refresh rate every 6 hours
     const intervalId = setInterval(fetchRate, CACHE_EXPIRATION);
     
     return () => clearInterval(intervalId);
