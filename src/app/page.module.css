@@ -1179,3 +1179,36 @@
     margin-top: 0.5rem;
   }
 }
+
+/* Direction arrow animation */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.directionArrow {
+  animation: pulse 2s infinite;
+}
+
+/* Balance line hover effect */
+.userBalanceHover:hover {
+  background-color: rgba(245, 247, 250, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle & info icon animation */
+.infoIcon:hover {
+  transform: rotate(10deg);
+}
+
+.toggleLabel:hover {
+  background-color: #f8fafc;
+}

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DEFAULT_CURRENCY } from '../utils/currencyExchange';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase/config';
+import friendsReducer from '../reducers/friendsReducer';
 import {
   collection,
   doc,
@@ -30,6 +31,9 @@ export interface User {
   preferredCurrency?: string;
   balance: number;
   avatarUrl?: string;
+  friends?: string[];
+  friendRequestsSent?: string[];
+  friendRequestsReceived?: string[];
 }
 
 export interface Expense {
