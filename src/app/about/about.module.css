@@ -1,0 +1,313 @@
+.aboutPage {
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: white;
+  padding: var(--space-3xl) 0;
+  text-align: center;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.mainTitle {
+  font-size: clamp(var(--font-size-4xl), 5vw, 3.5rem);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-md);
+  color: white;
+}
+
+.subtitle {
+  font-size: clamp(var(--font-size-lg), 2vw, var(--font-size-xl));
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Section Styling */
+.section {
+  padding: var(--space-3xl) 0;
+}
+
+.altBackground {
+  background-color: var(--color-surface);
+}
+
+.sectionTitle {
+  color: var(--color-primary);
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.centered {
+  text-align: center;
+}
+
+.sectionText {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-lg);
+  max-width: 800px;
+}
+
+.centered.sectionText {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Two Column Layout */
+.twoColumns {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+}
+
+.columnContent {
+  flex: 1;
+}
+
+.columnImage {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Mission Values */
+.missionImageContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 400px;
+}
+
+.valueCard {
+  background-color: white;
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.valueIcon {
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+}
+
+.valueCard h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.valueCard p {
+  color: var(--color-text-secondary);
+}
+
+/* How It Works */
+.workflowSteps {
+  max-width: 900px;
+  margin: var(--space-xl) auto 0;
+}
+
+.step {
+  display: flex;
+  margin-bottom: var(--space-xl);
+  align-items: flex-start;
+}
+
+.step:last-child {
+  margin-bottom: 0;
+}
+
+.stepNumber {
+  background-color: var(--color-primary);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  margin-right: var(--space-lg);
+  flex-shrink: 0;
+}
+
+.stepContent h3 {
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.stepContent p {
+  color: var(--color-text-secondary);
+}
+
+/* Team Grid */
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xl);
+  margin-top: var(--space-xl);
+}
+
+.teamMember {
+  text-align: center;
+}
+
+.teamMemberPhoto {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto var(--space-md);
+  border-radius: var(--border-radius-full);
+  overflow: hidden;
+  background-color: var(--color-surface);
+}
+
+.photoPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-primary-light);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.teamMember h3 {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-xs);
+}
+
+.teamMember p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* CTA Section */
+.ctaSection {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  padding: var(--space-2xl) 0;
+  text-align: center;
+}
+
+.ctaTitle {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.ctaText {
+  font-size: var(--font-size-lg);
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto var(--space-xl);
+}
+
+.ctaButtons {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+}
+
+.primaryButton {
+  background-color: var(--color-secondary);
+  color: white;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.primaryButton:hover {
+  background-color: var(--color-secondary-light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.secondaryButton {
+  background-color: transparent;
+  color: white;
+  border: 2px solid white;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.secondaryButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+  .twoColumns {
+    flex-direction: column;
+  }
+  
+  .teamGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xl) var(--space-lg);
+  }
+}
+
+@media (max-width: 768px) {
+  .section, .hero {
+    padding: var(--space-2xl) 0;
+  }
+  
+  .sectionTitle {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  
+  .primaryButton, .secondaryButton {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .teamGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .step {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .stepNumber {
+    margin-bottom: var(--space-sm);
+  }
+}

@@ -1,18 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import NotificationModule from '../../context/NotificationContext';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
 import AvatarUploader from '../../components/AvatarUploader';
+import Button from '../../components/ui/Button'; // Import Button component
 import styles from './page.module.css';
 
 export default function ProfilePage() {
-  const { state, dispatch } = useAppContext();
+  const { userProfile, updateProfile, signOut } = useAuth(); // Add signOut from useAuth
   const { showNotification } = NotificationModule.useNotification();
-  
-  // Get the current user (consider the first user as the current user for this app)
-  const currentUser = state.users.length > 0 ? state.users[0] : null;
   
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
@@ -27,14 +25,14 @@ export default function ProfilePage() {
   
   // Load user data into form fields when user data is available
   useEffect(() => {
-    if (currentUser) {
-      setName(currentUser.name ?? '');
-      setEmail(currentUser.email ?? '');
-      setPhoneNumber(currentUser.phoneNumber ?? '');
-      setPreferredCurrency(currentUser.preferredCurrency ?? 'USD');
-      setAvatarUrl(currentUser.avatarUrl ?? null);
+    if (userProfile) {
+      setName(userProfile.name ?? '');
+      setEmail(userProfile.email ?? '');
+      setPhoneNumber(userProfile.phoneNumber ?? '');
+      setPreferredCurrency(userProfile.preferredCurrency ?? 'USD');
+      setAvatarUrl(userProfile.avatarUrl ?? null);
     }
-  }, [currentUser]);
+  }, [userProfile]);
 
   // Validate email format
   const validateEmail = (email: string): boolean => {
@@ -71,8 +69,8 @@ export default function ProfilePage() {
     validatePhone(newPhone);
   };
   
-  const handleSave = () => {
-    if (!currentUser) return;
+  const handleSave = async () => {
+    if (!userProfile) return;
     
     if (!name.trim()) {
       showNotification('Name cannot be empty', 'error');
@@ -88,23 +86,32 @@ export default function ProfilePage() {
       return;
     }
     
-    dispatch({
-      type: 'UPDATE_USER',
-      payload: {
-        id: currentUser.id,
+    try {
+      await updateProfile({
         name: name.trim(),
         email: email.trim() ? email.trim() : undefined,
         phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : undefined,
         preferredCurrency,
         avatarUrl: avatarUrl ?? undefined
-      }
-    });
-    
-    showNotification('Profile updated successfully', 'success');
-    setIsEditing(false);
+      });
+      
+      showNotification('Profile updated successfully', 'success');
+      setIsEditing(false);
+    } catch (error: any) {
+      showNotification(error.message, 'error');
+    }
   };
   
-  if (!currentUser) {
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      showNotification('You have been signed out successfully', 'success');
+    } catch (error: any) {
+      showNotification('Failed to sign out: ' + error.message, 'error');
+    }
+  };
+  
+  if (!userProfile) {
     return (
       <div className={styles.container}>
         <h1>Profile Not Found</h1>
@@ -114,154 +121,165 @@ export default function ProfilePage() {
   }
   
   return (
-    <div className={styles.container}>
-      <h1>Your Profile</h1>
-      
-      <div className={styles.profileCard}>
-        <div className={styles.profileHeader}>
-          {isEditing ? (
-            <AvatarUploader 
-              avatarUrl={avatarUrl} 
-              onAvatarChange={setAvatarUrl}
-              name={name}
-            />
-          ) : (
-            <div className={styles.avatar}>
-              {currentUser.avatarUrl ? (
-                <img 
-                  src={currentUser.avatarUrl} 
-                  alt={`${currentUser.name}'s avatar`} 
-                  className={styles.avatarImage}
+        <div className={styles.container}>
+          <h1>Your Profile</h1>
+          
+          <div className={styles.profileCard}>
+            <div className={styles.profileHeader}>
+              {isEditing ? (
+                <AvatarUploader 
+                  avatarUrl={avatarUrl} 
+                  onAvatarChange={setAvatarUrl}
+                  name={name}
                 />
               ) : (
-                <span>{currentUser.name.charAt(0)}</span>
+                <div className={styles.avatar}>
+                  {userProfile?.avatarUrl ? (
+                    <img 
+                      src={userProfile.avatarUrl} 
+                      alt={`${userProfile.name}'s avatar`} 
+                      className={styles.avatarImage}
+                    />
+                  ) : (
+                    <span>{userProfile?.name.charAt(0)}</span>
+                  )}
+                </div>
               )}
+              <div>
+                <h2>{userProfile?.name}</h2>
+                {userProfile?.email && <p>{userProfile.email}</p>}
+              </div>
             </div>
-          )}
-          <div>
-            <h2>{currentUser.name}</h2>
-            {currentUser.email && <p>{currentUser.email}</p>}
+            
+            {isEditing ? (
+              <div className={styles.profileSection}>
+                <h3>Edit Your Profile</h3>
+                
+                <div className={styles.editForm}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="name">Name</label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className={styles.input}
+                      required
+                    />
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="email">Email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={handleEmailChange}
+                      className={styles.input}
+                    />
+                    {emailError && <p className={styles.error}>{emailError}</p>}
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="phoneNumber">Phone Number</label>
+                    <input
+                      id="phoneNumber"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      className={styles.input}
+                    />
+                    {phoneError && <p className={styles.error}>{phoneError}</p>}
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="preferredCurrency">Preferred Currency</label>
+                    <select
+                      id="preferredCurrency"
+                      value={preferredCurrency}
+                      onChange={(e) => setPreferredCurrency(e.target.value)}
+                      className={styles.select}
+                    >
+                      {SUPPORTED_CURRENCIES.map(curr => (
+                        <option key={curr.code} value={curr.code}>
+                          {curr.code} ({curr.symbol}) - {curr.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className={styles.buttonGroup}>
+                    <button onClick={handleSave} className={styles.saveButton}>
+                      Save Changes
+                    </button>
+                    <button onClick={() => setIsEditing(false)} className={styles.cancelButton}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className={styles.profileSection}>
+                  <h3>Personal Information</h3>
+                  
+                  <div className={styles.infoCard}>
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Name:</span>
+                      <span className={styles.infoValue}>{userProfile.name}</span>
+                    </div>
+                    
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Email:</span>
+                      <span className={styles.infoValue}>
+                        {userProfile.email ?? 'Not provided'}
+                      </span>
+                    </div>
+                    
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Phone:</span>
+                      <span className={styles.infoValue}>
+                        {userProfile.phoneNumber ?? 'Not provided'}
+                      </span>
+                    </div>
+                    
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Preferred Currency:</span>
+                      <span className={styles.infoValue}>
+                        {userProfile.preferredCurrency ?? 'USD'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button onClick={() => setIsEditing(true)} className={styles.editButton}>
+                    Edit Profile
+                  </button>
+                </div>
+                
+                <div className={styles.profileSection}>
+                  <h3>Payment Methods</h3>
+                  
+                  <div className={styles.infoCard}>
+                    <p>No payment methods added yet.</p>
+                    <button className={styles.addButton} disabled>
+                      Add Payment Method
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Move sign out button to bottom with better styling */}
+                <div className={styles.signOutSection}>
+                  <Button 
+                    onClick={handleSignOut} 
+                    variant="secondary"
+                    className={styles.signOutButton}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
-        
-        {isEditing ? (
-          <div className={styles.profileSection}>
-            <h3>Edit Your Profile</h3>
-            
-            <div className={styles.editForm}>
-              <div className={styles.formGroup}>
-                <label htmlFor="name">Name</label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={styles.input}
-                  required
-                />
-              </div>
-              
-              <div className={styles.formGroup}>
-                <label htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={handleEmailChange}
-                  className={styles.input}
-                />
-                {emailError && <p className={styles.error}>{emailError}</p>}
-              </div>
-              
-              <div className={styles.formGroup}>
-                <label htmlFor="phoneNumber">Phone Number</label>
-                <input
-                  id="phoneNumber"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  className={styles.input}
-                />
-                {phoneError && <p className={styles.error}>{phoneError}</p>}
-              </div>
-              
-              <div className={styles.formGroup}>
-                <label htmlFor="preferredCurrency">Preferred Currency</label>
-                <select
-                  id="preferredCurrency"
-                  value={preferredCurrency}
-                  onChange={(e) => setPreferredCurrency(e.target.value)}
-                  className={styles.select}
-                >
-                  {SUPPORTED_CURRENCIES.map(curr => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.code} ({curr.symbol}) - {curr.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className={styles.buttonGroup}>
-                <button onClick={handleSave} className={styles.saveButton}>
-                  Save Changes
-                </button>
-                <button onClick={() => setIsEditing(false)} className={styles.cancelButton}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className={styles.profileSection}>
-              <h3>Personal Information</h3>
-              
-              <div className={styles.infoCard}>
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Name:</span>
-                  <span className={styles.infoValue}>{currentUser.name}</span>
-                </div>
-                
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Email:</span>
-                  <span className={styles.infoValue}>
-                    {currentUser.email ?? 'Not provided'}
-                  </span>
-                </div>
-                
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Phone:</span>
-                  <span className={styles.infoValue}>
-                    {currentUser.phoneNumber ?? 'Not provided'}
-                  </span>
-                </div>
-                
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Preferred Currency:</span>
-                  <span className={styles.infoValue}>
-                    {currentUser.preferredCurrency ?? 'USD'}
-                  </span>
-                </div>
-              </div>
-              
-              <button onClick={() => setIsEditing(true)} className={styles.editButton}>
-                Edit Profile
-              </button>
-            </div>
-            
-            <div className={styles.profileSection}>
-              <h3>Payment Methods</h3>
-              
-              <div className={styles.infoCard}>
-                <p>No payment methods added yet.</p>
-                <button className={styles.addButton} disabled>
-                  Add Payment Method
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
   );
 }

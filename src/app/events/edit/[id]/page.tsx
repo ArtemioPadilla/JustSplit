@@ -10,7 +10,7 @@ import Button from '../../../../components/ui/Button';
 export default function EditEvent() {
   const router = useRouter();
   const params = useParams();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, updateEvent } = useAppContext();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -69,7 +69,7 @@ export default function EditEvent() {
     setNewParticipantName('');
   };
   
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!name || !startDate || participants.length === 0) {
@@ -77,23 +77,40 @@ export default function EditEvent() {
       return;
     }
     
-    // Update the event
-    dispatch({
-      type: 'UPDATE_EVENT',
-      payload: {
-        id: params.id as string,
+    try {
+      const eventId = params.id as string;
+      
+      // Update the event in local state
+      dispatch({
+        type: 'UPDATE_EVENT',
+        payload: {
+          id: eventId,
+          name,
+          description,
+          startDate,
+          endDate: endDate || undefined,
+          participants,
+          expenses: state.events.find(e => e.id === eventId)?.expenses || [],
+          preferredCurrency
+        }
+      });
+      
+      // Also update in Firestore
+      await updateEvent(eventId, {
         name,
         description,
         startDate,
         endDate: endDate || undefined,
         participants,
-        expenses: state.events.find(e => e.id === params.id)?.expenses || [],
         preferredCurrency
-      }
-    });
-    
-    // Navigate back to event details
-    router.push(`/events/${params.id}`);
+      });
+      
+      // Navigate back to event details
+      router.push(`/events/${eventId}`);
+    } catch (error) {
+      console.error('Error updating event:', error);
+      alert('Failed to update event. Please try again.');
+    }
   };
 
   if (loading) {

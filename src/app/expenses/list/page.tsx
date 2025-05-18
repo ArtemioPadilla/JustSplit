@@ -9,7 +9,7 @@ import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency
 import EditableText from '../../../components/ui/EditableText';
 
 export default function ExpenseList() {
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, updateExpense } = useAppContext();
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [convertedExpenses, setConvertedExpenses] = useState<Record<string, number>>({});
@@ -47,8 +47,35 @@ export default function ExpenseList() {
   }, [filteredExpenses, targetCurrency]);
 
   // Handle expense description update
-  const handleExpenseDescriptionUpdate = (expenseId: string, newDescription: string) => {
-    // ...existing code...
+  const handleExpenseDescriptionUpdate = async (expenseId: string, newDescription: string) => {
+    try {
+      // First, update local state for responsive UI
+      setUpdatingExpenses(prev => ({ ...prev, [expenseId]: true }));
+      
+      // Find the expense to update
+      const expense = state.expenses.find(e => e.id === expenseId);
+      if (!expense) {
+        console.error(`Expense with ID ${expenseId} not found`);
+        return;
+      }
+      
+      // Update in local state via dispatch
+      const updatedExpense = { ...expense, description: newDescription };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+      
+      // Update in Firestore
+      await updateExpense(expenseId, { description: newDescription });
+      
+      console.log(`Expense ${expenseId} description updated to: ${newDescription}`);
+    } catch (error) {
+      console.error('Error updating expense description:', error);
+      alert('Failed to update expense description. Please try again.');
+    } finally {
+      // Clear updating state after a short delay
+      setTimeout(() => {
+        setUpdatingExpenses(prev => ({ ...prev, [expenseId]: false }));
+      }, 500);
+    }
   };
 
   // Get user name by ID

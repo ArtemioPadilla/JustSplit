@@ -108,190 +108,114 @@ export function calculateSettlements(
 }
 
 // Calculate settlements with currency conversion
-export async function calculateSettlementsWithConversion(
-  expenses: Expense[], 
+export const calculateSettlementsWithConversion = async (
+  expenses: Expense[],
   users: User[],
-  targetCurrency: string,
-  isConvertingCurrencies: boolean = true,
-  eventId?: string
-): Promise<Settlement[]> {
-  // If not converting currencies, fall back to standard calculations with original currency
-  if (!isConvertingCurrencies) {
-    // Just calculate settlements in original currencies (matching logic below but without conversions)
-    const settlements = calculateSettlements(expenses, users, eventId);
-    return settlements;
-  }
+  targetCurrency: string = 'USD',
+  filterEventId?: string
+): Promise<Settlement[]> => {
+  // Filter expenses that aren't settled
+  const unsettledExpenses = expenses.filter(e => !e.settled);
+  
+  // If filtering by event ID, apply the filter
+  const filteredExpenses = filterEventId
+    ? unsettledExpenses.filter(exp => exp.eventId === filterEventId)
+    : unsettledExpenses;
 
-  // Filter expenses by event if eventId is provided
-  const filteredExpenses = eventId 
-    ? expenses.filter(e => e.eventId === eventId && !e.settled)
-    : expenses.filter(e => !e.settled);
-  
-  if (filteredExpenses.length === 0) return [];
-  
-  // Calculate net balance for each user, converting currencies as needed
-  const balances: Record<string, number> = {};
-  
-  // Keep track of which expenses were involved in each user relationship and their event IDs
+  // Create a map for expenses between users
   const expenseMap: Record<string, Record<string, { ids: string[], eventIds: Set<string> }>> = {};
   
-  // Track expense details for better debugging and settlement calculation
-  const expenseDetails: Record<string, { originalAmount: number, currency: string, convertedAmount: number }> = {};
-  
-  // Initialize balances and expense maps
+  // Initialize the expense map for all users
   users.forEach(user => {
-    balances[user.id] = 0;
     expenseMap[user.id] = {};
-    
-    // Initialize maps for all user relationships
-    users.forEach(otherUser => {
-      if (user.id !== otherUser.id) {
-        expenseMap[user.id][otherUser.id] = { ids: [], eventIds: new Set() };
-      }
-    });
+    // We won't pre-initialize all user relationships to avoid unnecessary memory usage
   });
-
-  // Cache exchange rates to avoid redundant API calls
-  const exchangeRatesCache: Record<string, number> = {};
-
-  try {
-    console.log(`Starting settlement calculation with target currency: ${targetCurrency}`);
-    console.log(`Total expenses to process: ${filteredExpenses.length}`);
-    console.log(`Currency conversion is ${isConvertingCurrencies ? 'enabled' : 'disabled'}`);
+  
+  // Process each expense
+  for (const expense of filteredExpenses) {
+    const { id, paidBy, participants = [], amount, currency, eventId } = expense;
     
-    // Process each expense with currency conversion
-    for (const expense of filteredExpenses) {
-      const { paidBy, participants, amount, currency, id, eventId: expenseEventId } = expense;
-
-      // Convert amount to target currency if currency conversion is enabled
-      let convertedAmount = amount;
-      
-      // Only perform conversion if currencies differ and conversion is enabled
-      if (currency !== targetCurrency && isConvertingCurrencies) {
-        const conversionKey = `${currency}_${targetCurrency}`;
-        
-        try {
-          // Use cached rate if available
-          if (exchangeRatesCache[conversionKey]) {
-            convertedAmount = amount * exchangeRatesCache[conversionKey];
-          } else {
-            // Fetch new rate
-            const rateData = await convertCurrency(amount, currency, targetCurrency);
-            // Store the conversion rate for future use
-            const rate = rateData.convertedAmount / amount;
-            exchangeRatesCache[conversionKey] = rate;
-            convertedAmount = rateData.convertedAmount;
-          }
-          
-          // Store expense details for debugging
-          expenseDetails[id] = {
-            originalAmount: amount,
-            currency,
-            convertedAmount
-          };
-          
-          console.log(`Converted ${amount} ${currency} to ${convertedAmount.toFixed(2)} ${targetCurrency} for expense ${id}`);
-        } catch (error) {
-          console.error(`Currency conversion failed for expense ${id} (${amount} ${currency}):`, error);
-          // Use an approximate conversion if API fails (fallback to avoid skipping expenses)
-          // Using common conversion rates as fallback
-          if (currency === 'MXN' && targetCurrency === 'USD') {
-            convertedAmount = amount / 17.05; // Approximate MXN to USD rate
-            console.log(`Using fallback conversion: ${amount} MXN ≈ ${convertedAmount.toFixed(2)} USD`);
-          } else if (currency === 'USD' && targetCurrency === 'MXN') {
-            convertedAmount = amount * 17.05; // Approximate USD to MXN rate
-            console.log(`Using fallback conversion: ${amount} USD ≈ ${convertedAmount.toFixed(2)} MXN`);
-          } else {
-            // Assign a default fallback value to avoid undefined
-            convertedAmount = amount; // Use the original amount as a fallback
-            console.log(`Fallback to original amount: ${amount} ${currency}`);
-          }
-          
-          // Store the fallback conversion
-          expenseDetails[id] = {
-            originalAmount: amount,
-            currency,
-            convertedAmount
-          };
-        }
-      } else {
-        // Log expenses that don't need conversion
-        expenseDetails[id] = {
-          originalAmount: amount,
-          currency,
-          convertedAmount
-        };
-      }
-      
-      const amountPerPerson = convertedAmount / participants.length;
-      
-      // Update balances for each participant
-      participants.forEach(participantId => {
-        // Skip the person who paid (they don't owe themselves)
-        if (participantId === paidBy) return;
-
-        // Decrease participant balance (they owe money)
-        balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
-
-        // Increase payer balance (they are owed money)
-        balances[paidBy] = (balances[paidBy] || 0) + amountPerPerson;
-
-        // Track this expense for this user relationship in both directions
-        if (!expenseMap[participantId][paidBy]) {
-          expenseMap[participantId][paidBy] = { ids: [], eventIds: new Set() };
-        }
-        if (!expenseMap[paidBy][participantId]) {
-          expenseMap[paidBy][participantId] = { ids: [], eventIds: new Set() };
-        }
-
-        // Add expense to both directions for tracking
-        expenseMap[participantId][paidBy].ids.push(id);
-        expenseMap[paidBy][participantId].ids.push(id);
-
-        // Track event IDs for proper event attribution in settlements
-        if (expenseEventId) {
-          expenseMap[participantId][paidBy].eventIds.add(expenseEventId);
-          expenseMap[paidBy][participantId].eventIds.add(expenseEventId);
-        }
-      });
+    // Ensure paidBy user exists in the map
+    if (!expenseMap[paidBy]) {
+      expenseMap[paidBy] = {};
     }
     
-    // Log balance information for debugging
-    console.log("User balances after expense processing:");
-    Object.entries(balances).forEach(([userId, balance]) => {
-      const userName = users.find(u => u.id === userId)?.name || userId;
-      console.log(`${userName}: ${balance.toFixed(2)} ${targetCurrency}`);
+    // Convert amount if needed
+    let convertedAmount = amount;
+    if (currency !== targetCurrency) {
+      try {
+        const rateData = await convertCurrency(amount, currency, targetCurrency);
+        const rate = typeof rateData === 'object' && rateData !== null ? rateData.rate : 1;
+        convertedAmount = amount * rate;
+      } catch (error) {
+        console.error(`Error converting currency from ${currency} to ${targetCurrency}:`, error);
+      }
+    }
+    
+    const amountPerPerson = participants.length > 0 ? convertedAmount / participants.length : 0;
+    
+    // Process each participant
+    participants.forEach(participantId => {
+      // Skip if participant is the same as who paid
+      if (participantId === paidBy) return;
+      
+      // Ensure participant exists in the expense map
+      if (!expenseMap[participantId]) {
+        expenseMap[participantId] = {};
+      }
+      
+      // Ensure the relationships between users exist in the map
+      if (!expenseMap[participantId][paidBy]) {
+        expenseMap[participantId][paidBy] = { ids: [], eventIds: new Set() };
+      }
+      if (!expenseMap[paidBy][participantId]) {
+        expenseMap[paidBy][participantId] = { ids: [], eventIds: new Set() };
+      }
+      
+      // Track this expense for this user relationship in both directions
+      expenseMap[participantId][paidBy].ids.push(id);
+      expenseMap[paidBy][participantId].ids.push(id);
+      
+      // If the expense is part of an event, track that too
+      if (eventId) {
+        expenseMap[participantId][paidBy].eventIds.add(eventId);
+        expenseMap[paidBy][participantId].eventIds.add(eventId);
+      }
     });
-  } catch (error) {
-    console.error('Error during settlement calculation:', error);
-    return []; // Return empty settlements to prevent crashing
   }
   
+  // Calculate settlements based on the expense map
+  const settlements: Settlement[] = [];
+
   // Identify debtors and creditors
   const debtors: { id: string; amount: number }[] = [];
   const creditors: { id: string; amount: number }[] = [];
   
-  Object.entries(balances).forEach(([userId, balance]) => {
-    // Only consider significant balances (avoid floating-point rounding issues)
-    if (Math.abs(balance) < 0.01) return;
+  Object.entries(expenseMap).forEach(([userId, userExpenses]) => {
+    // Only consider users with actual expenses recorded
+    if (Object.keys(userExpenses).length === 0) return;
+    
+    // Calculate net balance for this user
+    const totalOwed = Object.values(userExpenses).reduce((sum, exp) => sum + exp.ids.length, 0);
+    const totalOwing = Object.values(expenseMap).reduce((sum, otherUserExpenses) => {
+      const otherUserId = otherUserExpenses[Object.keys(otherUserExpenses)[0]];
+      return sum + (otherUserId?.ids.includes(userId) ? otherUserId.ids.length : 0);
+    }, 0);
+    
+    const balance = totalOwed - totalOwing;
     
     if (balance < 0) {
-      debtors.push({ id: userId, amount: -balance }); // Convert to positive amount
-    } else {
+      debtors.push({ id: userId, amount: -balance });
+    } else if (balance > 0) {
       creditors.push({ id: userId, amount: balance });
     }
   });
-  
-  // Log the identified debtors and creditors
-  console.log(`Found ${debtors.length} debtors and ${creditors.length} creditors`);
   
   // Sort debtors and creditors by amount (desc)
   debtors.sort((a, b) => b.amount - a.amount);
   creditors.sort((a, b) => b.amount - a.amount);
   
   // Generate settlements
-  const settlements: Settlement[] = [];
-  
   while (debtors.length > 0 && creditors.length > 0) {
     const debtor = debtors[0];
     const creditor = creditors[0];
@@ -311,7 +235,7 @@ export async function calculateSettlementsWithConversion(
         if (eventIds.size === 1) {
           // If there's only one event ID, use it
           settlementEventId = Array.from(eventIds)[0];
-        } else if (!eventId) {
+        } else if (!filterEventId) {
           // For global settlements with multiple event IDs, leave it undefined
           // The calling code will filter by eventId if needed
         }
@@ -323,10 +247,8 @@ export async function calculateSettlementsWithConversion(
         toUser: creditor.id,
         amount: settlementAmount,
         expenseIds: relatedExpenseIds,
-        eventId: settlementEventId || eventId
+        eventId: settlementEventId || filterEventId
       });
-      
-      console.log(`Created settlement: ${users.find(u => u.id === debtor.id)?.name || debtor.id} -> ${users.find(u => u.id === creditor.id)?.name || creditor.id}: ${settlementAmount.toFixed(2)} ${targetCurrency}`);
       
       // Update balances
       debtor.amount -= settlementAmount;
@@ -338,6 +260,5 @@ export async function calculateSettlementsWithConversion(
     if (creditor.amount < 0.01) creditors.shift();
   }
   
-  console.log(`Generated ${settlements.length} settlements in ${targetCurrency}`);
   return settlements;
 }

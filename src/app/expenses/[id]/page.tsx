@@ -12,7 +12,7 @@ import EditableText from '../../../components/ui/EditableText';
 export default function ExpenseDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, updateExpense } = useAppContext();
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isUpdatingNotes, setIsUpdatingNotes] = useState<boolean>(false); // For notes editing
 
@@ -44,21 +44,43 @@ export default function ExpenseDetail() {
   }, [event, state.expenses]);
 
   // Handle expense description update
-  const handleExpenseDescriptionUpdate = (newDescription: string) => {
+  const handleExpenseDescriptionUpdate = async (newDescription: string) => {
     if (!expense) return;
     setIsUpdating(true);
-    const updatedExpense = { ...expense, description: newDescription };
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-    setTimeout(() => setIsUpdating(false), 500);
+    
+    try {
+      // Update local state
+      const updatedExpense = { ...expense, description: newDescription };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+      
+      // Update in Firestore
+      await updateExpense(expense.id, { description: newDescription });
+    } catch (error) {
+      console.error('Error updating expense description:', error);
+      alert('Failed to update expense description. Please try again.');
+    } finally {
+      setTimeout(() => setIsUpdating(false), 500);
+    }
   };
 
   // Handle expense notes update
-  const handleExpenseNotesUpdate = (newNotes: string) => {
+  const handleExpenseNotesUpdate = async (newNotes: string) => {
     if (!expense) return;
     setIsUpdatingNotes(true);
-    const updatedExpense = { ...expense, notes: newNotes };
-    dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
-    setTimeout(() => setIsUpdatingNotes(false), 500);
+    
+    try {
+      // Update local state
+      const updatedExpense = { ...expense, notes: newNotes };
+      dispatch({ type: 'UPDATE_EXPENSE', payload: updatedExpense });
+      
+      // Update in Firestore
+      await updateExpense(expense.id, { notes: newNotes });
+    } catch (error) {
+      console.error('Error updating expense notes:', error);
+      alert('Failed to update expense notes. Please try again.');
+    } finally {
+      setTimeout(() => setIsUpdatingNotes(false), 500);
+    }
   };
   
   if (!expenseId) {

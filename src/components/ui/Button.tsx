@@ -10,6 +10,7 @@ type ButtonProps = {
   disabled?: boolean;
   onClick?: () => void;
   children: React.ReactNode;
+  type?: 'button' | 'submit' | 'reset'; // Added type prop
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -18,11 +19,18 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   onClick,
   children,
+  type = 'button', // Default to 'button'
 }) => {
   const classNames = `${styles.button} ${styles[variant]} ${styles[size]} ${disabled ? styles.disabled : ''}`;
 
   return (
-    <button className={classNames} onClick={onClick} disabled={disabled} aria-disabled={disabled}>
+    <button 
+      className={classNames} 
+      onClick={onClick} 
+      disabled={disabled} 
+      aria-disabled={disabled}
+      type={type} // Pass type to the button element
+    >
       {children}
     </button>
   );

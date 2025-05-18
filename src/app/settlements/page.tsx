@@ -111,12 +111,28 @@ export default function SettlementsPage() {
     // Calculate balances from expenses (without currency conversion)
     (state.expenses || []).filter(exp => !exp.settled).forEach(expense => {
       const paidBy = expense.paidBy;
-      const participants = expense.participants;
+      const participants = expense.participants || [];
       const amountPerPerson = expense.amount / participants.length;
+      
+      // Ensure the paidBy user exists in the result object
+      if (!result[paidBy]) {
+        result[paidBy] = { overall: 0, byEvent: {} };
+        (state.events || []).forEach(event => {
+          result[paidBy].byEvent[event.id] = 0;
+        });
+      }
       
       participants.forEach(participantId => {
         // Skip the person who paid
         if (participantId === paidBy) return;
+        
+        // Ensure the participant exists in the result object
+        if (!result[participantId]) {
+          result[participantId] = { overall: 0, byEvent: {} };
+          (state.events || []).forEach(event => {
+            result[participantId].byEvent[event.id] = 0;
+          });
+        }
         
         // Update overall balance
         result[participantId].overall -= amountPerPerson;
@@ -124,11 +140,16 @@ export default function SettlementsPage() {
         
         // Update event-specific balance if expense is part of an event
         if (expense.eventId) {
-          result[participantId].byEvent[expense.eventId] = 
-            (result[participantId].byEvent[expense.eventId] || 0) - amountPerPerson;
-            
-          result[paidBy].byEvent[expense.eventId] = 
-            (result[paidBy].byEvent[expense.eventId] || 0) + amountPerPerson;
+          // Initialize event balance if it doesn't exist
+          if (!result[participantId].byEvent[expense.eventId]) {
+            result[participantId].byEvent[expense.eventId] = 0;
+          }
+          if (!result[paidBy].byEvent[expense.eventId]) {
+            result[paidBy].byEvent[expense.eventId] = 0;
+          }
+          
+          result[participantId].byEvent[expense.eventId] -= amountPerPerson;
+          result[paidBy].byEvent[expense.eventId] += amountPerPerson;
         }
       });
     });

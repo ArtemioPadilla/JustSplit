@@ -9,7 +9,7 @@ import Button from '../../../components/ui/Button';
 
 export default function NewEvent() {
   const router = useRouter();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, addEvent } = useAppContext();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -45,7 +45,7 @@ export default function NewEvent() {
     setNewParticipantName('');
   };
   
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!name || !startDate || participants.length === 0) {
@@ -53,21 +53,26 @@ export default function NewEvent() {
       return;
     }
     
-    // Add the event
-    dispatch({
-      type: 'ADD_EVENT',
-      payload: {
+    try {
+      // Create the event data
+      const eventData = {
         name,
         description,
         startDate,
         endDate: endDate || undefined,
         participants,
         preferredCurrency,
-      }
-    });
-    
-    // Navigate to events list
-    router.push('/events/list');
+      };
+      
+      // Add to Firestore first
+      await addEvent(eventData);
+      
+      // Navigate to events list
+      router.push('/events/list');
+    } catch (error) {
+      console.error('Error creating event:', error);
+      alert('Failed to create event. Please try again.');
+    }
   };
   
   return (

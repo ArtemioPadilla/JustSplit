@@ -17,7 +17,7 @@ import {
 } from '../../../utils/timelineUtils';
 
 export default function EventList() {
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, updateEvent } = useAppContext();
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [filters, setFilters] = useState({ date: '', type: '', status: '' });
   const [updatingEvents, setUpdatingEvents] = useState<Record<string, boolean>>({});
@@ -34,23 +34,32 @@ export default function EventList() {
     setFilters({ ...filters, [filterType]: value });
   };
 
-  const handleEventNameUpdate = (eventId: string, newName: string) => {
+  const handleEventNameUpdate = async (eventId: string, newName: string) => {
     setUpdatingEvents({ ...updatingEvents, [eventId]: true });
     
     // Find the event to update
     const eventToUpdate = state.events.find(event => event.id === eventId);
     
     if (eventToUpdate) {
-      // Create updated event with new name
-      const updatedEvent = { ...eventToUpdate, name: newName };
-      
-      // Dispatch update action
-      dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
-      
-      // Clear updating status after a short delay to show feedback
-      setTimeout(() => {
-        setUpdatingEvents(prev => ({ ...prev, [eventId]: false }));
-      }, 500);
+      try {
+        // Create updated event with new name
+        const updatedEvent = { ...eventToUpdate, name: newName };
+        
+        // Dispatch update action for local state
+        dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
+        
+        // Update in database - add this line to persist changes
+        await updateEvent(eventId, { name: newName });
+        
+      } catch (error) {
+        console.error('Error updating event name:', error);
+        alert('Failed to update event name. Please try again.');
+      } finally {
+        // Clear updating status after a short delay to show feedback
+        setTimeout(() => {
+          setUpdatingEvents(prev => ({ ...prev, [eventId]: false }));
+        }, 500);
+      }
     }
   };
 

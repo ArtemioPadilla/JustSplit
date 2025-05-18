@@ -159,6 +159,20 @@
   cursor: not-allowed;
 }
 
+.signOutSection {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: center;
+}
+
+.signOutButton {
+  width: auto;
+  min-width: 120px;
+  font-weight: 500;
+}
+
 @media (max-width: 600px) {
   .infoItem {
     flex-direction: column;

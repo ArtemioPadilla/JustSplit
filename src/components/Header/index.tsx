@@ -45,7 +45,7 @@ const Header = () => {
   const [imageError, setImageError] = useState(false);
   const pathname = usePathname();
   const { state } = useAppContext();
-  const currentUser = state?.users?.[0]; // Get the current logged-in user
+  const currentUser = state?.currentUser; // Get the current logged-in user instead of first user in array
   
   // Check if we're on mobile
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -94,37 +94,59 @@ const Header = () => {
         )}
         
         <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.mobileOpen : ''}`}>
+          {/* Home link for all users */}
           <Link 
-            href="/" 
-            className={`${styles.navLink} ${pathname === '/' ? styles.active : ''}`}
+            href={currentUser ? '/' : '/landing'}
+            className={`${styles.navLink} ${pathname === '/' || pathname === '/landing' ? styles.active : ''}`}
           >
             Home
           </Link>
+          
+          {/* App-specific links only for logged-in users */}
+          {currentUser && (
+            <>
+              <Link 
+                href="/events" 
+                className={`${styles.navLink} ${pathname?.startsWith('/events') ? styles.active : ''}`}
+              >
+                Events
+              </Link>
+              <Link 
+                href="/expenses" 
+                className={`${styles.navLink} ${pathname?.startsWith('/expenses') ? styles.active : ''}`}
+              >
+                Expenses
+              </Link>
+              <Link 
+                href="/friends" 
+                className={`${styles.navLink} ${pathname?.startsWith('/friends') ? styles.active : ''}`}
+              >
+                Friends
+              </Link>
+              <Link 
+                href="/settlements" 
+                className={`${styles.navLink} ${pathname?.startsWith('/settlements') ? styles.active : ''}`}
+              >
+                Settlements
+              </Link>
+            </>
+          )}
+          
+          {/* Public pages accessible to all users */}
           <Link 
-            href="/events" 
-            className={`${styles.navLink} ${pathname?.startsWith('/events') ? styles.active : ''}`}
+            href="/about" 
+            className={`${styles.navLink} ${pathname?.startsWith('/about') ? styles.active : ''}`}
           >
-            Events
+            About
           </Link>
           <Link 
-            href="/expenses" 
-            className={`${styles.navLink} ${pathname?.startsWith('/expenses') ? styles.active : ''}`}
+            href="/help" 
+            className={`${styles.navLink} ${pathname?.startsWith('/help') ? styles.active : ''}`}
           >
-            Expenses
-          </Link>
-          <Link 
-            href="/friends" 
-            className={`${styles.navLink} ${pathname?.startsWith('/friends') ? styles.active : ''}`}
-          >
-            Friends
-          </Link>
-          <Link 
-            href="/settlements" 
-            className={`${styles.navLink} ${pathname?.startsWith('/settlements') ? styles.active : ''}`}
-          >
-            Settlements
+            Help
           </Link>
           
+          {/* Authentication links or user profile */}
           {currentUser ? (
             <Link 
               href="/profile" 
@@ -135,12 +157,20 @@ const Header = () => {
               {currentUser.name}
             </Link>
           ) : (
-            <Link 
-              href="/profile" 
-              className={`${styles.navLink} ${pathname?.startsWith('/profile') ? styles.active : ''}`}
-            >
-              Profile
-            </Link>
+            <>
+              <Link 
+                href="/auth/signin"
+                className={`${styles.navLink} ${pathname?.startsWith('/auth/signin') ? styles.active : ''}`}
+              >
+                Log In
+              </Link>
+              <Link
+                href="/auth/signup"
+                className={`${styles.navLink} ${styles.signupBtn} ${pathname?.startsWith('/auth/signup') ? styles.active : ''}`}
+              >
+                Sign Up
+              </Link>
+            </>
           )}
         </nav>
       </div>

@@ -16,7 +16,7 @@ import EditableText from '../../../components/ui/EditableText';
 export default function EventDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, updateEvent } = useAppContext();
   const eventId = params.id as string;
   
   // Selected currency for display
@@ -175,21 +175,30 @@ export default function EventDetail() {
   }, [targetCurrency, eventExpenses]);
 
   // Handle event name update
-  const handleEventNameUpdate = (newName: string) => {
+  const handleEventNameUpdate = async (newName: string) => {
     if (!event) return;
     
     setIsUpdating(true);
     
-    // Create updated event with new name
-    const updatedEvent = { ...event, name: newName };
-    
-    // Dispatch update action
-    dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
-    
-    // Clear updating status after a short delay to show feedback
-    setTimeout(() => {
-      setIsUpdating(false);
-    }, 500);
+    try {
+      // Create updated event with new name
+      const updatedEvent = { ...event, name: newName };
+      
+      // Dispatch update action for local state
+      dispatch({ type: 'UPDATE_EVENT', payload: updatedEvent });
+      
+      // Add this line to persist changes to the database
+      await updateEvent(event.id, { name: newName });
+      
+    } catch (error) {
+      console.error('Error updating event name:', error);
+      alert('Failed to update event name. Please try again.');
+    } finally {
+      // Clear updating status after a short delay to show feedback
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
+    }
   };
   
   if (!event) {

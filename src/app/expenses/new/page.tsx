@@ -11,7 +11,7 @@ import ExpenseSplitter from '../../../components/ExpenseSplitter';
 
 export default function NewExpense() {
   const router = useRouter();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch, addExpense } = useAppContext();
   
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -53,7 +53,7 @@ export default function NewExpense() {
     setNewParticipantName('');
   };
   
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!description || !amount || !paidBy || participants.length === 0) {
@@ -61,10 +61,9 @@ export default function NewExpense() {
       return;
     }
     
-    // Add the expense
-    dispatch({
-      type: 'ADD_EXPENSE',
-      payload: {
+    try {
+      // Create the expense data
+      const expenseData = {
         description,
         amount: parseFloat(amount),
         currency,
@@ -77,11 +76,17 @@ export default function NewExpense() {
         images,
         splitMethod,
         participantShares
-      }
-    });
-    
-    // Navigate to expenses list
-    router.push('/expenses/list');
+      };
+      
+      // Add to Firestore
+      await addExpense(expenseData);
+      
+      // Navigate to expenses list
+      router.push('/expenses/list');
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      alert('Failed to create expense. Please try again.');
+    }
   };
   
   return (
