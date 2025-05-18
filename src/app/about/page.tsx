@@ -177,7 +177,7 @@ const AboutPage = () => {
               className={`${styles.sectionText} ${styles.centered}`}
               variants={fadeInUp}
             >
-              JustSplit is part of CyberEco. A ecosistem to enhance the control of your environment and ecosistem.
+              JustSplit is part of CyberEco. An ecosystem of tools to enhance the control of your environment and ecosystem.
             </motion.p>
             
           </motion.div>
