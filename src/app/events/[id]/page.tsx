@@ -12,6 +12,7 @@ import ProgressBar from '../../../components/ui/ProgressBar';
 import { calculateSettledPercentage } from '../../../utils/timelineUtils';
 import Button from '../../../components/ui/Button';
 import EditableText from '../../../components/ui/EditableText';
+import CurrencySelector from '../../../components/ui/CurrencySelector';
 
 export default function EventDetail() {
   const router = useRouter();
@@ -276,30 +277,18 @@ export default function EventDetail() {
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Summary</h2>
         <div className={styles.currencySelector}>
-          <div className={styles.currencyControl}>
-            <label htmlFor="targetCurrency">Display Currency:</label>
-            <select
-              id="targetCurrency"
-              value={targetCurrency}
-              onChange={(e) => setTargetCurrency(e.target.value)}
-              disabled={isConverting || isRefreshing}
-              className={styles.currencySelect}
-            >
-              {SUPPORTED_CURRENCIES.map(currency => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.code} ({currency.symbol}) - {currency.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button
-            onClick={handleRefreshRates}
-            disabled={isConverting || isRefreshing}
-            variant="secondary"
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
-          </Button>
+          <CurrencySelector
+            value={targetCurrency}
+            onChange={setTargetCurrency}
+            showRefreshButton={true}
+            onRefresh={handleRefreshRates}
+            isRefreshing={isRefreshing}
+            disabled={isConverting}
+            id="targetCurrency"
+            label="Display Currency:"
+          />
         </div>
+        
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
             <span className={styles.statValue}>{eventStats.totalExpenses}</span>

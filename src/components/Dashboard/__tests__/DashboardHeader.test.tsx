@@ -79,10 +79,15 @@ describe('DashboardHeader', () => {
       }
     );
     
-    const exportButton = screen.getByText('Export Expenses');
+    const exportButton = screen.getByRole('button', { name: /export/i });
     fireEvent.click(exportButton);
     
-    expect(exportExpensesToCSV).toHaveBeenCalledWith(mockExpenses, mockUsers, 'all-expenses.csv');
+    expect(exportExpensesToCSV).toHaveBeenCalledWith(
+      mockExpenses, 
+      mockUsers, 
+      [{ expenses: ["1"], id: "event1", name: "Test Event", participants: ["user1", "user2"], startDate: "2023-01-01" }],
+      'all-expenses.csv'
+    );
   });
 
   it('disables export button when there are no expenses', () => {

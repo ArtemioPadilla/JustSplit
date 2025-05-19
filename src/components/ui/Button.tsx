@@ -11,6 +11,8 @@ type ButtonProps = {
   onClick?: () => void;
   children: React.ReactNode;
   type?: 'button' | 'submit' | 'reset'; // Added type prop
+  title?: string; // Added for accessibility
+  'data-testid'?: string; // Added for testing
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -20,6 +22,8 @@ const Button: React.FC<ButtonProps> = ({
   onClick,
   children,
   type = 'button', // Default to 'button'
+  title,
+  'data-testid': dataTestId,
 }) => {
   const classNames = `${styles.button} ${styles[variant]} ${styles[size]} ${disabled ? styles.disabled : ''}`;
 
@@ -30,6 +34,8 @@ const Button: React.FC<ButtonProps> = ({
       disabled={disabled} 
       aria-disabled={disabled}
       type={type} // Pass type to the button element
+      title={title}
+      data-testid={dataTestId}
     >
       {children}
     </button>

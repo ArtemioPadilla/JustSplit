@@ -3,10 +3,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { calculateSettlements, calculateSettlementsWithConversion } from '../../utils/expenseCalculator';
-import { SUPPORTED_CURRENCIES, getExchangeRate } from '../../utils/currencyExchange';
+import { getExchangeRate } from '../../utils/currencyExchange';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
 import Button from '../../components/ui/Button';
+import CurrencySelector from '../../components/ui/CurrencySelector';
 
 export default function SettlementsPage() {
   const searchParams = useSearchParams();
@@ -358,21 +359,13 @@ export default function SettlementsPage() {
         </div>
         
         <div className={styles.filterItem}>
-          <label htmlFor="currency-filter" className={styles.filterLabel}>
-            Settlement Currency:
-          </label>
-          <select
-            id="currency-filter"
-            className={styles.filterSelect}
+          <CurrencySelector
             value={displayCurrency}
-            onChange={(e) => setDisplayCurrency(e.target.value)}
-          >
-            {SUPPORTED_CURRENCIES.map(curr => (
-              <option key={curr.code} value={curr.code}>
-                {curr.code} ({curr.symbol})
-              </option>
-            ))}
-          </select>
+            onChange={setDisplayCurrency}
+            id="currency-filter"
+            label="Settlement Currency:"
+            compact={true}
+          />
           <small className={styles.helpText}>All settlements will be calculated in this currency</small>
         </div>
       </div>

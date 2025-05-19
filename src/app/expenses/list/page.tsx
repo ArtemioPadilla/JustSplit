@@ -7,6 +7,7 @@ import styles from './page.module.css';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 import EditableText from '../../../components/ui/EditableText';
+import CurrencySelector from '../../../components/ui/CurrencySelector';
 
 export default function ExpenseList() {
   const { state, dispatch, updateExpense } = useAppContext();
@@ -18,7 +19,13 @@ export default function ExpenseList() {
   const [updatingExpenses, setUpdatingExpenses] = useState<Record<string, boolean>>({});
 
   // Get unique list of events that have expenses - use optional chaining for safety
-  const eventsWithExpenses = [...new Set(state.expenses?.map(expense => expense.eventId) || [])];
+  const eventsWithExpenses = Array.from(
+    new Set(
+      (state.expenses || [])
+        .map(expense => expense.eventId)
+        .filter((id): id is string => id !== undefined)
+    )
+  );
   const events = state.events?.filter(event => eventsWithExpenses.includes(event.id)) || [];
 
   // Filter expenses based on selected event
@@ -137,19 +144,17 @@ export default function ExpenseList() {
             </div>
             
             <div className={styles.filter}>
-              <label htmlFor="currency-filter">Convert to:</label>
-              <select 
-                id="currency-filter" 
-                className={styles.select}
+              <CurrencySelector
                 value={targetCurrency}
-                onChange={(e) => setTargetCurrency(e.target.value)}
-              >
-                {SUPPORTED_CURRENCIES.map(currency => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.code} ({currency.symbol})
-                  </option>
-                ))}
-              </select>
+                onChange={setTargetCurrency}
+                showRefreshButton={true}
+                onRefresh={handleRefreshRates}
+                isRefreshing={isRefreshing}
+                label="Convert to:"
+                id="currency-filter"
+                compact={true}
+                className={styles.currencyFilter}
+              />
             </div>
 
             <button 
@@ -209,7 +214,9 @@ export default function ExpenseList() {
                       
                       <div className={styles.detailItem}>
                         <span className={styles.detailLabel}>Event:</span>
-                        <span className={styles.detailValue}>{getEventName(expense.eventId)}</span>
+                        <span className={styles.detailValue}>
+                          {expense.eventId ? getEventName(expense.eventId) : 'No Event'}
+                        </span>
                       </div>
                       
                       <div className={styles.detailItem}>

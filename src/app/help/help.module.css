@@ -5,9 +5,9 @@
 
 /* Hero Section */
 .hero {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   color: white;
-  padding: var(--space-2xl) 0;
+  padding: var(--space-3xl) 0;
   text-align: center;
 }
 

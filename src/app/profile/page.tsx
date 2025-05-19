@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import NotificationModule from '../../context/NotificationContext';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
 import AvatarUploader from '../../components/AvatarUploader';
-import Button from '../../components/ui/Button'; // Import Button component
+import Button from '../../components/ui/Button';
+import CurrencySelector from '../../components/ui/CurrencySelector';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
@@ -194,18 +194,12 @@ export default function ProfilePage() {
                   
                   <div className={styles.formGroup}>
                     <label htmlFor="preferredCurrency">Preferred Currency</label>
-                    <select
+                    <CurrencySelector
                       id="preferredCurrency"
                       value={preferredCurrency}
-                      onChange={(e) => setPreferredCurrency(e.target.value)}
-                      className={styles.select}
-                    >
-                      {SUPPORTED_CURRENCIES.map(curr => (
-                        <option key={curr.code} value={curr.code}>
-                          {curr.code} ({curr.symbol}) - {curr.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setPreferredCurrency}
+                      className={styles.currencySelector}
+                    />
                   </div>
                   
                   <div className={styles.buttonGroup}>
@@ -272,7 +266,6 @@ export default function ProfilePage() {
                   <Button 
                     onClick={handleSignOut} 
                     variant="secondary"
-                    className={styles.signOutButton}
                   >
                     Sign Out
                   </Button>
