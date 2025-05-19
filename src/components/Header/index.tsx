@@ -106,16 +106,22 @@ const Header = () => {
           {currentUser && (
             <>
               <Link 
+                href="/expenses" 
+                className={`${styles.navLink} ${pathname?.startsWith('/expenses') ? styles.active : ''}`}
+              >
+                Expenses
+              </Link>
+              <Link 
                 href="/events" 
                 className={`${styles.navLink} ${pathname?.startsWith('/events') ? styles.active : ''}`}
               >
                 Events
               </Link>
               <Link 
-                href="/expenses" 
-                className={`${styles.navLink} ${pathname?.startsWith('/expenses') ? styles.active : ''}`}
+                href="/groups" 
+                className={`${styles.navLink} ${pathname?.startsWith('/groups') ? styles.active : ''}`}
               >
-                Expenses
+                Groups
               </Link>
               <Link 
                 href="/friends" 

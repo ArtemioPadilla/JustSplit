@@ -35,5 +35,13 @@ service cloud.firestore {
         (request.auth.uid == resource.data.fromUser || request.auth.uid == resource.data.toUser);
       allow delete: if false; // Don't allow deletion of settlement records
     }
+
+    // Groups - Can be read by anybody in the Groups
+    match /groups/{groupId} {
+      allow read: if request.auth != null && request.auth.uid in request.data.members;
+      allow create: if request.auth != null && request.auth.uid in request.data.members;
+      allow update: if request.auth != null && request.auth.uid in request.data.members;
+      allow delete: if request.auth != null && request.auth.uid in request.data.members;
+    }
   }
 }

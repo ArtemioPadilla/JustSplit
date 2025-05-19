@@ -23,4 +23,15 @@ export interface Friendship {
   updatedAt: Date;
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  members: string[]; // User IDs
+  eventIds: string[]; // Event IDs associated with this group
+  expenseIds: string[]; // Expense IDs directly associated with this group
+}
+
 // ...existing code...

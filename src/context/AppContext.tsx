@@ -74,11 +74,23 @@ export interface Settlement {
   eventId?: string; // Optional event ID
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  members: string[]; // User IDs
+  eventIds: string[]; // Event IDs associated with this group
+  expenseIds: string[]; // Expense IDs directly associated with this group
+}
+
 export interface AppState { // Add export here
   users: User[];
   expenses: Expense[];
   events: Event[];
   settlements: Settlement[];
+  groups: Group[];
   isDataLoaded: boolean;
   currentUser: User | null; // Add currentUser to AppState
 }
@@ -99,10 +111,20 @@ type Action =
   | { type: 'UPDATE_EXPENSES', payload: Expense[] }
   | { type: 'UPDATE_EVENTS', payload: Event[] }
   | { type: 'UPDATE_SETTLEMENTS', payload: Settlement[] }
+  | { type: 'UPDATE_GROUPS';      payload: Group[] } // <-- add
   | { type: 'SEND_FRIEND_REQUEST'; payload: { from: string, to: string } }
   | { type: 'ACCEPT_FRIEND_REQUEST'; payload: { from: string, to: string } }
   | { type: 'REJECT_FRIEND_REQUEST'; payload: { from: string, to: string } }
   | { type: 'REMOVE_FRIEND'; payload: { userId: string, friendId: string } }
+  | { type: 'ADD_GROUP'; payload: Partial<Group> }
+  | { type: 'UPDATE_GROUP'; payload: Group }
+  | { type: 'DELETE_GROUP'; payload: string }
+  | { type: 'ADD_EVENT_TO_GROUP'; payload: { groupId: string; eventId: string } }
+  | { type: 'ADD_EXPENSE_TO_GROUP'; payload: { groupId: string; expenseId: string } }
+  | { type: 'ADD_MEMBER_TO_GROUP'; payload: { groupId: string; userId: string } }
+  | { type: 'REMOVE_EVENT_FROM_GROUP'; payload: { groupId: string; eventId: string } }
+  | { type: 'REMOVE_EXPENSE_FROM_GROUP'; payload: { groupId: string; expenseId: string } }
+  | { type: 'REMOVE_MEMBER_FROM_GROUP'; payload: { groupId: string; userId: string } }
   | { type: 'UPDATE_STATE'; payload: Partial<AppState> }; // New action for updating state
 
 
@@ -111,6 +133,7 @@ const initialState: AppState = {
   expenses: [],
   events: [],
   settlements: [],
+  groups: [],
   isDataLoaded: false,
   currentUser: null // Initialize currentUser as null
 };
@@ -271,6 +294,8 @@ const reducer = (state: AppState, action: Action): AppState => {
       return { ...state, events: action.payload };
     case 'UPDATE_SETTLEMENTS':
       return { ...state, settlements: action.payload };
+    case 'UPDATE_GROUPS': // <-- add
+      return { ...state, groups: action.payload };
     case 'SEND_FRIEND_REQUEST':
       return friendsReducer.sendFriendRequest(state, action.payload);
     case 'ACCEPT_FRIEND_REQUEST':
@@ -279,6 +304,119 @@ const reducer = (state: AppState, action: Action): AppState => {
       return friendsReducer.rejectFriendRequest(state, action.payload);
     case 'REMOVE_FRIEND':
       return friendsReducer.removeFriend(state, action.payload);
+    case 'ADD_GROUP':
+      const newGroup: Group = {
+        id: uuidv4(),
+        name: action.payload.name || 'Untitled Group',
+        description: action.payload.description || '',
+        createdAt: new Date().toISOString(),
+        members: action.payload.members || [],
+        eventIds: action.payload.eventIds || [],
+        expenseIds: action.payload.expenseIds || [],
+      };
+      return {
+        ...state,
+        groups: [...state.groups, newGroup],
+      };
+      
+    case 'UPDATE_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => 
+          group.id === action.payload.id ? action.payload : group
+        ),
+      };
+      
+    case 'DELETE_GROUP':
+      return {
+        ...state,
+        groups: state.groups.filter(group => group.id !== action.payload),
+      };
+      
+    case 'ADD_EVENT_TO_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              eventIds: [...new Set([...group.eventIds, action.payload.eventId])],
+            };
+          }
+          return group;
+        }),
+      };
+      
+    case 'ADD_EXPENSE_TO_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              expenseIds: [...new Set([...group.expenseIds, action.payload.expenseId])],
+            };
+          }
+          return group;
+        }),
+      };
+      
+    case 'ADD_MEMBER_TO_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              members: [...new Set([...group.members, action.payload.userId])],
+            };
+          }
+          return group;
+        }),
+      };
+      
+    case 'REMOVE_EVENT_FROM_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              eventIds: group.eventIds.filter(id => id !== action.payload.eventId),
+            };
+          }
+          return group;
+        }),
+      };
+      
+    case 'REMOVE_EXPENSE_FROM_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              expenseIds: group.expenseIds.filter(id => id !== action.payload.expenseId),
+            };
+          }
+          return group;
+        }),
+      };
+      
+    case 'REMOVE_MEMBER_FROM_GROUP':
+      return {
+        ...state,
+        groups: state.groups.map(group => {
+          if (group.id === action.payload.groupId) {
+            return {
+              ...group,
+              members: group.members.filter(id => id !== action.payload.userId),
+            };
+          }
+          return group;
+        }),
+      };
+      
     case 'UPDATE_STATE':
       return { ...state, ...action.payload };
     default:
@@ -301,6 +439,9 @@ interface AppContextType {
   updateEvent: (eventId: string, eventData: Partial<Event>) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
   addSettlement: (settlementData: Omit<Settlement, 'id' | 'date'>) => Promise<string>;
+  addGroup: (groupData: Partial<Group>) => Promise<string>;
+  updateGroup: (groupId: string, groupData: Partial<Group>) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -422,14 +563,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       }, (error) => console.error("Error fetching expenses:", error)));
 
       // Example: Settlements listener
-      const settlementsQuery = query(collection(db, "settlements"), where("involvedUsers", "array-contains", userId));
+      const settlementsQuery = query(
+        collection(db, "settlements"),
+        where("involvedUsers", "array-contains", userId)
+      );
       unsubscribers.push(onSnapshot(settlementsQuery, (snapshot) => {
         const settlementsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Settlement));
         dispatch({ type: 'UPDATE_SETTLEMENTS', payload: settlementsData });
       }, (error) => console.error("Error fetching settlements:", error)));
       
-      dispatch({ type: 'SET_DATA_LOADED', payload: true });
+      // <-- NEW: subscribe to groups where currentUser is a member
+      const groupsQuery = query(
+        collection(db, "groups"),
+        where("members", "array-contains", userId)
+      );
+      unsubscribers.push(onSnapshot(groupsQuery, (snapshot) => {
+        const groupsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+        dispatch({ type: 'UPDATE_GROUPS', payload: groupsData });
+      }, (error) => console.error("Error fetching groups:", error)));
 
+      dispatch({ type: 'SET_DATA_LOADED', payload: true });
     } else if (!auth.currentUser && !auth.isLoading) {
       // User is logged out, clear data only if not using customInitialState
       if (customInitialState === undefined) { 
@@ -577,6 +730,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
     return docRef.id;
   };
 
+  const addGroup = async (groupData: Partial<Group>) => {
+    const sanitizedData = sanitizeForFirestore({
+      ...groupData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    
+    const docRef = await addDoc(collection(db, 'groups'), sanitizedData);
+    return docRef.id;
+  };
+  
+  const updateGroup = async (groupId: string, groupData: Partial<Group>) => {
+    const groupRef = doc(db, 'groups', groupId);
+    await updateDoc(groupRef, sanitizeForFirestore({
+      ...groupData,
+      updatedAt: serverTimestamp(),
+    }));
+  };
+  
+  const deleteGroup = async (groupId: string) => {
+    await deleteDoc(doc(db, 'groups', groupId));
+  };
+
   return (
     <AppContext.Provider value={{
       state,
@@ -593,7 +769,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       addEvent,
       updateEvent,
       deleteEvent,
-      addSettlement
+      addSettlement,
+      addGroup,
+      updateGroup,
+      deleteGroup,
     }}>
       {children}
     </AppContext.Provider>
