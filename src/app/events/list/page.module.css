@@ -137,8 +137,9 @@
 /* Filters */
 .filters {
   display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-xl);
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
 
@@ -161,6 +162,37 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.filterSelect {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.currencyFilterContainer {
+  display: flex;
+  align-items: center;
+}
+
+.metricValue {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.convertingIndicator {
+  font-style: italic;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.originalAmount {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.25rem;
+  font-weight: normal;
 }
 
 /* Button Container */

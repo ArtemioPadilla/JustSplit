@@ -91,7 +91,9 @@
 }
 
 .participantBalance {
-  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .positive {
@@ -334,11 +336,12 @@
   cursor: not-allowed;
 }
 
-.originalAmount {
+.originalAmount,
+.originalAmountBalance {
   display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.25rem;
   font-weight: normal;
 }
 
@@ -357,6 +360,12 @@
   font-weight: 500;
   margin-bottom: 8px;
   color: #4b5563;
+}
+
+.convertingIndicator {
+  font-style: italic;
+  color: #666;
+  font-size: 0.9em;
 }
 
 .updating {

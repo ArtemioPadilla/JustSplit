@@ -45,7 +45,34 @@ export default function ExpenseList() {
   
   // Function to perform currency conversion
   const performConversion = async () => {
-    // ...existing code...
+    if (filteredExpenses.length === 0) return;
+    
+    setIsConverting(true);
+    
+    const converted: Record<string, number> = {};
+    
+    try {
+      for (const expense of filteredExpenses) {
+        if (expense.currency === targetCurrency) {
+          // No conversion needed
+          converted[expense.id] = expense.amount;
+        } else {
+          // Convert the amount
+          const { convertedAmount } = await convertCurrency(
+            expense.amount,
+            expense.currency,
+            targetCurrency
+          );
+          converted[expense.id] = convertedAmount;
+        }
+      }
+      
+      setConvertedExpenses(converted);
+    } catch (error) {
+      console.error('Error converting currencies:', error);
+    } finally {
+      setIsConverting(false);
+    }
   };
   
   // Effect to handle currency conversion when target currency changes
@@ -156,14 +183,6 @@ export default function ExpenseList() {
                 className={styles.currencyFilter}
               />
             </div>
-
-            <button 
-              className={styles.refreshButton}
-              onClick={handleRefreshRates}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? 'Refreshing...' : 'Refresh Rates'}
-            </button>
           </div>
 
           {filteredExpenses.length === 0 ? (
@@ -174,6 +193,10 @@ export default function ExpenseList() {
             <div className={styles.expensesList}>
               {filteredExpenses.map(expense => {
                 const isUpdating = updatingExpenses[expense.id] || false;
+                const isConverted = isConverting || 
+                  (convertedExpenses[expense.id] && expense.currency !== targetCurrency);
+                const displayAmount = convertedExpenses[expense.id] || expense.amount;
+                
                 return (
                   <div key={expense.id} className={styles.expenseCard}>
                     <div className={styles.expenseHeader}>
@@ -188,8 +211,8 @@ export default function ExpenseList() {
                           <small>Converting...</small>
                         ) : (
                           <>
-                            {formatCurrency(convertedExpenses[expense.id] || expense.amount, targetCurrency)}
-                            {expense.currency !== targetCurrency && (
+                            {formatCurrency(displayAmount, targetCurrency)}
+                            {isConverted && expense.currency !== targetCurrency && (
                               <small className={styles.originalAmount}>
                                 (Originally: {formatCurrency(expense.amount, expense.currency)})
                               </small>

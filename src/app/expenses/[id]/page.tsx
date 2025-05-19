@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
@@ -8,13 +8,24 @@ import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import Button from '../../../components/ui/Button';
 import EditableText from '../../../components/ui/EditableText';
+import CurrencySelector from '../../../components/ui/CurrencySelector';
+import { convertCurrency } from '../../../utils/currencyExchange';
 
 export default function ExpenseDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state, dispatch, updateExpense } = useAppContext();
+  const { 
+    state, 
+    dispatch, 
+    updateExpense, 
+    preferredCurrency, 
+    setPreferredCurrency,
+    isConvertingCurrencies,
+  } = useAppContext();
+  
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const [isUpdatingNotes, setIsUpdatingNotes] = useState<boolean>(false); // For notes editing
+  const [isUpdatingNotes, setIsUpdatingNotes] = useState<boolean>(false);
+  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
 
   const expenseId = params?.id as string | undefined;
 
@@ -83,6 +94,36 @@ export default function ExpenseDetail() {
     }
   };
   
+  // Calculate converted amount when currency or expense changes
+  useEffect(() => {
+    if (!expense || !isConvertingCurrencies) {
+      setConvertedAmount(null);
+      return;
+    }
+
+    const calculateConversion = async () => {
+      if (expense.currency === preferredCurrency) {
+        setConvertedAmount(expense.amount);
+      } else {
+        try {
+          // Use the imported convertCurrency function from utils
+          const { convertedAmount } = await convertCurrency(
+            expense.amount,
+            expense.currency,
+            preferredCurrency
+          );
+          setConvertedAmount(convertedAmount);
+        } catch (error) {
+          console.error('Error converting currency:', error);
+          // Fallback to original amount on error
+          setConvertedAmount(expense.amount);
+        }
+      }
+    };
+
+    calculateConversion();
+  }, [expense, preferredCurrency, isConvertingCurrencies]);
+
   if (!expenseId) {
     return (
       <div className={styles.container}>
@@ -116,15 +157,33 @@ export default function ExpenseDetail() {
           onSave={handleExpenseDescriptionUpdate}
           className={`${styles.title} ${isUpdating ? styles.updating : ''}`}
         />
-        <Link href="/expenses/list" className={styles.backButton}>
-          Back to Expenses
-        </Link>
+        <div className={styles.headerActions}>
+          <CurrencySelector
+            value={preferredCurrency}
+            onChange={setPreferredCurrency}
+            compact={true}
+            label="Convert to:"
+          />
+          <Link href="/expenses/list" className={styles.backButton}>
+            Back to Expenses
+          </Link>
+        </div>
       </div>
 
       <div className={styles.section}>
         <div className={styles.amountDisplay}>
-          <span className={styles.currency}>{expense.currency}</span>
-          <span className={styles.amount}>{expense.amount.toFixed(2)}</span>
+          <span className={styles.currency}>{isConvertingCurrencies ? preferredCurrency : expense.currency}</span>
+          <span className={styles.amount}>
+            {isConvertingCurrencies && convertedAmount !== null 
+              ? convertedAmount.toFixed(2) 
+              : expense.amount.toFixed(2)
+            }
+          </span>
+          {isConvertingCurrencies && convertedAmount !== null && expense.currency !== preferredCurrency && (
+            <span className={styles.originalAmount}>
+              (Originally: {expense.currency} {expense.amount.toFixed(2)})
+            </span>
+          )}
         </div>
       </div>
 

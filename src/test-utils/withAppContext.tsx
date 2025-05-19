@@ -36,7 +36,7 @@ export function renderWithAppContext(
   { 
     initialState = defaultTestData,
     preferredCurrency = 'USD',
-    isConvertingCurrencies = false,
+    isConvertingCurrencies = true, // Changed default to true
     authValues = mockAuthValues,
     ...renderOptions 
   }: RenderOptions & { 

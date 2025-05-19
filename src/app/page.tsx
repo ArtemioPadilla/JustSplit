@@ -491,6 +491,8 @@ export default function Home() {
         handleRefreshRates={handleRefreshRates}
         isConvertingCurrencies={isConvertingCurrencies}
         setIsConvertingCurrencies={setIsConvertingCurrencies}
+        selectedCurrency={preferredCurrency}
+        setSelectedCurrency={setPreferredCurrency}
       />
       
       <CurrencyExchangeTicker baseCurrency={preferredCurrency} />

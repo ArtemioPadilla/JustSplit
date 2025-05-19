@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext, Event as AppEvent, User } from '../../../context/AppContext';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -8,6 +8,7 @@ import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
 import Button from '../../../components/ui/Button';
 import EditableText from '../../../components/ui/EditableText';
+import CurrencySelector from '../../../components/ui/CurrencySelector';
 import { 
   calculateSettledPercentage,
   calculateTotalByCurrency,
@@ -15,12 +16,19 @@ import {
   TimelineEvent,
   TimelineExpense
 } from '../../../utils/timelineUtils';
+import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 
 export default function EventList() {
   const { state, dispatch, updateEvent } = useAppContext();
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [filters, setFilters] = useState({ date: '', type: '', status: '' });
   const [updatingEvents, setUpdatingEvents] = useState<Record<string, boolean>>({});
+  const [sortBy, setSortBy] = useState('date'); // Default sort by date
+  const [sortOrder, setSortOrder] = useState('desc'); // Default sort order
+  const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
+  const [convertedTotals, setConvertedTotals] = useState<Record<string, number>>({});
+  const [isConverting, setIsConverting] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   // Get current date range for date filter
   const currentYear = new Date().getFullYear();
@@ -63,6 +71,118 @@ export default function EventList() {
     }
   };
 
+  // Function to calculate total amount for an event
+  const calculateEventTotal = (eventId: string) => {
+    const eventExpenses = state.expenses.filter(expense => expense.eventId === eventId);
+    return eventExpenses.reduce((total, expense) => total + expense.amount, 0);
+  };
+
+  // Calculate and store all event totals
+  const eventTotals = state.events.reduce((acc, event) => {
+    acc[event.id] = calculateEventTotal(event.id);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Handle refreshing rates
+  const handleRefreshRates = async () => {
+    setIsRefreshing(true);
+    
+    try {
+      // Clear the exchange rate cache to force fetching fresh rates
+      clearExchangeRateCache();
+      
+      // Re-trigger conversion with fresh rates
+      await performConversion();
+    } catch (error) {
+      console.error('Error refreshing exchange rates:', error);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500); // Visual feedback delay
+    }
+  };
+  
+  // Function to perform currency conversion
+  const performConversion = async () => {
+    if (state.events.length === 0) return;
+    
+    setIsConverting(true);
+    
+    const converted: Record<string, number> = {};
+    
+    try {
+      for (const event of state.events) {
+        // Calculate the event's original total and currency
+        const eventExpenses = state.expenses.filter(expense => expense.eventId === event.id);
+        
+        if (eventExpenses.length === 0) {
+          converted[event.id] = 0;
+          continue;
+        }
+        
+        // Convert each expense amount and sum them up
+        let total = 0;
+        for (const expense of eventExpenses) {
+          const { convertedAmount } = await convertCurrency(
+            expense.amount,
+            expense.currency,
+            targetCurrency
+          );
+          total += convertedAmount;
+        }
+        
+        converted[event.id] = total;
+      }
+      
+      setConvertedTotals(converted);
+    } catch (error) {
+      console.error('Error converting currencies:', error);
+    } finally {
+      setIsConverting(false);
+    }
+  };
+  
+  // Effect to handle currency conversion when target currency changes
+  useEffect(() => {
+    performConversion();
+  }, [state.events, state.expenses, targetCurrency]);
+
+  // Sort events by the selected criteria
+  const sortedEvents = [...state.events].sort((a, b) => {
+    // Default to date sorting
+    if (sortBy === 'date') {
+      const dateA = new Date(a.startDate || a.createdAt || 0).getTime();
+      const dateB = new Date(b.startDate || b.createdAt || 0).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    
+    // Sort by name
+    if (sortBy === 'name') {
+      return sortOrder === 'asc' 
+        ? a.name.localeCompare(b.name) 
+        : b.name.localeCompare(a.name);
+    }
+    
+    // Sort by total amount
+    if (sortBy === 'amount') {
+      const amountA = isConverting ? convertedTotals[a.id] || 0 : eventTotals[a.id] || 0;
+      const amountB = isConverting ? convertedTotals[b.id] || 0 : eventTotals[b.id] || 0;
+      return sortOrder === 'asc' ? amountA - amountB : amountB - amountA;
+    }
+    
+    return 0;
+  });
+
+  // Toggle sort order or change sort field
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      // Toggle sort order if clicking on the same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Change field and set default sort order
+      setSortBy(field);
+      setSortOrder('desc'); // Default to descending order on field change
+    }
+  };
+
   const filteredEvents = state.events.filter((event) => {
     // Apply date filter
     if (filters.date && filters.date !== 'All Dates') {
@@ -97,12 +217,27 @@ export default function EventList() {
             <select 
               value={filters.date} 
               onChange={(e) => handleFilterChange('date', e.target.value)}
+              className={styles.filterSelect}
             >
               <option value="">All Dates</option>
               {dateRanges.map(range => (
                 <option key={range} value={range}>{range}</option>
               ))}
             </select>
+            
+            {/* Add Currency Selector here */}
+            <div className={styles.currencyFilterContainer}>
+              <CurrencySelector
+                value={targetCurrency}
+                onChange={setTargetCurrency}
+                showRefreshButton={true}
+                onRefresh={handleRefreshRates}
+                isRefreshing={isRefreshing}
+                label="Convert to:"
+                id="events-currency-filter"
+                compact={true}
+              />
+            </div>
           </div>
           
           <div className={styles.eventsList}>
@@ -117,6 +252,25 @@ export default function EventList() {
               const settledPercentage = calculateSettledPercentage(eventExpenses);
               const isUpdating = updatingEvents[event.id] || false;
 
+              // Calculate expenses and total for this event
+              const totalAmount = eventTotals[event.id] || 0;
+              const convertedAmount = isConverting ? convertedTotals[event.id] || 0 : totalAmount;
+              
+              // Determine primary currency for this event
+              let eventCurrency = '';
+              if (eventExpenses.length > 0) {
+                // Use the most common currency among expenses
+                const currencyCounts = eventExpenses.reduce((acc, expense) => {
+                  acc[expense.currency] = (acc[expense.currency] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>);
+                
+                eventCurrency = Object.entries(currencyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || DEFAULT_CURRENCY;
+              } else {
+                eventCurrency = DEFAULT_CURRENCY;
+              }
+              
+              // Update the metrics display to show converted amounts
               return (
                 <div key={event.id} className={styles.eventCard}>
                   {/* Replace static event name with editable component */}
@@ -137,11 +291,46 @@ export default function EventList() {
                     expenses={eventExpenses} 
                   />
                   
-                  {/* Event Metrics */}
+                  {/* Event Metrics - Update this section */}
                   <div className={styles.metrics}>
                     <div className={styles.metric}>
                       <span className={styles.metricIcon}>💰</span>
-                      <span>Total: {totalExpenses.toFixed(2)}</span>
+                      <span className={styles.metricValue}>
+                        {isConverting ? (
+                          <span className={styles.convertingIndicator}>Converting...</span>
+                        ) : (
+                          <>
+                            {/* Determine which amount to display */}
+                            {targetCurrency !== DEFAULT_CURRENCY || convertedTotals[event.id] ? (
+                              // Show converted amount when we have conversions
+                              <>
+                                {formatCurrency(convertedTotals[event.id] || 0, targetCurrency)}
+                                
+                                {/* Show original amount if conversion was applied */}
+                                {eventCurrency !== targetCurrency && totalAmount > 0 && (
+                                  <span className={styles.originalAmount}>
+                                    (Originally: {formatCurrency(totalAmount, eventCurrency)})
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              // Show original amounts grouped by currency
+                              <>
+                                {Object.entries(totalByCurrency).length > 0 ? 
+                                  Object.entries(totalByCurrency)
+                                    .map(([currency, amount], index) => (
+                                      <span key={currency}>
+                                        {formatCurrency(amount, currency)}
+                                        {index < Object.entries(totalByCurrency).length - 1 ? ', ' : ''}
+                                      </span>
+                                    )) : 
+                                  '0.00'
+                                }
+                              </>
+                            )}
+                          </>
+                        )}
+                      </span>
                     </div>
                     
                     <div className={styles.metric}>

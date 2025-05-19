@@ -290,8 +290,7 @@ interface AppContextType {
   dispatch: React.Dispatch<Action>;
   preferredCurrency: string;
   isConvertingCurrencies: boolean;
-  setIsConvertingCurrencies: (value: boolean) => void;
-  setPreferredCurrency: (currency: string) => void;
+  // Remove setIsConvertingCurrencies since we won't need to toggle it
   // Add new Firestore operations
   addUser: (userData: Omit<User, 'id' | 'balance'>) => Promise<string>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
@@ -330,7 +329,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
   );
 
   const [preferredCurrency, setPreferredCurrency] = useState<string>(DEFAULT_CURRENCY);
-  const [isConvertingCurrencies, setIsConvertingCurrencies] = useState<boolean>(true);
+  // Set isConvertingCurrencies to true by default, remove toggle functionality
+  const isConvertingCurrencies = true;
   
   // Update state.currentUser when auth state changes (userProfile or currentUser)
   useEffect(() => {
@@ -583,7 +583,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       dispatch,
       preferredCurrency,
       isConvertingCurrencies,
-      setIsConvertingCurrencies,
       setPreferredCurrency,
       // Add new Firestore operations to the context
       addUser,

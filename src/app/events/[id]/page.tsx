@@ -49,15 +49,17 @@ export default function EventDetail() {
     return calculateSettledPercentage(eventExpenses);
   }, [eventExpenses]);
 
-  // Calculate user balances for this event
+  // Calculate user balances for this event - update this to support currency conversion
   const eventBalances = useMemo(() => {
     if (!event) return {};
     
     const balances: Record<string, number> = {};
+    const convertedBalances: Record<string, number> = {};
     
     // Initialize all participant balances to 0
     event.participants.forEach(userId => {
       balances[userId] = 0;
+      convertedBalances[userId] = 0;
     });
     
     // Calculate balances based on expenses
@@ -68,17 +70,26 @@ export default function EventDetail() {
       const participants = expense.participants;
       const amountPerPerson = expense.amount / participants.length;
       
+      // Get converted amount if available
+      const expenseAmount = (targetCurrency !== expense.currency && convertedAmounts[expense.id]) 
+        ? convertedAmounts[expense.id]
+        : expense.amount;
+      
+      const convertedAmountPerPerson = expenseAmount / participants.length;
+      
       // Add to the payer's balance (they are owed money)
       balances[payer] = (balances[payer] || 0) + expense.amount;
+      convertedBalances[payer] = (convertedBalances[payer] || 0) + expenseAmount;
       
       // Subtract from each participant's balance (they owe money)
       participants.forEach(participantId => {
         balances[participantId] = (balances[participantId] || 0) - amountPerPerson;
+        convertedBalances[participantId] = (convertedBalances[participantId] || 0) - convertedAmountPerPerson;
       });
     });
     
-    return balances;
-  }, [event, eventExpenses]);
+    return isConverting ? balances : convertedBalances;
+  }, [event, eventExpenses, convertedAmounts, targetCurrency, isConverting]);
 
   // Calculate event statistics with currency conversion
   const eventStats = useMemo(() => {
@@ -319,7 +330,15 @@ export default function EventDetail() {
                 <li key={user.id} className={styles.participantItem}>
                   <span>{user.name}</span>
                   <span className={`${styles.participantBalance} ${balance > 0 ? styles.positive : balance < 0 ? styles.negative : ''}`}>
-                    {balance > 0 ? '+' : ''}{balance.toFixed(2)}
+                    {formatCurrency(balance, targetCurrency)}
+                    {balance !== 0 && targetCurrency !== event.preferredCurrency && (
+                      <small className={styles.originalAmountBalance}>
+                        (Originally: {formatCurrency(
+                          eventBalances[user.id] || 0, 
+                          event.preferredCurrency || DEFAULT_CURRENCY
+                        )})
+                      </small>
+                    )}
                   </span>
                 </li>
               );
@@ -348,12 +367,20 @@ export default function EventDetail() {
                 <div className={styles.expenseHeader}>
                   <h3 className={styles.expenseName}>{expense.description}</h3>
                   <span className={styles.expenseAmount}>
-                    {targetCurrency} {isConverting ? '...' : 
-                      convertedAmounts[expense.id] ? convertedAmounts[expense.id].toFixed(2) : expense.amount.toFixed(2)}
-                    {expense.currency !== targetCurrency && convertedAmounts[expense.id] && (
-                      <small className={styles.originalAmount}>
-                        (Original: {expense.currency} {expense.amount.toFixed(2)})
-                      </small>
+                    {isConverting ? (
+                      <span className={styles.convertingIndicator}>Converting...</span>
+                    ) : (
+                      <>
+                        {formatCurrency(
+                          convertedAmounts[expense.id] || expense.amount, 
+                          targetCurrency
+                        )}
+                        {expense.currency !== targetCurrency && convertedAmounts[expense.id] && (
+                          <small className={styles.originalAmount}>
+                            (Original: {formatCurrency(expense.amount, expense.currency)})
+                          </small>
+                        )}
+                      </>
                     )}
                   </span>
                 </div>

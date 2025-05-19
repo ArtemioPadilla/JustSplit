@@ -74,6 +74,11 @@ The dashboard is composed of several reusable components:
 ### 9. Currency Exchange Ticker
 - **Description**: A scrolling ticker showing exchange rates for different currencies.
 - **Usage**: Displayed on the dashboard to provide up-to-date currency exchange information.
+- **Note**: The application now automatically converts currencies without requiring user toggle.
+
+### 10. UI Checkboxes
+- **Description**: Standard checkbox controls used throughout the application for boolean options.
+- **Usage**: Used in forms and settings panels for enabling/disabling features or selecting multiple items.
 
 ## Component Guidelines
 

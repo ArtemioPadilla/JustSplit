@@ -34,7 +34,10 @@ describe('CurrencySelector', () => {
     
     // Check if all currency options are present
     SUPPORTED_CURRENCIES.forEach(currency => {
-      expect(screen.getByText(new RegExp(`${currency.code}.*\\(${currency.symbol}\\)`, 'i'))).toBeInTheDocument();
+      const optionText = `${currency.code} (${currency.symbol})`;
+      const options = screen.getAllByRole('option');
+      const foundOption = options.find(option => option.textContent === optionText);
+      expect(foundOption).toBeInTheDocument();
     });
   });
 

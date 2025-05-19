@@ -209,6 +209,20 @@
   }
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.originalAmount {
+  font-size: 0.85rem;
+  color: #666;
+  margin-left: 0.5rem;
+  display: block;
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;

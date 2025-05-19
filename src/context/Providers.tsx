@@ -10,9 +10,7 @@ export function Providers({ children }) {
     <AuthProvider>
       <AppProvider
         preferredCurrency="USD"
-        isConvertingCurrencies={false}
-        // Only provide initialState if your AppProvider actually needs it at initialization
-        // initialState is likely fetched from Firebase after authentication
+        isConvertingCurrencies={true}
       >
         <NotificationProvider>
           {children}

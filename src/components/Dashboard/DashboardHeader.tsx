@@ -80,17 +80,6 @@ export default function DashboardHeader({
             compact={true}
           />
           
-          <div className={styles.conversionToggle}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={isConvertingCurrencies}
-                onChange={(e) => setIsConvertingCurrencies(e.target.checked)}
-                className={styles.checkbox}
-              />
-              <span className={styles.checkboxText}>Convert currencies</span>
-            </label>
-          </div>
         </div>
       </div>
       

@@ -1,20 +1,18 @@
 import React from 'react';
-import { useAppContext } from '../../context/AppContext';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyExchange';
 import styles from './CurrencySelector.module.css';
-import Button from '../ui/Button';
 
 interface CurrencySelectorProps {
   value?: string;
   onChange?: (currency: string) => void;
+  label?: string;
   showRefreshButton?: boolean;
   onRefresh?: () => Promise<void>;
   isRefreshing?: boolean;
-  compact?: boolean;
-  className?: string;
   disabled?: boolean;
   id?: string;
-  label?: string;
+  className?: string;
+  compact?: boolean;
 }
 
 /**
@@ -22,33 +20,25 @@ interface CurrencySelectorProps {
  * It will use the global app context for currency if no value/onChange props are provided
  */
 const CurrencySelector: React.FC<CurrencySelectorProps> = ({
-  value: propValue,
-  onChange: propOnChange,
+  value = 'USD',
+  onChange,
+  label = 'Currency:',
   showRefreshButton = false,
   onRefresh,
   isRefreshing = false,
-  compact = false,
-  className = '',
   disabled = false,
   id = 'currency-selector',
-  label = 'Currency:',
+  className = '',
+  compact = false,
 }) => {
-  // Try to get values from context if not provided as props
-  let contextValues;
-  try {
-    contextValues = useAppContext();
-  } catch (error) {
-    // Silently ignore - this might happen in tests without a provider
-    contextValues = null;
-  }
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onChange) {
+      onChange(e.target.value);
+    }
+  };
 
-  // Use props if provided, otherwise fall back to context values
-  const currency = propValue !== undefined ? propValue : contextValues?.preferredCurrency;
-  const handleChange = propOnChange || contextValues?.setPreferredCurrency;
-
-  // Handle refreshing rates
   const handleRefresh = async () => {
-    if (onRefresh) {
+    if (onRefresh && !isRefreshing) {
       await onRefresh();
     }
   };
@@ -61,30 +51,28 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
       <div className={styles.selectorWrapper}>
         <select
           id={id}
-          value={currency}
-          onChange={(e) => handleChange?.(e.target.value)}
-          className={styles.select}
+          value={value}
+          onChange={handleChange}
           disabled={disabled || isRefreshing}
+          className={styles.select}
         >
           {SUPPORTED_CURRENCIES.map(currency => (
             <option key={currency.code} value={currency.code}>
-              {compact 
-                ? `${currency.code} (${currency.symbol})` 
-                : `${currency.code} (${currency.symbol}) - ${currency.name}`}
+              {`${currency.code} (${currency.symbol})`}
             </option>
           ))}
         </select>
         
         {showRefreshButton && (
-          <Button
+          <button
+            type="button"
             onClick={handleRefresh}
-            variant="secondarylight"
-            title="Refresh exchange rates"
             disabled={isRefreshing || disabled}
-            data-testid="refresh-rates-button"
+            title="Refresh exchange rates"
+            className={styles.refreshButton}
           >
-            {isRefreshing ? '⟳' : '🔄'}
-          </Button>
+            {isRefreshing ? '↻' : '↻'}
+          </button>
         )}
       </div>
     </div>
