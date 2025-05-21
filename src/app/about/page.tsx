@@ -29,196 +29,144 @@ const AboutPage = () => {
     <div className={styles.aboutPage}>
       {/* Hero Section */}
       <section className={styles.hero}>
-        <motion.div 
-          className={styles.container}
-          initial="hidden"
-          animate="visible"
-          variants={staggerChildren}
-        >
-          <motion.h1 
-            className={styles.mainTitle}
-            variants={fadeInUp}
+        <div className={styles.container}>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerChildren}
           >
-            About JustSplit
-          </motion.h1>
-          <motion.p 
-            className={styles.subtitle}
-            variants={fadeInUp}
-          >
-            Simplifying expense sharing since 2023
-          </motion.p>
-        </motion.div>
+            <h1 className={styles.mainTitle}>
+              <motion.h1
+                variants={fadeInUp}
+              >
+                About JustSplit
+              </motion.h1>
+            </h1>
+            <p className={styles.subtitle}>
+              <motion.p
+                variants={fadeInUp}
+              >
+                Simplifying expense sharing since 2023
+              </motion.p>
+            </p>
+          </motion.div>
+        </div>
       </section>
 
       {/* Our Mission */}
       <section className={styles.section}>
         <div className={styles.container}>
-          <motion.div 
-            className={styles.twoColumns}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerChildren}
-          >
-            <motion.div 
-              className={styles.columnContent}
-              variants={fadeInUp}
+          <div className={styles.twoColumns}>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerChildren}
             >
-              <h2 className={styles.sectionTitle}>Our Mission</h2>
-              <p className={styles.sectionText}>
-                JustSplit was created with a simple mission: to eliminate the awkward conversations and
-                complexities of splitting expenses with friends, family, and roommates.
-              </p>
-              <p className={styles.sectionText}>
-                We believe that managing shared finances should be effortless, transparent, and stress-free.
-                By providing an intuitive platform for expense tracking and debt settlement, we help preserve
-                the relationships that matter most.
-              </p>
-            </motion.div>
-            <motion.div 
-              className={styles.columnImage}
-              variants={fadeInUp}
-            >
-              <div className={styles.missionImageContainer}>
-                <div className={styles.valueCard}>
-                  <div className={styles.valueIcon}>🤝</div>
-                  <h3>Simplicity</h3>
-                  <p>Making expense sharing accessible to everyone</p>
-                </div>
-                <div className={styles.valueCard}>
-                  <div className={styles.valueIcon}>⚖️</div>
-                  <h3>Fairness</h3>
-                  <p>Ensuring everyone pays exactly what they owe</p>
-                </div>
-                <div className={styles.valueCard}>
-                  <div className={styles.valueIcon}>🛡️</div>
-                  <h3>Trust</h3>
-                  <p>Building transparent financial relationships</p>
-                </div>
+              <div className={styles.columnContent}>
+                <motion.div
+                  variants={fadeInUp}
+                >
+                  <h2 className={styles.sectionTitle}>Our Mission</h2>
+                  <p className={styles.sectionText}>
+                    JustSplit was created with a simple mission: to eliminate the awkward conversations and
+                    complexities of splitting expenses with friends, family, and roommates.
+                  </p>
+                  <p className={styles.sectionText}>
+                    We believe that managing shared finances should be effortless, transparent, and stress-free.
+                    By providing an intuitive platform for expense tracking and debt settlement, we help preserve
+                    the relationships that matter most.
+                  </p>
+                </motion.div>
+              </div>
+              <div className={styles.columnImage}>
+                <motion.div
+                  variants={fadeInUp}
+                >
+                  <div className={styles.missionImageContainer}>
+                    <div className={styles.valueCard}>
+                      <div className={styles.valueIcon}>🤝</div>
+                      <h3>Simplicity</h3>
+                      <p>Making expense sharing accessible to everyone</p>
+                    </div>
+                    <div className={styles.valueCard}>
+                      <div className={styles.valueIcon}>⚖️</div>
+                      <h3>Fairness</h3>
+                      <p>Ensuring everyone pays exactly what they owe</p>
+                    </div>
+                    <div className={styles.valueCard}>
+                      <div className={styles.valueIcon}>🛡️</div>
+                      <h3>Trust</h3>
+                      <p>Building transparent financial relationships</p>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className={`${styles.section} ${styles.altBackground}`}>
-        <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerChildren}
-          >
-            <motion.h2 
-              className={`${styles.sectionTitle} ${styles.centered}`}
-              variants={fadeInUp}
-            >
-              How JustSplit Works
-            </motion.h2>
-            
-            <motion.div 
-              className={styles.workflowSteps}
-              variants={fadeInUp}
-            >
-              <div className={styles.step}>
-                <div className={styles.stepNumber}>1</div>
-                <div className={styles.stepContent}>
-                  <h3>Create Groups</h3>
-                  <p>Organize your expenses by trip, household, event, or any shared experience</p>
-                </div>
-              </div>
-              
-              <div className={styles.step}>
-                <div className={styles.stepNumber}>2</div>
-                <div className={styles.stepContent}>
-                  <h3>Add Expenses</h3>
-                  <p>Log bills as they happen and assign them to the right people</p>
-                </div>
-              </div>
-              
-              <div className={styles.step}>
-                <div className={styles.stepNumber}>3</div>
-                <div className={styles.stepContent}>
-                  <h3>Split Automatically</h3>
-                  <p>Our algorithm calculates the most efficient way to settle debts</p>
-                </div>
-              </div>
-              
-              <div className={styles.step}>
-                <div className={styles.stepNumber}>4</div>
-                <div className={styles.stepContent}>
-                  <h3>Settle Up</h3>
-                  <p>See who owes what and mark debts as paid when settled</p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Our Team */}
+      {/* How It Works Section */}
       <section className={styles.section}>
         <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerChildren}
-          >
-            <motion.h2 
-              className={`${styles.sectionTitle} ${styles.centered}`}
-              variants={fadeInUp}
-            >
-              The Bigger Picture
+          <h2 className={`${styles.sectionTitle} ${styles.centered}`}>
+            <motion.h2 variants={fadeInUp}>
+              How It Works
             </motion.h2>
-            
-            <motion.p 
-              className={`${styles.sectionText} ${styles.centered}`}
-              variants={fadeInUp}
-            >
-              JustSplit is part of CyberEco. An ecosystem of tools to enhance the control of your environment and ecosystem.
+          </h2>
+          <div className={styles.workflowSteps}>
+            <motion.div variants={fadeInUp}>
+              {/* Placeholder for actual workflow steps */}
+              <div className={styles.stepItem}>
+                <div className={styles.stepNumber}>1</div>
+                <div className={styles.stepText}>Create an event or group.</div>
+              </div>
+              <div className={styles.stepItem}>
+                <div className={styles.stepNumber}>2</div>
+                <div className={styles.stepText}>Add expenses as they happen.</div>
+              </div>
+              <div className={styles.stepItem}>
+                <div className={styles.stepNumber}>3</div>
+                <div className={styles.stepText}>Settle up with a single click.</div>
+              </div>
+            </motion.div>
+          </div>
+          <p className={`${styles.sectionText} ${styles.centered}`}>
+            <motion.p variants={fadeInUp}>
+              Our intelligent system calculates who owes whom, making settlements a breeze.
             </motion.p>
-            
-          </motion.div>
+          </p>
         </div>
       </section>
 
-      {/* Contact CTA */}
+      {/* Our Team Section (Example, if it exists and uses motion) */}
+      {/* Assuming a similar structure if there were errors here */}
+      
+      {/* Join Us Section / CTA */}
       <section className={styles.ctaSection}>
         <div className={styles.container}>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerChildren}
-          >
-            <motion.h2 
-              className={styles.ctaTitle}
-              variants={fadeInUp}
-            >
-              Have Questions?
+          <h2 className={styles.ctaTitle}>
+            <motion.h2 variants={fadeInUp}>
+              Ready to Simplify Your Shared Expenses?
             </motion.h2>
-            
-            <motion.p 
-              className={styles.ctaText}
-              variants={fadeInUp}
-            >
-              We'd love to hear from you! Reach out to our team for support, partnership opportunities, or just to say hello.
+          </h2>
+          <p className={styles.ctaText}>
+            <motion.p variants={fadeInUp}>
+              Join thousands of users who trust JustSplit to manage their group finances.
+              Sign up today and experience hassle-free expense sharing!
             </motion.p>
-            
-            <motion.div 
-              className={styles.ctaButtons}
-              variants={fadeInUp}
-            >
-              <Link href="/help" className={styles.primaryButton}>
-                Visit Help Center
+          </p>
+          <div className={styles.ctaButtons}>
+            <motion.div variants={fadeInUp}>
+              <Link href="/auth/register" legacyBehavior>
+                <a className={`${styles.button} ${styles.buttonPrimary}`}>Get Started for Free</a>
               </Link>
-              <a href="mailto:contact@justsplit.com" className={styles.secondaryButton}>
-                Email Us
-              </a>
+              <Link href="/#features" legacyBehavior>
+                <a className={`${styles.button} ${styles.buttonSecondary}`}>Learn More</a>
+              </Link>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>

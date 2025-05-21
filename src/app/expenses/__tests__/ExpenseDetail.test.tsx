@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 // Mock the next/navigation hooks
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
-  useParams: jest.fn()
+  useParams: jest.fn(() => ({ id: 'expense-1' }))
 }));
 
 // Mock for next/link

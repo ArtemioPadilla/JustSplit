@@ -11,13 +11,13 @@ import {
   TwitterAuthProvider, 
   signInWithPopup,
   linkWithPopup,
-  AuthProvider,
   sendPasswordResetEmail,
   updateProfile as firebaseUpdateProfile,
   browserLocalPersistence,
   browserSessionPersistence,
   setPersistence
 } from 'firebase/auth';
+import type { AuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { hasIndexedDBCorruption, recoverFromCorruption } from '../utils/indexedDBReset';

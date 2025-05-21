@@ -5,7 +5,7 @@ import { calculateSettlementsWithConversion } from '../../utils/expenseCalculato
 import { convertCurrency, getCurrencySymbol } from '../../utils/currencyExchange';
 import Link from 'next/link';
 import HoverCard, { HoverCardPosition } from '../ui/HoverCard';
-import { TimelineExpense } from '../../utils/timelineUtils';
+import { Expense, TimelineExpense, User, Event as TypesEvent } from '../../types'; // Renamed to TypesEvent for clarity
 import BalanceLine from './BalanceLine';
 
 interface UserBalance {
@@ -14,8 +14,13 @@ interface UserBalance {
   balance: number;
 }
 
-const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency }) => {
-  const { state, preferredCurrency, isConvertingCurrencies, setPreferredCurrency, setIsConvertingCurrencies } = useAppContext();
+interface BalanceOverviewProps {
+  balanceDistribution: Array<{userId: string, name: string, balance: number}>;
+  preferredCurrency: string;
+}
+
+const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency }: BalanceOverviewProps) => {
+  const { state, preferredCurrency, setPreferredCurrency } = useAppContext();
   const { users, expenses, events } = state;
   const [userBalances, setUserBalances] = useState<UserBalance[]>([]);
   const [totalPositive, setTotalPositive] = useState(0);
@@ -34,6 +39,28 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
   const [maxRelativeBalance, setMaxRelativeBalance] = useState(1);
   const [hideZeroBalances, setHideZeroBalances] = useState(true);
   
+  // Add this conversion function to map between the two Event types
+  const convertContextEventsToTypesEvents = (contextEvents: typeof events): TypesEvent[] => {
+    return contextEvents.map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      date: event.startDate || '', // Use startDate as the required date field, fallback to empty string
+      startDate: event.startDate,
+      endDate: event.endDate,
+      location: event.location, // Use location if available
+      createdAt: event.createdAt || new Date().toISOString(), // Use event.createdAt if available
+      updatedAt: event.updatedAt, // Optional
+      createdBy: event.createdBy || (event.members?.[0] || ''), // Use createdBy or fallback to first member
+      members: event.members || [], // Use members
+      expenseIds: event.expenseIds || [], // Use expenseIds
+      groupId: event.groupId // Optional
+    }));
+  };
+
+  // Use this to get properly typed events when needed
+  const typedEvents = convertContextEventsToTypesEvents(events);
+  
   // Calculate balances based on expenses and settlements
   useEffect(() => {
     const calculateBalances = async () => {
@@ -43,8 +70,7 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
         const settlements = await calculateSettlementsWithConversion(
           expenses, 
           users, 
-          preferredCurrency,
-          isConvertingCurrencies
+          preferredCurrency
         );
 
         // Initialize user balances
@@ -55,28 +81,14 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
 
         // Apply settlements to calculate balances
         for (const settlement of settlements) {
-          // If currency conversion is enabled, convert settlement amounts
-          let amount = settlement.amount;
-          if (isConvertingCurrencies && settlement.currency !== preferredCurrency) {
-            try {
-              const converted = await convertCurrency(amount, settlement.currency, preferredCurrency);
-              amount = converted.convertedAmount;
-            } catch (error) {
-              console.error(`Failed to convert ${settlement.currency} to ${preferredCurrency}:`, error);
-            }
-          }
-          
-          // The user who receives money has a positive balance
-          balanceMap.set(
-            settlement.toUser, 
-            (balanceMap.get(settlement.toUser) || 0) + amount
-          );
-          
-          // The user who pays money has a negative balance
-          balanceMap.set(
-            settlement.fromUser, 
-            (balanceMap.get(settlement.fromUser) || 0) - amount
-          );
+          let amount = settlement.amount; // Amount is already in preferredCurrency
+
+          // Update balances based on the settlement amount
+          const fromUserBalance = balanceMap.get(settlement.fromUser) || 0;
+          balanceMap.set(settlement.fromUser, fromUserBalance - amount);
+
+          const toUserBalance = balanceMap.get(settlement.toUser) || 0;
+          balanceMap.set(settlement.toUser, toUserBalance + amount);
         }
 
         // Convert to array format with user names
@@ -118,7 +130,7 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
       setNetBalance(0);
       setIsLoading(false);
     }
-  }, [users, expenses, preferredCurrency, isConvertingCurrencies]); 
+  }, [users, expenses, preferredCurrency]); 
   
   // Format currency - use the correct currency symbol
   const formatCurrency = (amount: number) => {
@@ -143,6 +155,8 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
   };
 
   // Helper to get expenses for a user (participant or payer)
+  // REMOVE THE FOLLOWING OLD getUserExpenses FUNCTION
+  /*
   const getUserExpenses = (user: UserBalance, sign: 'positive' | 'negative') => {
     if (sign === 'positive') {
       // User is owed money: show expenses they paid for
@@ -152,8 +166,11 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
       return expenses.filter(exp => exp.participants.includes(user.id) && exp.paidBy !== user.id && !exp.settled);
     }
   };
+  */
 
   // Helper to get all positive or negative expenses for the general bar
+  // REMOVE THE FOLLOWING OLD getGeneralExpenses FUNCTION
+  /*
   const getGeneralExpenses = (sign: 'positive' | 'negative') => {
     if (sign === 'positive') {
       // All expenses where payer is a user with positive balance
@@ -165,6 +182,107 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
       return expenses.filter(exp => exp.participants.some(pid => negativeUserIds.includes(pid)) && !exp.settled);
     }
   };
+  */
+
+  // Helper function to map Expense to TimelineExpense
+  // This function assumes 'users' and 'events' (as LocalEvent[]) are available in its scope
+  // You might need to pass them as arguments or access them from component state/props/context
+  const mapExpenseToTimelineExpense = (
+    expense: Expense, 
+    allUsers: User[], // Pass all users
+    allEvents: TypesEvent[] // Changed parameter type to TypesEvent[]
+  ): TimelineExpense => {
+    const paidByUser = allUsers.find(u => u.id === expense.paidBy);
+    const participantUsers = expense.participants.map(pid => allUsers.find(u => u.id === pid)).filter(Boolean) as User[];
+    
+    const userNames: Record<string, string> = {};
+    if (paidByUser) {
+      userNames[paidByUser.id] = paidByUser.name;
+    }
+    participantUsers.forEach(pUser => {
+      userNames[pUser.id] = pUser.name;
+    });
+
+    const event = expense.eventId ? allEvents.find(e => e.id === expense.eventId) : undefined;
+
+    return {
+      id: expense.id,
+      type: 'expense', // Or determine dynamically if needed
+      date: new Date(expense.date), // Convert string date to Date object
+      title: expense.description,
+      amount: expense.amount,
+      currency: expense.currency,
+      category: expense.category || 'Uncategorized', // Use expense.category or a default
+      eventName: event ? event.name : 'N/A',
+      eventId: expense.eventId,
+      settled: expense.settled,
+      paidBy: expense.paidBy,
+      participants: expense.participants,
+      userNames: userNames,
+    };
+  };
+
+  // --- Example modification for getGeneralExpenses ---
+  // This is the NEW version to KEEP
+  const getGeneralExpenses = (
+    sign: 'owe' | 'owed', 
+    expensesToFilter: Expense[], 
+    allUsers: User[],
+    allEvents: TypesEvent[] // Updated parameter type
+  ): TimelineExpense[] => {
+    // ... existing filtering logic ...
+    
+    // Replace this with your actual filtering logic
+    const filteredExpenses: Expense[] = expensesToFilter.filter(exp => {
+      // Placeholder for actual filtering logic based on 'sign'
+      if (sign === 'owed') {
+        const positiveUserIds = userBalances.filter(u => u.balance > 0).map(u => u.id);
+        return positiveUserIds.includes(exp.paidBy) && !exp.settled;
+      } else { // sign === 'owe' (negative for the group)
+        const negativeUserIds = userBalances.filter(u => u.balance < 0).map(u => u.id);
+        return exp.participants.some(pid => negativeUserIds.includes(pid)) && !exp.settled && !negativeUserIds.includes(exp.paidBy);
+      }
+    });
+
+    return filteredExpenses.map(exp => mapExpenseToTimelineExpense(exp, allUsers, allEvents));
+  };
+
+  // --- Similarly, modify getUserExpenses and getRelativeExpenses ---
+  // This is the NEW version to KEEP
+  const getUserExpenses = (
+    user: User,
+    sign: 'owes' | 'is_owed',
+    expensesToFilter: Expense[],
+    allUsers: User[],
+    allEvents: TypesEvent[] // Updated parameter type
+  ): TimelineExpense[] => {
+    // Placeholder for actual filtering logic based on 'sign' and 'user'
+    // This logic should be based on the original getUserExpenses if it was correct
+    const filteredExpenses: Expense[] = expensesToFilter.filter(exp => {
+      if (sign === 'is_owed') { // User is owed money (positive balance contribution)
+        return exp.paidBy === user.id && !exp.settled && exp.participants.some(p => p !== user.id);
+      } else { // User owes money (negative balance contribution)
+        return exp.participants.includes(user.id) && exp.paidBy !== user.id && !exp.settled;
+      }
+    });
+    return filteredExpenses.map(exp => mapExpenseToTimelineExpense(exp, allUsers, allEvents));
+  };
+
+  const getRelativeExpenses = (
+    user1: User, 
+    user2: User, 
+    sign: 'owes' | 'is_owed',
+    expensesToFilter: Expense[],
+    allUsers: User[],
+    allEvents: TypesEvent[] // Updated parameter type
+  ): TimelineExpense[] => {
+    // ... your existing filtering logic ...
+    const filteredExpenses: Expense[] = expensesToFilter.filter(exp => {
+      // Placeholder for your actual filtering logic
+      return true;
+    });
+    return filteredExpenses.map(exp => mapExpenseToTimelineExpense(exp, allUsers, allEvents));
+  };
 
   // Helper to show hover card
   let hoverTimeout: NodeJS.Timeout | null = null;
@@ -175,12 +293,21 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
     }
     const targetRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     let hoverExpenses: TimelineExpense[] = [];
+    
+    // Use the converted events instead of direct state.events
     if (data.type === 'general') {
-      hoverExpenses = getGeneralExpenses(data.sign);
+      // Ensure data.sign matches 'owe' | 'owed'
+      hoverExpenses = getGeneralExpenses(data.sign as ('owe' | 'owed'), expenses, users, typedEvents);
     } else if (data.type === 'user') {
-      hoverExpenses = getUserExpenses(data.user, data.sign);
+      // Ensure data.user is of type User and data.sign matches 'owes' | 'is_owed'
+      const targetUser = users.find(u => u.id === data.user.id); // data.user might be UserBalance, ensure it's User
+      if (targetUser) {
+        hoverExpenses = getUserExpenses(targetUser, data.sign as ('owes' | 'is_owed'), expenses, users, typedEvents);
+      }
     } else if (data.type === 'relative') {
-      hoverExpenses = data.expenses || [];
+      // If data.expenses are raw Expense[], they need mapping.
+      const rawRelativeExpenses: Expense[] = data.expenses || [];
+      hoverExpenses = rawRelativeExpenses.map((exp) => mapExpenseToTimelineExpense(exp, users, typedEvents));
     }
     setHoverCardPosition({
       x: targetRect.right + 10,
@@ -230,7 +357,7 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
           let amount = exp.amount;
           
           // Convert amount if needed and enabled
-          if (isConvertingCurrencies && exp.currency !== preferredCurrency) {
+          if (exp.currency !== preferredCurrency) {
             try {
               const result = await convertCurrency(amount, exp.currency, preferredCurrency);
               amount = result.convertedAmount;
@@ -267,7 +394,7 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
     if (users.length > 0 && !isLoading) {
       calculateRelativeBalances();
     }
-  }, [currentUser, userBalances, expenses, preferredCurrency, isConvertingCurrencies, isLoading]);
+  }, [currentUser, userBalances, expenses, preferredCurrency, true, isLoading]);
 
   // Get relevant users for the current user
   const getRelevantUsers = () => {
@@ -294,8 +421,8 @@ const BalanceOverview = ({ balanceDistribution, preferredCurrency: propCurrency 
     
     // Add users from events where current user is a participant
     events.forEach(event => {
-      if (event.participants.includes(currentUser.id)) {
-        event.participants.forEach(id => {
+      if (event.members.includes(currentUser.id)) {
+        event.members.forEach(id => {
           if (id !== currentUser.id) {
             relevantUserIds.add(id);
           }

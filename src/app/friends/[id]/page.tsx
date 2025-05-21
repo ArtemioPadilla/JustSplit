@@ -10,7 +10,7 @@ export default function FriendDetail() {
   const router = useRouter();
   const params = useParams();
   const { state, dispatch } = useAppContext();
-  const friendId = params.id as string;
+  const friendId = params?.id ? (params.id as string) : '';
   
   const [friend, setFriend] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);

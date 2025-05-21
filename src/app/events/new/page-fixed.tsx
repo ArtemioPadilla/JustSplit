@@ -62,19 +62,27 @@ export default function NewEvent() {
           description,
           startDate,
           endDate: endDate || undefined,
-          participants,
+          members: participants,
           preferredCurrency,
+          date: startDate,
+          createdAt: new Date().toISOString(),
+          createdBy: state.currentUser?.id || '',
+          expenseIds: [],
         }
       });
-      
+
       // Then call the Firestore function
       await addEvent({
         name,
         description,
         startDate,
         endDate: endDate || undefined,
-        participants,
+        members: participants,
         preferredCurrency,
+        date: startDate,
+        createdAt: new Date().toISOString(),
+        createdBy: state.currentUser?.id || '',
+        expenseIds: [],
       });
       
       // Navigate to events list
@@ -231,7 +239,7 @@ export default function NewEvent() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <Button variant="primary" className={styles.submitButton}>
+          <Button variant="primary">
             Create Event
           </Button>
           <Button

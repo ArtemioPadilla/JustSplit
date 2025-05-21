@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Event } from '../../context/AppContext';
+import { Expense, User, Event, TimelineExpense } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 import { getCurrencySymbol } from '../../utils/currencyExchange';
 import styles from '../../app/page.module.css';
 import HoverCard, { HoverCardPosition } from '../ui/HoverCard';
-import { TimelineExpense } from '../../utils/timelineUtils';
 
 interface ChartData {
   month: string;
@@ -69,52 +68,69 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
     month: ChartData, 
     segment: { id: string; name: string; amount: number; percentage: number }
   ) => {
-    // Get the target element for positioning
     const targetRect = (event.target as HTMLElement).getBoundingClientRect();
-    
-    // Set the active segment identifier (combine month and segment id)
     const segmentIdentifier = `${month.month}-${segment.id}`;
     setActiveSegment(segmentIdentifier);
-    
-    // Parse the month and year from the month string (e.g., "May 2025")
+
     const parts = month.month.split(' ');
     const monthName = parts[0];
     const year = parseInt(parts[1] || `${currentYear}`);
     const monthNum = monthNameToNumber(monthName);
     
-    // Create date range for the month
     const startDate = new Date(year, monthNum, 1);
-    const endDate = new Date(year, monthNum + 1, 0); // Last day of month
+    const endDate = new Date(year, monthNum + 1, 0);
     
-    // Format dates to yyyy-mm-dd string for reliable comparison
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
     
-    // Filter expenses that fall within this month and match the segment criteria
-    let filteredExpenses = state.expenses.filter(expense => {
-      const expenseDate = expense.date.split('T')[0]; // Get yyyy-mm-dd part only
+    let filteredExpensesSource = state.expenses.filter(expense => {
+      const expenseDate = expense.date.split('T')[0];
       return expenseDate >= startDateStr && expenseDate <= endDateStr;
     });
     
-    // Further filter based on the segment type (event or spender)
     if (colorBy === 'event') {
       if (segment.id === 'no-event') {
-        filteredExpenses = filteredExpenses.filter(expense => !expense.eventId);
+        filteredExpensesSource = filteredExpensesSource.filter(expense => !expense.eventId);
       } else {
-        filteredExpenses = filteredExpenses.filter(expense => expense.eventId === segment.id);
+        filteredExpensesSource = filteredExpensesSource.filter(expense => expense.eventId === segment.id);
       }
-    } else { // spender
-      filteredExpenses = filteredExpenses.filter(expense => expense.paidBy === segment.id);
+    } else {
+      filteredExpensesSource = filteredExpensesSource.filter(expense => expense.paidBy === segment.id);
     }
     
-    // Convert the expenses to TimelineExpense type for the HoverCard
-    const expensesToShow: TimelineExpense[] = filteredExpenses.map(expense => ({
-      ...expense,
-      // Add any missing properties required by TimelineExpense
-      participants: expense.participants || []
-    }));
+    // Convert AppContext.Expense[] to the detailed TimelineExpense[] (from src/types)
+    const expensesToShow: TimelineExpense[] = filteredExpensesSource.map(expense => {
+      const eventForExpense = events.find(e => e.id === expense.eventId);
+      const userNamesMap: Record<string, string> = {};
+
+      // Populate userNamesMap for participants
+      expense.participants?.forEach(pid => {
+        const user = users.find(u => u.id === pid);
+        if (user) userNamesMap[pid] = user.name;
+      });
+      // Ensure paidBy user is in userNamesMap
+      if (expense.paidBy && !userNamesMap[expense.paidBy]) {
+          const paidByUser = users.find(u => u.id === expense.paidBy);
+          if (paidByUser) userNamesMap[expense.paidBy] = paidByUser.name;
+      }
+
+      return {
+        id: expense.id,
+        type: 'expense', // Default type, adjust if settlements are also handled
+        date: new Date(expense.date), // Convert string date to Date object
+        title: expense.description, // Use description as title
+        amount: expense.amount,
+        currency: expense.currency,
+        category: expense.category || 'Uncategorized', // This should now work as category is in the Expense interface
+        eventName: eventForExpense ? eventForExpense.name : 'N/A',
+        eventId: expense.eventId,
+        settled: expense.settled,
+        paidBy: expense.paidBy,
+        participants: expense.participants || [],
+        userNames: userNamesMap,
+      };
+    });
     
-    // Position the hover card to the side of the bar with window boundary awareness
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
@@ -265,7 +281,8 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
             {breakdown.map((segment, segIndex) => {
               const colorIndex = colorBy === 'event' 
                 ? (segment.id === 'no-event' ? events.length : events.findIndex(e => e.id === segment.id))
-                : users.findIndex(u => u.id === segment.id);
+                // Ensure users array is not empty before finding index
+                : (users.length > 0 ? users.findIndex(u => u.id === segment.id) : -1);
               
               return (
                 <div 

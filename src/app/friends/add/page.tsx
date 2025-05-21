@@ -69,7 +69,7 @@ export default function AddFriend() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <Button type="submit" variant="primary" className={styles.submitButton}>
+          <Button type="submit" variant="primary">
             Add Friend
           </Button>
           <button

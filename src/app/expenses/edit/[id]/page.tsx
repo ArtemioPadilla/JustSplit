@@ -55,7 +55,7 @@ type Participant = {
 const EditExpensePage = () => {
   const params = useParams();
   const router = useRouter();
-  const expenseId = params.id as string;
+  const expenseId = params?.id ? (params.id as string) : '';
   
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');

@@ -651,7 +651,7 @@ export default function SettlementsPage() {
                         </thead>
                         <tbody>
                           {state.users
-                            .filter(user => event.participants.includes(user.id))
+                            .filter(user => event.members.includes(user.id))
                             .map(user => {
                               const balance = convertedBalances[user.id]?.byEvent[event.id] || 0;
                               

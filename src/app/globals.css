@@ -138,3 +138,10 @@ p {
 .mb-4 {
   margin-bottom: var(--space-md);
 }
+
+/* Apply smooth scrolling globally for desktop */
+@media (min-width: 1024px) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

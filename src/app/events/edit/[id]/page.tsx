@@ -26,16 +26,16 @@ export default function EditEvent() {
 
   // Load event data when component mounts
   useEffect(() => {
-    if (params.id && state) {
-      const eventId = params.id as string;
+    if (params?.id && state) {
+      const eventId = params?.id as string;
       const event = state.events.find(e => e.id === eventId);
       
       if (event) {
         setName(event.name);
         setDescription(event.description || '');
-        setStartDate(event.startDate);
+        setStartDate(event.startDate || '');
         setEndDate(event.endDate || '');
-        setParticipants(event.participants);
+        setParticipants(event.members);
         setPreferredCurrency(event.preferredCurrency || DEFAULT_CURRENCY);
       } else {
         setNotFound(true);
@@ -43,7 +43,7 @@ export default function EditEvent() {
       
       setLoading(false);
     }
-  }, [params.id, state]);
+  }, [params?.id, state]);
 
   const handleAddParticipant = () => {
     if (!newParticipantName.trim()) return;
@@ -78,30 +78,33 @@ export default function EditEvent() {
     }
     
     try {
-      const eventId = params.id as string;
+      const eventId = params?.id as string;
       
       // Update the event in local state
+      const oldEvent = state.events.find(e => e.id === eventId);
+      if (!oldEvent) throw new Error('Event not found');
       dispatch({
         type: 'UPDATE_EVENT',
         payload: {
-          id: eventId,
+          ...oldEvent,
           name,
           description,
           startDate,
           endDate: endDate || undefined,
-          participants,
-          expenses: state.events.find(e => e.id === eventId)?.expenses || [],
+          members: participants,
+          expenseIds: oldEvent.expenseIds || [],
           preferredCurrency
         }
       });
-      
+
       // Also update in Firestore
       await updateEvent(eventId, {
         name,
         description,
         startDate,
         endDate: endDate || undefined,
-        participants,
+        members: participants,
+        expenseIds: state.events.find(e => e.id === eventId)?.expenseIds || [],
         preferredCurrency
       });
       
@@ -282,7 +285,7 @@ export default function EditEvent() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <Button type="submit" variant="primary" className={styles.submitButton}>
+          <Button type="submit" variant="primary">
             Save Changes
           </Button>
           <button

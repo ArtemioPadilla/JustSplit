@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAppContext } from '../../../context/AppContext';
 import styles from './styles.module.css';
 import HoverCard, { HoverCardPosition } from '../HoverCard';
-import { 
-  TimelineEvent, 
-  TimelineExpense, 
+import { TimelineExpense, TimelineEvent } from '../../../types';
+import {
   calculateTimelineProgress,
   calculatePositionPercentage,
   groupNearbyExpenses,
   formatTimelineDate
 } from '../../../utils/timelineUtils';
+
 
 export interface TimelineProps {
   /**
@@ -38,6 +39,7 @@ const Timeline: React.FC<TimelineProps> = ({
   className = '',
   progressColor,
 }) => {
+  const { state } = useAppContext();
   // State for hover card with expense details
   const [activeGroup, setActiveGroup] = useState<{
     position: HoverCardPosition,
@@ -48,7 +50,21 @@ const Timeline: React.FC<TimelineProps> = ({
   const timelineProgress = calculateTimelineProgress(event.startDate, event.endDate);
 
   // Group expenses that are near each other on the timeline
-  const groupedExpenses = groupNearbyExpenses(expenses, event);
+  const groupedExpenses = groupNearbyExpenses(
+    expenses.map(e => ({
+      ...e,
+      date: e.date instanceof Date ? e.date.toISOString() : e.date,
+      description: e.title || '',
+    })),
+    {
+      ...event,
+      date: event.startDate || '',
+      createdAt: event.createdAt || '',
+      createdBy: event.createdBy || '',
+      members: event.members || [],
+      expenseIds: event.expenseIds || [],
+    }
+  );
 
   // Close hover card on escape key or when clicking elsewhere
   const closeHoverCard = useCallback(() => setActiveGroup(null), []);
@@ -67,7 +83,7 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [activeGroup, closeHoverCard]);
 
   // Handle click on expense marker
-  const handleExpenseClick = (e: React.MouseEvent, expenses: TimelineExpense[]) => {
+  const handleExpenseClick = (e: React.MouseEvent, expenses: any[]) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
     
@@ -82,14 +98,26 @@ const Timeline: React.FC<TimelineProps> = ({
       closeHoverCard();
       return;
     }
-    
+    // Map grouped expenses to TimelineExpense[]
+    const timelineExpenses = expenses.map((exp: any) => ({
+      ...exp,
+      date: exp.date instanceof Date ? exp.date : new Date(exp.date),
+      type: 'expense',
+      title: exp.description,
+      eventName: event.name,
+      userNames: Object.fromEntries((exp.participants as string[]).map((pid: string) => {
+        const user = state.users.find((u: any) => u.id === pid);
+        return [pid, user ? user.name : 'Unknown'];
+      })),
+      category: exp.category ?? '',
+    }));
     setActiveGroup({
       position: { 
         x: e.clientX, 
         y: e.clientY,
         targetRect: targetRect // Pass the target element's bounding rectangle
       },
-      expenses
+      expenses: timelineExpenses
     });
   };
 
@@ -217,7 +245,7 @@ const Timeline: React.FC<TimelineProps> = ({
             </div>
           )}
           {/* Pre-event expenses */}
-          {expenses.some(exp => calculatePositionPercentage(exp.date, event.startDate, event.endDate) < 0) && (
+          {expenses.some(exp => calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), event.startDate, event.endDate) < 0) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.preEventExpense}`}></div>
               <span>Pre-event</span>
@@ -225,7 +253,7 @@ const Timeline: React.FC<TimelineProps> = ({
           )}
           {/* Post-event expenses */}
           {expenses.some(exp => 
-            event.endDate && calculatePositionPercentage(exp.date, event.startDate, event.endDate) > 100
+            event.endDate && calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), event.startDate, event.endDate) > 100
           ) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.postEventExpense}`}></div>

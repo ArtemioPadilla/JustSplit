@@ -60,13 +60,17 @@ export default function NewEvent() {
         description,
         startDate,
         endDate: endDate || undefined,
-        participants,
+        members: participants,
         preferredCurrency,
+        date: startDate,
+        createdAt: new Date().toISOString(),
+        createdBy: state.currentUser?.id || '',
+        expenseIds: [],
       };
-      
+
       // Add to Firestore first
       await addEvent(eventData);
-      
+
       // Navigate to events list
       router.push('/events/list');
     } catch (error) {
@@ -224,7 +228,7 @@ export default function NewEvent() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <Button type="submit" variant="primary" className={styles.submitButton}>
+          <Button type="submit" variant="primary">
             Create Event
           </Button>
           <Button

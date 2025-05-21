@@ -1,4 +1,4 @@
-import { Expense, User } from '../context/AppContext';
+import { Expense, User } from '../types';
 import { convertCurrency } from './currencyExchange';
 
 interface Settlement {

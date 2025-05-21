@@ -307,7 +307,7 @@ export default function NewExpense() {
         </div>
         
         <div className={styles.buttonGroup}>
-          <Button type="submit" variant="primary" className={styles.submitButton}>
+          <Button type="submit" variant="primary">
             Save Expense
           </Button>
           <Button

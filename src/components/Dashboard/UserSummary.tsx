@@ -2,21 +2,26 @@ import React from 'react';
 import Link from 'next/link';
 import styles from './styles.module.css';
 import { useAppContext } from '../../context/AppContext';
+import { User } from '../../types'; // Import the User type
 
-const UserSummary = () => {
+interface UserSummaryProps {
+  user: User;
+}
+
+const UserSummary: React.FC<UserSummaryProps> = ({ user }) => {
   // Access users from context state
   const { state } = useAppContext();
   const { users } = state;
 
   // Format balance with currency symbol
-  const formatBalance = (balance, currency = 'USD') => {
+  const formatBalance = (balance: number, currency: string = 'USD') => {
     const symbol = currency === 'USD' ? '$' : '€';
     const prefix = balance < 0 ? '-' : '';
     return `${prefix}${symbol}${Math.abs(balance).toFixed(2)}`;
   };
 
   // Get CSS class based on balance value
-  const getBalanceClass = (balance) => {
+  const getBalanceClass = (balance: number) => {
     if (balance > 0) return styles.positiveBalance;
     if (balance < 0) return styles.negativeBalance;
     return styles.zeroBalance;

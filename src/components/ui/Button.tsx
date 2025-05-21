@@ -8,11 +8,12 @@ type ButtonProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
-  onClick?: () => void;
+  onClick?: (event?: React.MouseEvent<HTMLButtonElement>) => void; // Modified onClick type
   children: React.ReactNode;
   type?: 'button' | 'submit' | 'reset'; // Added type prop
   title?: string; // Added for accessibility
   'data-testid'?: string; // Added for testing
+  className?: string; // Added className prop
 };
 
 const Button: React.FC<ButtonProps> = ({
@@ -24,8 +25,9 @@ const Button: React.FC<ButtonProps> = ({
   type = 'button', // Default to 'button'
   title,
   'data-testid': dataTestId,
+  className, // Destructure className
 }) => {
-  const classNames = `${styles.button} ${styles[variant]} ${styles[size]} ${disabled ? styles.disabled : ''}`;
+  const classNames = `${styles.button} ${styles[variant]} ${styles[size]} ${disabled ? styles.disabled : ''} ${className || ''}`; // Append external className
 
   return (
     <button 

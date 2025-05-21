@@ -1,23 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../../components/Header';
-import { useAuth } from '../../../context/AuthContext';
-import NotificationModule from '../../../context/NotificationContext';
+import { useAuth } from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
+// import LoadingSpinner from '@/components/ui/LoadingSpinner'; // Commented out
 import styles from '../page.module.css';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const auth = useAuth(); // Get the whole auth object
-  const { signIn, signInWithProvider, user, isLoading } = auth;
-  const { showNotification } = NotificationModule.useNotification();
+  const [showPassword, setShowPassword] = useState(false);
+  const auth = useAuth();
+  const { signIn, signInWithProvider, currentUser, isLoading } = auth;
+  const { showNotification } = useNotification();
   const router = useRouter();
 
-  console.log('SignIn Page - Auth State:', { user: auth.user, isLoading: auth.isLoading, error: auth.error });
+  console.log('SignIn Page - Auth State:', { currentUser: auth.currentUser, isLoading: auth.isLoading }); // Changed user to currentUser and removed error
+
+  useEffect(() => {
+    if (currentUser) {
+      router.push('/profile');
+    }
+  }, [currentUser, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +34,10 @@ export default function SignIn() {
     try {
       await signIn(email, password);
       router.push('/'); // Redirect to home page after successful sign in
+      showNotification('Signed in successfully!', 'success');
     } catch (error: any) {
-      showNotification(error.message, 'error');
+      console.error('Sign In Error:', error);
+      showNotification(error.message || 'Failed to sign in', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -37,10 +47,17 @@ export default function SignIn() {
     try {
       await signInWithProvider(provider);
       router.push('/');
+      showNotification('Signed in successfully!', 'success');
     } catch (error: any) {
-      showNotification(error.message, 'error');
+      console.error('Provider Sign In Error:', error);
+      showNotification(error.message || 'Failed to sign in with provider', 'error');
     }
   };
+
+  if (isLoading || currentUser) {
+    // return <LoadingSpinner />; // Commented out
+    return <div>Loading...</div>; // Placeholder
+  }
 
   return (
     <>
@@ -66,11 +83,18 @@ export default function SignIn() {
                 <label htmlFor="password">Password</label>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
               </div>
               
               <button 

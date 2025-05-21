@@ -6,6 +6,13 @@ import { useAuth } from './AuthContext';
 import { db } from '../firebase/config';
 import friendsReducer from '../reducers/friendsReducer';
 import {
+  User,
+  Expense,
+  Event,
+  Settlement,
+  Group
+} from '../types';
+import {
   collection,
   doc,
   setDoc,
@@ -22,77 +29,16 @@ import {
   Timestamp
 } from 'firebase/firestore';
 
-// Keep existing types and modify as needed
-export interface User {
-  id: string;
-  name: string;
-  email?: string;
-  phoneNumber?: string;
-  preferredCurrency?: string;
-  balance: number;
-  avatarUrl?: string;
-  friends?: string[];
-  friendRequestsSent?: string[];
-  friendRequestsReceived?: string[];
-}
+// Use the imported interfaces instead of redefining them
 
-export interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-  currency: string;
-  date: string;
-  paidBy: string; // User ID
-  participants: string[]; // User IDs
-  eventId?: string;
-  settled: boolean;
-  notes?: string; // Detailed description/notes
-  images?: string[]; // Array of image URLs
-  splitMethod?: string; // 'equal', 'custom', 'percentage'
-  participantShares?: { id: string; name: string; share: number; }[]; // For custom or percentage splits
-}
-
-export interface Event {
-  id: string;
-  name: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  participants: string[]; // User IDs
-  expenses: string[]; // Expense IDs
-  preferredCurrency?: string; // Preferred currency for the event
-}
-
-export interface Settlement {
-  id: string;
-  fromUser: string; // User ID
-  toUser: string; // User ID
-  amount: number;
-  currency: string; // Currency code (e.g., 'USD', 'EUR')
-  date: string;
-  expenseIds: string[]; // Related Expense IDs
-  eventId?: string; // Optional event ID
-}
-
-export interface Group {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt?: string;
-  members: string[]; // User IDs
-  eventIds: string[]; // Event IDs associated with this group
-  expenseIds: string[]; // Expense IDs directly associated with this group
-}
-
-export interface AppState { // Add export here
+export interface AppState {
   users: User[];
   expenses: Expense[];
   events: Event[];
   settlements: Settlement[];
   groups: Group[];
   isDataLoaded: boolean;
-  currentUser: User | null; // Add currentUser to AppState
+  currentUser: User | null;
 }
 
 type Action = 
@@ -198,7 +144,7 @@ const reducer = (state: AppState, action: Action): AppState => {
       if (action.payload.eventId) {
         updatedEvents = state.events.map(event => 
           event.id === action.payload.eventId
-            ? { ...event, expenses: [...event.expenses, newExpense.id] }
+            ? { ...event, expenseIds: [...(event.expenseIds || []), newExpense.id] }
             : event
         );
       }
@@ -221,7 +167,7 @@ const reducer = (state: AppState, action: Action): AppState => {
       // Remove expense from events
       const eventsWithoutExpense = state.events.map(event => ({
         ...event,
-        expenses: event.expenses.filter(id => id !== action.payload),
+        expenseIds: (event.expenseIds || []).filter(id => id !== action.payload),
       }));
       
       return {
@@ -234,7 +180,7 @@ const reducer = (state: AppState, action: Action): AppState => {
       const newEvent: Event = {
         id: uuidv4(),
         ...action.payload,
-        expenses: [],
+        expenseIds: [],
       };
       return { ...state, events: [...state.events, newEvent] };
 
@@ -427,8 +373,9 @@ interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
   preferredCurrency: string;
+  setPreferredCurrency: (currency: string) => void; // Added this line
   isConvertingCurrencies: boolean;
-  // Remove setIsConvertingCurrencies since we won't need to toggle it
+  // Remove setIsConvertingCurrencies since we won\'t need to toggle it
   // Add new Firestore operations
   addUser: (userData: Omit<User, 'id' | 'balance'>) => Promise<string>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
@@ -442,6 +389,13 @@ interface AppContextType {
   addGroup: (groupData: Partial<Group>) => Promise<string>;
   updateGroup: (groupId: string, groupData: Partial<Group>) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
+  // Add missing group management functions
+  addEventToGroup: (groupId: string, eventId: string) => Promise<void>;
+  addExpenseToGroup: (groupId: string, expenseId: string) => Promise<void>;
+  addMemberToGroup: (groupId: string, userId: string) => Promise<void>;
+  removeEventFromGroup: (groupId: string, eventId: string) => Promise<void>;
+  removeExpenseFromGroup: (groupId: string, expenseId: string) => Promise<void>;
+  removeMemberFromGroup: (groupId: string, userId: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -639,7 +593,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       await updateDoc(
         eventRef, 
         sanitizeForFirestore({
-          expenses: [...(state.events.find(e => e.id === expenseData.eventId)?.expenses || []), docRef.id]
+          expenseIds: [...(state.events.find(e => e.id === expenseData.eventId)?.expenseIds || []), docRef.id]
         })
       );
       console.log('Event updated with new expense');
@@ -664,7 +618,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       
       if (event) {
         await updateDoc(eventRef, {
-          expenses: event.expenses.filter(id => id !== expenseId)
+          expenseIds: (event.expenseIds || []).filter(id => id !== expenseId)
         });
       }
     }
@@ -753,13 +707,131 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
     await deleteDoc(doc(db, 'groups', groupId));
   };
 
+  // Implement the group management functions
+  const addEventToGroup = async (groupId: string, eventId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      // Ensure we don't duplicate the event in the array
+      const updatedEventIds = [...new Set([...group.eventIds, eventId])];
+      await updateDoc(groupRef, sanitizeForFirestore({
+        eventIds: updatedEventIds,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'ADD_EVENT_TO_GROUP',
+        payload: { groupId, eventId }
+      });
+    }
+  };
+  
+  const addExpenseToGroup = async (groupId: string, expenseId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      // Ensure we don't duplicate the expense in the array
+      const updatedExpenseIds = [...new Set([...group.expenseIds, expenseId])];
+      await updateDoc(groupRef, sanitizeForFirestore({
+        expenseIds: updatedExpenseIds,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'ADD_EXPENSE_TO_GROUP',
+        payload: { groupId, expenseId }
+      });
+    }
+  };
+  
+  const addMemberToGroup = async (groupId: string, userId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      // Ensure we don't duplicate the member in the array
+      const updatedMembers = [...new Set([...group.members, userId])];
+      await updateDoc(groupRef, sanitizeForFirestore({
+        members: updatedMembers,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'ADD_MEMBER_TO_GROUP',
+        payload: { groupId, userId }
+      });
+    }
+  };
+  
+  const removeEventFromGroup = async (groupId: string, eventId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      const updatedEventIds = group.eventIds.filter(id => id !== eventId);
+      await updateDoc(groupRef, sanitizeForFirestore({
+        eventIds: updatedEventIds,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'REMOVE_EVENT_FROM_GROUP',
+        payload: { groupId, eventId }
+      });
+    }
+  };
+  
+  const removeExpenseFromGroup = async (groupId: string, expenseId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      const updatedExpenseIds = group.expenseIds.filter(id => id !== expenseId);
+      await updateDoc(groupRef, sanitizeForFirestore({
+        expenseIds: updatedExpenseIds,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'REMOVE_EXPENSE_FROM_GROUP',
+        payload: { groupId, expenseId }
+      });
+    }
+  };
+  
+  const removeMemberFromGroup = async (groupId: string, userId: string) => {
+    const groupRef = doc(db, 'groups', groupId);
+    const group = state.groups.find(g => g.id === groupId);
+    
+    if (group) {
+      const updatedMembers = group.members.filter(id => id !== userId);
+      await updateDoc(groupRef, sanitizeForFirestore({
+        members: updatedMembers,
+        updatedAt: serverTimestamp(),
+      }));
+      
+      // Update local state
+      dispatch({
+        type: 'REMOVE_MEMBER_FROM_GROUP',
+        payload: { groupId, userId }
+      });
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       state,
       dispatch,
       preferredCurrency,
-      isConvertingCurrencies,
       setPreferredCurrency,
+      isConvertingCurrencies,
       // Add new Firestore operations to the context
       addUser,
       updateUser,
@@ -773,6 +845,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode, initialState?: P
       addGroup,
       updateGroup,
       deleteGroup,
+      // Add the new group management functions to the context
+      addEventToGroup,
+      addExpenseToGroup,
+      addMemberToGroup,
+      removeEventFromGroup,
+      removeExpenseFromGroup,
+      removeMemberFromGroup,
     }}>
       {children}
     </AppContext.Provider>

@@ -19,13 +19,13 @@ export default function ExpenseDetail() {
     dispatch, 
     updateExpense, 
     preferredCurrency, 
-    setPreferredCurrency,
     isConvertingCurrencies,
   } = useAppContext();
   
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isUpdatingNotes, setIsUpdatingNotes] = useState<boolean>(false);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  const [localCurrency, setLocalCurrency] = useState<string>(preferredCurrency || 'USD');
 
   const expenseId = params?.id as string | undefined;
 
@@ -159,8 +159,8 @@ export default function ExpenseDetail() {
         />
         <div className={styles.headerActions}>
           <CurrencySelector
-            value={preferredCurrency}
-            onChange={setPreferredCurrency}
+            value={localCurrency}
+            onChange={setLocalCurrency}
             compact={true}
             label="Convert to:"
           />
@@ -191,8 +191,22 @@ export default function ExpenseDetail() {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Expense Timeline</h2>
           <Timeline
-            event={event}
-            expenses={eventExpenses}
+            event={{
+              ...event,
+              startDate: event.startDate || event.date || '',
+            }}
+            expenses={eventExpenses.map(exp => ({
+              ...exp,
+              date: new Date(exp.date),
+              type: 'expense',
+              title: exp.description,
+              eventName: event.name,
+              userNames: Object.fromEntries(exp.participants.map(pid => {
+                const user = state.users.find(u => u.id === pid);
+                return [pid, user ? user.name : 'Unknown'];
+              })),
+              category: exp.category ?? '',
+            }))}
           />
           <div className={styles.eventDetails}>
             <span className={styles.detailLabel}>Part of Event:</span>

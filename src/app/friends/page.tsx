@@ -291,7 +291,7 @@ export default function FriendsPage() {
   const nonFriends = filteredUsers.filter(user => !getFriendshipWith(user.id));
   
   // Add a helper function to render user avatar with improved styling
-  const renderUserAvatar = (user: User) => {
+  const renderUserAvatar = (user: any) => {
     if (user?.avatarUrl) {
       return (
         <div className={styles.userAvatar}>
@@ -312,7 +312,7 @@ export default function FriendsPage() {
   };
 
   // Add a helper function to render user card with improved styling
-  const renderUserCard = (user: User, actions: React.ReactNode, extraContent?: React.ReactNode) => {
+  const renderUserCard = (user: any, actions: React.ReactNode, extraContent?: React.ReactNode) => {
     return (
       <div key={user.id} className={styles.userCard}>
         <Link 
@@ -363,7 +363,6 @@ export default function FriendsPage() {
               type="submit"
               variant="primary"
               disabled={isProcessingRequest || !friendEmail.trim()}
-              className={styles.addFriendButton}
             >
               {isProcessingRequest ? 'Sending...' : 'Add Friend'}
             </Button>
@@ -419,7 +418,6 @@ export default function FriendsPage() {
                       <Button 
                         onClick={() => friendship && handleRejectRequest(friendship.id)} 
                         variant="secondary"
-                        className={styles.declineButton}
                       >
                         Decline
                       </Button>
@@ -444,7 +442,6 @@ export default function FriendsPage() {
                     <Button 
                       onClick={() => friendship && handleRemoveFriend(friendship.id)} 
                       variant="secondary"
-                      className={styles.removeButton}
                     >
                       Remove
                     </Button>
@@ -466,7 +463,6 @@ export default function FriendsPage() {
                     <Button 
                       onClick={() => friendship && handleRemoveFriend(friendship.id)} 
                       variant="secondary"
-                      className={styles.cancelButton}
                     >
                       Cancel
                     </Button>,
@@ -487,7 +483,6 @@ export default function FriendsPage() {
                     <Button 
                       onClick={() => handleSendRequest(user.id)} 
                       variant="primary"
-                      className={styles.addButton}
                     >
                       Add Friend
                     </Button>

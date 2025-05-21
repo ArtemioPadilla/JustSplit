@@ -168,6 +168,77 @@
   margin-top: 1rem;
 }
 
+.financialSummary {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: var(--color-bg-light);
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
+}
+
+.totalExpenses, .unsettledExpenses {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.unsettledExpenses {
+  margin-top: 0.5rem;
+}
+
+.totalLabel, .unsettledLabel {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.unsettledLabel {
+  color: var(--color-danger);
+}
+
+.totalValue, .unsettledValue {
+  font-weight: 600;
+}
+
+.unsettledValue {
+  color: var(--color-danger);
+}
+
+.originalAmounts {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+.settlementProgress {
+  margin-top: 0.75rem;
+}
+
+.progressBar {
+  height: 6px;
+  background-color: var(--color-bg-muted);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+.convertingText {
+  font-style: italic;
+  opacity: 0.7;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .title {
@@ -182,5 +253,17 @@
   .filterContainer {
     max-width: 100%;
     margin-left: 0;
+  }
+  
+  .topActions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .filterContainer,
+  .currencySelector {
+    margin-left: 0;
+    width: 100%;
+    max-width: none;
   }
 }

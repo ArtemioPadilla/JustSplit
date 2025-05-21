@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Expense, User, Event } from '../../context/AppContext';
+import { Expense, User, Event } from '../../types';
 import { exportExpensesToCSV } from '../../utils/csvExport';
 import styles from '../../app/page.module.css';
 import Button from '../ui/Button';
@@ -48,9 +48,8 @@ export default function DashboardHeader({
     (contextValues?.preferredCurrency) || 
     localCurrency;
     
-  const setPreferredCurrency = 
+  const setPreferredCurrency =
     propSetSelectedCurrency || 
-    contextValues?.setPreferredCurrency || 
     setLocalCurrency;
     
   const isConvertingCurrencies = 
@@ -60,7 +59,6 @@ export default function DashboardHeader({
     
   const setIsConvertingCurrencies = 
     propSetIsConverting || 
-    contextValues?.setIsConvertingCurrencies || 
     setLocalIsConverting;
   
   // Handler for refresh rates - use prop or empty function

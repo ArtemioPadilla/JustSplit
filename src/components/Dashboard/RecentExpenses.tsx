@@ -3,8 +3,23 @@ import Link from 'next/link';
 import styles from '../../app/page.module.css';
 import { useAppContext } from '../../context/AppContext';
 import { formatCurrency, convertCurrency, getCurrencySymbol } from '../../utils/currencyExchange';
+import { Expense, User, Event } from '../../types';
 
-const RecentExpenses = ({ expenses: propExpenses, users: propUsers, events: propEvents, preferredCurrency: propPreferredCurrency, isConvertingCurrencies: propIsConverting }) => {
+interface RecentExpensesProps {
+  expenses?: Expense[];
+  users?: User[];
+  events?: Event[];
+  preferredCurrency?: string;
+  isConvertingCurrencies?: boolean;
+}
+
+const RecentExpenses: React.FC<RecentExpensesProps> = ({ 
+  expenses: propExpenses, 
+  users: propUsers, 
+  events: propEvents, 
+  preferredCurrency: propPreferredCurrency, 
+  isConvertingCurrencies: propIsConverting 
+}) => {
   const context = useAppContext();
   const state = context?.state;
   const preferredCurrency = propPreferredCurrency || context?.preferredCurrency || 'USD';
@@ -13,18 +28,18 @@ const RecentExpenses = ({ expenses: propExpenses, users: propUsers, events: prop
   const events = propEvents || state?.events || [];
   const expenses = propExpenses || state?.expenses || [];
 
-  const [convertedAmounts, setConvertedAmounts] = useState({});
-  const [fallbacks, setFallbacks] = useState({});
+  const [convertedAmounts, setConvertedAmounts] = useState<{[key: string]: number}>({});
+  const [fallbacks, setFallbacks] = useState<{[key: string]: boolean}>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Helper: get user name
-  const getUserName = (userId) => {
+  const getUserName = (userId: string) => {
     const user = users.find(u => u.id === userId);
     return user ? user.name : 'Unknown';
   };
 
   // Helper: get event name
-  const getEventName = (eventId) => {
+  const getEventName = (eventId: string | undefined) => {
     if (!eventId) return '';
     const event = events.find(e => e.id === eventId);
     return event ? event.name : '';
@@ -42,8 +57,8 @@ const RecentExpenses = ({ expenses: propExpenses, users: propUsers, events: prop
     let isMounted = true;
     const fetchConversions = async () => {
       setIsLoading(true);
-      const conversions = {};
-      const fallbackFlags = {};
+      const conversions: { [key: string]: number } = {};
+      const fallbackFlags: { [key: string]: boolean } = {};
       await Promise.all(
         recentExpenses.map(async (expense) => {
           if (expense.currency === preferredCurrency || !isConvertingCurrencies) {

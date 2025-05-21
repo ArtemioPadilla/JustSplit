@@ -5,11 +5,15 @@
   "scripts": {
     "dev": "next dev -p 4000 --turbopack",
     "build": "next build",
-    "start": "next start",
+    "export": "next export",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "build:firebase": "next build --no-lint && next export",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy": "npm run build:firebase && firebase deploy"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -1,63 +1,103 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import styles from '../../app/page.module.css';
 import { useAppContext } from '../../context/AppContext';
 import { formatCurrency, convertCurrency, getCurrencySymbol } from '../../utils/currencyExchange';
+import { Settlement, User, Event as LocalEvent, Expense } from '../../types'; // Added Settlement, LocalEvent, Expense
 
-const RecentSettlements = ({ settlements: propSettlements, users: propUsers, events: propEvents, preferredCurrency: propPreferredCurrency, isConvertingCurrencies: propIsConverting, expenses: propExpenses }) => {
+interface RecentSettlementsProps {
+  settlements?: Settlement[];
+  users?: User[];
+  events?: LocalEvent[]; // Use LocalEvent to match the converted event type
+  preferredCurrency?: string;
+  isConvertingCurrencies?: boolean;
+  expenses?: Expense[];
+}
+
+const RecentSettlements: React.FC<RecentSettlementsProps> = ({ 
+  settlements: propSettlements, 
+  users: propUsers, 
+  events: propEvents, // propEvents should be LocalEvent[] from page.tsx
+  preferredCurrency: propPreferredCurrency, 
+  isConvertingCurrencies: propIsConverting, 
+  expenses: propExpenses 
+}) => {
   const context = useAppContext();
   const state = context?.state;
   const preferredCurrency = propPreferredCurrency || context?.preferredCurrency || 'USD';
   const isConvertingCurrencies = propIsConverting !== undefined ? propIsConverting : context?.isConvertingCurrencies ?? true;
   const users = propUsers || state?.users || [];
-  const events = propEvents || state?.events || [];
-  const settlements = propSettlements || state?.settlements || [];
+  const events = propEvents || []; // Simpler: rely on page.tsx to pass converted LocalEvent[]
   const expenses = propExpenses || state?.expenses || [];
-  const [expanded, setExpanded] = useState({});
+  // sourceOfSettlements will be of type: OurSettlement[] | AppContextSettlement[]
+  const sourceOfSettlements = propSettlements || state?.settlements || [];
+
+
+  const [convertedAmounts, setConvertedAmounts] = useState<{[key: string]: number}>({});
+  const [fallbacks, setFallbacks] = useState<{[key: string]: boolean}>({});
 
   // Helper: get user name
-  const getUserName = (userId) => {
+  const getUserName = (userId: string | undefined) => {
+    if (!userId) return 'Unknown User'; // Handle undefined userId
     const user = users.find(u => u.id === userId);
-    return user ? user.name : 'Unknown';
+    return user ? user.name : 'Unknown User';
   };
 
-  // Helper: get event name
-  const getEventName = (eventId) => {
-    if (!eventId) return null;
+  // Helper: get event name (not directly used for settlements but good for consistency if needed)
+  const getEventName = (eventId: string | undefined) => {
+    if (!eventId) return '';
     const event = events.find(e => e.id === eventId);
-    return event ? event.name : null;
+    return event ? event.name : '';
   };
+  
+  // Helper: get expense description
+  const getExpenseDescription = (expenseId: string | undefined) => {
+    if (!expenseId) return 'N/A';
+    const expense = expenses.find(exp => exp.id === expenseId);
+    return expense ? expense.description : 'Unknown Expense';
+  };
+
+  // Memoize recentSettlements and ensure its type is Settlement[] (our local type)
+  const recentSettlements: Settlement[] = useMemo(() => {
+    // Cast the source array to Settlement[] (our local type).
+    // This tells TypeScript to treat each item as our local Settlement type,
+    // which defines payerId (optionally).
+    // This assumes that AppContext.Settlement objects are structurally compatible
+    // or that missing fields like payerId are correctly handled by their optionality.
+    const settlementsToProcess = sourceOfSettlements as Settlement[];
+    
+    return [...settlementsToProcess]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5); // Show top 5 recent settlements
+  }, [sourceOfSettlements]); // Depend on the actual source array
 
   // Fetch converted amounts for settlements
-  const [convertedAmounts, setConvertedAmounts] = useState({});
-  const [fallbacks, setFallbacks] = useState({});
-
   useEffect(() => {
     let isMounted = true;
     const fetchConversions = async () => {
-      const conversions = {};
-      const fallbackFlags = {};
+      const conversions: {[key: string]: number} = {};
+      const fallbackFlags: {[key: string]: boolean} = {};
       await Promise.all(
-        settlements.map(async (settlement) => {
-          if (settlement.currency === preferredCurrency || !isConvertingCurrencies) {
-            conversions[settlement.id] = settlement.amount;
-            fallbackFlags[settlement.id] = false;
-          } else {
-            try {
-              const { convertedAmount, isFallback } = await convertCurrency(
-                settlement.amount,
-                settlement.currency,
-                preferredCurrency
-              );
-              conversions[settlement.id] = convertedAmount;
-              fallbackFlags[settlement.id] = isFallback;
-            } catch {
-              conversions[settlement.id] = settlement.amount;
-              fallbackFlags[settlement.id] = true;
-            }
-          }
-        })
-      );
+                recentSettlements.map(async (settlement) => {
+                    if (settlement.currency === preferredCurrency || !isConvertingCurrencies) {
+                        conversions[settlement.id] = settlement.amount;
+                        fallbackFlags[settlement.id] = false;
+                    } else {
+                        try {
+                            const { convertedAmount, isFallback } = await convertCurrency(
+                                settlement.amount,
+                                settlement.currency,
+                                preferredCurrency
+                            );
+                            conversions[settlement.id] = convertedAmount;
+                            fallbackFlags[settlement.id] = isFallback;
+                        } catch {
+                            conversions[settlement.id] = settlement.amount; // Fallback to original amount on error
+                            fallbackFlags[settlement.id] = true;
+                        }
+                    }
+                })
+            );
       if (isMounted) {
         setConvertedAmounts(conversions);
         setFallbacks(fallbackFlags);
@@ -65,79 +105,61 @@ const RecentSettlements = ({ settlements: propSettlements, users: propUsers, eve
     };
     fetchConversions();
     return () => { isMounted = false; };
-  }, [settlements, preferredCurrency, isConvertingCurrencies]);
-
-  // Show only the 3 most recent settlements
-  const recentSettlements = [...settlements]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
+  }, [recentSettlements, preferredCurrency, isConvertingCurrencies]);
 
   return (
     <div className={styles.dashboardCard}>
       <h2 className={styles.cardTitle}>Recent Settlements</h2>
       {recentSettlements.length > 0 ? (
-        <ul className={styles.settlementsList} style={{ padding: 0, margin: 0 }}>
-          {recentSettlements.map(settlement => {
-            const fromName = getUserName(settlement.fromUser);
-            const toName = getUserName(settlement.toUser);
-            const eventName = getEventName(settlement.eventId);
-            const originalAmount = formatCurrency(settlement.amount, settlement.currency);
-            const converted = convertedAmounts[settlement.id];
-            const isFallback = fallbacks[settlement.id];
-            const showConverted = settlement.currency !== preferredCurrency && isConvertingCurrencies;
-            const expenseCount = settlement.expenseIds?.length || 0;
-            const isExpanded = expanded[settlement.id];
-            return (
-              <li key={settlement.id} className={styles.settlementItem} style={{ listStyle: 'none', marginBottom: 18 }}>
-                <div className={styles.settlementCard} style={{ boxShadow: 'var(--shadow-md)', borderRadius: 12, padding: 20, background: '#fff', transition: 'box-shadow 0.2s', position: 'relative' }}>
-                  <div className={styles.settlementDetails} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className={styles.settlementUsers} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span className={styles.userAvatar} title={fromName} style={{ background: '#e0e7ef', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 18 }}>{fromName[0]}</span>
-                      <span className={styles.userName} style={{ fontWeight: 500 }}>{fromName}</span>
-                      <span className={styles.arrowIcon} style={{ fontSize: 22, margin: '0 8px', color: '#bbb' }}>→</span>
-                      <span className={styles.userAvatar} title={toName} style={{ background: '#e0e7ef', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 18 }}>{toName[0]}</span>
-                      <span className={styles.userName} style={{ fontWeight: 500 }}>{toName}</span>
-                    </div>
-                    <div className={styles.settlementAmount} style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, fontSize: 18 }}>{originalAmount}</span>
-                      {showConverted && converted !== undefined && (
-                        <span className={styles.convertedAmount} title={isFallback ? 'Approximate conversion' : 'Converted amount'} style={{ marginLeft: 8, fontSize: '0.95em', color: '#888' }}>
-                          ≈ {getCurrencySymbol(preferredCurrency)}{converted.toFixed(2)}
+        <table className={styles.settlementsTable} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '12px 8px', borderBottom: '2px solid #f1f1f1' }}>Description</th>
+              <th style={{ width: 120, textAlign: 'center', padding: '12px 8px', borderBottom: '2px solid #f1f1f1' }}>Amount</th>
+              <th style={{ width: 150, textAlign: 'left', padding: '12px 8px', borderBottom: '2px solid #f1f1f1' }}>From / To</th>
+              <th style={{ width: 120, textAlign: 'center', padding: '12px 8px', borderBottom: '2px solid #f1f1f1' }}>Date</th>
+              <th style={{ width: 100, textAlign: 'center', padding: '12px 8px', borderBottom: '2px solid #f1f1f1' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+              {recentSettlements.map(settlement => { // Now 'settlement' is typed as our local Settlement
+                const originalAmount = formatCurrency(settlement.amount, settlement.currency);
+                const converted = convertedAmounts[settlement.id];
+                const isFallback = fallbacks[settlement.id];
+                const showConverted = settlement.currency !== preferredCurrency && isConvertingCurrencies;
+                const payerName = getUserName(settlement.fromUser);
+                const payeeName = getUserName(settlement.toUser);
+                const expenseDescription = getExpenseDescription(settlement.expenseIds?.[0]);
+
+                return (
+                  <tr key={settlement.id} className={styles.expenseItem} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                    <td>
+                    <Link href={`/expenses/${settlement.expenseIds?.[0] || ''}`} className={styles.expenseLink} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {expenseDescription}
+                    </Link>
+                    </td>
+                    <td align="center">
+                      <span className={styles.expenseAmount} style={{ fontWeight: 600 }}>{originalAmount}</span>
+                      {showConverted && (
+                        <span 
+                          className="convertedAmount" 
+                          data-testid={`converted-amount-settlement-${settlement.id}`}
+                          title={isFallback ? 'Approximate conversion' : 'Converted amount'} 
+                          style={{ marginLeft: 6, fontSize: '0.95em', color: '#888' }}
+                        >
+                          ≈ {getCurrencySymbol(preferredCurrency)}{(converted || 0).toFixed(2)}
                           {isFallback && <span style={{ color: '#fcd34d', marginLeft: 2 }} title="Approximate rate">*</span>}
                         </span>
                       )}
-                    </div>
-                  </div>
-                  <div className={styles.settlementMeta} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
-                    <span className={styles.settlementDate} style={{ color: '#888', fontSize: 14 }}>{new Date(settlement.date).toLocaleDateString()}</span>
-                    {eventName && <span className={styles.settlementEvent} style={{ color: '#4f46e5', fontWeight: 500 }}>Event: <b>{eventName}</b></span>}
-                    <span className={styles.settlementStatus} style={{ color: 'var(--color-success)', fontWeight: 600, background: '#e6f9f0', borderRadius: 8, padding: '2px 10px', fontSize: 13 }}>Completed</span>
-                    <span style={{ color: '#888', fontSize: 13, cursor: 'pointer' }} onClick={() => setExpanded(e => ({ ...e, [settlement.id]: !e[settlement.id] }))}>
-                      {expenseCount} expense{expenseCount !== 1 ? 's' : ''} {expenseCount > 0 && (<span style={{ textDecoration: 'underline', marginLeft: 4 }}>{isExpanded ? 'Hide' : 'Show'}</span>)}
-                    </span>
-                  </div>
-                  {isExpanded && expenseCount > 0 && (
-                    <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 8, padding: 12 }}>
-                      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                        {settlement.expenseIds.map(expId => {
-                          const exp = expenses.find(e => e.id === expId);
-                          if (!exp) return null;
-                          return (
-                            <li key={expId} style={{ padding: '4px 0', borderBottom: '1px solid #eee', fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>{exp.description}</span>
-                              <span style={{ color: '#888', fontSize: 13 }}>{formatCurrency(exp.amount, exp.currency)}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  )}
-                  <Link href={`/settlements/${settlement.id}`} className={styles.settlementLink} data-testid="next-link" style={{ position: 'absolute', inset: 0, zIndex: 1, borderRadius: 12 }} aria-label={`View settlement details for ${fromName} to ${toName}`}></Link>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    </td>
+                    <td>{payerName} to {payeeName}</td>
+                    <td align="center">{new Date(settlement.date).toLocaleDateString()}</td>
+                    <td style={{ color: '#888', fontSize: '0.95em' }}>{settlement.notes || '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+        </table>
       ) : (
         <p>No settlements yet</p>
       )}

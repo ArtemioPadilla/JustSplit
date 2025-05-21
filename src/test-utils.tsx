@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { AppProvider, AppState, AppContext, User } from './context/AppContext'; // Import AppContext and User for AppState
+import { AppProvider, AppState, AppContext } from './context/AppContext';
+import { User } from './types';
 import { AuthProvider, AuthContext, User as AuthUser, AuthContextType } from './context/AuthContext';
 import { ReactElement } from 'react';
 import { NotificationProvider } from './context/NotificationContext';
@@ -10,6 +11,7 @@ const defaultInitialAppState: AppState = { // Ensure this conforms to AppState f
   expenses: [],
   events: [],
   settlements: [],
+  groups: [],
   isDataLoaded: false,
   currentUser: null,
 };
@@ -76,7 +78,6 @@ export function renderWithProviders(
           dispatch: jest.fn(),
           preferredCurrency: 'USD',
           isConvertingCurrencies: false,
-          setIsConvertingCurrencies: jest.fn(),
           setPreferredCurrency: jest.fn(),
           addUser: jest.fn(),
           updateUser: jest.fn(),
@@ -87,7 +88,16 @@ export function renderWithProviders(
           updateEvent: jest.fn(),
           deleteEvent: jest.fn(),
           addSettlement: jest.fn(),
-        }}> 
+          addGroup: jest.fn(),
+          updateGroup: jest.fn(),
+          deleteGroup: jest.fn(),
+          addEventToGroup: jest.fn(),
+          addExpenseToGroup: jest.fn(),
+          addMemberToGroup: jest.fn(),
+          removeEventFromGroup: jest.fn(),
+          removeExpenseFromGroup: jest.fn(),
+          removeMemberFromGroup: jest.fn(),
+        }}>
           <NotificationProvider>
             {children}
           </NotificationProvider>
@@ -128,7 +138,6 @@ export function renderWithAppContext(
         dispatch: jest.fn(),
         preferredCurrency: preferredCurrency,
         isConvertingCurrencies: isConvertingCurrencies,
-        setIsConvertingCurrencies: jest.fn(),
         setPreferredCurrency: jest.fn(),
         addUser: jest.fn(),
         updateUser: jest.fn(),
@@ -139,6 +148,15 @@ export function renderWithAppContext(
         updateEvent: jest.fn(),
         deleteEvent: jest.fn(),
         addSettlement: jest.fn(),
+        addGroup: jest.fn(),
+        updateGroup: jest.fn(),
+        deleteGroup: jest.fn(),
+        addEventToGroup: jest.fn(),
+        addExpenseToGroup: jest.fn(),
+        addMemberToGroup: jest.fn(),
+        removeEventFromGroup: jest.fn(),
+        removeExpenseFromGroup: jest.fn(),
+        removeMemberFromGroup: jest.fn(),
       }}>
         {ui}
       </AppContext.Provider>

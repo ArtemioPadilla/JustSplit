@@ -5,13 +5,10 @@ import { AppProvider } from './AppContext';
 import { AuthProvider } from './AuthContext';
 import { NotificationProvider } from './NotificationContext'; // assuming this is how it's imported
 
-export function Providers({ children }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AppProvider
-        preferredCurrency="USD"
-        isConvertingCurrencies={true}
-      >
+      <AppProvider>
         <NotificationProvider>
           {children}
         </NotificationProvider>

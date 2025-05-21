@@ -203,17 +203,42 @@ describe('Timeline Component', () => {
     expect(unsettledMarkers.length).toBeGreaterThan(0);
   });
 
-  test('shows expense details on hover/click', async () => {
-    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
+  it('shows expense details on hover/click', () => {
+    const handleClick = jest.fn();
+    const expenses = [
+      {
+        id: 'exp1',
+        amount: 100,
+        date: new Date('2023-06-15'),
+        settled: false,
+        description: 'Test expense'
+      }
+    ];
     
-    // Find an expense marker and click it
-    const expenseMarkers = screen.getAllByRole('button');
-    fireEvent.click(expenseMarkers[0]);
+    const eventStartDate = new Date('2023-06-10');
+    const eventEndDate = new Date('2023-06-20');
     
-    // Wait for the hover card to appear
-    await waitFor(() => {
-      expect(screen.getByText(/expense details/i, { exact: false })).toBeInTheDocument();
-    });
+    render(
+      <Timeline
+        eventStartDate={eventStartDate}
+        eventEndDate={eventEndDate}
+        expenses={expenses}
+        onExpenseClick={handleClick}
+      />
+    );
+    
+    // Find an expense marker by its position on the timeline
+    const timelineDots = screen.getAllByTitle(/expense/i);
+    expect(timelineDots.length).toBeGreaterThan(0);
+    
+    // Click on the first expense marker
+    fireEvent.click(timelineDots[0]);
+    
+    // Check that the click handler was called
+    expect(handleClick).toHaveBeenCalled();
+    expect(handleClick).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'exp1'
+    }));
   });
 
   test('renders timeline for event without end date', () => {

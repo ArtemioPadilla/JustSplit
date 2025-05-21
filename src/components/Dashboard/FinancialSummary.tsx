@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { formatCurrency } from '../../utils/formatters';
 import { calculateSettlementsWithConversion } from '../../utils/expenseCalculator';
 import { convertCurrency } from '../../utils/currencyExchange';
-import { Expense, User } from '../../types'; // Assuming Expense type is defined
+import { Expense, User, TimelineExpense as MainTimelineExpense, Event } from '../../types'; // Changed: Import TimelineExpense as MainTimelineExpense from ../../types
 import HoverCard, { HoverCardPosition } from '../ui/HoverCard'; // Import HoverCard
-import { TimelineExpense } from '../../utils/timelineUtils'; // Import TimelineExpense
+// Removed: import { TimelineExpense } from '../../utils/timelineUtils';
 
 interface FinancialSummaryProps {
   // Props to be removed:
@@ -39,7 +39,7 @@ export default function FinancialSummary({
   avgPerDay = 0,
 }: FinancialSummaryProps) {
   const { state, preferredCurrency, isConvertingCurrencies } = useAppContext();
-  const { users, expenses, events } = state; // Added events for TimelineExpense mapping
+  const { users, expenses, events } = state; 
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(true); // Initialize isLoading to true
@@ -55,7 +55,7 @@ export default function FinancialSummary({
   // State for Hover Card
   const [hoverCardPosition, setHoverCardPosition] = useState<HoverCardPosition | null>(null);
   const [hoveredMetricType, setHoveredMetricType] = useState<'owe' | 'owed' | null>(null);
-  const [detailedHoverExpenses, setDetailedHoverExpenses] = useState<TimelineExpense[]>([]);
+  const [detailedHoverExpenses, setDetailedHoverExpenses] = useState<MainTimelineExpense[]>([]); // Changed: Use MainTimelineExpense
   const [showDetailedHoverCard, setShowDetailedHoverCard] = useState(false);
   const [isHoveringDetailedCard, setIsHoveringDetailedCard] = useState(false);
   let hoverTimeout: NodeJS.Timeout | null = null;
@@ -139,10 +139,9 @@ export default function FinancialSummary({
 
         // Calculate number of outgoing settlements (globally simplified payments currentUser needs to make)
         const settlements = await calculateSettlementsWithConversion(
-          unsettledExpenses, // Use unsettledExpenses
-          validUsers,        // Use validUsers
-          preferredCurrency,
-          isConvertingCurrencies
+          unsettledExpenses,  // First argument should be expenses, not users
+          validUsers,         // Second argument should be users
+          preferredCurrency   // Third argument is the target currency
         );
         let paymentsToMakeCount = 0;
         settlements.forEach(settlement => {
@@ -208,23 +207,23 @@ export default function FinancialSummary({
     }
   }, [currentUser, expenses, users, preferredCurrency, isConvertingCurrencies]);
 
-  const mapExpensesToTimelineExpenses = (expensesToMap: Expense[]): TimelineExpense[] => {
+  const mapExpensesToTimelineExpenses = (expensesToMap: Expense[]): MainTimelineExpense[] => { // Changed: Return MainTimelineExpense[]
     return expensesToMap.map(exp => {
-      const event = Array.isArray(events) ? events.find(e => e.id === exp.eventId) : undefined; // Guard events
+      const eventDetails = Array.isArray(events) ? events.find(e => e.id === exp.eventId) : undefined; // Guard events
       return {
         id: exp.id,
-        type: 'expense',
-        date: new Date(exp.date),
-        title: exp.description,
+        type: 'expense', // Field for MainTimelineExpense
+        date: new Date(exp.date), // Changed: Convert string to Date for MainTimelineExpense
+        title: exp.description, // Field for MainTimelineExpense
         amount: exp.amount,
         currency: exp.currency,
-        category: exp.category,
-        eventName: event ? event.name : 'N/A',
+        category: exp.category, // Field for MainTimelineExpense
+        eventName: eventDetails ? eventDetails.name : 'N/A', // Field for MainTimelineExpense
         eventId: exp.eventId,
         settled: exp.settled,
         paidBy: exp.paidBy,
-        participants: exp.participants || [],
-        userNames: Array.isArray(users) ? users.reduce((acc, user) => { // Guard users
+        participants: exp.participants || [], // Field for MainTimelineExpense
+        userNames: Array.isArray(users) ? users.reduce((acc, user) => { // Guard users // Field for MainTimelineExpense
           acc[user.id] = user.name;
           return acc;
         }, {} as Record<string, string>) : {},

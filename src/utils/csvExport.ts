@@ -1,4 +1,4 @@
-import { Expense, User, Event } from '../context/AppContext';
+import { Expense, User, Event } from '../types';
 import { ensureCSVExtension } from './fileUtils';
 
 /**

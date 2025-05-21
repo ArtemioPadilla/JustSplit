@@ -1,5 +1,6 @@
 // src/reducers/friendsReducer.ts
-import { AppState, User } from '../context/AppContext';
+import { AppState } from '../context/AppContext';
+import { User } from '../types';
 
 // Define the friends reducer functions
 const friendsReducer = {

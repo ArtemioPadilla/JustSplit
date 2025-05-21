@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import styles from './styles.module.css';
-import { TimelineExpense, formatTimelineDate } from '../../../utils/timelineUtils';
+import { formatTimelineDate } from '../../../utils/timelineUtils'; // Keep formatTimelineDate if it's correctly sourced here
+import { TimelineExpense } from '../../../types'; // Import TimelineExpense directly from the main types file
 import Button from '../Button';
 import { useAppContext } from '../../../context/AppContext';
 import { convertCurrency, formatCurrency } from '../../../utils/currencyExchange';
@@ -62,18 +63,27 @@ const HoverCard: React.FC<HoverCardProps> = ({
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
-  const { state } = useAppContext();
-  const preferredCurrency = state?.preferredCurrency || 'USD';
+  const { state, preferredCurrency: contextPreferredCurrency } = useAppContext(); // Destructure preferredCurrency directly
+  const preferredCurrency = contextPreferredCurrency || 'USD'; // Use the destructured value
   const [convertedAmounts, setConvertedAmounts] = useState<Record<string, { amount: number, isFallback: boolean }>>({});
 
   // Use fixed positioning to be independent of scroll containers
-  const [cardStyle, setCardStyle] = useState({
-    position: 'fixed' as const,
+  const [cardStyle, setCardStyle] = useState<{
+    position: 'fixed';
+    top: string;
+    left: string;
+    opacity: number;
+    zIndex: number;
+    pointerEvents: 'none' | 'auto'; // Allow both 'none' and 'auto'
+    transform: string;
+  }>({
+    position: 'fixed',
     top: '0px',
     left: '0px',
     opacity: 0,
     zIndex: 2000,
-    pointerEvents: 'none',
+    pointerEvents: 'none', // Initial value
+    transform: '',
   });
   const [arrowPosition, setArrowPosition] = useState<ArrowPosition>('top');
   const [isVisible, setIsVisible] = useState(false);
@@ -209,9 +219,10 @@ const HoverCard: React.FC<HoverCardProps> = ({
           position: 'fixed',
           top: `${position.y}px`,
           left: `${position.x}px`,
+          transform: '', // Added missing transform property
           opacity: 1,
           zIndex: 2000,
-          pointerEvents: 'auto',
+          pointerEvents: 'auto', // Ensure this is also allowed by the type
         });
       }
     };
@@ -285,7 +296,9 @@ const HoverCard: React.FC<HoverCardProps> = ({
             </h4>
             <Button 
               onClick={(e) => {
-                e.stopPropagation();
+                if (e) {
+                  e.stopPropagation();
+                }
                 onClose();
               }}
               variant="primary"
@@ -323,10 +336,10 @@ const HoverCard: React.FC<HoverCardProps> = ({
                   <button
                     className={styles.expenseButton}
                     onClick={() => handleExpenseClick(expense.id)}
-                    aria-label={`View expense: ${expense.description ?? 'Expense'}, ${expense.amount.toFixed(2)} ${expense.currency}, ${expense.settled ? 'Settled' : 'Unsettled'}`}
+                    aria-label={`View expense: ${expense.title ?? 'Expense'}, ${expense.amount.toFixed(2)} ${expense.currency}, ${expense.settled ? 'Settled' : 'Unsettled'}`}
                   >
                     <div className={styles.expenseItemHeader}>
-                      <span className={styles.expenseName}>{expense.description ?? 'Expense'}</span>
+                      <span className={styles.expenseName}>{expense.title ?? 'Expense'}</span>
                       <span className={`${styles.expenseStatus} ${expense.settled ? styles.settled : styles.unsettled}`}>
                         {expense.settled ? 'Settled' : 'Unsettled'}
                       </span>
@@ -341,7 +354,7 @@ const HoverCard: React.FC<HoverCardProps> = ({
                       )}
                     </div>
                     <div className={styles.expenseDate}>
-                      {formatTimelineDate(expense.date)}
+                      {formatTimelineDate(expense.date instanceof Date ? expense.date.toISOString() : String(expense.date))}
                     </div>
                     <div className={styles.expensePaidBy}>
                       Paid by: {state.users.find(user => user.id === expense.paidBy)?.name ?? 'Unknown'}

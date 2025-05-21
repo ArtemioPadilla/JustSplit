@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAppContext, Event as AppEvent, User } from '../../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
+import { Event as AppEvent, User } from '../../../types';
 import Link from 'next/link';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
@@ -12,9 +13,7 @@ import CurrencySelector from '../../../components/ui/CurrencySelector';
 import { 
   calculateSettledPercentage,
   calculateTotalByCurrency,
-  calculateUnsettledAmount,
-  TimelineEvent,
-  TimelineExpense
+  calculateUnsettledAmount
 } from '../../../utils/timelineUtils';
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 
@@ -149,8 +148,8 @@ export default function EventList() {
   const sortedEvents = [...state.events].sort((a, b) => {
     // Default to date sorting
     if (sortBy === 'date') {
-      const dateA = new Date(a.startDate || a.createdAt || 0).getTime();
-      const dateB = new Date(b.startDate || b.createdAt || 0).getTime();
+      const dateA = new Date(a.startDate || 0).getTime();
+      const dateB = new Date(b.startDate || 0).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     }
     
@@ -187,7 +186,7 @@ export default function EventList() {
     // Apply date filter
     if (filters.date && filters.date !== 'All Dates') {
       const year = parseInt(filters.date.split(' ')[0]);
-      const eventYear = new Date(event.startDate).getFullYear();
+      const eventYear = new Date(event.startDate || event.date).getFullYear();
       if (eventYear !== year) return false;
     }
     
@@ -287,8 +286,22 @@ export default function EventList() {
                   
                   {/* Use our Timeline component */}
                   <Timeline 
-                    event={event} 
-                    expenses={eventExpenses} 
+                    event={{
+                      ...event,
+                      startDate: event.startDate || event.date || '',
+                    }}
+                    expenses={eventExpenses.map(exp => ({
+                      ...exp,
+                      date: new Date(exp.date),
+                      type: 'expense',
+                      title: exp.description,
+                      eventName: event.name,
+                      userNames: Object.fromEntries(exp.participants.map(pid => {
+                        const user = state.users.find(u => u.id === pid);
+                        return [pid, user ? user.name : 'Unknown'];
+                      })),
+                      category: exp.category ?? '',
+                    }))} 
                   />
                   
                   {/* Event Metrics - Update this section */}
@@ -335,7 +348,7 @@ export default function EventList() {
                     
                     <div className={styles.metric}>
                       <span className={styles.metricIcon}>👥</span>
-                      <span>Participants: {event.participants.length}</span>
+                      <span>Participants: {event.members?.length || 0}</span>
                     </div>
                     
                     {Object.keys(unsettledAmounts).length > 0 && (
@@ -374,14 +387,14 @@ export default function EventList() {
                       variant="primary"
                     >
                       {expandedEventId === event.id ? 'Hide Participants' : 'Show Participants'} 
-                      ({event.participants.length})
+                      ({event.members.length})
                     </Button>
                     
                     <ul className={`${styles.participantsList} ${expandedEventId === event.id ? styles.participantsListExpanded : ''}`}>
-                      {event.participants.map((participantId: string) => {
-                        const participant = state.users.find((user: User) => user.id === participantId);
+                      {event.members.map((memberId: string) => {
+                        const participant = state.users.find((user: User) => user.id === memberId);
                         return (
-                          <li key={participantId} className={styles.participantItem}>
+                          <li key={memberId} className={styles.participantItem}>
                             {participant?.name ?? 'Unknown'}
                           </li>
                         );

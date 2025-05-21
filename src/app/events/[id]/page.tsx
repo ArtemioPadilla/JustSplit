@@ -18,7 +18,7 @@ export default function EventDetail() {
   const router = useRouter();
   const params = useParams();
   const { state, dispatch, updateEvent } = useAppContext();
-  const eventId = params.id as string;
+  const eventId = params?.id ? (params.id as string) : '';
   
   // Selected currency for display
   const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
@@ -33,7 +33,10 @@ export default function EventDetail() {
   
   const participants = useMemo(() => {
     if (!event) return [];
-    return state.users.filter(user => event.participants.includes(user.id));
+    
+    // Use only event.members as that's the property defined in the Event type
+    const memberIds = event.members || [];
+    return state.users.filter(user => memberIds.includes(user.id));
   }, [event, state.users]);
 
   // Get all expenses for this event
@@ -51,16 +54,17 @@ export default function EventDetail() {
 
   // Calculate user balances for this event - update this to support currency conversion
   const eventBalances = useMemo(() => {
-    if (!event) return {};
-    
+    // Initialize balance objects
     const balances: Record<string, number> = {};
     const convertedBalances: Record<string, number> = {};
-    
+
     // Initialize all participant balances to 0
-    event.participants.forEach(userId => {
-      balances[userId] = 0;
-      convertedBalances[userId] = 0;
-    });
+    if (event && event.members) {
+      event.members.forEach(userId => {
+        balances[userId] = 0;
+        convertedBalances[userId] = 0;
+      });
+    }
     
     // Calculate balances based on expenses
     eventExpenses.forEach(expense => {
@@ -250,8 +254,19 @@ export default function EventDetail() {
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Event Timeline</h2>
         <Timeline 
-          event={event} 
-          expenses={eventExpenses} 
+          event={{
+            ...event,
+            startDate: event.startDate || event.date || '',
+          }}
+          expenses={eventExpenses.map(exp => ({
+            ...exp,
+            date: new Date(exp.date),
+            type: 'expense',
+            title: exp.description,
+            eventName: event.name,
+            userNames: Object.fromEntries(exp.participants.map(pid => [pid, getUserName(pid)])),
+            category: exp.category ?? '',
+          }))} 
         />
         <div className={styles.timelineFooter}>
           <div className={styles.settlementProgress}>
@@ -273,7 +288,7 @@ export default function EventDetail() {
         <div className={styles.dates}>
           <div className={styles.dateItem}>
             <span className={styles.dateLabel}>Start Date:</span>
-            <span className={styles.dateValue}>{new Date(event.startDate).toLocaleDateString()}</span>
+            <span className={styles.dateValue}>{new Date(event.startDate || event.date).toLocaleDateString()}</span>
           </div>
           
           {event.endDate && (

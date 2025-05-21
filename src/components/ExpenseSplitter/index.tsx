@@ -23,12 +23,7 @@ import {
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import PersonIcon from '@mui/icons-material/Person';
-
-type Participant = {
-  id: string;
-  name: string;
-  share: number;
-};
+import { Participant } from '../../types';
 
 type ExpenseSplitterProps = {
   participants: Participant[];

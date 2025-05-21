@@ -2,123 +2,55 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useAnimation } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-
 import styles from './landing.module.css';
 
 const LandingPage = () => {
   // Tracks which FAQ is open
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   
-  // For animated scroll sections - with defaults to ensure visibility
-  const features = useAnimation();
-  const workflow = useAnimation();
-  const testimonials = useAnimation();
-  const faq = useAnimation();
-  
-  // Refs for intersection observer with reduced threshold for better detection
-  const [featuresRef, featuresInView] = useInView({ threshold: 0.1, triggerOnce: true });
-  const [workflowRef, workflowInView] = useInView({ threshold: 0.1, triggerOnce: true });
-  const [testimonialsRef, testimonialsInView] = useInView({ threshold: 0.1, triggerOnce: true });
-  const [faqRef, faqInView] = useInView({ threshold: 0.1, triggerOnce: true });
-  
-  // Animate sections when they come into view
-  useEffect(() => {
-    if (featuresInView) {
-      features.start('visible');
-    }
-    if (workflowInView) {
-      workflow.start('visible');
-    }
-    if (testimonialsInView) {
-      testimonials.start('visible');
-    }
-    if (faqInView) {
-      faq.start('visible');
-    }
-  }, [featuresInView, workflowInView, testimonialsInView, faqInView, features, workflow, testimonials, faq]);
-  
-  // Fallback animation to ensure all elements eventually become visible
-  useEffect(() => {
-    // After page load, ensure all sections become visible after a delay
-    const timer = setTimeout(() => {
-      features.start('visible');
-      workflow.start('visible');
-      testimonials.start('visible');
-      faq.start('visible');
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [features, workflow, testimonials, faq]);
-  
-  const toggleFaq = (index: number) => {
-    setActiveFaq(activeFaq === index ? null : index);
-  };
-
-  // Animation variants
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.6 }
-    }
-  };
-  
-  const staggerChildren = {
-    hidden: { opacity: 1 }, // Start with container visible
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1,
-      }
-    }
-  };
-  
-  // Add section refs for navigation dots
-  const heroRef = useRef(null);
-  const featuresRef2 = useRef(null);
-  const workflowRef2 = useRef(null);
-  const testimonialsRef2 = useRef(null);
-  const faqRef2 = useRef(null);
-  const ctaRef = useRef(null);
-  
-  // State for active section (for navigation dots)
+  // Track active section for nav dots
   const [activeSection, setActiveSection] = useState('hero');
   
-  // Check which section is in view for navigation dots
+  // Refs for each section
+  const heroRef = useRef(null);
+  const featuresRef = useRef(null);
+  const workflowRef = useRef(null);
+  const testimonialsRef = useRef(null);
+  const faqRef = useRef(null);
+  const ctaRef = useRef(null);
+
+  // Set up intersection observer for sections
   useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.6, // Higher threshold to ensure section is mostly in view
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
     
-    const sectionObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id);
-        }
-      });
-    }, observerOptions);
-    
-    // Observe all section elements
-    const sections = document.querySelectorAll('section[id]');
-    sections.forEach(section => {
-      sectionObserver.observe(section);
+    // Observe all sections
+    [heroRef, featuresRef, workflowRef, testimonialsRef, faqRef, ctaRef].forEach((ref) => {
+      if (ref.current) {
+        observer.observe(ref.current);
+      }
     });
     
     return () => {
-      sections.forEach(section => {
-        sectionObserver.unobserve(section);
+      // Clean up observer
+      [heroRef, featuresRef, workflowRef, testimonialsRef, faqRef, ctaRef].forEach((ref) => {
+        if (ref.current) {
+          observer.unobserve(ref.current);
+        }
       });
     };
   }, []);
 
   // Function to scroll to section when nav dot is clicked
-  const scrollToSection = (id) => {
+  const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -142,426 +74,314 @@ const LandingPage = () => {
       {/* Hero Section */}
       <section id="hero" ref={heroRef} className={`${styles.hero} ${styles.section}`}>
         <div className={styles.heroContent}>
-          <motion.div 
-            className={styles.heroText}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
+          <div className={styles.heroText}>
             <h1 className={styles.heroTitle}>JustSplit</h1>
-            <p className={styles.heroSubtitle}>
-              The simplest way to split expenses with friends, roommates, and groups
-            </p>
-            
-            <motion.div 
-              className={styles.heroCta}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <Link href="/auth/signin" className={styles.buttonSecondary}>Log In</Link>
-              <Link href="/auth/signup" className={styles.buttonPrimary}>Sign Up Free</Link>
-            </motion.div>
-          </motion.div>
+            <h2 className={styles.heroSubtitle}>Split expenses with friends and family. Track who owes who and settle up easily.</h2>
+            <div className={styles.heroCta}>
+              <Link href="/auth/register" className={styles.buttonPrimary}>
+                Get Started
+              </Link>
+              <Link href="/about" className={styles.buttonSecondary}>
+                Learn More
+              </Link>
+            </div>
+          </div>
           
-          <motion.div 
-            className={styles.heroImage}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            {/* Using a styled div instead of an image */}
+          <div className={styles.heroImage}>
             <div className={styles.mockupContainer}>
               <div className={styles.mockupHeader}>
-                <div className={styles.mockupTitle}>Vacation Expenses</div>
+                <h3 className={styles.mockupTitle}>Weekend Trip Expenses</h3>
               </div>
               <div className={styles.mockupBody}>
                 <div className={styles.mockupExpense}>
-                  <div className={styles.mockupExpenseIcon}>🍽️</div>
+                  <div className={styles.mockupExpenseIcon}>🏨</div>
                   <div className={styles.mockupExpenseDetails}>
-                    <div>Dinner at Oceanview</div>
-                    <div className={styles.mockupExpenseAmount}>$120.00</div>
+                    <div>Hotel Stay</div>
+                    <div className={styles.mockupExpenseAmount}>$350</div>
                   </div>
                 </div>
                 <div className={styles.mockupExpense}>
-                  <div className={styles.mockupExpenseIcon}>🏨</div>
+                  <div className={styles.mockupExpenseIcon}>🍽️</div>
                   <div className={styles.mockupExpenseDetails}>
-                    <div>Hotel Room</div>
-                    <div className={styles.mockupExpenseAmount}>$280.00</div>
+                    <div>Dinner</div>
+                    <div className={styles.mockupExpenseAmount}>$125</div>
+                  </div>
+                </div>
+                <div className={styles.mockupExpense}>
+                  <div className={styles.mockupExpenseIcon}>⛽</div>
+                  <div className={styles.mockupExpenseDetails}>
+                    <div>Gas</div>
+                    <div className={styles.mockupExpenseAmount}>$60</div>
                   </div>
                 </div>
                 <div className={styles.mockupSummary}>
-                  <div>You owe Alex: $85.00</div>
-                  <div>Maya owes you: $45.00</div>
+                  Andy owes you: $178.33<br />
+                  You owe Sarah: $54.16
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
         
         <div className={styles.heroWave}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none" className={styles.waveSvg}>
-            <path fill="#F5F7FA" fillOpacity="1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,149.3C960,160,1056,160,1152,138.7C1248,117,1344,75,1392,53.3L1440,32L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+          <svg className={styles.waveSvg} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 140">
+            <path 
+              fill="#ffffff" 
+              fillOpacity="1" 
+              d="M0,64L80,85.3C160,107,320,149,480,138.7C640,128,800,64,960,48C1120,32,1280,64,1360,80L1440,96L1440,140L1360,140C1280,140,1120,140,960,140C800,140,640,140,480,140C320,140,160,140,80,140L0,140Z"
+            ></path>
           </svg>
         </div>
       </section>
 
-      {/* Why use JustSplit Section */}
-      <motion.section 
-        id="features"
-        ref={featuresRef}
-        className={`${styles.featuresSection} ${styles.section}`}
-        animate={features}
-        initial="hidden"
-        variants={staggerChildren}
-      >
-        <motion.h2 
-          className={styles.sectionTitle}
-          variants={fadeInUp}
-          // Add fallback animation in case parent animation fails
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          Why use JustSplit?
-        </motion.h2>
+      {/* Features Section */}
+      <section id="features" ref={featuresRef} className={`${styles.featuresSection} ${styles.section}`}>
+        <h2 className={styles.sectionTitle}>Why Choose JustSplit?</h2>
         
         <div className={styles.featuresGrid}>
-          <motion.div 
-            className={styles.featureCard}
-            variants={fadeInUp}
-            // Add fallback animation in case parent animation fails
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
               <div className={styles.emojiContainer}>
-                <span role="img" aria-label="Track Expenses" className={styles.featureEmoji}>📝</span>
+                <span className={styles.featureEmoji}>📱</span>
               </div>
             </div>
-            <h3>Track Expenses Easily</h3>
-            <p>Add expenses on the go and let JustSplit calculate who owes what.</p>
-          </motion.div>
+            <h3>Easy to Use</h3>
+            <p>Simple, intuitive interface that makes expense tracking and splitting a breeze, even for complex group arrangements.</p>
+          </div>
           
-          <motion.div 
-            className={styles.featureCard}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
               <div className={styles.emojiContainer}>
-                <span role="img" aria-label="Split Multiple Ways" className={styles.featureEmoji}>🔄</span>
+                <span className={styles.featureEmoji}>💸</span>
               </div>
             </div>
-            <h3>Split Multiple Ways</h3>
-            <p>Split bills equally, by percentages, or by specific amounts.</p>
-          </motion.div>
+            <h3>Multiple Currencies</h3>
+            <p>Travel internationally? Track expenses in different currencies with automatic conversion to your preferred currency.</p>
+          </div>
           
-          <motion.div 
-            className={styles.featureCard}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
               <div className={styles.emojiContainer}>
-                <span role="img" aria-label="Settle Up" className={styles.featureEmoji}>✅</span>
+                <span className={styles.featureEmoji}>👨‍👩‍👧‍👦</span>
               </div>
             </div>
-            <h3>Settle Up</h3>
-            <p>See balances at a glance and settle debts with just a few clicks.</p>
-          </motion.div>
+            <h3>Group Management</h3>
+            <p>Create different groups for roommates, trips, or events. Keep your expenses organized by context.</p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <div className={styles.emojiContainer}>
+                <span className={styles.featureEmoji}>📊</span>
+              </div>
+            </div>
+            <h3>Expense Analytics</h3>
+            <p>Visualize spending patterns with intuitive charts to better understand where your money is going.</p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <div className={styles.emojiContainer}>
+                <span className={styles.featureEmoji}>⚖️</span>
+              </div>
+            </div>
+            <h3>Fair Splitting</h3>
+            <p>Split expenses equally or by custom amounts. Accommodate different sharing arrangements with flexibility.</p>
+          </div>
+          
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <div className={styles.emojiContainer}>
+                <span className={styles.featureEmoji}>🔒</span>
+              </div>
+            </div>
+            <h3>Secure & Private</h3>
+            <p>Your financial data stays private. We use bank-level security to protect your information.</p>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* How It Works Section */}
-      <motion.section 
-        id="workflow"
-        ref={workflowRef}
-        className={`${styles.workflowSection} ${styles.section}`}
-        animate={workflow}
-        initial="hidden"
-        variants={staggerChildren}
-      >
-        <motion.h2 
-          className={styles.sectionTitle}
-          variants={fadeInUp}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          How JustSplit Works
-        </motion.h2>
+      {/* Workflow Section */}
+      <section id="workflow" ref={workflowRef} className={`${styles.workflowSection} ${styles.section}`}>
+        <h2 className={styles.sectionTitle}>How It Works</h2>
         
         <div className={styles.workflowSteps}>
-          <motion.div 
-            className={styles.workflowStep}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.workflowStep}>
             <div className={styles.stepNumber}>1</div>
             <div className={styles.stepContent}>
-              <h3>Create a Group</h3>
-              <p>Start with a group for your roommates, trip, or any shared expenses.</p>
+              <h3>Create a Group or Event</h3>
+              <p>Start by creating a group for your roommates, a trip, or even a one-time dinner. Add friends to your expense group.</p>
+              
               <div className={styles.stepPlaceholder}>
                 <div className={styles.stepPlaceholderText}>
-                  <span className={styles.stepPlaceholderIcon}>👨‍👩‍👧‍👦</span>
-                  <span>New Beach Trip Group</span>
+                  <span className={styles.stepPlaceholderIcon}>👥</span>
+                  <span>Europe Trip 2025</span>
                 </div>
                 <div className={styles.stepPlaceholderMembers}>
-                  <div className={styles.memberAvatar}>JD</div>
-                  <div className={styles.memberAvatar}>AM</div>
-                  <div className={styles.memberAvatar}>SK</div>
+                  <div className={styles.memberAvatar}>A</div>
+                  <div className={styles.memberAvatar}>M</div>
+                  <div className={styles.memberAvatar}>S</div>
                   <div className={styles.memberAvatarAdd}>+</div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
           
-          <motion.div 
-            className={styles.workflowStep}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.workflowStep}>
             <div className={styles.stepNumber}>2</div>
             <div className={styles.stepContent}>
-              <h3>Add Expenses</h3>
-              <p>Log expenses as they happen and assign them to group members.</p>
+              <h3>Add Expenses As They Happen</h3>
+              <p>Log expenses with details like amount, category, and who paid. Choose how to split costs - equally or by custom amounts.</p>
+              
               <div className={styles.stepPlaceholder}>
                 <div className={styles.stepPlaceholderForm}>
                   <div className={styles.formRow}>
                     <div className={styles.formLabel}>Description:</div>
-                    <div className={styles.formValue}>Beachside Dinner</div>
+                    <div className={styles.formValue}>Hotel Booking</div>
                   </div>
                   <div className={styles.formRow}>
                     <div className={styles.formLabel}>Amount:</div>
-                    <div className={styles.formValue}>$86.50</div>
+                    <div className={styles.formValue}>$450.00</div>
                   </div>
                   <div className={styles.formRow}>
                     <div className={styles.formLabel}>Paid by:</div>
-                    <div className={styles.formValue}>You</div>
+                    <div className={styles.formValue}>Alex</div>
                   </div>
                   <div className={styles.formRow}>
-                    <div className={styles.formLabel}>Split with:</div>
-                    <div className={styles.formValue}>Everyone equally</div>
+                    <div className={styles.formLabel}>Split:</div>
+                    <div className={styles.formValue}>Equally (3 people)</div>
                   </div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
           
-          <motion.div 
-            className={styles.workflowStep}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className={styles.workflowStep}>
             <div className={styles.stepNumber}>3</div>
             <div className={styles.stepContent}>
-              <h3>Settle Debts</h3>
-              <p>See who owes what and settle up with minimal transactions.</p>
+              <h3>See Who Owes Who</h3>
+              <p>JustSplit automatically calculates balances and optimizes who pays whom to minimize the number of transactions needed.</p>
+              
               <div className={styles.stepPlaceholder}>
                 <div className={styles.settlementSummary}>
-                  <div className={styles.settlementHeader}>Balances</div>
+                  <div className={styles.settlementHeader}>Settlement Summary</div>
                   <div className={styles.settlementRow}>
-                    <div className={styles.settlementName}>Alex M.</div>
-                    <div className={styles.settlementAmount}>owes you $42.25</div>
+                    <div>Maria owes Alex:</div>
+                    <div className={styles.settlementAmount}>$150.00</div>
                   </div>
                   <div className={styles.settlementRow}>
-                    <div className={styles.settlementName}>Sarah K.</div>
-                    <div className={styles.settlementAmount}>owes you $29.00</div>
+                    <div>Sam owes Alex:</div>
+                    <div className={styles.settlementAmount}>$150.00</div>
                   </div>
-                  <div className={styles.settlementButton}>Settle Up</div>
+                  <div className={styles.settlementButton}>
+                    Settle Up
+                  </div>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Testimonials Section */}
-      <motion.section 
-        id="testimonials"
-        ref={testimonialsRef}
-        className={`${styles.testimonialsSection} ${styles.section}`}
-        animate={testimonials}
-        initial="hidden"
-        variants={staggerChildren}
-      >
-        <motion.h2 
-          className={styles.sectionTitle}
-          variants={fadeInUp}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          What Our Users Say
-        </motion.h2>
+      <section id="testimonials" ref={testimonialsRef} className={`${styles.testimonialsSection} ${styles.section}`}>
+        <h2 className={styles.sectionTitle}>What Our Users Say</h2>
         
         <div className={styles.testimonialsGrid}>
-          <motion.div 
-            className={styles.testimonialCard}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className={styles.testimonialQuote}>"</div>
-            <p>JustSplit made our vacation so much easier! No more awkward conversations about who owes what.</p>
+          <div className={styles.testimonialCard}>
+            <span className={styles.testimonialQuote}>"</span>
+            <p>JustSplit saved our friendship! No more awkward money conversations after group trips. The multi-currency support was perfect for our Europe backpacking adventure.</p>
             <div className={styles.testimonialAuthor}>
-              <div className={styles.testimonialAvatar}>
-                <span>JM</span>
-              </div>
+              <div className={styles.testimonialAvatar}>J</div>
               <div>
-                <strong>Jamie M.</strong>
-                <span>Group Trip Organizer</span>
+                <strong>Jessica T.</strong>
+                <span>Frequent Traveler</span>
               </div>
             </div>
-          </motion.div>
+          </div>
           
-          <motion.div 
-            className={styles.testimonialCard}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className={styles.testimonialQuote}>"</div>
-            <p>As roommates, we use JustSplit daily. It's simplified our shared expenses and eliminated conflicts.</p>
+          <div className={styles.testimonialCard}>
+            <span className={styles.testimonialQuote}>"</span>
+            <p>As a finance-conscious roommate in a house of five, I needed something that everyone could use easily. JustSplit is simple enough for my non-tech-savvy roommates but powerful enough for our complex household.</p>
             <div className={styles.testimonialAuthor}>
-              <div className={styles.testimonialAvatar}>
-                <span>SR</span>
-              </div>
+              <div className={styles.testimonialAvatar}>M</div>
               <div>
-                <strong>Sarah R.</strong>
-                <span>Apartment Dweller</span>
+                <strong>Michael R.</strong>
+                <span>College Student</span>
               </div>
             </div>
-          </motion.div>
+          </div>
           
-          <motion.div 
-            className={styles.testimonialCard}
-            variants={fadeInUp}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className={styles.testimonialQuote}>"</div>
-            <p>The multiple split options are fantastic! Perfect for when we need to divide bills in different ways.</p>
+          <div className={styles.testimonialCard}>
+            <span className={styles.testimonialQuote}>"</span>
+            <p>I organize family reunions every year, and keeping track of shared expenses used to be a nightmare. JustSplit made it so easy that even my 70-year-old aunt could participate in splitting costs!</p>
             <div className={styles.testimonialAuthor}>
-              <div className={styles.testimonialAvatar}>
-                <span>DK</span>
-              </div>
+              <div className={styles.testimonialAvatar}>L</div>
               <div>
-                <strong>David K.</strong>
-                <span>Friend Group Treasurer</span>
+                <strong>Liu W.</strong>
+                <span>Family Organizer</span>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* FAQ Section */}
-      <motion.section 
-        id="faq"
-        ref={faqRef}
-        className={`${styles.faqSection} ${styles.section}`}
-        animate={faq}
-        initial="visible" // Start visible to ensure content shows
-      >
-        <motion.h2 
-          className={styles.sectionTitle}
-          variants={fadeInUp}
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        >
-          Frequently Asked Questions
-        </motion.h2>
+      <section id="faq" ref={faqRef} className={`${styles.faqSection} ${styles.section}`}>
+        <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
         
         <div className={styles.faqContainer}>
           {[
             {
               question: "Is JustSplit free to use?",
-              answer: "Yes! JustSplit is completely free for basic expense splitting. We offer premium features for power users who need advanced reporting and integrations."
-            },
-            {
-              question: "How do I add friends to split expenses with?",
-              answer: "You can invite friends via email or by sharing a unique link. Once they join, you can add them to your groups or directly split expenses with them."
+              answer: "Yes! JustSplit is completely free for basic expense tracking and splitting. We may offer premium features in the future, but the core functionality will always remain free."
             },
             {
               question: "Can I split expenses unequally?",
-              answer: "Absolutely! JustSplit allows you to split expenses equally, by percentages, by shares, or by exact amounts. Perfect for any situation where costs aren't divided evenly."
+              answer: "Absolutely! JustSplit supports multiple split methods: equal splits, percentage-based splits, share-based splits, and exact amount splits. You can even exclude certain people from specific expenses."
             },
             {
-              question: "Does JustSplit handle different currencies?",
-              answer: "Yes, JustSplit supports multiple currencies, making it perfect for international trips or friends living in different countries."
+              question: "Does JustSplit support multiple currencies?",
+              answer: "Yes! You can add expenses in any currency, and JustSplit will convert them to your preferred currency using up-to-date exchange rates. Great for international trips or mixed-currency groups!"
             },
             {
-              question: "How secure is my financial information?",
-              answer: "Very secure. JustSplit uses bank-level encryption and never stores your actual payment details. We only track what you tell us about your expenses and balances."
+              question: "How does settlement work?",
+              answer: "JustSplit calculates the optimal way for people to settle debts with minimal transactions. You'll see exactly who needs to pay whom. You can then mark debts as settled manually after real-world payments occur."
+            },
+            {
+              question: "Can I export my expense data?",
+              answer: "Yes, you can export your expense data to CSV files, making it easy to use in spreadsheets or other financial applications."
             }
           ].map((faq, index) => (
-            <motion.div 
-              key={index} 
-              className={`${styles.faqItem} ${activeFaq === index ? styles.active : ''}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.1 }}
-            >
+            <div key={index} className={styles.faqItem}>
               <button 
-                className={styles.faqQuestion} 
-                onClick={() => toggleFaq(index)}
-                aria-expanded={activeFaq === index}
+                className={`${styles.faqQuestion} ${activeFaq === index ? styles.active : ''}`}
+                onClick={() => setActiveFaq(activeFaq === index ? null : index)}
               >
                 {faq.question}
-                <span className={styles.faqArrow}>
-                  {activeFaq === index ? '−' : '+'}
-                </span>
+                <span className={styles.faqArrow}>&#9660;</span>
               </button>
+              
               {activeFaq === index && (
-                <motion.div 
-                  className={styles.faqAnswer}
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <div className={styles.faqAnswer}>
                   <p>{faq.answer}</p>
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.section>
+      </section>
 
-      {/* Final CTA Section */}
-      <motion.section 
-        id="cta"
-        className={`${styles.ctaSection} ${styles.section}`}
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-      >
+      {/* CTA Section */}
+      <section id="cta" ref={ctaRef} className={styles.ctaSection}>
         <div className={styles.ctaContent}>
-          <h2>Ready to simplify expense sharing?</h2>
-          <p>Join thousands of users who trust JustSplit for hassle-free splits.</p>
-          <Link href="/auth/signup" className={styles.ctaButton}>
-            Get Started Now
+          <h2>Ready to Split Expenses Without the Headache?</h2>
+          <p>Join thousands of users who have simplified their shared expenses with JustSplit.</p>
+          <Link href="/auth/register" className={styles.ctaButton}>
+            Get Started for Free
           </Link>
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 };

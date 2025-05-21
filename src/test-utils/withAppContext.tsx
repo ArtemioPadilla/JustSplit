@@ -47,18 +47,16 @@ export function renderWithAppContext(
   } = {}
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
+    // AuthProvider does NOT accept a value prop, so we must mock context another way if needed
+    // For now, just use AuthProvider as a component
     return (
-      <AuthProvider value={authValues}>
-        <AppProvider 
-          initialState={initialState}
-          preferredCurrency={preferredCurrency}
-          isConvertingCurrencies={isConvertingCurrencies}
-        >
+      <AuthProvider>
+        <AppProvider initialState={initialState}>
           {children}
         </AppProvider>
       </AuthProvider>
     );
   }
-  
+
   return render(ui, { wrapper: Wrapper, ...renderOptions });
 }

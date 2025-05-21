@@ -29,17 +29,12 @@ export default function NewGroup() {
         setMembers([...members, existingUser.id]);
       }
     } else {
-      // Create new user
-      const newUser = {
-        name: newMemberName,
-      };
+      // Create a temporary ID for the user
+      // In a real app, you'd use a proper user creation flow
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       
-      // Add the user to state via dispatch
-      const action = { type: 'ADD_USER', payload: newUser };
-      const newUserId = action.payload.id || '';
-      
-      // Add the new user to the members list
-      setMembers([...members, newUserId]);
+      // Add the temporary ID to the members list
+      setMembers([...members, tempId]);
     }
     
     setNewMemberName('');
@@ -114,7 +109,7 @@ export default function NewGroup() {
                 const member = state.users.find(user => user.id === memberId);
                 return (
                   <li key={memberId} className={styles.memberItem}>
-                    <span>{member?.name || 'Unknown User'}</span>
+                    <span>{member?.name || newMemberName || 'Unknown User'}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveMember(memberId)}
