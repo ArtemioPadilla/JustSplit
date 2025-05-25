@@ -1,58 +1,64 @@
 import React from 'react';
 import { render, act } from '@testing-library/react';
-import { AppProvider, useAppContext } from '../AppContext';
-import { AuthProvider } from '../AuthContext';
+import { AppProvider, useAppContext, AppState } from '../AppContext';
+import { AuthContext, AuthContextType } from '../AuthContext';
+import { User } from '../../types';
 
 // Custom renderHook utility
-function renderHook(callback, { wrapper: Wrapper } = {}) {
-  const result = { current: null };
-  
+function renderHook<TResult>(
+  callback: () => TResult,
+  options?: { wrapper?: React.ComponentType<{children: React.ReactNode, initialAppState?: Partial<AppState>}>, initialAppState?: Partial<AppState> }
+) {
+  const result: { current: TResult | null } = { current: null };
+
   function TestComponent() {
     result.current = callback();
     return null;
   }
-  
-  render(
-    Wrapper ? <Wrapper><TestComponent /></Wrapper> : <TestComponent />
-  );
+
+  if (options?.wrapper) {
+    const Wrapper = options.wrapper;
+    render(<Wrapper initialAppState={options.initialAppState}><TestComponent /></Wrapper>);
+  } else {
+    render(<TestComponent />);
+  }
   
   return { result };
 }
 
-// Create a mock AuthProvider wrapper for testing
-const AuthProviderWrapper = ({ children }) => {
-  const mockAuthValue = {
-    user: null,
-    isLoading: false,
-    error: null,
-    signIn: jest.fn(),
-    signUp: jest.fn(),
-    signOut: jest.fn(),
-    signInWithProvider: jest.fn(),
-    updateProfile: jest.fn(),
-    userProfile: null,
-    isAuthenticated: false,
-    currentUser: null,
-    hasDatabaseCorruption: false,
-    handleDatabaseRecovery: jest.fn()
-  };
-  return <AuthProvider value={mockAuthValue}>{children}</AuthProvider>;
+// Consistent mock auth value
+const mockAuthContextValue: AuthContextType = {
+  currentUser: { uid: 'test-user-settlement' } as any,
+  userProfile: { id: 'test-user-settlement', name: 'Settlement Test User', email: 'settlement@example.com', balance: 0 } as User,
+  isLoading: false,
+  signIn: jest.fn().mockResolvedValue(undefined),
+  signUp: jest.fn().mockResolvedValue(undefined),
+  signOut: jest.fn().mockResolvedValue(undefined),
+  signInWithProvider: jest.fn().mockResolvedValue(undefined),
+  linkAccount: jest.fn().mockResolvedValue(undefined),
+  resetPassword: jest.fn().mockResolvedValue(undefined),
+  updateProfile: jest.fn().mockResolvedValue(undefined),
+  handleDatabaseRecovery: jest.fn().mockResolvedValue(undefined),
+  hasDatabaseCorruption: false,
 };
 
 // Wrapper that provides both context providers
-const TestWrapper = ({ children }) => (
-  <AuthProviderWrapper>
-    <AppProvider>{children}</AppProvider>
-  </AuthProviderWrapper>
-);
+const AllProvidersWrapper: React.FC<{ children: React.ReactNode, initialAppState?: Partial<AppState> }> = ({ children, initialAppState }) => {
+  return (
+    <AuthContext.Provider value={mockAuthContextValue}>
+      <AppProvider initialState={initialAppState}>
+        {children}
+      </AppProvider>
+    </AuthContext.Provider>
+  );
+};
 
 describe('Settlement Currency Functionality', () => {
   test('settlement includes currency when created', () => {
-    // Set up initial state with users
-    const initialState = {
+    const initialState: Partial<AppState> = {
       users: [
-        { id: 'user1', name: 'Alice', balance: 0 },
-        { id: 'user2', name: 'Bob', balance: 0 }
+        { id: 'user1', name: 'Alice', balance: 0, email: 'alice@example.com' } as User,
+        { id: 'user2', name: 'Bob', balance: 0, email: 'bob@example.com' } as User
       ],
       expenses: [
         {
@@ -63,22 +69,24 @@ describe('Settlement Currency Functionality', () => {
           date: '2023-01-01',
           paidBy: 'user1',
           participants: ['user1', 'user2'],
-          settled: false
+          settled: false,
+          createdAt: new Date().toISOString(),
         }
       ],
       events: [],
-      settlements: []
+      settlements: [],
+      currentUser: { id: 'test-user-settlement', name: 'Settlement Test User', balance: 0, email: 'settlement@example.com' } as User,
     };
     
-    const wrapper = ({ children }) => (
-      <AppProvider initialState={initialState}>{children}</AppProvider>
-    );
+    const { result } = renderHook(() => useAppContext(), {
+      wrapper: AllProvidersWrapper,
+      initialAppState: initialState
+    });
+
+    if (!result.current) throw new Error('useAppContext did not provide a value in test');
     
-    const { result } = renderHook(() => useAppContext(), { wrapper });
-    
-    // Add a settlement
     act(() => {
-      result.current.dispatch({
+      result.current!.dispatch({
         type: 'ADD_SETTLEMENT',
         payload: {
           fromUser: 'user2',
@@ -90,18 +98,16 @@ describe('Settlement Currency Functionality', () => {
       });
     });
     
-    // Check that settlement was created with correct currency
-    expect(result.current.state.settlements.length).toBe(1);
-    expect(result.current.state.settlements[0].amount).toBe(50);
-    expect(result.current.state.settlements[0].currency).toBe('EUR');
+    expect(result.current!.state.settlements.length).toBe(1);
+    expect(result.current!.state.settlements[0].amount).toBe(50);
+    expect(result.current!.state.settlements[0].currency).toBe('EUR');
   });
   
   test('marks expenses as settled when settlement is created', () => {
-    // Set up initial state with an expense
-    const initialState = {
+    const initialState: Partial<AppState> = {
       users: [
-        { id: 'user1', name: 'Alice', balance: 0 },
-        { id: 'user2', name: 'Bob', balance: 0 }
+        { id: 'user1', name: 'Alice', balance: 0, email: 'alice@example.com' } as User,
+        { id: 'user2', name: 'Bob', balance: 0, email: 'bob@example.com' } as User
       ],
       expenses: [
         {
@@ -112,25 +118,26 @@ describe('Settlement Currency Functionality', () => {
           date: '2023-01-01',
           paidBy: 'user1',
           participants: ['user1', 'user2'],
-          settled: false
+          settled: false,
+          createdAt: new Date().toISOString(),
         }
       ],
       events: [],
-      settlements: []
+      settlements: [],
+      currentUser: { id: 'test-user-settlement', name: 'Settlement Test User', balance: 0, email: 'settlement@example.com' } as User,
     };
     
-    const wrapper = ({ children }) => (
-      <AppProvider initialState={initialState}>{children}</AppProvider>
-    );
+    const { result } = renderHook(() => useAppContext(), { 
+      wrapper: AllProvidersWrapper,
+      initialAppState: initialState 
+    });
+
+    if (!result.current) throw new Error('useAppContext did not provide a value in test');
+
+    expect(result.current!.state.expenses[0].settled).toBe(false);
     
-    const { result } = renderHook(() => useAppContext(), { wrapper });
-    
-    // Verify expense is not settled initially
-    expect(result.current.state.expenses[0].settled).toBe(false);
-    
-    // Add a settlement that references the expense
     act(() => {
-      result.current.dispatch({
+      result.current!.dispatch({
         type: 'ADD_SETTLEMENT',
         payload: {
           fromUser: 'user2',
@@ -142,16 +149,14 @@ describe('Settlement Currency Functionality', () => {
       });
     });
     
-    // Check that expense is now marked as settled
-    expect(result.current.state.expenses[0].settled).toBe(true);
+    expect(result.current!.state.expenses[0].settled).toBe(true);
   });
   
   test('supports settlements in different currencies', () => {
-    // Set up initial state with expenses in different currencies
-    const initialState = {
+    const initialState: Partial<AppState> = {
       users: [
-        { id: 'user1', name: 'Alice', balance: 0 },
-        { id: 'user2', name: 'Bob', balance: 0 }
+        { id: 'user1', name: 'Alice', balance: 0, email: 'alice@example.com' } as User,
+        { id: 'user2', name: 'Bob', balance: 0, email: 'bob@example.com' } as User
       ],
       expenses: [
         {
@@ -162,7 +167,8 @@ describe('Settlement Currency Functionality', () => {
           date: '2023-01-01',
           paidBy: 'user1',
           participants: ['user1', 'user2'],
-          settled: false
+          settled: false,
+          createdAt: new Date().toISOString(),
         },
         {
           id: 'exp2',
@@ -172,23 +178,24 @@ describe('Settlement Currency Functionality', () => {
           date: '2023-01-02',
           paidBy: 'user1',
           participants: ['user1', 'user2'],
-          settled: false
+          settled: false,
+          createdAt: new Date().toISOString(),
         }
       ],
       events: [],
-      settlements: []
+      settlements: [],
+      currentUser: { id: 'test-user-settlement', name: 'Settlement Test User', balance: 0, email: 'settlement@example.com' } as User,
     };
     
-    const wrapper = ({ children }) => (
-      <AppProvider initialState={initialState}>{children}</AppProvider>
-    );
+    const { result } = renderHook(() => useAppContext(), { 
+      wrapper: AllProvidersWrapper,
+      initialAppState: initialState 
+    });
+
+    if (!result.current) throw new Error('useAppContext did not provide a value in test');
     
-    const { result } = renderHook(() => useAppContext(), { wrapper });
-    
-    // Add settlements in different currencies
     act(() => {
-      // USD settlement
-      result.current.dispatch({
+      result.current!.dispatch({
         type: 'ADD_SETTLEMENT',
         payload: {
           fromUser: 'user2',
@@ -199,8 +206,7 @@ describe('Settlement Currency Functionality', () => {
         }
       });
       
-      // EUR settlement
-      result.current.dispatch({
+      result.current!.dispatch({
         type: 'ADD_SETTLEMENT',
         payload: {
           fromUser: 'user2',
@@ -212,9 +218,8 @@ describe('Settlement Currency Functionality', () => {
       });
     });
     
-    // Check that settlements were created with correct currencies
-    expect(result.current.state.settlements.length).toBe(2);
-    expect(result.current.state.settlements[0].currency).toBe('USD');
-    expect(result.current.state.settlements[1].currency).toBe('EUR');
+    expect(result.current!.state.settlements.length).toBe(2);
+    expect(result.current!.state.settlements[0].currency).toBe('USD');
+    expect(result.current!.state.settlements[1].currency).toBe('EUR');
   });
 });

@@ -3,12 +3,12 @@
 import React from 'react';
 import { AppProvider } from './AppContext';
 import { AuthProvider } from './AuthContext';
-import { NotificationProvider } from './NotificationContext'; // assuming this is how it's imported
+import { NotificationProvider } from './NotificationContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AppProvider>
+      <AppProvider initialState={{}}>
         <NotificationProvider>
           {children}
         </NotificationProvider>
@@ -18,4 +18,3 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 
 export default Providers;
-// No changes needed here, just ensure AppProvider always receives a valid initial state.

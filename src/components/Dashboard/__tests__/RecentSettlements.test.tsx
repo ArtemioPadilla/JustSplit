@@ -5,14 +5,14 @@ import RecentSettlements from '../RecentSettlements';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }) => {
+  return ({ children, href }: { children: React.ReactNode, href: string }) => {
     return <a href={href} data-testid="next-link">{children}</a>;
   };
 });
 
 // Mock currency conversion functions
 jest.mock('../../../utils/currencyExchange', () => ({
-  formatCurrency: (amount, currency) => `$${amount.toFixed(2)}`,
+  formatCurrency: (amount: number) => `$${amount.toFixed(2)}`,
   convertCurrency: async () => ({ convertedAmount: 100, isFallback: false }),
   getCurrencySymbol: () => '$'
 }));
@@ -23,33 +23,35 @@ describe('RecentSettlements', () => {
       id: 'settlement1',
       amount: 50,
       currency: 'USD',
-      paidBy: 'user1', // Alice
-      paidTo: 'user2', // Bob
-      date: '2023-05-11',
+      fromUser: 'user1', // Alice
+      toUser: 'user2', // Bob
+      date: '2023-05-10',
       description: 'Dinner payment',
-      status: 'completed'
+      status: 'completed',
+      expenseIds: []
     },
     {
       id: 'settlement2',
       amount: 35,
       currency: 'USD',
-      paidBy: 'user3', // Charlie 
-      paidTo: 'user4', // Dave
-      date: '2023-05-04',
+      fromUser: 'user3', // Charlie 
+      toUser: 'user4', // Dave
+      date: '2023-05-03',
       description: 'Movie tickets',
-      status: 'pending'
+      status: 'pending',
+      expenseIds: []
     }
   ];
 
-  const mockUsers = {
-    user1: { id: 'user1', name: 'Alice', email: 'alice@example.com' },
-    user2: { id: 'user2', name: 'Bob', email: 'bob@example.com' },
-    user3: { id: 'user3', name: 'Charlie', email: 'charlie@example.com' },
-    user4: { id: 'user4', name: 'Dave', email: 'dave@example.com' }
-  };
+  const mockUsers = [
+    { id: 'user1', name: 'Alice', email: 'alice@example.com', balance: 0 },
+    { id: 'user2', name: 'Bob', email: 'bob@example.com', balance: 0 },
+    { id: 'user3', name: 'Charlie', email: 'charlie@example.com', balance: 0 },
+    { id: 'user4', name: 'Dave', email: 'dave@example.com', balance: 0 }
+  ];
 
   it('renders recent settlements correctly with data', () => {
-    const { container } = renderWithAppContext(
+    renderWithAppContext(
       <RecentSettlements />,
       {
         initialState: {
@@ -63,22 +65,22 @@ describe('RecentSettlements', () => {
     
     // Check for the actual values that appear in the DOM
     expect(screen.getByText('$50.00')).toBeInTheDocument();
-    expect(screen.getByText('5/10/2023')).toBeInTheDocument();
+    expect(screen.getByText('5/9/2023')).toBeInTheDocument();
     
-    // Check for "Unknown User" since that's what's actually rendered
-    const fromToTexts = screen.getAllByText(/Unknown User/);
-    expect(fromToTexts.length).toBeGreaterThan(0);
+    // Check for proper user names being displayed (Alice to Bob, Charlie to Dave)
+    expect(screen.getByText('Alice to Bob')).toBeInTheDocument();
+    expect(screen.getByText('Charlie to Dave')).toBeInTheDocument();
     
-    // Check for N/A description which is shown when no description is available
-    expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
+    // Check for "Settlement" description which is shown when no expense description is available
+    expect(screen.getAllByText('Settlement').length).toBeGreaterThan(0);
     
     // Check that date elements exist by using a regex pattern to match date format
     const dateElements = screen.getAllByText(/^\d+\/\d+\/\d+$/);
     expect(dateElements.length).toBe(2);
     
-    // Status indicators
-    const completedElements = screen.getAllByText('Completed');
-    expect(completedElements.length).toBe(2);
+    // Status indicators - one completed, one pending
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
     
     // Check if "View all settlements" link is displayed
     const viewAllLink = screen.getByText('View all settlements');

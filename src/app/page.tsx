@@ -128,6 +128,12 @@ export default function Home() {
         />
       </div>
       
+      <ExpenseDistribution 
+        expenses={state.expenses || []}
+        preferredCurrency={localPreferredCurrency}
+        isConvertingCurrencies={localIsConvertingCurrencies}
+      />
+      
       <BalanceOverview 
         balanceDistribution={balanceDistribution} 
         preferredCurrency={localPreferredCurrency}

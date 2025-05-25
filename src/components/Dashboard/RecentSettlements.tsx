@@ -3,12 +3,11 @@ import Link from 'next/link';
 import styles from '../../app/page.module.css';
 import { useAppContext } from '../../context/AppContext';
 import { formatCurrency, convertCurrency, getCurrencySymbol } from '../../utils/currencyExchange';
-import { Settlement, User, Event as LocalEvent, Expense } from '../../types'; // Added Settlement, LocalEvent, Expense
+import { Settlement, User, Expense } from '../../types';
 
 interface RecentSettlementsProps {
   settlements?: Settlement[];
   users?: User[];
-  events?: LocalEvent[]; // Use LocalEvent to match the converted event type
   preferredCurrency?: string;
   isConvertingCurrencies?: boolean;
   expenses?: Expense[];
@@ -17,7 +16,6 @@ interface RecentSettlementsProps {
 const RecentSettlements: React.FC<RecentSettlementsProps> = ({ 
   settlements: propSettlements, 
   users: propUsers, 
-  events: propEvents, // propEvents should be LocalEvent[] from page.tsx
   preferredCurrency: propPreferredCurrency, 
   isConvertingCurrencies: propIsConverting, 
   expenses: propExpenses 
@@ -27,49 +25,34 @@ const RecentSettlements: React.FC<RecentSettlementsProps> = ({
   const preferredCurrency = propPreferredCurrency || context?.preferredCurrency || 'USD';
   const isConvertingCurrencies = propIsConverting !== undefined ? propIsConverting : context?.isConvertingCurrencies ?? true;
   const users = propUsers || state?.users || [];
-  const events = propEvents || []; // Simpler: rely on page.tsx to pass converted LocalEvent[]
   const expenses = propExpenses || state?.expenses || [];
-  // sourceOfSettlements will be of type: OurSettlement[] | AppContextSettlement[]
-  const sourceOfSettlements = propSettlements || state?.settlements || [];
-
-
+  
+  // State for converted amounts and fallback flags
   const [convertedAmounts, setConvertedAmounts] = useState<{[key: string]: number}>({});
   const [fallbacks, setFallbacks] = useState<{[key: string]: boolean}>({});
-
-  // Helper: get user name
-  const getUserName = (userId: string | undefined) => {
-    if (!userId) return 'Unknown User'; // Handle undefined userId
-    const user = users.find(u => u.id === userId);
+  
+  // Helper function to get user name by ID
+  const getUserName = (userId: string): string => {
+    const user = users.find((u: User) => u.id === userId);
     return user ? user.name : 'Unknown User';
   };
-
-  // Helper: get event name (not directly used for settlements but good for consistency if needed)
-  const getEventName = (eventId: string | undefined) => {
-    if (!eventId) return '';
-    const event = events.find(e => e.id === eventId);
-    return event ? event.name : '';
+  
+  // Helper function to get expense description by ID
+  const getExpenseDescription = (expenseId: string | undefined): string => {
+    if (!expenseId) return 'Settlement';
+    const expense = expenses.find((e: Expense) => e.id === expenseId);
+    return expense ? expense.description : 'Settlement';
   };
   
-  // Helper: get expense description
-  const getExpenseDescription = (expenseId: string | undefined) => {
-    if (!expenseId) return 'N/A';
-    const expense = expenses.find(exp => exp.id === expenseId);
-    return expense ? expense.description : 'Unknown Expense';
-  };
-
-  // Memoize recentSettlements and ensure its type is Settlement[] (our local type)
+  // Memoize recentSettlements and ensure its type is Settlement[]
   const recentSettlements: Settlement[] = useMemo(() => {
-    // Cast the source array to Settlement[] (our local type).
-    // This tells TypeScript to treat each item as our local Settlement type,
-    // which defines payerId (optionally).
-    // This assumes that AppContext.Settlement objects are structurally compatible
-    // or that missing fields like payerId are correctly handled by their optionality.
+    const sourceOfSettlements = propSettlements || state?.settlements || [];
     const settlementsToProcess = sourceOfSettlements as Settlement[];
     
     return [...settlementsToProcess]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5); // Show top 5 recent settlements
-  }, [sourceOfSettlements]); // Depend on the actual source array
+  }, [propSettlements, state?.settlements]);
 
   // Fetch converted amounts for settlements
   useEffect(() => {
@@ -122,14 +105,32 @@ const RecentSettlements: React.FC<RecentSettlementsProps> = ({
             </tr>
           </thead>
           <tbody>
-              {recentSettlements.map(settlement => { // Now 'settlement' is typed as our local Settlement
+              {recentSettlements.map(settlement => {
                 const originalAmount = formatCurrency(settlement.amount, settlement.currency);
                 const converted = convertedAmounts[settlement.id];
                 const isFallback = fallbacks[settlement.id];
                 const showConverted = settlement.currency !== preferredCurrency && isConvertingCurrencies;
-                const payerName = getUserName(settlement.fromUser);
-                const payeeName = getUserName(settlement.toUser);
+                
+                // Handle both property naming conventions with proper typing
+                interface SettlementWithUsers {
+                  fromUser?: string;
+                  paidBy?: string;
+                  toUser?: string;
+                  paidTo?: string;
+                  status?: string;
+                }
+                
+                const settlementWithUsers = settlement as Settlement & SettlementWithUsers;
+                const payerUserId = settlementWithUsers.fromUser || settlementWithUsers.paidBy || '';
+                const payeeUserId = settlementWithUsers.toUser || settlementWithUsers.paidTo || '';
+                const payerName = getUserName(payerUserId);
+                const payeeName = getUserName(payeeUserId);
                 const expenseDescription = getExpenseDescription(settlement.expenseIds?.[0]);
+                
+                // Handle status display - show status if available, otherwise show notes or default
+                const statusText = settlementWithUsers.status 
+                  ? settlementWithUsers.status.charAt(0).toUpperCase() + settlementWithUsers.status.slice(1)
+                  : settlement.notes || '—';
 
                 return (
                   <tr key={settlement.id} className={styles.expenseItem} style={{ borderBottom: '1px solid #f1f1f1' }}>
@@ -154,7 +155,7 @@ const RecentSettlements: React.FC<RecentSettlementsProps> = ({
                     </td>
                     <td>{payerName} to {payeeName}</td>
                     <td align="center">{new Date(settlement.date).toLocaleDateString()}</td>
-                    <td style={{ color: '#888', fontSize: '0.95em' }}>{settlement.notes || '—'}</td>
+                    <td style={{ color: '#888', fontSize: '0.95em' }}>{statusText}</td>
                   </tr>
                 );
               })}

@@ -18,6 +18,7 @@ export default function ExpenseDetail() {
     state, 
     dispatch, 
     updateExpense, 
+    deleteExpense,
     preferredCurrency, 
     isConvertingCurrencies,
   } = useAppContext();
@@ -91,6 +92,28 @@ export default function ExpenseDetail() {
       alert('Failed to update expense notes. Please try again.');
     } finally {
       setTimeout(() => setIsUpdatingNotes(false), 500);
+    }
+  };
+
+  // Handle expense deletion
+  const handleDeleteExpense = async () => {
+    if (!expense) return;
+    
+    const confirmDelete = window.confirm('Are you sure you want to delete this expense? This action cannot be undone.');
+    if (!confirmDelete) return;
+    
+    try {
+      await deleteExpense(expense.id);
+      
+      // Navigate based on whether expense was part of an event
+      if (expense.eventId) {
+        router.push(`/events/${expense.eventId}`);
+      } else {
+        router.push('/expenses/list');
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      alert('Failed to delete expense. Please try again.');
     }
   };
   
@@ -323,6 +346,12 @@ export default function ExpenseDetail() {
           variant="secondary"
         >
           Edit Expense
+        </Button>
+        <Button
+          onClick={handleDeleteExpense}
+          variant="danger"
+        >
+          Delete Expense
         </Button>
       </div>
     </div>

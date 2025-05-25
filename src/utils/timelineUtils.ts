@@ -1,8 +1,23 @@
 import { format } from 'date-fns';
-// Import main types. Note: TimelineExpense from src/types has date: Date.
-// The functions here often work with string dates from the base Expense type.
-// We'll use Expense and Event from '../../types' where appropriate
-import { Expense, Event as MainEvent } from '../../types'; // Renamed Event to MainEvent to avoid conflict if 'Event' is a global type
+
+// Types for timeline calculations
+export interface TimelineExpense {
+  id: string;
+  eventId?: string;
+  amount: number;
+  currency: string;
+  settled: boolean;
+  date: string; // String date for timeline calculations
+  description?: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate?: string;
+  participants?: string[];
+}
 
 /**
  * Calculate timeline progress (percentage of time elapsed in event)
@@ -76,16 +91,12 @@ export const calculatePositionPercentage = (date: string, startDate: string, end
 
 /**
  * Group nearby expenses for hover display
- * This function was using the local TimelineExpense and TimelineEvent.
- * It should now use the main Expense and MainEvent types, or a specific subset if needed.
- * For now, let's assume it operates on the base Expense type and MainEvent.
- * The `date` property in `Expense` is a string, which calculatePositionPercentage expects.
  */
-export const groupNearbyExpenses = (expenses: Expense[], event: MainEvent): { position: number, expenses: Expense[] }[] => {
+export const groupNearbyExpenses = (expenses: TimelineExpense[], event: TimelineEvent): { position: number, expenses: TimelineExpense[] }[] => {
   // Calculate positions for all expenses
   const expensesWithPositions = expenses.map(expense => ({
     expense,
-    position: calculatePositionPercentage(expense.date, event.startDate || event.date, event.endDate) // Use event.date as fallback for startDate
+    position: calculatePositionPercentage(expense.date, event.startDate, event.endDate)
   }));
 
   // Sort expenses by position to ensure consistent grouping
@@ -94,8 +105,9 @@ export const groupNearbyExpenses = (expenses: Expense[], event: MainEvent): { po
   // Group expenses that are within a very small threshold of each other
   // Use a tighter threshold to prevent over-grouping
   const proximityThreshold = 5; // 5% threshold for grouping nearby expenses
-  const groupedExpenses: { position: number, expenses: Expense[] }[] = [];
-   for (const { expense, position } of expensesWithPositions) {
+  const groupedExpenses: { position: number, expenses: TimelineExpense[] }[] = [];
+  
+  for (const { expense, position } of expensesWithPositions) {
     // Find an existing group where this expense is within threshold of the FIRST expense in that group
     // This prevents issues with expanding group ranges through averaging
     let foundGroup = false;
@@ -105,7 +117,7 @@ export const groupNearbyExpenses = (expenses: Expense[], event: MainEvent): { po
       // Check proximity against the original position of the first expense in the group
       const firstExpensePosition = calculatePositionPercentage(
         group.expenses[0].date, 
-        event.startDate || event.date, 
+        event.startDate, 
         event.endDate
       );
       
@@ -115,7 +127,7 @@ export const groupNearbyExpenses = (expenses: Expense[], event: MainEvent): { po
         group.expenses.push(expense);
         // Recalculate average position for the group
         group.position = group.expenses.reduce(
-          (sum, exp) => sum + calculatePositionPercentage(exp.date, event.startDate || event.date, event.endDate),
+          (sum, exp) => sum + calculatePositionPercentage(exp.date, event.startDate, event.endDate),
           0
         ) / group.expenses.length;
         foundGroup = true;
@@ -144,22 +156,20 @@ export const formatTimelineDate = (dateString: string): string => {
 
 /**
  * Helper function to calculate the percentage of expenses settled
- * This function should operate on the base Expense type.
  */
-export const calculateSettledPercentage = (expenses: Expense[]): number => {
+export const calculateSettledPercentage = (expenses: TimelineExpense[]): number => {
   if (expenses.length === 0) return 0;
   
   const settledExpenses = expenses.filter(expense => expense.settled === true);
-  return (settledExpenses.length / expenses.length) * 100;
+  return Math.round((settledExpenses.length / expenses.length) * 100);
 };
 
 /**
  * Calculate total by currency
- * This function should operate on the base Expense type.
  */
-export const calculateTotalByCurrency = (expenses: Expense[]): Record<string, number> => {
+export const calculateTotalByCurrency = (expenses: TimelineExpense[]): Record<string, number> => {
   const totals: Record<string, number> = {};
-  expenses.forEach((expense: Expense) => {
+  expenses.forEach((expense: TimelineExpense) => {
     if (!totals[expense.currency]) {
       totals[expense.currency] = 0;
     }
@@ -170,11 +180,10 @@ export const calculateTotalByCurrency = (expenses: Expense[]): Record<string, nu
 
 /**
  * Helper function to calculate unsettled amount
- * This function should operate on the base Expense type.
  */
-export const calculateUnsettledAmount = (expenses: Expense[]): Record<string, number> => {
+export const calculateUnsettledAmount = (expenses: TimelineExpense[]): Record<string, number> => {
   const unsettled: Record<string, number> = {};
-  expenses.forEach((expense: Expense) => {
+  expenses.forEach((expense: TimelineExpense) => {
     if (expense.settled !== true) {
       if (!unsettled[expense.currency]) {
         unsettled[expense.currency] = 0;
@@ -186,56 +195,7 @@ export const calculateUnsettledAmount = (expenses: Expense[]): Record<string, nu
 };
 
 /**
- * Calculates the timeline position for an expense based on event start and end dates
- * @param expense The expense to calculate position for (using main Expense type)
- * @param event The associated event (using main Event type)
- * @returns A number between 0 and 100 representing the relative position on the timeline
- */
-export const calculateExpensePosition = (expense: Expense, event: MainEvent): number => {
-  const expenseDate = new Date(expense.date).getTime();
-  // Use event.date as a fallback if event.startDate is not present
-  const eventStartDateString = event.startDate || event.date;
-  const startDate = new Date(eventStartDateString).getTime();
-  const endDate = event.endDate ? new Date(event.endDate).getTime() : startDate;
-  
-  // If event has no duration (start date equals end date), position expenses relatively to each other
-  if (startDate === endDate) {
-    return 50; // Center position
-  }
-  
-  // Calculate percentage position
-  let position = ((expenseDate - startDate) / (endDate - startDate)) * 100;
-  
-  // Ensure position is within bounds
-  position = Math.min(Math.max(0, position), 100);
-  
-  return position;
-};
-
-/**
- * Groups expenses by their date
- * @param expenses Array of expenses to group (using main Expense type)
- * @returns An object with dates as keys and arrays of expenses as values
- */
-export const groupExpensesByDate = (expenses: Expense[]): Record<string, Expense[]> => {
-  return expenses.reduce((groups, expense) => {
-    // Format date as YYYY-MM-DD for grouping
-    const dateKey = new Date(expense.date).toISOString().split('T')[0];
-    
-    if (!groups[dateKey]) {
-      groups[dateKey] = [];
-    }
-    
-    groups[dateKey].push(expense);
-    return groups;
-  }, {} as Record<string, Expense[]>);
-};
-
-/**
  * Formats a date range for display, handling various cases
- * @param startDate Start date of the range
- * @param endDate Optional end date of the range
- * @returns Formatted date range string
  */
 export const formatDateRange = (startDate: string, endDate?: string): string => {
   const start = new Date(startDate);
@@ -267,4 +227,4 @@ export const formatDateRange = (startDate: string, endDate?: string): string => 
   
   // Different years, show format like "12/1/2022 - 1/15/2023"
   return `${start.getMonth() + 1}/${start.getDate()}/${start.getFullYear()} - ${end.getMonth() + 1}/${end.getDate()}/${end.getFullYear()}`;
-}
+};

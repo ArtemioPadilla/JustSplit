@@ -12,7 +12,8 @@
     "build:firebase": "next build --no-lint",
     "deploy:rules": "firebase deploy --only firestore:rules",
     "deploy:hosting": "firebase deploy --only hosting",
-    "deploy": "npm run build:firebase && firebase deploy"
+    "deploy": "npm run build:firebase && firebase deploy",
+    "emulators": "firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

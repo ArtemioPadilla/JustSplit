@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppContext } from '../../../context/AppContext';
 import Link from 'next/link';
 import { exportExpensesToCSV } from '../../../utils/csvExport';
-import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
+import { DEFAULT_CURRENCY, convertCurrency, formatCurrency, clearExchangeRateCache } from '../../../utils/currencyExchange';
 import styles from './page.module.css';
 import Timeline from '../../../components/ui/Timeline';
 import ProgressBar from '../../../components/ui/ProgressBar';
@@ -17,7 +17,7 @@ import CurrencySelector from '../../../components/ui/CurrencySelector';
 export default function EventDetail() {
   const router = useRouter();
   const params = useParams();
-  const { state, dispatch, updateEvent } = useAppContext();
+  const { state, dispatch, updateEvent, deleteEvent } = useAppContext();
   const eventId = params?.id ? (params.id as string) : '';
   
   // Selected currency for display
@@ -136,7 +136,7 @@ export default function EventDetail() {
   }, [event]);
 
   // Function to perform currency conversion
-  const performConversion = async () => {
+  const performConversion = useCallback(async () => {
     if (eventExpenses.length === 0) return;
     
     setIsConverting(true);
@@ -163,7 +163,7 @@ export default function EventDetail() {
     
     setConvertedAmounts(newConvertedAmounts);
     setIsConverting(false);
-  };
+  }, [eventExpenses, targetCurrency]);
   
   // Handle refreshing rates
   const handleRefreshRates = async () => {
@@ -188,7 +188,7 @@ export default function EventDetail() {
   // Effect to handle currency conversion when target currency changes
   useEffect(() => {
     performConversion();
-  }, [targetCurrency, eventExpenses]);
+  }, [performConversion]);
 
   // Handle event name update
   const handleEventNameUpdate = async (newName: string) => {
@@ -217,11 +217,27 @@ export default function EventDetail() {
     }
   };
   
+  // Handle event deletion
+  const handleDeleteEvent = async () => {
+    if (!event) return;
+    
+    const confirmed = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
+    if (!confirmed) return;
+    
+    try {
+      await deleteEvent(event.id);
+      router.push('/events/list');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Failed to delete event. Please try again.');
+    }
+  };
+  
   if (!event) {
     return (
       <div className={styles.container}>
         <h1 className={styles.title}>Event Not Found</h1>
-        <p>The event you're looking for doesn't exist or has been deleted.</p>
+        <p>The event you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
         <Link href="/events/list" className={styles.backButton}>
           Return to Events List
         </Link>
@@ -369,7 +385,8 @@ export default function EventDetail() {
           <h2 className={styles.sectionTitle}>Expenses</h2>
           <Button 
             variant="primary"
-            onClick={() => router.push(`/expenses/new?event=${eventId}`)}
+            onClick={() => router.push(`/expenses/new?eventId=${eventId}`)}
+            data-testid="add-expense-section"
           >
             Add Expense
           </Button>
@@ -442,7 +459,8 @@ export default function EventDetail() {
       <div className={styles.actions}>
         <Button 
           variant="primary"
-          onClick={() => router.push(`/expenses/new?event=${eventId}`)}
+          onClick={() => router.push(`/expenses/new?eventId=${eventId}`)}
+          data-testid="add-expense-actions"
         >
           Add Expense
         </Button>
@@ -472,6 +490,15 @@ export default function EventDetail() {
           disabled={eventExpenses.length === 0}
         >
           Export as CSV
+        </Button>
+        
+        <Button
+          variant="secondary"
+          onClick={handleDeleteEvent}
+          data-testid="button-danger"
+          className={styles.deleteButton}
+        >
+          Delete Event
         </Button>
       </div>
     </div>

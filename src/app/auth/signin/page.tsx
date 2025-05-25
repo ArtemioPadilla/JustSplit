@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Header from '../../../components/Header';
 import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/context/NotificationContext';
-// import LoadingSpinner from '@/components/ui/LoadingSpinner'; // Commented out
 import styles from '../page.module.css';
 
 export default function SignIn() {
@@ -15,17 +14,20 @@ export default function SignIn() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const auth = useAuth();
-  const { signIn, signInWithProvider, currentUser, isLoading } = auth;
+  const { signIn, signInWithProvider, userProfile, isLoading } = auth;
   const { showNotification } = useNotification();
   const router = useRouter();
 
-  console.log('SignIn Page - Auth State:', { currentUser: auth.currentUser, isLoading: auth.isLoading }); // Changed user to currentUser and removed error
+  console.log('SignIn Page - Auth State:', { 
+    userProfile: auth.userProfile, 
+    isLoading: auth.isLoading 
+  });
 
   useEffect(() => {
-    if (currentUser) {
+    if (userProfile) {
       router.push('/profile');
     }
-  }, [currentUser, router]);
+  }, [userProfile, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +35,7 @@ export default function SignIn() {
     
     try {
       await signIn(email, password);
-      router.push('/'); // Redirect to home page after successful sign in
+      router.push('/');
       showNotification('Signed in successfully!', 'success');
     } catch (error: any) {
       console.error('Sign In Error:', error);
@@ -54,9 +56,14 @@ export default function SignIn() {
     }
   };
 
-  if (isLoading || currentUser) {
-    // return <LoadingSpinner />; // Commented out
-    return <div>Loading...</div>; // Placeholder
+  if (isLoading || userProfile) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.authCard}>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -81,20 +88,22 @@ export default function SignIn() {
               
               <div className={styles.formGroup}>
                 <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className={styles.togglePassword}
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
+                <div className={styles.passwordInput}>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={styles.togglePassword}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
               
               <button 

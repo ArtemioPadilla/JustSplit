@@ -122,27 +122,18 @@
 
 @media (max-width: 768px) {
   .mobileMenuButton {
-    display: block; /* Show only on mobile */
+    display: block;
     position: absolute;
     right: 20px;
     top: 50%;
+    transform: translateY(-50%);
   }
   
   .nav {
     position: fixed;
     top: 0;
-    right: -100%;
-    width: 70%;
-    height: 100vh;
-    background-color: var(--color-primary);
-    flex-direction: column;
-    padding: 80px var(--space-md) var(--space-md);
-    transition: right var(--transition-normal) var(--transition-timing-default);
-    z-index: var(--z-index-modal);
-  }
-
-  .mobileOpen {
+    left: 0;
     right: 0;
-    z-index: 500;
+    z-index: 1000;
   }
 }

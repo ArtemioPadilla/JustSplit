@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '../../../context/AppContext';
 import styles from './styles.module.css';
 import HoverCard, { HoverCardPosition } from '../HoverCard';
-import { TimelineExpense, TimelineEvent } from '../../../types';
+import { TimelineExpense, TimelineEvent, User, Expense, Event } from '../../../types';
 import {
   calculateTimelineProgress,
   calculatePositionPercentage,
@@ -28,6 +28,10 @@ export interface TimelineProps {
    * Custom progress color (default is blue)
    */
   progressColor?: string;
+  /**
+   * Callback when an expense is clicked
+   */
+  onExpenseClick?: (expense: TimelineExpense) => void;
 }
 
 /**
@@ -38,6 +42,7 @@ const Timeline: React.FC<TimelineProps> = ({
   expenses,
   className = '',
   progressColor,
+  onExpenseClick,
 }) => {
   const { state } = useAppContext();
   // State for hover card with expense details
@@ -47,23 +52,37 @@ const Timeline: React.FC<TimelineProps> = ({
   } | null>(null);
 
   // Calculate timeline progress (percentage of time elapsed in event)
-  const timelineProgress = calculateTimelineProgress(event.startDate, event.endDate);
+  const startDate: string = event?.startDate || new Date().toISOString();
+  const endDate: string | undefined = event?.endDate;
+  const timelineProgress = calculateTimelineProgress(startDate, endDate);
 
   // Group expenses that are near each other on the timeline
+  const expensesForGrouping = expenses.map(e => ({
+    id: e.id,
+    description: e.title || '',
+    amount: e.amount,
+    currency: e.currency,
+    date: e.date instanceof Date ? e.date.toISOString() : e.date,
+    paidBy: e.paidBy,
+    participants: e.participants,
+    eventId: e.eventId,
+    settled: e.settled,
+    category: e.category,
+  }));
+  
   const groupedExpenses = groupNearbyExpenses(
-    expenses.map(e => ({
-      ...e,
-      date: e.date instanceof Date ? e.date.toISOString() : e.date,
-      description: e.title || '',
-    })),
+    expensesForGrouping,
     {
-      ...event,
-      date: event.startDate || '',
-      createdAt: event.createdAt || '',
-      createdBy: event.createdBy || '',
-      members: event.members || [],
-      expenseIds: event.expenseIds || [],
-    }
+      id: event?.id || '',
+      name: event?.name || '',
+      date: startDate,
+      startDate: startDate,
+      endDate: endDate,
+      createdAt: event?.createdAt || new Date().toISOString(),
+      createdBy: event?.createdBy || '',
+      members: event?.members || [],
+      expenseIds: event?.expenseIds || [],
+    } as Event
   );
 
   // Close hover card on escape key or when clicking elsewhere
@@ -82,8 +101,48 @@ const Timeline: React.FC<TimelineProps> = ({
     };
   }, [activeGroup, closeHoverCard]);
 
+  // Handle keyboard navigation on expense marker
+  const handleExpenseKeyPress = (e: React.KeyboardEvent, expenses: Expense[]) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const targetElement = e.currentTarget as HTMLElement;
+      const targetRect = targetElement.getBoundingClientRect();
+      
+      // Convert Expense[] to TimelineExpense[]
+      const timelineExpenses: TimelineExpense[] = expenses.map((exp) => ({
+        id: exp.id,
+        type: 'expense',
+        date: new Date(exp.date),
+        title: exp.description,
+        amount: exp.amount,
+        currency: exp.currency,
+        category: exp.category || '',
+        eventName: event?.name || 'Event',
+        eventId: exp.eventId,
+        settled: exp.settled,
+        paidBy: exp.paidBy,
+        participants: exp.participants,
+        userNames: Object.fromEntries((exp.participants || []).map((pid: string) => {
+          const user = state.users.find((u: User) => u.id === pid);
+          return [pid, user ? user.name : 'Unknown'];
+        })),
+      }));
+      
+      setActiveGroup({
+        position: { 
+          x: targetRect.left + targetRect.width / 2, 
+          y: targetRect.top,
+          targetRect: targetRect
+        },
+        expenses: timelineExpenses
+      });
+    }
+  };
+
   // Handle click on expense marker
-  const handleExpenseClick = (e: React.MouseEvent, expenses: any[]) => {
+  const handleExpenseClick = (e: React.MouseEvent, expenses: Expense[]) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
     
@@ -98,19 +157,31 @@ const Timeline: React.FC<TimelineProps> = ({
       closeHoverCard();
       return;
     }
-    // Map grouped expenses to TimelineExpense[]
-    const timelineExpenses = expenses.map((exp: any) => ({
-      ...exp,
-      date: exp.date instanceof Date ? exp.date : new Date(exp.date),
+    
+    // Convert Expense[] to TimelineExpense[]
+    const timelineExpenses: TimelineExpense[] = expenses.map((exp) => ({
+      id: exp.id,
       type: 'expense',
+      date: new Date(exp.date),
       title: exp.description,
-      eventName: event.name,
-      userNames: Object.fromEntries((exp.participants as string[]).map((pid: string) => {
-        const user = state.users.find((u: any) => u.id === pid);
+      amount: exp.amount,
+      currency: exp.currency,
+      category: exp.category || '',
+      eventName: event?.name || 'Event',
+      eventId: exp.eventId,
+      settled: exp.settled,
+      paidBy: exp.paidBy,
+      participants: exp.participants,
+      userNames: Object.fromEntries((exp.participants || []).map((pid: string) => {
+        const user = state.users.find((u: User) => u.id === pid);
         return [pid, user ? user.name : 'Unknown'];
       })),
-      category: exp.category ?? '',
     }));
+    
+    // Call the optional onExpenseClick callback if provided
+    if (onExpenseClick && timelineExpenses.length > 0) {
+      onExpenseClick(timelineExpenses[0]);
+    }
     setActiveGroup({
       position: { 
         x: e.clientX, 
@@ -142,13 +213,13 @@ const Timeline: React.FC<TimelineProps> = ({
         <div 
           className={styles.timelineDot} 
           style={{ left: '0%' }} 
-          title={`Event Start: ${formatTimelineDate(event.startDate)}`}
+          title={`Event Start: ${formatTimelineDate(startDate)}`}
         />
-        {event.endDate && (
+        {endDate && (
           <div 
             className={styles.timelineDot} 
             style={{ left: '100%' }} 
-            title={`Event End: ${formatTimelineDate(event.endDate)}`}
+            title={`Event End: ${formatTimelineDate(endDate)}`}
           />
         )}
         
@@ -197,11 +268,7 @@ const Timeline: React.FC<TimelineProps> = ({
               tabIndex={0}
               role="button"
               aria-label={tooltipContent}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  handleExpenseClick(e as any, group.expenses);
-                }
-              }}
+              onKeyPress={(e) => handleExpenseKeyPress(e, group.expenses)}
             />
           );
         })}
@@ -209,11 +276,11 @@ const Timeline: React.FC<TimelineProps> = ({
       
       <div className={styles.timelineDates}>
         <span>
-          {formatTimelineDate(event.startDate)}
+          {formatTimelineDate(startDate)}
         </span>
-        {event.endDate && (
+        {endDate && (
           <span>
-            {formatTimelineDate(event.endDate)}
+            {formatTimelineDate(endDate)}
           </span>
         )}
       </div>
@@ -245,7 +312,7 @@ const Timeline: React.FC<TimelineProps> = ({
             </div>
           )}
           {/* Pre-event expenses */}
-          {expenses.some(exp => calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), event.startDate, event.endDate) < 0) && (
+          {expenses.some(exp => calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), startDate, endDate) < 0) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.preEventExpense}`}></div>
               <span>Pre-event</span>
@@ -253,7 +320,7 @@ const Timeline: React.FC<TimelineProps> = ({
           )}
           {/* Post-event expenses */}
           {expenses.some(exp => 
-            event.endDate && calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), event.startDate, event.endDate) > 100
+            endDate && calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), startDate, endDate) > 100
           ) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.postEventExpense}`}></div>

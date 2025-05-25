@@ -217,7 +217,7 @@ export default function FinancialSummary({
         title: exp.description, // Field for MainTimelineExpense
         amount: exp.amount,
         currency: exp.currency,
-        category: exp.category, // Field for MainTimelineExpense
+        category: exp.category || 'Other', // Field for MainTimelineExpense - provide default value
         eventName: eventDetails ? eventDetails.name : 'N/A', // Field for MainTimelineExpense
         eventId: exp.eventId,
         settled: exp.settled,

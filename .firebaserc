@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "justsplit-eef51"
-  }
+    "default": "justsplit-eef51",
+    "justsplit": "justsplit-eef51"
+  },
+  "targets": {},
+  "etags": {}
 }

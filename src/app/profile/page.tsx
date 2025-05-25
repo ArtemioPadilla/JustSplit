@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { User } from '../../types';
 import NotificationModule from '../../context/NotificationContext';
 import AvatarUploader from '../../components/AvatarUploader';
 import Button from '../../components/ui/Button';
@@ -87,13 +88,22 @@ export default function ProfilePage() {
     }
     
     try {
-      await updateProfile({
+      const profileData: Partial<User> = {
         name: name.trim(),
-        email: email.trim() ? email.trim() : undefined,
-        phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : undefined,
-        preferredCurrency,
-        avatarUrl: avatarUrl ?? undefined
-      });
+        preferredCurrency
+      };
+
+      // Only include fields that have actual values
+      if (email.trim()) {
+        profileData.email = email.trim();
+      }
+      if (phoneNumber.trim()) {
+        profileData.phoneNumber = phoneNumber.trim();
+      }
+      // Handle the avatarUrl explicitly, allowing null values but not undefined
+      profileData.avatarUrl = avatarUrl;
+
+      await updateProfile(profileData);
       
       showNotification('Profile updated successfully', 'success');
       setIsEditing(false);

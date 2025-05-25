@@ -124,6 +124,25 @@
   color: var(--color-text-primary);
 }
 
+.memberEmail {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.memberBalance {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-align: right;
+}
+
+.memberBalance.positive {
+  color: var(--color-success);
+}
+
+.memberBalance.negative {
+  color: var(--color-danger);
+}
+
 .eventDate {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
@@ -515,9 +534,23 @@
   color: var(--color-text-primary);
 }
 
+.memberEmail {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
 .memberBalance {
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
+  text-align: right;
+}
+
+.memberBalance.positive {
+  color: var(--color-success);
+}
+
+.memberBalance.negative {
+  color: var(--color-danger);
 }
 
 /* Responsive styling */

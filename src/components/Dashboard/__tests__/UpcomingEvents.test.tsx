@@ -2,16 +2,50 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { renderWithAppContext } from '../../../test-utils';
 import UpcomingEvents from '../UpcomingEvents';
+import { AppProvider, AppState } from '../../../context/AppContext';
+import { AuthContext, AuthContextType } from '../../../context/AuthContext';
+import { User, Event as EventType } from '../../../types';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }) => {
+  const MockLink: React.FC<{ children: React.ReactNode, href: string }> = ({ children, href }) => {
     return <a href={href} data-testid="next-link">{children}</a>;
   };
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
-// Create more complete mock events with all required fields
-const mockEvents = [
+// Consistent mock auth value for tests requiring full provider setup
+const mockAuthContextValue: AuthContextType = {
+  currentUser: { uid: 'user1' } as any,
+  userProfile: { id: 'user1', name: 'Alice', email: 'alice@example.com', balance: 0 } as User,
+  isLoading: false,
+  signIn: jest.fn().mockResolvedValue(undefined),
+  signUp: jest.fn().mockResolvedValue(undefined),
+  signOut: jest.fn().mockResolvedValue(undefined),
+  signInWithProvider: jest.fn().mockResolvedValue(undefined),
+  linkAccount: jest.fn().mockResolvedValue(undefined),
+  resetPassword: jest.fn().mockResolvedValue(undefined),
+  updateProfile: jest.fn().mockResolvedValue(undefined),
+  handleDatabaseRecovery: jest.fn().mockResolvedValue(undefined),
+  hasDatabaseCorruption: false,
+};
+
+// Wrapper for tests that need full context setup
+const FullProvidersWrapper: React.FC<{
+  children: React.ReactNode;
+  initialAppState?: Partial<AppState>;
+}> = ({ children, initialAppState }) => {
+  return (
+    <AuthContext.Provider value={mockAuthContextValue}>
+      <AppProvider initialState={initialAppState}>
+        {children}
+      </AppProvider>
+    </AuthContext.Provider>
+  );
+};
+
+const mockEvents: EventType[] = [
   {
     id: 'event1',
     name: 'Team Trip',
@@ -20,7 +54,10 @@ const mockEvents = [
     location: 'Beach',
     description: 'Annual team trip',
     members: ['user1', 'user2'],
-    expenses: []
+    expenseIds: [],
+    createdBy: 'user1',
+    date: '2023-06-15',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'event2',
@@ -30,7 +67,10 @@ const mockEvents = [
     location: 'Cinema',
     description: 'Watching the latest movie',
     members: ['user1', 'user3'],
-    expenses: []
+    expenseIds: [],
+    createdBy: 'user1',
+    date: '2023-05-15',
+    createdAt: new Date().toISOString(),
   },
   {
     id: 'event3',
@@ -40,24 +80,28 @@ const mockEvents = [
     location: 'Home', 
     description: 'This happened in the past',
     members: ['user1'],
-    expenses: []
+    expenseIds: [],
+    createdBy: 'user1',
+    date: '2022-10-10',
+    createdAt: new Date().toISOString(),
   }
 ];
 
-// Set up a complete mock state for the context
-const mockAppState = {
+const mockUsers: User[] = [
+    { id: 'user1', name: 'Alice', balance: 0, email: 'alice@example.com' },
+    { id: 'user2', name: 'Bob', balance: 0, email: 'bob@example.com' },
+    { id: 'user3', name: 'Charlie', balance: 0, email: 'charlie@example.com' }
+];
+
+const mockAppState: Partial<AppState> = {
   events: mockEvents,
   expenses: [],
   settlements: [],
-  users: {
-    user1: { id: 'user1', name: 'Alice' },
-    user2: { id: 'user2', name: 'Bob' },
-    user3: { id: 'user3', name: 'Charlie' }
-  },
-  currentUser: { id: 'user1', name: 'Alice' }
+  users: mockUsers,
+  currentUser: mockUsers[0],
+  isDataLoaded: true,
 };
 
-// Mock current date
 beforeAll(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date('2023-05-20'));
@@ -70,16 +114,13 @@ afterAll(() => {
 describe('UpcomingEvents', () => {
   it('renders upcoming events correctly with data', () => {
     render(
-      <AppContext.Provider value={{ state: mockAppState, dispatch: jest.fn() }}>
+      <FullProvidersWrapper initialAppState={mockAppState}>
         <UpcomingEvents />
-      </AppContext.Provider>
+      </FullProvidersWrapper>
     );
     
-    // Check if event titles are displayed (be more precise in what we're looking for)
     expect(screen.getByText('Team Trip')).toBeInTheDocument();
     expect(screen.getByText('Movie Night')).toBeInTheDocument();
-    
-    // Check for locations
     expect(screen.getByText('Beach')).toBeInTheDocument();
     expect(screen.getByText('Cinema')).toBeInTheDocument();
   });
@@ -92,7 +133,9 @@ describe('UpcomingEvents', () => {
           events: [],
           users: [],
           expenses: [],
-          settlements: []
+          settlements: [],
+          currentUser: mockUsers[0],
+          isDataLoaded: true,
         }
       }
     );
@@ -104,15 +147,12 @@ describe('UpcomingEvents', () => {
 
   it('links to individual event details pages', () => {
     render(
-      <AppContext.Provider value={{ state: mockAppState, dispatch: jest.fn() }}>
+      <FullProvidersWrapper initialAppState={mockAppState}>
         <UpcomingEvents />
-      </AppContext.Provider>
+      </FullProvidersWrapper>
     );
     
-    // Find all links and check their hrefs
     const eventLinks = screen.getAllByRole('link');
-    
-    // Check that at least one link contains each event ID
     const event1Link = eventLinks.find(link => 
       link.getAttribute('href')?.includes('/events/event1')
     );
@@ -126,14 +166,12 @@ describe('UpcomingEvents', () => {
 
   it('renders event cards with correct info', () => {
     render(
-      <AppContext.Provider value={{ state: mockAppState, dispatch: jest.fn() }}>
+      <FullProvidersWrapper initialAppState={mockAppState}>
         <UpcomingEvents />
-      </AppContext.Provider>
+      </FullProvidersWrapper>
     );
     
     expect(screen.getByText('Upcoming Events')).toBeInTheDocument();
-    
-    // Test for exact text matches
     expect(screen.getByText('Team Trip')).toBeInTheDocument();
     expect(screen.getByText('Beach')).toBeInTheDocument();
     expect(screen.getByText('Annual team trip')).toBeInTheDocument();
@@ -141,12 +179,11 @@ describe('UpcomingEvents', () => {
 
   it('shows status badge for upcoming and past events', () => {
     render(
-      <AppContext.Provider value={{ state: mockAppState, dispatch: jest.fn() }}>
+      <FullProvidersWrapper initialAppState={mockAppState}>
         <UpcomingEvents />
-      </AppContext.Provider>
+      </FullProvidersWrapper>
     );
     
-    // Use getAllByText since "Upcoming" might appear multiple times
     const upcomingElements = screen.getAllByText(/Upcoming/i);
     const pastElements = screen.getAllByText(/Past/i);
     
@@ -160,9 +197,11 @@ describe('UpcomingEvents', () => {
       {
         initialState: {
           events: [],
-          users: [],
+          users: mockUsers,
           expenses: [],
-          settlements: []
+          settlements: [],
+          currentUser: mockUsers[0],
+          isDataLoaded: true,
         }
       }
     );
@@ -175,9 +214,11 @@ describe('UpcomingEvents', () => {
       {
         initialState: {
           events: mockEvents,
-          users: [],
+          users: mockUsers,
           expenses: [],
-          settlements: []
+          settlements: [],
+          currentUser: mockUsers[0],
+          isDataLoaded: true,
         }
       }
     );

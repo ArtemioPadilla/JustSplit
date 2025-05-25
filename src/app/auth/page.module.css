@@ -162,5 +162,24 @@
 @media (max-width: 768px) {
   .authCard {
     padding: var(--space-lg);
+    margin: var(--space-md);
+  }
+  
+  .container {
+    padding: var(--space-md);
+  }
+  
+  .socialButtons {
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .authCard {
+    padding: var(--space-md);
+  }
+  
+  .title {
+    font-size: var(--font-size-xl);
   }
 }

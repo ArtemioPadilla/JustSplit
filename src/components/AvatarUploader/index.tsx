@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import styles from './styles.module.css';
-import Button from '../ui/Button';
 
 interface AvatarUploaderProps {
   avatarUrl: string | null;

@@ -4,7 +4,7 @@ export interface TimelineEvent {
   name: string;
   startDate: string;
   endDate?: string;
-  [key: string]: any;
+  [key: string]: unknown; // Changed from any to unknown
 }
 // ...existing code...
 
@@ -50,12 +50,14 @@ export interface Expense {
   paidBy: string; // User ID
   participants: string[]; // User IDs
   eventId?: string;
+  groupId?: string; // Group this expense belongs to
   settled: boolean;
   notes?: string; // Detailed description/notes
   images?: string[]; // Array of image URLs
   splitMethod?: string; // 'equal', 'custom', 'percentage'
   participantShares?: { id: string; name: string; share: number; }[]; // For custom or percentage splits
   category?: string; // Added category property
+  createdAt: string; // Added createdAt field
 }
 
 export interface TimelineExpense {
@@ -65,7 +67,7 @@ export interface TimelineExpense {
   title: string;
   amount: number;
   currency: string;
-  category: any;
+  category: string; // Changed from any to string
   eventName: string;
   eventId?: string;
   settled: boolean;
@@ -79,7 +81,7 @@ export interface Event {
   name: string;
   description?: string;
   date: string;
-  startDate?: string;
+  startDate: string; // Make required since components depend on it
   endDate?: string;
   location?: string;
   createdAt: string;
@@ -88,7 +90,7 @@ export interface Event {
   members: string[];
   expenseIds: string[];
   groupId?: string;
-  preferredCurrency?: string; // Add this line
+  preferredCurrency?: string;
 }
 
 export interface Settlement {

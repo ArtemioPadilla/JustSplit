@@ -96,17 +96,23 @@
   color: var(--color-text-secondary);
 }
 
-.input, .select {
-  padding: var(--space-sm) var(--space-md);
-  border: var(--border-width-thin) solid var(--color-border);
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-md);
+  width: 100%;
+  transition: border-color 0.2s ease;
 }
 
-.input:focus, .select:focus {
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 .error {

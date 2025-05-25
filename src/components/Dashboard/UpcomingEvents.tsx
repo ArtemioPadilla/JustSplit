@@ -15,7 +15,7 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events: propEvents, use
 
   // Use propEvents directly. It's already LocalEvent[] (or undefined, defaulting to []).
   // This ensures 'events' is always of type LocalEvent[] as expected by the rest of the component.
-  const events: LocalEvent[] = propEvents || [];
+  const events: LocalEvent[] = propEvents || state?.events || [];
   
   // Fallback for users is generally fine if the User type is consistent.
   const users: User[] = propUsers || state?.users || [];
@@ -24,7 +24,6 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events: propEvents, use
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const now = new Date();
     const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     return `${startFormatted} - ${endFormatted}`;
@@ -57,6 +56,9 @@ const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events: propEvents, use
                     </div>
                     <div style={{ flex: 1 }}>
                       <div className={styles.eventTitle} style={{ fontWeight: 600, fontSize: 18, marginBottom: 2 }}>{event.name}</div>
+                      {event.description && (
+                        <div className={styles.eventDescription} style={{ color: '#666', fontSize: 14, marginBottom: 2 }}>{event.description}</div>
+                      )}
                       <div className={styles.eventLocation} style={{ color: '#888', fontSize: 14 }}>{event.location || <span style={{ color: '#bbb' }}>No location</span>}</div>
                       <div className={styles.eventDate} style={{ color: '#4f46e5', fontWeight: 500, fontSize: 14 }}>{formatDateRange(event.startDate || event.date, event.endDate || event.startDate || event.date)}</div> {/* Added event.date as fallback */}
                       <div style={{ color: '#888', fontSize: 13, marginTop: 2 }}>

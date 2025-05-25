@@ -11,6 +11,7 @@ import styles from '../page.module.css';
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  //const [avatarUrl, setAvatarUrl] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -21,21 +21,9 @@ import type { AuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { hasIndexedDBCorruption, recoverFromCorruption } from '../utils/indexedDBReset';
+import { sanitizeForFirestore } from './AppContext';
+import { User } from '../types';
 
-
-export interface User {
-  id: string;
-  name: string;
-  email?: string;
-  balance: number;
-  avatarUrl?: string;
-  preferredCurrency: string;
-  // Add the new optional fields
-  phoneNumber?: string; 
-  friends?: string[]; 
-  friendRequestsSent?: string[]; 
-  friendRequestsReceived?: string[];
-}
 
 export interface AuthContextType { // Add export here
   currentUser: FirebaseUser | null;
@@ -106,37 +94,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [hasDatabaseCorruption]);
 
   useEffect(() => {
-    // Check for IndexedDB corruption periodically
-    // Only run in browser environment
-    if (typeof window !== 'undefined') {
-      setHasDatabaseCorruption(hasIndexedDBCorruption());
-    }
-    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+      console.log('Auth state changed:', user?.uid);
       
       if (user) {
         // Fetch or create the user profile
         const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
         
-        if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as User);
-        } else {
-          // Create a new user profile
-          const newUser: User = {
-            id: user.uid,
-            name: user.displayName || 'User',
-            email: user.email || undefined,
-            balance: 0,
-            avatarUrl: user.photoURL || undefined,
-            preferredCurrency: 'USD'
-          };
+        try {
+          const userDoc = await getDoc(userDocRef);
           
-          await setDoc(userDocRef, newUser);
-          setUserProfile(newUser);
+          if (userDoc.exists()) {
+            const rawUserData = userDoc.data();
+            console.log('Raw user profile loaded:', rawUserData);
+            
+            // Sanitize the loaded data to remove any undefined values
+            const sanitizedUserData = sanitizeForFirestore(rawUserData as Record<string, unknown>) as User;
+            console.log('Sanitized user profile loaded:', sanitizedUserData);
+            setUserProfile(sanitizedUserData);
+          } else {
+            // Create a new user profile - build object with only defined values
+            const newUserData: Record<string, any> = {
+              id: user.uid,
+              name: user.displayName || 'User',
+              balance: 0,
+              preferredCurrency: 'USD'
+            };
+            
+            // Only add optional fields if they have actual values
+            if (user.email) {
+              newUserData.email = user.email;
+            }
+            if (user.photoURL) {
+              newUserData.avatarUrl = user.photoURL;
+            }
+            
+            // Explicitly set to null or omit fields that should not be undefined
+            // Friends related fields - initialize as empty arrays
+            newUserData.friends = [];
+            newUserData.friendRequestsSent = [];
+            newUserData.friendRequestsReceived = [];
+            
+            console.log('Creating new user profile with data:', newUserData);
+            
+            await setDoc(userDocRef, newUserData);
+            console.log('Created new user profile in Firestore:', user.uid);
+            setUserProfile(newUserData as User);
+          }
+        } catch (error) {
+          console.error('Error handling user profile:', error);
+          setUserProfile(null);
         }
       } else {
+        console.log('User signed out');
         setUserProfile(null);
       }
       
@@ -163,21 +173,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     await firebaseUpdateProfile(result.user, { displayName });
     
-    // Create user profile
-    const newUser: User = {
+    // Create user profile with explicitly defined fields to avoid undefined values
+    const newUser: Record<string, any> = {
       id: result.user.uid,
       name: displayName,
       email: email,
       balance: 0,
-      preferredCurrency: 'USD'
+      preferredCurrency: 'USD',
+      // Initialize arrays for friends-related fields
+      friends: [],
+      friendRequestsSent: [],
+      friendRequestsReceived: []
     };
     
+    // Use the data object directly with no undefined values
     await setDoc(doc(db, 'users', result.user.uid), newUser);
+    console.log('Created new user profile in Firestore from signup', result.user.uid);
   };
 
   const signInWithProvider = async (providerName: 'google' | 'facebook' | 'twitter') => {
     const provider = getProvider(providerName);
-    await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    
+    // Check if this is a new user and create a profile in Firestore
+    if (result.user) {
+      // Check if user already exists in Firestore
+      const userDocRef = doc(db, 'users', result.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // Create a new user profile with safe defaults - build object with only defined values
+        const newUserData: Partial<User> = {
+          id: result.user.uid,
+          name: result.user.displayName || 'User',
+          balance: 0,
+          preferredCurrency: 'USD',
+          friends: [],
+          friendRequestsSent: [],
+          friendRequestsReceived: []
+        };
+        
+        // Only add optional fields if they have actual values
+        if (result.user.email) {
+          newUserData.email = result.user.email;
+        }
+        if (result.user.photoURL) {
+          newUserData.avatarUrl = result.user.photoURL;
+        }
+        
+        // Use the sanitizeForFirestore helper to clean the data before storing
+        await setDoc(userDocRef, {...newUserData});
+        console.log('Created new user profile in Firestore for provider login', result.user.uid);
+      }
+    }
   };
 
   const linkAccount = async (providerName: 'google' | 'facebook' | 'twitter') => {
@@ -196,21 +244,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const userDocRef = doc(db, 'users', currentUser.uid);
     
-    // Update Firestore
-    await setDoc(userDocRef, { ...userProfile, ...data }, { merge: true });
+    // Create a clean object with only defined values for Firestore
+    const cleanData: Record<string, any> = {};
+    Object.entries(data).forEach(([key, value]) => {
+      // Only include non-undefined values
+      // Use explicit null for fields that should be cleared
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    });
+    
+    console.log('Profile update clean data:', cleanData);
+    
+    // Update Firestore - use merge to only update the specified fields
+    await setDoc(userDocRef, cleanData, { merge: true });
+    console.log('Updated user profile in Firestore', currentUser.uid);
     
     // Update display name in Firebase Auth if needed
     if (data.name && data.name !== currentUser.displayName) {
       await firebaseUpdateProfile(currentUser, { displayName: data.name });
     }
     
-    // Update photo URL in Firebase Auth if needed
-    if (data.avatarUrl && data.avatarUrl !== currentUser.photoURL) {
+    // Update photo URL in Firebase Auth if needed - only if avatarUrl is defined and not null
+    if (data.avatarUrl !== undefined && data.avatarUrl !== currentUser.photoURL) {
       await firebaseUpdateProfile(currentUser, { photoURL: data.avatarUrl });
     }
     
-    // Update local state
-    setUserProfile({ ...userProfile, ...data });
+    // Update local state with the merged profile
+    const updatedUserData = { ...userProfile, ...cleanData } as User;
+    setUserProfile(updatedUserData);
   };
 
   const value = {

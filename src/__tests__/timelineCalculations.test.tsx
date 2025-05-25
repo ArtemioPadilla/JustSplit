@@ -10,7 +10,7 @@ import {
   formatTimelineDate,
   formatDateRange
 } from '../utils/timelineUtils';
-import { TimelineExpense, TimelineEvent } from '../utils/timelineUtils';
+import { TimelineExpense, TimelineEvent } from '../types';
 
 describe('Timeline Utility Functions', () => {
   // Mock data

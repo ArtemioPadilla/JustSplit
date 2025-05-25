@@ -1,10 +1,10 @@
 import React, { ReactNode } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { AppProvider, AppState, AppContext } from './context/AppContext';
-import { User } from './types';
-import { AuthProvider, AuthContext, User as AuthUser, AuthContextType } from './context/AuthContext';
+import { AuthContext, AuthContextType } from './context/AuthContext';
 import { ReactElement } from 'react';
 import { NotificationProvider } from './context/NotificationContext';
+import { User } from './types'; // Import User type
 
 const defaultInitialAppState: AppState = { // Ensure this conforms to AppState fully
   users: [],
@@ -37,7 +37,7 @@ interface CustomRenderOptions extends RenderOptions {
   initialState?: Partial<AppState>; // Allow partial for overriding defaults
   preferredCurrency?: string;
   isConvertingCurrencies?: boolean;
-  authValues?: AuthContextType;
+  authValues?: Partial<AuthContextType>; // Allow partial auth values for easier override
   debug?: boolean;
 }
 
@@ -47,7 +47,7 @@ export function renderWithProviders(
 ) {
   const { 
     initialState: optionInitialState, // Rename to avoid conflict
-    authValues = mockAuthValues,
+    authValues: optionAuthValues, // Capture provided authValues
     debug = false,
     ...renderOptions
   } = options;
@@ -58,9 +58,32 @@ export function renderWithProviders(
     ...optionInitialState,
   };
   
+  // Start with default mock auth values
+  let finalAuthValues: AuthContextType = { ...mockAuthValues };
+
+  // If an initialState with currentUser is provided, 
+  // make sure authValues reflects that user for consistency.
+  if (mergedInitialState.currentUser) {
+    const appUser = mergedInitialState.currentUser as User; // Assuming it's our User type
+    finalAuthValues.currentUser = { 
+        uid: appUser.id, 
+        displayName: appUser.name, 
+        email: appUser.email, 
+        photoURL: appUser.avatarUrl 
+        // Add other FirebaseUser-like properties if needed by useAuth or AppProvider
+    } as any; // Cast to any for simplicity if not fully mocking FirebaseUser
+    finalAuthValues.userProfile = appUser;
+    finalAuthValues.isLoading = false; // Usually true if a user is present
+  }
+
+  // If specific authValues are passed in options, they take precedence
+  if (optionAuthValues) {
+    finalAuthValues = { ...finalAuthValues, ...optionAuthValues };
+  }
+  
   function CustomProviders({ children }: { children: ReactNode }) {
     if (debug) {
-      console.log('Rendering with auth values:', authValues);
+      console.log('Rendering with auth values:', finalAuthValues);
       if (mergedInitialState) {
         console.log('Rendering with initial AppState:', mergedInitialState);
       }
@@ -72,36 +95,12 @@ export function renderWithProviders(
     }
 
     return (
-      <AuthContext.Provider value={authValues}>
-        <AppContext.Provider value={{
-          state: mergedInitialState, // Use the fully formed state
-          dispatch: jest.fn(),
-          preferredCurrency: 'USD',
-          isConvertingCurrencies: false,
-          setPreferredCurrency: jest.fn(),
-          addUser: jest.fn(),
-          updateUser: jest.fn(),
-          addExpense: jest.fn(),
-          updateExpense: jest.fn(),
-          deleteExpense: jest.fn(),
-          addEvent: jest.fn(),
-          updateEvent: jest.fn(),
-          deleteEvent: jest.fn(),
-          addSettlement: jest.fn(),
-          addGroup: jest.fn(),
-          updateGroup: jest.fn(),
-          deleteGroup: jest.fn(),
-          addEventToGroup: jest.fn(),
-          addExpenseToGroup: jest.fn(),
-          addMemberToGroup: jest.fn(),
-          removeEventFromGroup: jest.fn(),
-          removeExpenseFromGroup: jest.fn(),
-          removeMemberFromGroup: jest.fn(),
-        }}>
+      <AuthContext.Provider value={finalAuthValues}>
+        <AppProvider initialState={mergedInitialState}>
           <NotificationProvider>
             {children}
           </NotificationProvider>
-        </AppContext.Provider>
+        </AppProvider>
       </AuthContext.Provider>
     );
   }
@@ -114,10 +113,8 @@ export function renderWithAppContext(
   options: CustomRenderOptions = {}
 ) {
   const { 
-    initialState: optionInitialState, // Rename to avoid conflict
-    authValues = mockAuthValues,
-    preferredCurrency = 'USD',
-    isConvertingCurrencies = false,
+    initialState: optionInitialState,
+    authValues: optionAuthValues,
     ...renderOptions
   } = options;
 
@@ -126,40 +123,29 @@ export function renderWithAppContext(
     ...optionInitialState,
   };
 
+  let finalAuthValues: AuthContextType = { ...mockAuthValues };
+  if (mergedInitialState.currentUser) {
+    const appUser = mergedInitialState.currentUser as User;
+    finalAuthValues.currentUser = { uid: appUser.id, displayName: appUser.name, email: appUser.email, photoURL: appUser.avatarUrl } as any;
+    finalAuthValues.userProfile = appUser;
+    finalAuthValues.isLoading = false;
+  }
+  if (optionAuthValues) {
+    finalAuthValues = { ...finalAuthValues, ...optionAuthValues };
+  }
+
   if (!AuthContext || !AppContext) {
     console.error('AuthContext or AppContext is undefined in renderWithAppContext. Check imports.');
     throw new Error('AuthContext or AppContext is undefined in test-utils.tsx (renderWithAppContext)');
   }
 
   return render(
-    <AuthContext.Provider value={authValues}>
-      <AppContext.Provider value={{
-        state: mergedInitialState, // Use the fully formed state
-        dispatch: jest.fn(),
-        preferredCurrency: preferredCurrency,
-        isConvertingCurrencies: isConvertingCurrencies,
-        setPreferredCurrency: jest.fn(),
-        addUser: jest.fn(),
-        updateUser: jest.fn(),
-        addExpense: jest.fn(),
-        updateExpense: jest.fn(),
-        deleteExpense: jest.fn(),
-        addEvent: jest.fn(),
-        updateEvent: jest.fn(),
-        deleteEvent: jest.fn(),
-        addSettlement: jest.fn(),
-        addGroup: jest.fn(),
-        updateGroup: jest.fn(),
-        deleteGroup: jest.fn(),
-        addEventToGroup: jest.fn(),
-        addExpenseToGroup: jest.fn(),
-        addMemberToGroup: jest.fn(),
-        removeEventFromGroup: jest.fn(),
-        removeExpenseFromGroup: jest.fn(),
-        removeMemberFromGroup: jest.fn(),
-      }}>
+    <AuthContext.Provider value={finalAuthValues}>
+      <AppProvider initialState={mergedInitialState}>
+        {/* NotificationProvider might be needed here too if components rely on it */}
+        {/* For now, keeping it as it was, but this could be a source of inconsistency */}
         {ui}
-      </AppContext.Provider>
+      </AppProvider>
     </AuthContext.Provider>,
     renderOptions
   );

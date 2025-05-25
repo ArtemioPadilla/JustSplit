@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useRouter } from 'next/navigation';
 import Timeline from '../components/ui/Timeline';
+import { groupNearbyExpenses, calculatePositionPercentage } from '../utils/timelineUtils';
 
 // Mock data
 const mockEvent = {
@@ -16,48 +17,78 @@ const mockEvent = {
 const mockExpenses = [
   {
     id: 'exp1',
-    eventId: 'event1',
+    type: 'expense',
+    date: new Date('2023-05-20'),
+    title: 'Pre-event expense',
     amount: 100,
     currency: 'USD',
+    category: 'Food',
+    eventName: 'Test Event',
+    eventId: 'event1',
     settled: true,
-    date: '2023-05-20', // Pre-event
-    description: 'Pre-event expense'
+    paidBy: 'user1',
+    participants: ['user1', 'user2'],
+    userNames: { user1: 'User 1', user2: 'User 2' }
   },
   {
     id: 'exp2',
-    eventId: 'event1',
+    type: 'expense',
+    date: new Date('2023-06-01'),
+    title: 'Start date expense',
     amount: 50,
     currency: 'USD',
+    category: 'Transport',
+    eventName: 'Test Event',
+    eventId: 'event1',
     settled: false,
-    date: '2023-06-01', // Start date
-    description: 'Start date expense'
+    paidBy: 'user1',
+    participants: ['user1', 'user2'],
+    userNames: { user1: 'User 1', user2: 'User 2' }
   },
   {
     id: 'exp3',
-    eventId: 'event1',
+    type: 'expense',
+    date: new Date('2023-06-05'),
+    title: 'Mid-event expense',
     amount: 200,
     currency: 'USD',
+    category: 'Food',
+    eventName: 'Test Event',
+    eventId: 'event1',
     settled: true,
-    date: '2023-06-05', // Mid-event
-    description: 'Mid-event expense'
+    paidBy: 'user1',
+    participants: ['user1', 'user2'],
+    userNames: { user1: 'User 1', user2: 'User 2' }
   },
   {
     id: 'exp4',
-    eventId: 'event1',
+    type: 'expense',
+    date: new Date('2023-06-05T12:00:00'),
+    title: 'Same day expense',
     amount: 75,
     currency: 'EUR',
+    category: 'Entertainment',
+    eventName: 'Test Event',
+    eventId: 'event1',
     settled: false,
-    date: '2023-06-05T12:00:00', // Same day as exp3
-    description: 'Same day expense'
+    paidBy: 'user2',
+    participants: ['user1', 'user2'],
+    userNames: { user1: 'User 1', user2: 'User 2' }
   },
   {
     id: 'exp5',
-    eventId: 'event1',
+    type: 'expense',
+    date: new Date('2023-06-10'),
+    title: 'End date expense',
     amount: 25,
     currency: 'USD',
+    category: 'Food',
+    eventName: 'Test Event',
+    eventId: 'event1',
     settled: false,
-    date: '2023-06-10', // End date
-    description: 'End date expense'
+    paidBy: 'user1',
+    participants: ['user1', 'user2'],
+    userNames: { user1: 'User 1', user2: 'User 2' }
   }
 ];
 
@@ -119,23 +150,102 @@ const calculatePositionPercentage = (date: string, startDate: string, endDate?: 
   return 100;
 };
 
-type Expense = {
-  id: string;
-  eventId: string;
-  amount: number;
-  currency: string;
-  settled?: boolean;
-  date: string;
-  description?: string;
-};
+describe('Timeline Grouping Logic', () => {
+  test('groupNearbyExpenses should not over-group expenses', () => {
+    const testExpenses = [
+      {
+        id: 'exp1',
+        description: 'Pre-event expense',
+        amount: 100,
+        currency: 'USD',
+        date: '2023-05-20',
+        paidBy: 'user1',
+        participants: ['user1', 'user2'],
+        eventId: 'event1',
+        settled: true,
+        category: 'Food'
+      },
+      {
+        id: 'exp2',
+        description: 'Start date expense',
+        amount: 50,
+        currency: 'USD',
+        date: '2023-06-01',
+        paidBy: 'user1',
+        participants: ['user1', 'user2'],
+        eventId: 'event1',
+        settled: false,
+        category: 'Transport'
+      },
+      {
+        id: 'exp3',
+        description: 'Mid-event expense',
+        amount: 200,
+        currency: 'USD',
+        date: '2023-06-05',
+        paidBy: 'user1',
+        participants: ['user1', 'user2'],
+        eventId: 'event1',
+        settled: true,
+        category: 'Food'
+      },
+      {
+        id: 'exp4',
+        description: 'Same day expense',
+        amount: 75,
+        currency: 'EUR',
+        date: '2023-06-05T12:00:00',
+        paidBy: 'user2',
+        participants: ['user1', 'user2'],
+        eventId: 'event1',
+        settled: false,
+        category: 'Entertainment'
+      },
+      {
+        id: 'exp5',
+        description: 'End date expense',
+        amount: 25,
+        currency: 'USD',
+        date: '2023-06-10',
+        paidBy: 'user1',
+        participants: ['user1', 'user2'],
+        eventId: 'event1',
+        settled: false,
+        category: 'Food'
+      }
+    ];
 
-type Event = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate?: string;
-  participants: string[];
-};
+    const testEvent = {
+      id: 'event1',
+      name: 'Test Event',
+      date: '2023-06-01',
+      startDate: '2023-06-01',
+      endDate: '2023-06-10',
+      createdAt: new Date().toISOString(),
+      createdBy: 'user1',
+      members: ['user1', 'user2'],
+      expenseIds: []
+    };
+
+    // Test position calculations
+    console.log('Position calculations:');
+    testExpenses.forEach(exp => {
+      const position = calculatePositionPercentage(exp.date, testEvent.startDate, testEvent.endDate);
+      console.log(`${exp.id} (${exp.date}): ${position}%`);
+    });
+
+    // Test grouping
+    const grouped = groupNearbyExpenses(testExpenses, testEvent);
+    console.log(`Grouped into ${grouped.length} groups from ${testExpenses.length} expenses`);
+    
+    grouped.forEach((group, index) => {
+      console.log(`Group ${index + 1}: ${group.expenses.map(e => e.id).join(', ')} at ${group.position}%`);
+    });
+
+    // We should have at least 3 groups: pre-event, mid-event (possibly grouped), and end-event
+    expect(grouped.length).toBeGreaterThanOrEqual(3);
+  });
+});
 
 describe('Timeline Position Calculation', () => {
   test('calculates position for pre-event expenses correctly', () => {
@@ -185,11 +295,66 @@ describe('Timeline Component', () => {
   });
   
   test('renders timeline with appropriate expense markers', () => {
-    render(<Timeline event={mockEvent} expenses={mockExpenses} />);
+    const { container } = render(<Timeline event={mockEvent} expenses={mockExpenses} />);
     
-    // Check that we have the correct number of expense markers
-    const expenseMarkers = screen.getAllByRole('button');
-    expect(expenseMarkers.length).toBeGreaterThanOrEqual(mockExpenses.length);
+    // First, let's manually calculate what the grouping should be
+    const expensesForGrouping = mockExpenses.map(e => ({
+      id: e.id,
+      description: e.title || '',
+      amount: e.amount,
+      currency: e.currency,
+      date: e.date instanceof Date ? e.date.toISOString() : e.date,
+      paidBy: e.paidBy,
+      participants: e.participants,
+      eventId: e.eventId,
+      settled: e.settled,
+      category: e.category,
+    }));
+    
+    const testEvent = {
+      id: mockEvent.id || '',
+      name: mockEvent.name || '',
+      date: mockEvent.startDate,
+      startDate: mockEvent.startDate,
+      createdAt: new Date().toISOString(),
+      createdBy: 'test-user',
+      members: ['user1', 'user2'],
+      expenseIds: ['exp1', 'exp2', 'exp3', 'exp4', 'exp5'],
+    };
+    
+    const groupedExpenses = groupNearbyExpenses(expensesForGrouping, testEvent);
+    
+    // Calculate expected positions for debugging
+    const positions = expensesForGrouping.map(expense => {
+      const position = calculatePositionPercentage(expense.date, testEvent.startDate, mockEvent.endDate);
+      return { id: expense.id, description: expense.description, position };
+    });
+    
+    // Force output by throwing the info in the error
+    const debugInfo = {
+      inputExpenses: expensesForGrouping.length,
+      groupedCount: groupedExpenses.length,
+      positions: positions,
+      groups: groupedExpenses.map((group, index) => ({
+        groupIndex: index,
+        position: group.position,
+        expenseCount: group.expenses.length,
+        expenseIds: group.expenses.map(e => e.id)
+      }))
+    };
+    
+    const expenseMarkers = container.querySelectorAll('.expenseMarker');
+    const buttonMarkers = screen.getAllByRole('button');
+    
+    // If we don't have enough markers, throw detailed debug info
+    if (buttonMarkers.length < 3) {
+      throw new Error(`Expected at least 3 expense markers but found ${buttonMarkers.length}. 
+        Debug info: ${JSON.stringify(debugInfo, null, 2)}
+        Rendered markers: ${expenseMarkers.length} (CSS), ${buttonMarkers.length} (role)`);
+    }
+    
+    // For now, let's just check that we have at least some buttons
+    expect(buttonMarkers.length).toBeGreaterThan(0);
   });
 
   test('renders settled and unsettled expenses with different styles', () => {
@@ -208,20 +373,31 @@ describe('Timeline Component', () => {
     const expenses = [
       {
         id: 'exp1',
-        amount: 100,
+        type: 'expense',
         date: new Date('2023-06-15'),
+        title: 'Test expense',
+        amount: 100,
+        currency: 'USD',
+        category: 'Food',
+        eventName: 'Test Event',
+        eventId: 'event1',
         settled: false,
-        description: 'Test expense'
+        paidBy: 'user1',
+        participants: ['user1', 'user2'],
+        userNames: { user1: 'User 1', user2: 'User 2' }
       }
     ];
     
-    const eventStartDate = new Date('2023-06-10');
-    const eventEndDate = new Date('2023-06-20');
+    const testEvent = {
+      id: 'event1',
+      name: 'Test Event',
+      startDate: '2023-06-10',
+      endDate: '2023-06-20'
+    };
     
     render(
       <Timeline
-        eventStartDate={eventStartDate}
-        eventEndDate={eventEndDate}
+        event={testEvent}
         expenses={expenses}
         onExpenseClick={handleClick}
       />

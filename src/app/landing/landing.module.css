@@ -281,7 +281,7 @@
 .stepNumber {
   background-color: var(--color-primary);
   color: white;
-  width: 50px; /* Larger step numbers on desktop */
+  width: 50px;
   height: 50px;
   border-radius: var(--border-radius-full);
   display: flex;
@@ -290,7 +290,6 @@
   font-weight: var(--font-weight-bold);
   margin-right: var(--space-lg);
   flex-shrink: 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stepContent {
@@ -298,15 +297,15 @@
 }
 
 .stepContent h3 {
-  font-size: var(--font-size-xl);
   color: var(--color-primary);
-  margin-bottom: var(--space-md);
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .stepContent p {
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-md);
-  max-width: 90%;
+  line-height: var(--line-height-normal);
 }
 
 /* Step placeholders */
