@@ -16,21 +16,23 @@
     "hosting:dev:justsplit": "nx run justsplit-app:hosting:dev",
     "hosting:dev:hub": "nx run hub:hosting:dev"
   },
-  "dependencies": {},
+  "dependencies": {
+    "jest": "^29.7.0"
+  },
   "devDependencies": {
-    "@nx/workspace": "19.8.14",
-    "@nx/next": "19.8.14",
-    "@nx/react": "19.8.14",
-    "@nx/jest": "19.8.14",
     "@nx/eslint-plugin": "19.8.14",
+    "@nx/jest": "19.8.14",
     "@nx/js": "19.8.14",
     "@nx/linter": "19.8.14",
-    "nx": "19.8.14",
-    "@typescript-eslint/parser": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@nx/next": "19.8.14",
+    "@nx/react": "19.8.14",
+    "@nx/workspace": "19.8.14",
     "@swc-node/register": "^1.6.7",
     "@swc/core": ">= 1.4.13",
     "@swc/helpers": ">=0.5.17",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "nx": "19.8.14",
     "typescript": "^5"
   }
 }

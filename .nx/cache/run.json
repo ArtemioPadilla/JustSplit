@@ -1,8 +1,8 @@
 {
   "run": {
-    "command": "nx test justsplit-app",
-    "startTime": "2025-05-26T05:29:52.141Z",
-    "endTime": "2025-05-26T05:29:52.218Z",
+    "command": "nx test",
+    "startTime": "2025-05-26T05:42:39.318Z",
+    "endTime": "2025-05-26T05:42:48.799Z",
     "inner": false
   },
   "tasks": [
@@ -10,9 +10,9 @@
       "taskId": "justsplit-app:test",
       "target": "test",
       "projectName": "justsplit-app",
-      "hash": "9606389500125237986",
-      "startTime": "2025-05-26T05:29:52.145Z",
-      "endTime": "2025-05-26T05:29:52.218Z",
+      "hash": "11267751768529899288",
+      "startTime": "2025-05-26T05:42:39.335Z",
+      "endTime": "2025-05-26T05:42:48.799Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 1

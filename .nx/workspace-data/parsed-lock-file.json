@@ -1800,6 +1800,15 @@
         "hash": "sha512-5Ni4CU7XHQi32IJ398EEP4RrB8eV09sXP2ROqD4bksHrnTree52PsxvX8tpL8LvTZ3pFzXyPbNQReSN41CAhOg=="
       }
     },
+    "npm:@jest/core": {
+      "type": "npm",
+      "name": "npm:@jest/core",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "@jest/core",
+        "hash": "sha512-n7aeXWKMnGtDA48y8TLWJPJmLmmZ642Ceo78cYWEpiD7FzDgmNDV/GCVRorPABdXLJZ/9wzzgZAlHjXjxDHGsg=="
+      }
+    },
     "npm:@jest/environment": {
       "type": "npm",
       "name": "npm:@jest/environment",
@@ -4887,6 +4896,15 @@
         "hash": "sha512-utCYNzRSQIZNPIcGZdQc92UVJYAhtGAteCFg0yRaFm8f0P+CPtyGyHXJcGXnffjCybUCEx3FQ2G7U3/o9eIkVQ=="
       }
     },
+    "npm:create-jest": {
+      "type": "npm",
+      "name": "npm:create-jest",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "create-jest",
+        "hash": "sha512-Adz2bdH0Vq3F53KEMJOoftQFutWCukm6J24wbPWRO4k1kMY7gS7ds/uoJkNuV8wDCtWWnuwGcJwpWcih+zEW1Q=="
+      }
+    },
     "npm:create-require": {
       "type": "npm",
       "name": "npm:create-require",
@@ -5751,6 +5769,15 @@
         "hash": "sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q=="
       }
     },
+    "npm:execa": {
+      "type": "npm",
+      "name": "npm:execa",
+      "data": {
+        "version": "5.1.1",
+        "packageName": "execa",
+        "hash": "sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg=="
+      }
+    },
     "npm:exit": {
       "type": "npm",
       "name": "npm:exit",
@@ -6183,6 +6210,15 @@
         "hash": "sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g=="
       }
     },
+    "npm:get-stream": {
+      "type": "npm",
+      "name": "npm:get-stream",
+      "data": {
+        "version": "6.0.1",
+        "packageName": "get-stream",
+        "hash": "sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg=="
+      }
+    },
     "npm:glob": {
       "type": "npm",
       "name": "npm:glob",
@@ -6570,6 +6606,15 @@
         "hash": "sha512-+cbxadF40UXd9T01zUHgA+rlo2Bg1Srer4+B4NwIHdaGxAGGv59nYRnGGDJ9LBk7alpS0US+J+bLLdQOOkJq4A=="
       }
     },
+    "npm:human-signals": {
+      "type": "npm",
+      "name": "npm:human-signals",
+      "data": {
+        "version": "2.1.0",
+        "packageName": "human-signals",
+        "hash": "sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw=="
+      }
+    },
     "npm:hyperdyperid": {
       "type": "npm",
       "name": "npm:hyperdyperid",
@@ -6667,6 +6712,33 @@
         "version": "5.0.0",
         "packageName": "resolve-from",
         "hash": "sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw=="
+      }
+    },
+    "npm:import-local": {
+      "type": "npm",
+      "name": "npm:import-local",
+      "data": {
+        "version": "3.2.0",
+        "packageName": "import-local",
+        "hash": "sha512-2SPlun1JUPWoM6t3F0dw0FkCF/jWY8kttcY4f599GLTSjh2OCuuhdTkJQsEcZzBqbXZGKMK2OqW1oZsjtf/gQA=="
+      }
+    },
+    "npm:pkg-dir@4.2.0": {
+      "type": "npm",
+      "name": "npm:pkg-dir@4.2.0",
+      "data": {
+        "version": "4.2.0",
+        "packageName": "pkg-dir",
+        "hash": "sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ=="
+      }
+    },
+    "npm:pkg-dir": {
+      "type": "npm",
+      "name": "npm:pkg-dir",
+      "data": {
+        "version": "7.0.0",
+        "packageName": "pkg-dir",
+        "hash": "sha512-Ie9z/WINcxxLp27BKOCHGde4ITq9UklYKDzVo1nhk5sqGEXU3FpkwP5GM2voTGJkGd9B3Otl+Q4uwSOeSUtOBA=="
       }
     },
     "npm:imurmurhash": {
@@ -6885,6 +6957,15 @@
         "hash": "sha512-MjYsKHO5O7mCsmRGxWcLWheFqN9DJ/2TmngvjKXihe6efViPqc274+Fx/4fYj/r03+ESvBdTXK0V6tA3rgez1g=="
       }
     },
+    "npm:is-stream": {
+      "type": "npm",
+      "name": "npm:is-stream",
+      "data": {
+        "version": "2.0.1",
+        "packageName": "is-stream",
+        "hash": "sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg=="
+      }
+    },
     "npm:is-unicode-supported": {
       "type": "npm",
       "name": "npm:is-unicode-supported",
@@ -7029,6 +7110,24 @@
         "hash": "sha512-2P4SQ0HrLQ+fw6llpLnOaGAvN2Zu6778SJMrCUwns4fOoG9ayrTiZk3VV8sCPkVZF8ab0zksVpS8FDY5pRCNBA=="
       }
     },
+    "npm:jest": {
+      "type": "npm",
+      "name": "npm:jest",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "jest",
+        "hash": "sha512-NIy3oAFp9shda19hy4HK0HRTWKtPJmGdnvywu01nOqNC2vZg+Z+fvJDxpMQA88eb2I9EcafcdjYgsDthnYTvGw=="
+      }
+    },
+    "npm:jest-changed-files": {
+      "type": "npm",
+      "name": "npm:jest-changed-files",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "jest-changed-files",
+        "hash": "sha512-fEArFiwf1BpQ+4bXSprcDc3/x4HSzL4al2tozwVpDFpsxALjLYdyiIK4e5Vz66GQJIbXJ82+35PtysofptNX2w=="
+      }
+    },
     "npm:jest-circus": {
       "type": "npm",
       "name": "npm:jest-circus",
@@ -7045,6 +7144,15 @@
         "version": "1.6.0",
         "packageName": "dedent",
         "hash": "sha512-F1Z+5UCFpmQUzJa11agbyPVMbpgT/qA3/SKyJ1jyBgm7dUcUEa8v9JwDkerSQXfakBwFljIxhOJqGkjUwZ9FSA=="
+      }
+    },
+    "npm:jest-cli": {
+      "type": "npm",
+      "name": "npm:jest-cli",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "jest-cli",
+        "hash": "sha512-OVVobw2IubN/GSYsxETi+gOe7Ka59EFMR/twOU3Jb2GnKKeMGJB5SGUUrEz3SFVmJASUdZUzy83sLNNQ2gZslg=="
       }
     },
     "npm:jest-config": {
@@ -7171,6 +7279,15 @@
         "version": "29.7.0",
         "packageName": "jest-resolve",
         "hash": "sha512-IOVhZSrg+UvVAshDSDtHyFCCBUl/Q3AAJv8iZ6ZjnZ74xzvwuzLXid9IIIPgTnY62SJjfuupMKZsZQRsCvxEgA=="
+      }
+    },
+    "npm:jest-resolve-dependencies": {
+      "type": "npm",
+      "name": "npm:jest-resolve-dependencies",
+      "data": {
+        "version": "29.7.0",
+        "packageName": "jest-resolve-dependencies",
+        "hash": "sha512-un0zD/6qxJ+S0et7WxeI3H5XSe9lTBBR7bOHCHXkKR6luG5mwDDlIzVQ0V5cZCuoTgEdcdwzTghYkTWfubi+nA=="
       }
     },
     "npm:resolve.exports@2.0.3": {
@@ -7405,6 +7522,15 @@
         "version": "6.0.3",
         "packageName": "kind-of",
         "hash": "sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw=="
+      }
+    },
+    "npm:kleur": {
+      "type": "npm",
+      "name": "npm:kleur",
+      "data": {
+        "version": "3.0.3",
+        "packageName": "kleur",
+        "hash": "sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w=="
       }
     },
     "npm:klona": {
@@ -8361,15 +8487,6 @@
         "hash": "sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA=="
       }
     },
-    "npm:pkg-dir": {
-      "type": "npm",
-      "name": "npm:pkg-dir",
-      "data": {
-        "version": "7.0.0",
-        "packageName": "pkg-dir",
-        "hash": "sha512-Ie9z/WINcxxLp27BKOCHGde4ITq9UklYKDzVo1nhk5sqGEXU3FpkwP5GM2voTGJkGd9B3Otl+Q4uwSOeSUtOBA=="
-      }
-    },
     "npm:yocto-queue@1.2.1": {
       "type": "npm",
       "name": "npm:yocto-queue@1.2.1",
@@ -8757,6 +8874,15 @@
         "hash": "sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag=="
       }
     },
+    "npm:prompts": {
+      "type": "npm",
+      "name": "npm:prompts",
+      "data": {
+        "version": "2.4.2",
+        "packageName": "prompts",
+        "hash": "sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q=="
+      }
+    },
     "npm:proxy-addr": {
       "type": "npm",
       "name": "npm:proxy-addr",
@@ -8989,6 +9115,15 @@
         "version": "1.22.8",
         "packageName": "resolve",
         "hash": "sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw=="
+      }
+    },
+    "npm:resolve-cwd": {
+      "type": "npm",
+      "name": "npm:resolve-cwd",
+      "data": {
+        "version": "3.0.0",
+        "packageName": "resolve-cwd",
+        "hash": "sha512-OrZaX2Mb+rJCpH/6CpSqt9xFVpN++x01XnN2ie9g6P5/3xelLAkXWVADpdz1IHD/KFfEXyE6V0U01OQ3UO2rEg=="
       }
     },
     "npm:resolve-dir": {
@@ -9288,6 +9423,15 @@
         "hash": "sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg=="
       }
     },
+    "npm:sisteransi": {
+      "type": "npm",
+      "name": "npm:sisteransi",
+      "data": {
+        "version": "1.0.5",
+        "packageName": "sisteransi",
+        "hash": "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="
+      }
+    },
     "npm:snake-case": {
       "type": "npm",
       "name": "npm:snake-case",
@@ -9466,6 +9610,15 @@
         "version": "3.0.0",
         "packageName": "strip-bom",
         "hash": "sha512-vavAMRXOgBVNF6nyEEmL3DBK19iRpDcoIwW+swQ+CbGiu7lju6t+JklA1MHweoWtadgt4ISVUsXLyDq34ddcwA=="
+      }
+    },
+    "npm:strip-final-newline": {
+      "type": "npm",
+      "name": "npm:strip-final-newline",
+      "data": {
+        "version": "2.0.0",
+        "packageName": "strip-final-newline",
+        "hash": "sha512-BrpvfNAE3dcvq7ll3xVumzjKjZQ5tI1sEUIKr3Uoks0XUl45St3FlatVqef9prk4jRDzhW6WZg+3bk93y6pLjA=="
       }
     },
     "npm:strip-json-comments": {
@@ -12533,6 +12686,146 @@
     {
       "source": "npm:@jest/console",
       "target": "npm:slash",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@jest/console",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@jest/reporters",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@jest/test-result",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@jest/transform",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@jest/types",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:@types/node",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:ansi-escapes",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:chalk",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:ci-info",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:exit",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:graceful-fs",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-changed-files",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-config",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-haste-map",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-message-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-regex-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-resolve",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-resolve-dependencies",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-runner",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-runtime",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-snapshot",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-validate",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:jest-watcher",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:micromatch",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:pretty-format",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:slash",
+      "type": "static"
+    },
+    {
+      "source": "npm:@jest/core",
+      "target": "npm:strip-ansi",
       "type": "static"
     },
     {
@@ -16311,6 +16604,41 @@
       "type": "static"
     },
     {
+      "source": "npm:create-jest",
+      "target": "npm:@jest/types",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:chalk",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:exit",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:graceful-fs",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:jest-config",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:jest-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:create-jest",
+      "target": "npm:prompts",
+      "type": "static"
+    },
+    {
       "source": "npm:cron-parser",
       "target": "npm:luxon",
       "type": "static"
@@ -17068,6 +17396,51 @@
     {
       "source": "npm:esrecurse",
       "target": "npm:estraverse",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:cross-spawn",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:get-stream",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:human-signals",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:is-stream",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:merge-stream",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:npm-run-path",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:onetime",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:signal-exit",
+      "type": "static"
+    },
+    {
+      "source": "npm:execa",
+      "target": "npm:strip-final-newline",
       "type": "static"
     },
     {
@@ -18151,6 +18524,21 @@
       "type": "static"
     },
     {
+      "source": "npm:import-local",
+      "target": "npm:pkg-dir@4.2.0",
+      "type": "static"
+    },
+    {
+      "source": "npm:import-local",
+      "target": "npm:resolve-cwd",
+      "type": "static"
+    },
+    {
+      "source": "npm:pkg-dir@4.2.0",
+      "target": "npm:find-up",
+      "type": "static"
+    },
+    {
       "source": "npm:inflight",
       "target": "npm:once",
       "type": "static"
@@ -18341,6 +18729,41 @@
       "type": "static"
     },
     {
+      "source": "npm:jest",
+      "target": "npm:@jest/core",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest",
+      "target": "npm:@jest/types",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest",
+      "target": "npm:import-local",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest",
+      "target": "npm:jest-cli",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-changed-files",
+      "target": "npm:execa",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-changed-files",
+      "target": "npm:jest-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-changed-files",
+      "target": "npm:p-limit",
+      "type": "static"
+    },
+    {
       "source": "npm:jest-circus",
       "target": "npm:@jest/environment",
       "type": "static"
@@ -18483,6 +18906,61 @@
     {
       "source": "npm:dedent@1.6.0",
       "target": "npm:babel-plugin-macros@3.1.0",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:@jest/core",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:@jest/test-result",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:@jest/types",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:chalk",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:create-jest",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:exit",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:import-local",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:jest-config",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:jest-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:jest-validate",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-cli",
+      "target": "npm:yargs",
       "type": "static"
     },
     {
@@ -18883,6 +19361,16 @@
     {
       "source": "npm:jest-resolve",
       "target": "npm:slash",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-resolve-dependencies",
+      "target": "npm:jest-regex-util",
+      "type": "static"
+    },
+    {
+      "source": "npm:jest-resolve-dependencies",
+      "target": "npm:jest-snapshot",
       "type": "static"
     },
     {
@@ -20961,6 +21449,16 @@
       "type": "static"
     },
     {
+      "source": "npm:prompts",
+      "target": "npm:kleur",
+      "type": "static"
+    },
+    {
+      "source": "npm:prompts",
+      "target": "npm:sisteransi",
+      "type": "static"
+    },
+    {
       "source": "npm:proxy-addr",
       "target": "npm:forwarded",
       "type": "static"
@@ -21088,6 +21586,11 @@
     {
       "source": "npm:resolve",
       "target": "npm:supports-preserve-symlinks-flag",
+      "type": "static"
+    },
+    {
+      "source": "npm:resolve-cwd",
+      "target": "npm:resolve-from",
       "type": "static"
     },
     {
