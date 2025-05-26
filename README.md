@@ -178,6 +178,18 @@ CyberEco will expand into a comprehensive digital lifestyle platform:
 | **TimeSync** | Calendar management | 📋 Planned |
 | **DataVault** | Personal data backup | 📋 Planned |
 
+### 🌐 Long-Term Decentralized Vision
+
+Beyond the current centralized architecture, CyberEco envisions a **decentralized future** where:
+
+- **📱 Mobile P2P Network**: Your phone becomes part of a global, distributed computing network
+- **🔒 Complete Data Sovereignty**: You own and control 100% of your personal data  
+- **🎯 Privacy by Design**: Zero-knowledge proofs enable sharing without exposing sensitive information
+- **💰 Earn from Participation**: Get rewarded for contributing resources to the network
+- **🌍 Global Accessibility**: No central servers, no geographic restrictions, no corporate gatekeepers
+
+> 🚀 **[Read the Full Decentralized Vision](./docs/vision/decentralized-future.md)** - Comprehensive roadmap for transitioning to a blockchain-based, privacy-first ecosystem powered by mobile devices and cryptographic guarantees.
+
 ## 🆘 Need Help?
 
 - **🐛 Found a bug?** Create an [issue](https://github.com/your-repo/issues)

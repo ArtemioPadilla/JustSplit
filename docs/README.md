@@ -9,11 +9,13 @@ CyberEco is a modular platform featuring:
 - **JustSplit** - Comprehensive expense splitting application
 - **Future Apps** - TaskFlow, HealthTrack, LearnPath, and more
 
+> 🔮 **Future Vision**: CyberEco is evolving toward a fully decentralized ecosystem powered by mobile peer-to-peer networks, blockchain technology, and privacy-first cryptographic architecture. [Learn more about our decentralized future →](./vision/decentralized-future.md)
+
 ## 📚 Documentation Structure
 
 ### 🏗️ Architecture Documentation
 - **[System Overview](./architecture/overview.md)** - High-level platform architecture
-- **[NX Architecture](./architecture/nx-architecture.md)** - Monorepo structure and configuration
+- **[NX Monorepo Architecture](./architecture/nx-monorepo-architecture.md)** - Complete NX monorepo structure and configuration
 - **[Technical Design](./architecture/technical-design.md)** - Detailed technical specifications
 - **[Diagrams](./architecture/diagrams/)** - Architecture diagrams and visualizations
 
@@ -29,19 +31,25 @@ CyberEco is a modular platform featuring:
 - **[On-Premises Deployment](./deployment/on-premises-deployment.md)** - Self-hosting options
 
 ### 📡 API & Integration
-- **[Data Models](./api/data-models.md)** - Database schema and type definitions
+- **[Data Models Overview](./api/README.md)** - Navigation index for all data model documentation
+- **[Comprehensive Data Models](./api/data-models-nx-comprehensive.md)** - Complete platform-wide data models for NX monorepo
+- **[Legacy Data Models](./api/data-models.md)** - Original data models reference
 - **[Endpoints](./api/endpoints.md)** - API reference and documentation
 - **[Authentication](./api/authentication.md)** - Cross-app authentication flows
 
 ### 🎨 Design System
 - **[UI Components](./design/ui-components.md)** - Shared component library
-- **[Style Guide](./design/style-guide.md)** - Design system and patterns
+- **[Style Guide](./design/style-guide.md)** - NX multiapp design system and patterns
 - **[Wireframes](./design/wireframes.md)** - UI mockups and user flows
 
 ### 📋 Project Planning
 - **[Project Roadmap](./planning/project-roadmap.md)** - Feature roadmap and timeline
 - **[Milestones](./planning/milestones.md)** - Release milestones and goals
 - **[Requirements](./requirements/)** - Functional and non-functional requirements
+
+### 🔮 Future Vision & Strategy
+- **[Vision Overview](./vision/README.md)** - Navigation index for vision documents
+- **[Decentralized Future Vision](./vision/decentralized-future.md)** - Comprehensive roadmap for blockchain-based, privacy-first ecosystem with mobile P2P networks
 
 ## 🚀 Quick Start
 
@@ -205,12 +213,23 @@ nx g @nx/react:component Button --project=ui-components
 
 ## 🔮 Future Roadmap
 
+### Near-term Applications
 Planned applications for the CyberEco ecosystem:
 - **TaskFlow** - Project and task management
 - **HealthTrack** - Personal health and fitness tracking
 - **LearnPath** - Educational content and progress tracking
 - **TimeSync** - Calendar and scheduling management
 - **DataVault** - Personal data management and backup
+
+### Long-term Vision: Decentralized Ecosystem
+The platform is evolving toward a revolutionary decentralized architecture featuring:
+- **🌐 Mobile P2P Networks** - User devices as distributed computing nodes
+- **🔗 Blockchain Integration** - On-chain data with cryptographic privacy layers
+- **🔐 Self-Sovereign Identity** - Complete user data ownership and control
+- **🎯 Privacy-First Design** - Zero-knowledge proofs and selective data sharing
+- **💎 Community Governance** - Decentralized platform governance and tokenomics
+
+**[📖 Read our complete Decentralized Future Vision →](./vision/decentralized-future.md)**
 
 ## 🤝 Getting Help
 

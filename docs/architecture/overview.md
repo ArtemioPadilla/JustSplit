@@ -1,5 +1,7 @@
 # CyberEco Platform Architecture Overview
 
+> **📋 Documentation Update**: This document provides the original platform overview. For updated NX monorepo architecture documentation, see [**NX Monorepo Architecture**](./nx-monorepo-architecture.md).
+
 ## 🏗️ System Architecture
 
 CyberEco is a comprehensive digital lifestyle management platform built as an NX monorepo. The platform follows a microservices-like architecture where each application serves a specific domain while sharing common infrastructure and authentication.
