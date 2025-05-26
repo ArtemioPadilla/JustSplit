@@ -35,6 +35,45 @@ This is an NX monorepo with the following structure:
 - `npm run test` - Run all tests
 - `npm run lint` - Run ESLint across all projects
 
+### Running Tests
+
+**Individual App Tests:**
+```bash
+# Run JustSplit tests
+cd apps/justsplit && npm test
+
+# Run Hub tests  
+cd apps/hub && npm test
+
+# Run specific test files
+cd apps/justsplit && npm test -- --testPathPattern="timelineCalculations"
+
+# Run with coverage
+cd apps/justsplit && npm test -- --coverage
+
+# Run in watch mode
+cd apps/justsplit && npm test -- --watch
+```
+
+**All Tests (via NX):**
+```bash
+# Run all tests across workspace
+nx run-many --target=test --all
+
+# Run tests for specific projects
+nx test justsplit-app
+nx test hub
+
+# Run affected tests only
+nx affected:test
+```
+
+**Test Environment Setup:**
+- Tests use Jest with React Testing Library
+- Firebase is mocked in jest.setup.js with test environment variables
+- Coverage threshold is set to 70% across the platform
+- Test reports are generated in `./reports/test-report.html`
+
 ### Firebase Commands
 - `nx run justsplit-app:emulators` - Start Firebase emulators
 - `nx run hub:deploy` - Deploy hub to Firebase

@@ -1,266 +1,197 @@
-![Just](./public/images/logo.png)
-> **Fair expense splitting, made simple.** Track, divide, and settle shared expenses effortlessly — for trips, events, or daily life.
+# CyberEco Platform
 
-## About JustSplit
+> 🌐 **A modular platform for digital lifestyle management**  
+> Starting with expense splitting, expanding to productivity, health, education, and more.
 
-JustSplit is an open-source, lightweight platform designed to make managing shared expenses easy, transparent, and fair. Whether you're planning a vacation with friends, organizing a group dinner, or sharing household bills, JustSplit ensures that everyone pays their fair share — without the headaches.
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=flat-square&logo=Firebase&logoColor=white)](https://firebase.google.com/)
+[![NX](https://img.shields.io/badge/NX-143055?style=flat-square&logo=nx&logoColor=white)](https://nx.dev/)
 
-This monorepo architecture supports multiple applications with a central authentication hub, enabling scalable deployment of low-cost applications on Firebase or on-premises.
+## ⚡ Quick Start
 
-## 🏗️ NX Monorepo Architecture
-
-This project uses NX for managing multiple applications in a monorepo, optimized for low-cost deployment on Firebase or on-premises hosting.
-
-### Why NX?
-
-- **Build Caching**: Incremental builds with local and remote caching
-- **Dependency Graph**: Visualize and understand project dependencies
-- **Affected Commands**: Run tasks only on changed projects
-- **Code Generation**: Consistent code scaffolding
-- **Powerful Tooling**: Built-in support for Next.js, React, and TypeScript
-
-### Project Structure
-
-```
-justsplit-monorepo/
-├── apps/                    # Applications
-│   ├── hub/                # Central authentication hub
-│   └── justsplit/          # Expense splitting application
-├── libs/                   # Shared libraries (NX convention)
-│   ├── shared-types/       # TypeScript type definitions
-│   ├── firebase-config/    # Firebase configuration utilities
-│   └── ui-components/      # Reusable UI components
-├── firebase/               # Firebase deployment configurations
-│   ├── hub/               # Hub project config
-│   └── justsplit/         # JustSplit project config
-├── scripts/               # Deployment scripts
-├── nx.json               # NX workspace configuration
-└── workspace.json        # Project definitions
-```
-
-## Key Features
-
-- **Flexible Splitting Options**: Divide expenses equally, by percentages, by usage, or using custom weights (e.g., time used, quantity consumed).
-- **Multi-Currency Support**: Record expenses in any currency, with automatic real-time conversions.
-- **Payment Integration**: Easily connect with PayPal, Venmo, and other popular payment platforms (planned).
-- **Trip and Event Management**: Group expenses into trips or events, manage budgets, and close events to lock expenses.
-- **Real-Time Collaboration**: Instantly see new expenses and payments from group members.
-- **Smart Settlements**: Automatically calculate who owes whom, minimizing the number of transactions needed.
-- **Partial Payments Support**: Track partial reimbursements over time.
-- **Data Privacy First**: End-to-end encryption ensures your financial data stays private.
-- **Cross-Platform and Offline-Friendly**: Use JustSplit on any device, even with limited internet connectivity.
-- **Open-Source Freedom**: Self-host it anywhere, or deploy free on GitHub Pages in minutes.
-
-## Example Use Case
-
-> 🎒 **Trip to Paris**:  
-> - Alice pays $500 for the hotel.  
-> - Bob covers $200 for dinners.  
-> - Charlie books a $100 tour.  
-> 
-> JustSplit calculates the balance automatically: Bob and Charlie owe Alice, with minimal payments needed.
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+ or yarn
-- Firebase CLI (for deployment)
-- NX CLI (recommended)
-
-### Installation
-
-1. Install NX CLI globally (recommended):
 ```bash
-npm install -g nx
-```
-
-2. Install dependencies:
-```bash
+# 1. Install dependencies
 npm install
+
+# 2. Start development
+npm run dev
+
+# 3. Open in browser
+# Hub: http://localhost:3000
+# JustSplit: http://localhost:4000
 ```
 
-3. Set up environment variables:
+That's it! 🎉 You're now running the CyberEco platform locally.
 
-For the hub app (`apps/hub/.env.local`):
-```
-NEXT_PUBLIC_HUB_API_KEY=your-hub-api-key
-NEXT_PUBLIC_HUB_AUTH_DOMAIN=your-hub-auth-domain
-NEXT_PUBLIC_HUB_PROJECT_ID=your-hub-project-id
-NEXT_PUBLIC_HUB_STORAGE_BUCKET=your-hub-storage-bucket
-NEXT_PUBLIC_HUB_MESSAGING_SENDER_ID=your-hub-sender-id
-NEXT_PUBLIC_HUB_APP_ID=your-hub-app-id
-NEXT_PUBLIC_JUSTSPLIT_URL=http://localhost:4000
-```
+## 🏗️ What is CyberEco?
 
-For the JustSplit app (`apps/justsplit/.env.local`):
-```
-# Hub configuration (for authentication)
-NEXT_PUBLIC_HUB_API_KEY=your-hub-api-key
-NEXT_PUBLIC_HUB_AUTH_DOMAIN=your-hub-auth-domain
-NEXT_PUBLIC_HUB_PROJECT_ID=your-hub-project-id
-NEXT_PUBLIC_HUB_STORAGE_BUCKET=your-hub-storage-bucket
-NEXT_PUBLIC_HUB_MESSAGING_SENDER_ID=your-hub-sender-id
-NEXT_PUBLIC_HUB_APP_ID=your-hub-app-id
+CyberEco is a **platform** that hosts multiple lifestyle management applications:
 
-# App-specific configuration (optional - will use hub if not provided)
-NEXT_PUBLIC_JUSTSPLIT_API_KEY=your-app-api-key
-NEXT_PUBLIC_JUSTSPLIT_AUTH_DOMAIN=your-app-auth-domain
-NEXT_PUBLIC_JUSTSPLIT_PROJECT_ID=your-app-project-id
-NEXT_PUBLIC_JUSTSPLIT_STORAGE_BUCKET=your-app-storage-bucket
-NEXT_PUBLIC_JUSTSPLIT_MESSAGING_SENDER_ID=your-app-sender-id
-NEXT_PUBLIC_JUSTSPLIT_APP_ID=your-app-app-id
+- **🏠 Hub** - Central authentication and app launcher
+- **💰 JustSplit** - Expense splitting and financial management
+- **🚀 Future Apps** - TaskFlow, HealthTrack, LearnPath, TimeSync, DataVault
+
+## 📁 Project Structure
+
+```
+cybereco-monorepo/
+├── apps/
+│   ├── hub/                 # 🏠 Authentication hub (port 3000)
+│   └── justsplit/           # 💰 Expense splitting app (port 4000)
+├── libs/
+│   ├── shared-types/        # 📝 Common TypeScript types
+│   ├── firebase-config/     # 🔥 Firebase utilities
+│   └── ui-components/       # 🎨 Shared UI components
+├── firebase/                # 🔥 Firebase configurations
+└── docs/                    # 📚 Documentation
 ```
 
-## 🛠️ Development
+## 🚀 Development Commands
 
-### Running Applications
-
-Run all applications:
+### Essential Commands
 ```bash
-nx run-many --target=serve --all
+npm run dev              # Start all apps
+npm run test             # Run all tests
+npm run build            # Build all apps
+npm run lint             # Check code quality
+```
 
-# Or using npm scripts
+### App-Specific Commands
+```bash
+nx serve hub             # Start Hub only
+nx serve justsplit-app   # Start JustSplit only
+nx test hub              # Test Hub only
+nx test justsplit-app    # Test JustSplit only
+```
+
+### Firebase Development
+```bash
+npm run emulators        # Start Firebase emulators
+npm run hosting:justsplit # Test JustSplit with hosting emulator
+npm run hosting:hub      # Test Hub with hosting emulator
+```
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Framework** | Next.js 15 + React 18 |
+| **Language** | TypeScript |
+| **Monorepo** | NX Workspace |
+| **Backend** | Firebase (Auth, Firestore, Hosting) |
+| **Styling** | CSS Modules |
+| **Testing** | Jest + React Testing Library |
+
+## 🎯 Current Status & Next Steps
+
+### ✅ Completed
+- [x] NX monorepo setup with proper configuration
+- [x] Basic Hub and JustSplit applications structure
+- [x] Shared libraries (types, Firebase config, UI components)
+- [x] Firebase emulator integration
+- [x] Development workflow and documentation
+
+### 🔄 In Progress
+- [ ] Fix JustSplit runtime errors and stabilize
+- [ ] Implement Hub authentication functionality
+- [ ] Set up cross-app authentication flow
+
+### 📋 Next Priorities
+1. **Fix JustSplit Issues** - Resolve runtime errors and component issues
+2. **Hub Development** - Build core authentication features
+3. **Firebase Setup** - Configure production environments
+4. **Testing** - Increase test coverage to 70%+
+5. **CI/CD** - Set up automated testing and deployment
+
+> 📖 **See [ROADMAP.md](./docs/ROADMAP.md) for detailed next steps**
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+### 1. **Setup Development Environment**
+```bash
+git clone <repository-url>
+cd cybereco-monorepo
+npm install
 npm run dev
 ```
 
-Run specific applications:
+### 2. **Make Changes**
 ```bash
-nx serve hub           # Run the hub at http://localhost:3000
-nx serve justsplit-app # Run JustSplit at http://localhost:4000
-
-# Or using npm scripts
-npm run dev:hub
-npm run dev:justsplit
+git checkout -b feature/your-feature-name
+# Make your changes
+npm run test    # Ensure tests pass
+npm run lint    # Check code quality
 ```
 
-View the dependency graph:
+### 3. **Submit Changes**
 ```bash
-nx dep-graph
+git commit -m "feat(justsplit): add expense splitting feature"
+git push origin feature/your-feature-name
+# Create Pull Request
 ```
 
-### Firebase Emulators
+### 📋 Contribution Guidelines
+- **Code Style**: Follow TypeScript strict mode and ESLint rules
+- **Testing**: Write tests for new features (aim for 70% coverage)
+- **Documentation**: Update docs for any architectural changes
+- **Commits**: Use [conventional commits](https://conventionalcommits.org/)
 
-Start Firebase emulators for local development:
-```bash
-nx run justsplit-app:emulators
+## 🏗️ Architecture
 
-# Or manually
-cd apps/justsplit
-npm run emulators
-```
+### Monorepo Benefits
+- **Shared Code**: Common types, utilities, and components
+- **Fast Builds**: NX caching and incremental builds
+- **Type Safety**: End-to-end TypeScript coverage
+- **Independent Deployment**: Apps can be deployed separately
 
-### Testing
+### Firebase Multi-Project Setup
+- **Hub Firebase Project**: Handles all authentication
+- **App Firebase Projects**: Handle app-specific data (JustSplit, future apps)
+- **Emulator Support**: Full local development without cloud dependencies
 
-Run all tests:
-```bash
-nx run-many --target=test --all
-```
+## 📚 Documentation
 
-Run tests for a specific app:
-```bash
-nx test justsplit-app
-nx test hub
-```
+### For Developers
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Detailed setup guide
+- **[Development Guide](./docs/DEVELOPMENT.md)** - Daily development workflow
+- **[Architecture](./docs/ARCHITECTURE.md)** - System design and patterns
+- **[Contributing](./docs/CONTRIBUTING.md)** - How to contribute effectively
 
-Run only affected tests:
-```bash
-nx affected:test --base=main
-```
+### For Users
+- **[JustSplit Features](./docs/JUSTSPLIT.md)** - Complete feature overview
+- **[Deployment](./docs/DEPLOYMENT.md)** - How to deploy your own instance
 
-For more details on our testing approach and strategies, see our [Local Development Guide](docs/development/local-development.md#testing).
+## 🔮 Future Vision
 
-### Building
+CyberEco will expand into a comprehensive digital lifestyle platform:
 
-Build all applications:
-```bash
-nx run-many --target=build --all --configuration=production
-```
+| App | Purpose | Status |
+|-----|---------|--------|
+| **Hub** | Authentication & launcher | 🔄 In Development |
+| **JustSplit** | Expense splitting | 🔄 Active Development |
+| **TaskFlow** | Project management | 📋 Planned |
+| **HealthTrack** | Fitness tracking | 📋 Planned |
+| **LearnPath** | Education progress | 📋 Planned |
+| **TimeSync** | Calendar management | 📋 Planned |
+| **DataVault** | Personal data backup | 📋 Planned |
 
-Build specific applications:
-```bash
-nx build hub --configuration=production
-nx build justsplit-app --configuration=production
-```
+## 🆘 Need Help?
 
-Build only affected applications:
-```bash
-nx affected:build --base=main --configuration=production
-```
-
-## 📦 Deployment
-
-### Manual Deployment
-
-Deploy the hub:
-```bash
-./scripts/deploy-hub.sh
-```
-
-Deploy JustSplit:
-```bash
-./scripts/deploy-justsplit.sh
-```
-
-Deploy all applications:
-```bash
-./scripts/deploy-all.sh
-```
-
-### Automatic Deployment
-
-The monorepo includes GitHub Actions workflows that automatically deploy applications when changes are pushed to the main branch.
-
-## 🔐 Authentication Flow
-
-1. User logs in via the Hub application
-2. Hub issues a Firebase Auth token
-3. User navigates to an app (e.g., JustSplit)
-4. App verifies the token with the Hub project
-5. App creates/updates local user record linked to hub UID
-
-## 📚 Development Guidelines
-
-### Adding a New Application
-
-1. Create a new directory under `apps/`
-2. Initialize a Next.js application
-3. Add Firebase configuration for multi-project support
-4. Update `pnpm-workspace.yaml` if needed
-5. Create deployment configuration in `firebase/`
-
-### Local Development
-
-To set up your local development environment, check out our detailed [Local Development Guide](docs/development/local-development.md).
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow the existing ESLint configuration
-- Write tests for new features
-- Keep components small and focused
-
-### Commit Messages
-
-Follow conventional commits:
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation changes
-- `style:` Code style changes
-- `refactor:` Code refactoring
-- `test:` Test additions or changes
-- `chore:` Build process or auxiliary tool changes
-
-## Details on Features and Roadmap
-
-To get a deep dive on features and our roadmap check the [JustSplit Consolidated Feature Matrix and Detailed Roadmap documentation.](/docs/JustSplit%20Consolidated%20Feature%20Matrix%20and%20Detailed%20Roadmap.markdown)
-
-## Get Involved
-
-JustSplit is community-driven! Contributions, ideas, and feedback are welcome.  
-[Learn how to contribute](#) or open an issue to start a discussion.
+- **🐛 Found a bug?** Create an [issue](https://github.com/your-repo/issues)
+- **💡 Have an idea?** Start a [discussion](https://github.com/your-repo/discussions)
+- **📖 Documentation unclear?** Let us know in an issue
+- **🤔 Need guidance?** Check our [Getting Started guide](./docs/GETTING_STARTED.md)
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <strong>🌟 Star this repo if you find it useful!</strong><br>
+  <sub>Built with ❤️ for the open source community</sub>
+</div>

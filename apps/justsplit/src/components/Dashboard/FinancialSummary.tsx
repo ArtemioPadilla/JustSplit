@@ -212,7 +212,7 @@ export default function FinancialSummary({
       return {
         id: exp.id,
         type: 'expense', // Field for MainTimelineExpense
-        date: new Date(exp.date), // Changed: Convert string to Date for MainTimelineExpense
+        date: exp.date, // Use string date as defined in TimelineExpense interface
         title: exp.description, // Field for MainTimelineExpense
         amount: exp.amount,
         currency: exp.currency,

@@ -1,7 +1,8 @@
 {
-  "name": "justsplit-monorepo",
+  "name": "cybereco-monorepo",
   "version": "0.1.0",
   "private": true,
+  "description": "CyberEco - A comprehensive platform for digital lifestyle management starting with expense splitting (JustSplit) and central authentication (Hub)",
   "scripts": {
     "dev": "nx run-many --target=dev --projects=justsplit-app,hub --parallel",
     "build": "nx run-many --target=build --projects=justsplit-app,hub",

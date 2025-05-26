@@ -1,0 +1,19 @@
+
+[0m[7m[1m[31m NX [39m[22m[27m[0m  [31mCannot find module 'jest'[39m
+
+Require stack:
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/@nx/jest/src/executors/jest/jest.impl.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/config/schema-utils.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/command-line/run/executor-utils.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/devkit-internals.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/utils/assert-workspace-validity.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/project-graph/build-project-graph.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/project-graph/project-graph.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/project-graph/file-utils.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/utils/package-manager.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/utils/package-json.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/utils/print-help.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/src/command-line/run/run.js
+- /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/nx/bin/run-executor.js
+Pass --verbose to see the stacktrace.
+

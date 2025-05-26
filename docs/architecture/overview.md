@@ -1,126 +1,332 @@
-# Architecture Overview
+# CyberEco Platform Architecture Overview
 
-JustSplit uses a modern monorepo architecture with NX, designed for low-cost deployment and scalability.
+## 🏗️ System Architecture
 
-## High-Level Architecture
+CyberEco is a comprehensive digital lifestyle management platform built as an NX monorepo. The platform follows a microservices-like architecture where each application serves a specific domain while sharing common infrastructure and authentication.
+
+## 🎯 Design Principles
+
+### 1. **Modular Architecture**
+- **Separation of Concerns**: Each app handles a specific domain (auth, expense management, etc.)
+- **Shared Libraries**: Common functionality in reusable libraries
+- **Independent Deployment**: Apps can be deployed independently
+
+### 2. **Scalable Monorepo**
+- **NX Workspace**: Advanced build system with caching and dependency management
+- **Code Sharing**: Shared types, components, and utilities
+- **Incremental Builds**: Only rebuild what changed
+
+### 3. **Firebase-First Backend**
+- **Multi-Project Setup**: Separate Firebase projects for different concerns
+- **Unified Authentication**: Central auth system with token verification
+- **Cost-Effective**: Serverless architecture with generous free tiers
+
+### 4. **Developer Experience**
+- **TypeScript**: Type safety across the entire platform
+- **Hot Reload**: Fast development cycles
+- **Testing**: Comprehensive test coverage with Jest
+- **Documentation**: Extensive docs and code comments
+
+## 🌐 High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Web[Web Browser]
+        Mobile[Mobile App*]
+    end
+    
+    subgraph "CyberEco Platform"
+        Hub[Hub App<br/>Port 3000]
+        JustSplit[JustSplit App<br/>Port 4000]
+        Future[Future Apps<br/>TaskFlow, HealthTrack, etc.]
+    end
+    
+    subgraph "Shared Libraries"
+        Types[shared-types]
+        Firebase[firebase-config]
+        UI[ui-components]
+    end
+    
+    subgraph "Firebase Infrastructure"
+        HubAuth[Hub Firebase<br/>Authentication]
+        AppDB[App Firebase<br/>Firestore]
+        Hosting[Firebase Hosting]
+    end
+    
+    Web --> Hub
+    Web --> JustSplit
+    Web --> Future
+    
+    Hub --> Types
+    JustSplit --> Types
+    Future --> Types
+    
+    Hub --> Firebase
+    JustSplit --> Firebase
+    Future --> Firebase
+    
+    Hub --> UI
+    JustSplit --> UI
+    Future --> UI
+    
+    Hub --> HubAuth
+    JustSplit --> HubAuth
+    JustSplit --> AppDB
+    
+    Hub --> Hosting
+    JustSplit --> Hosting
+    Future --> Hosting
+```
+
+## 📱 Application Architecture
+
+### Hub Application
+**Purpose**: Central authentication and application launcher
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│                 │     │                  │     │                 │
-│   User Device   │────▶│   Hub App (Auth) │────▶│ Firebase Auth   │
-│                 │     │                  │     │                 │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-         │                       │
-         │                       │
-         ▼                       ▼
-┌─────────────────┐     ┌──────────────────┐
-│                 │     │                  │
-│  JustSplit App  │────▶│ Firebase         │
-│                 │     │ Firestore        │
-└─────────────────┘     └──────────────────┘
+Hub App (Next.js 15)
+├── Authentication (Firebase Auth)
+├── User Profile Management
+├── App Discovery & Navigation
+├── Permission Management
+└── Shared Context Providers
 ```
 
-## Core Principles
+**Key Responsibilities**:
+- User authentication (login/logout/registration)
+- Token generation and validation
+- Application launcher interface
+- User profile and settings management
+- Cross-app permission management
 
-### 1. Multi-App Architecture
-- Central authentication hub manages user accounts
-- Individual apps have their own data stores
-- Shared libraries for code reuse
-- Token-based authentication across apps
+### JustSplit Application
+**Purpose**: Comprehensive expense splitting and financial management
 
-### 2. Low Operational Cost
-- Optimized for Firebase free tier limits
-- Efficient data structures to minimize reads/writes
-- Client-side computation where possible
-- Smart caching strategies
+```
+JustSplit App (Next.js 15)
+├── Expense Management
+├── Group Management
+├── Event Management
+├── Settlement Calculations
+├── Currency Conversion
+├── Data Visualization
+└── CSV Export
+```
 
-### 3. Offline-First Design
-- IndexedDB for local data persistence
-- Optimistic UI updates
-- Background sync when online
-- Conflict resolution strategies
+**Key Responsibilities**:
+- Expense tracking and splitting
+- Group and event management
+- Real-time currency conversion
+- Settlement calculations
+- Financial dashboards and analytics
+- Data export functionality
 
-### 4. Type Safety
-- Full TypeScript coverage
-- Shared type definitions across apps
-- Runtime validation for external data
-- Type-safe API contracts
+## 🗄️ Data Architecture
 
-## Technology Choices
+### Firebase Multi-Project Setup
 
-### NX Monorepo
-- **Why**: Superior build caching, dependency graph visualization, and tooling
-- **Benefits**: Faster builds, better code organization, easier refactoring
+```mermaid
+graph TB
+    subgraph "Hub Firebase Project"
+        HubAuth[Firebase Auth]
+        HubUsers[Users Collection]
+        HubApps[Apps Collection]
+        HubPerms[Permissions Collection]
+    end
+    
+    subgraph "JustSplit Firebase Project"
+        JSFirestore[Firestore Database]
+        JSUsers[Users Collection]
+        JSExpenses[Expenses Collection]
+        JSEvents[Events Collection]
+        JSGroups[Groups Collection]
+        JSSettlements[Settlements Collection]
+    end
+    
+    subgraph "Future App Projects"
+        TaskFlow[TaskFlow Firebase]
+        HealthTrack[HealthTrack Firebase]
+    end
+    
+    HubAuth --> JSFirestore
+    HubAuth --> TaskFlow
+    HubAuth --> HealthTrack
+```
 
-### Next.js 15
-- **Why**: Server-side rendering, static generation, API routes
-- **Benefits**: Fast page loads, SEO-friendly, built-in optimizations
+### Data Flow Pattern
 
-### Firebase
-- **Why**: Managed infrastructure, generous free tier, real-time capabilities
-- **Benefits**: No server management, automatic scaling, integrated services
+1. **Authentication Flow**:
+   ```
+   User → Hub App → Firebase Auth → JWT Token
+   ```
 
-### TypeScript
-- **Why**: Type safety, better IDE support, fewer runtime errors
-- **Benefits**: Improved developer experience, easier refactoring, self-documenting code
+2. **Cross-App Access**:
+   ```
+   User → App → Verify Token (Hub) → Access Resources
+   ```
 
-## Security Model
+3. **Data Operations**:
+   ```
+   App → Firebase SDK → Firestore → Real-time Updates
+   ```
 
-### Authentication
-- Firebase Authentication handles user management
-- JWT tokens for session management
-- Role-based access control (RBAC)
-- Secure token exchange between apps
+## 🔧 Technology Stack
 
-### Authorization
-- Firestore security rules enforce access control
-- Client-side validation plus server-side enforcement
-- Principle of least privilege
-- Audit logging for sensitive operations
+### Frontend Stack
+```yaml
+Framework: Next.js 15 (App Router)
+Language: TypeScript
+Styling: CSS Modules
+State Management: React Context API
+Build System: NX with Webpack/Turbopack
+Testing: Jest + React Testing Library
+```
 
-### Data Protection
-- HTTPS everywhere
-- Encrypted data at rest (Firebase)
-- No sensitive data in client-side storage
-- Input sanitization and validation
+### Backend Stack
+```yaml
+Database: Firebase Firestore
+Authentication: Firebase Auth
+Hosting: Firebase Hosting
+Functions: Firebase Cloud Functions*
+Storage: Firebase Storage*
+```
 
-## Scalability Considerations
+### Development Tools
+```yaml
+Monorepo: NX Workspace
+Package Manager: npm
+Linting: ESLint + Prettier
+Version Control: Git
+CI/CD: GitHub Actions
+Deployment: Firebase CLI
+```
 
-### Horizontal Scaling
-- Stateless application design
-- Firebase handles infrastructure scaling
-- CDN for static assets
-- Load balancing through Firebase Hosting
+## 📦 Library Architecture
 
-### Data Partitioning
-- User-based data sharding
-- Efficient query patterns
-- Denormalized data where appropriate
-- Composite indexes for complex queries
+### Shared Libraries Structure
 
-### Performance Optimization
-- Code splitting with Next.js
-- Lazy loading of components
-- Image optimization
-- Minimal bundle sizes
+```
+libs/
+├── shared-types/           # TypeScript definitions
+│   ├── auth.ts            # Authentication types
+│   ├── user.ts            # User-related types
+│   ├── app.ts             # Application types
+│   └── index.ts           # Export barrel
+├── firebase-config/        # Firebase utilities
+│   ├── auth.ts            # Auth helpers
+│   ├── config.ts          # Configuration
+│   ├── firestore.ts       # Firestore helpers
+│   └── index.ts           # Export barrel
+└── ui-components/          # Shared UI components
+    ├── Alert.tsx          # Alert component
+    ├── Button.tsx         # Button component
+    ├── Card.tsx           # Card component
+    ├── LoadingSpinner.tsx # Loading component
+    └── index.ts           # Export barrel
+```
 
-## Deployment Architecture
+### Library Dependencies
 
-### Firebase Hosting
-- Automatic SSL certificates
-- Global CDN
-- Custom domain support
-- Automatic scaling
+```mermaid
+graph TD
+    Apps[Applications] --> Types[shared-types]
+    Apps --> Firebase[firebase-config]
+    Apps --> UI[ui-components]
+    
+    Firebase --> Types
+    UI --> Types
+    
+    Types --> External[External Types]
+    Firebase --> FirebaseSDK[Firebase SDK]
+    UI --> React[React]
+```
 
-### On-Premises Option
-- Docker containers for each app
-- Nginx reverse proxy
-- Let's Encrypt for SSL
-- PostgreSQL as Firestore alternative
+## 🔐 Security Architecture
 
-## Monitoring and Observability
+### Authentication Flow
+1. **User Registration/Login** → Hub Application
+2. **Token Generation** → Firebase Auth (Hub Project)
+3. **Token Verification** → Individual Apps
+4. **Resource Access** → App-specific Firebase Projects
 
-- Firebase Analytics for user behavior
-- Performance monitoring
-- Error tracking with Sentry (optional)
-- Custom dashboards for business metrics
+### Security Layers
+- **Client-Side**: Firebase Auth SDK token validation
+- **Database**: Firestore security rules
+- **API**: Cloud Functions with token verification
+- **Network**: HTTPS everywhere, CORS policies
+
+### Permission Model
+```
+Hub User (Firebase Auth)
+├── App Permissions
+│   ├── JustSplit: [read, write, admin]
+│   ├── TaskFlow: [read]
+│   └── HealthTrack: [read, write]
+└── Profile Data
+    ├── Display Name
+    ├── Email
+    ├── Avatar
+    └── Preferences
+```
+
+## 🚀 Deployment Architecture
+
+### Firebase Hosting Strategy
+```
+Firebase Projects:
+├── cybereco-hub          # Hub app + Authentication
+├── cybereco-justsplit    # JustSplit app + data
+├── cybereco-taskflow     # Future: TaskFlow app + data
+└── cybereco-shared       # Shared resources (optional)
+```
+
+### Environment Strategy
+```
+Environments:
+├── Development
+│   ├── Local (emulators)
+│   └── Dev Firebase projects
+├── Staging
+│   └── Staging Firebase projects
+└── Production
+    └── Production Firebase projects
+```
+
+## 📊 Performance Architecture
+
+### Build Optimization
+- **NX Caching**: Aggressive build and test caching
+- **Tree Shaking**: Remove unused code
+- **Code Splitting**: Route-based and component-based splitting
+- **Bundle Analysis**: Regular bundle size monitoring
+
+### Runtime Optimization
+- **Firebase Caching**: Offline-first with Firestore caching
+- **CDN**: Firebase Hosting global CDN
+- **Image Optimization**: Next.js built-in optimization
+- **Lazy Loading**: Component and route lazy loading
+
+### Monitoring
+- **Firebase Analytics**: User behavior tracking
+- **Performance Monitoring**: Core Web Vitals
+- **Error Tracking**: Client-side error reporting
+- **Usage Metrics**: Feature usage analytics
+
+## 🔮 Future Architecture Considerations
+
+### Scalability Plans
+- **Microservices**: Potential migration to independent services
+- **API Gateway**: Centralized API management
+- **Message Queues**: Event-driven communication
+- **Caching Layer**: Redis or similar for performance
+
+### Technology Evolution
+- **Framework Updates**: Regular Next.js updates
+- **Database Scaling**: Potential multi-region setup
+- **Mobile Apps**: React Native with shared business logic
+- **Desktop Apps**: Electron or Tauri applications
+
+---
+
+This architecture provides a solid foundation for the CyberEco platform while maintaining flexibility for future growth and evolution.

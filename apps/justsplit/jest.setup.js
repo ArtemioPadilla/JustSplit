@@ -129,4 +129,48 @@ if (process.env.NODE_ENV === 'test') {
   // as they are important for test failures
 }
 
-// Rest of your Jest setup code...
+// Set test environment variables first
+process.env.NODE_ENV = 'test';
+process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'test-key';
+process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = 'test.firebaseapp.com';
+process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'test-project';
+process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = 'test.appspot.com';
+process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = '123456789';
+process.env.NEXT_PUBLIC_FIREBASE_APP_ID = 'test-app-id';
+
+// Mock Firebase auth methods
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(() => ({
+    currentUser: null,
+    onAuthStateChanged: jest.fn(),
+  })),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  onAuthStateChanged: jest.fn(),
+  User: jest.fn(),
+}));
+
+// Mock Firebase firestore methods
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  getDocs: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  limit: jest.fn(),
+}));
+
+// Mock Firebase app
+jest.mock('firebase/app', () => ({
+  initializeApp: jest.fn(() => ({})),
+  getApps: jest.fn(() => []),
+  getApp: jest.fn(() => ({})),
+}));
+

@@ -63,7 +63,7 @@ export interface Expense {
 export interface TimelineExpense {
   id: string;
   type: string;
-  date: Date;
+  date: string; // Changed from Date to string to match other date fields
   title: string;
   amount: number;
   currency: string;

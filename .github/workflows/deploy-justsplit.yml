@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'apps/justsplit/**'
-      - 'packages/**'
+      - 'libs/**'
       - 'firebase/justsplit/**'
   workflow_dispatch:
 
@@ -16,31 +16,65 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+          cache: 'npm'
       
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci --legacy-peer-deps
       
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.JUSTSPLIT_FIREBASE_PROJECT_ID }}" ]; then
+            echo "Error: JUSTSPLIT_FIREBASE_PROJECT_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUSTSPLIT }}" ]; then
+            echo "Error: FIREBASE_SERVICE_ACCOUNT_JUSTSPLIT secret is not set"
+            exit 1
+          fi
+      
+      - name: Run lint for justsplit
+        run: npx nx lint justsplit-app
+        
       - name: Run tests
-        run: pnpm --filter @justsplit/app test
+        run: npx nx test justsplit-app --passWithNoTests --code-coverage
+        env:
+          NODE_ENV: test
+          NEXT_PUBLIC_FIREBASE_API_KEY: test-key
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: test.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: test-project
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: test.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789'
+          NEXT_PUBLIC_FIREBASE_APP_ID: test-app-id
       
       - name: Build JustSplit
-        run: pnpm --filter @justsplit/app build
+        run: npx nx build justsplit-app
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.JUSTSPLIT_FIREBASE_API_KEY || '' }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.JUSTSPLIT_FIREBASE_AUTH_DOMAIN || '' }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.JUSTSPLIT_FIREBASE_PROJECT_ID || '' }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.JUSTSPLIT_FIREBASE_STORAGE_BUCKET || '' }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.JUSTSPLIT_FIREBASE_MESSAGING_SENDER_ID || '' }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.JUSTSPLIT_FIREBASE_APP_ID || '' }}
+          NEXT_PUBLIC_HUB_API_KEY: ${{ secrets.HUB_FIREBASE_API_KEY || '' }}
+          NEXT_PUBLIC_HUB_AUTH_DOMAIN: ${{ secrets.HUB_FIREBASE_AUTH_DOMAIN || '' }}
+          NEXT_PUBLIC_HUB_PROJECT_ID: ${{ secrets.HUB_FIREBASE_PROJECT_ID || '' }}
+          NEXT_PUBLIC_HUB_STORAGE_BUCKET: ${{ secrets.HUB_FIREBASE_STORAGE_BUCKET || '' }}
+          NEXT_PUBLIC_HUB_MESSAGING_SENDER_ID: ${{ secrets.HUB_FIREBASE_MESSAGING_SENDER_ID || '' }}
+          NEXT_PUBLIC_HUB_APP_ID: ${{ secrets.HUB_FIREBASE_APP_ID || '' }}
       
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          args: deploy --only hosting:justsplit-app,firestore
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_PATH: ./firebase/justsplit
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUSTSPLIT }}
+          channelId: live
+          projectId: ${{ secrets.JUSTSPLIT_FIREBASE_PROJECT_ID }}
+          entryPoint: ./firebase/justsplit

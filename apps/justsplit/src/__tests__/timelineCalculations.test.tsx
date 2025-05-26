@@ -7,19 +7,23 @@ import {
   formatTimelineDate,
   formatDateRange
 } from '../utils/timelineUtils';
-import { TimelineExpense, TimelineEvent } from '../types';
+import { Expense, Event } from '../types';
 
 describe('Timeline Utility Functions', () => {
   // Mock data
-  const mockEvent: TimelineEvent = {
+  const mockEvent: Event = {
     id: 'event1',
     name: 'Test Event',
+    date: '2023-06-01',
     startDate: '2023-06-01',
     endDate: '2023-06-10',
-    participants: ['user1', 'user2']
+    createdAt: '2023-06-01T00:00:00Z',
+    createdBy: 'user1',
+    members: ['user1', 'user2'],
+    expenseIds: []
   };
 
-  const mockExpenses: TimelineExpense[] = [
+  const mockExpenses: Expense[] = [
     {
       id: 'exp1',
       eventId: 'event1',
@@ -27,7 +31,10 @@ describe('Timeline Utility Functions', () => {
       currency: 'USD',
       settled: true,
       date: '2023-05-20',
-      description: 'Pre-event expense'
+      description: 'Pre-event expense',
+      paidBy: 'user1',
+      participants: ['user1'],
+      createdAt: '2023-05-20T00:00:00Z'
     },
     {
       id: 'exp2',
@@ -36,7 +43,10 @@ describe('Timeline Utility Functions', () => {
       currency: 'USD',
       settled: false,
       date: '2023-06-01',
-      description: 'Start date expense'
+      description: 'Start date expense',
+      paidBy: 'user1',
+      participants: ['user1'],
+      createdAt: '2023-06-01T00:00:00Z'
     },
     {
       id: 'exp3',
@@ -45,7 +55,10 @@ describe('Timeline Utility Functions', () => {
       currency: 'USD',
       settled: true,
       date: '2023-06-05',
-      description: 'Mid-event expense'
+      description: 'Mid-event expense',
+      paidBy: 'user1',
+      participants: ['user1'],
+      createdAt: '2023-06-05T00:00:00Z'
     },
     {
       id: 'exp4',
@@ -54,7 +67,10 @@ describe('Timeline Utility Functions', () => {
       currency: 'EUR',
       settled: false,
       date: '2023-06-05',
-      description: 'Same day expense'
+      description: 'Same day expense',
+      paidBy: 'user2',
+      participants: ['user1', 'user2'],
+      createdAt: '2023-06-05T00:00:00Z'
     },
     {
       id: 'exp5',
@@ -63,7 +79,10 @@ describe('Timeline Utility Functions', () => {
       currency: 'USD',
       settled: false,
       date: '2023-06-10',
-      description: 'End date expense'
+      description: 'End date expense',
+      paidBy: 'user1',
+      participants: ['user1', 'user2'],
+      createdAt: '2023-06-10T00:00:00Z'
     }
   ];
 
@@ -161,20 +180,28 @@ describe('Timeline Utility Functions', () => {
   describe('groupNearbyExpenses', () => {
     test('groups expenses that are close to each other', () => {
       // Create expenses with very close dates
-      const closeExpenses: TimelineExpense[] = [
+      const closeExpenses: Expense[] = [
         {
           id: 'exp1',
           amount: 100,
           currency: 'USD',
           date: '2023-06-05T12:00:00',
-          description: 'Expense 1'
+          description: 'Expense 1',
+          paidBy: 'user1',
+          participants: ['user1'],
+          settled: false,
+          createdAt: '2023-06-05T12:00:00Z'
         },
         {
           id: 'exp2',
           amount: 200,
           currency: 'USD',
           date: '2023-06-05T12:30:00', // 30 minutes later
-          description: 'Expense 2'
+          description: 'Expense 2',
+          paidBy: 'user1',
+          participants: ['user1'],
+          settled: false,
+          createdAt: '2023-06-05T12:30:00Z'
         }
       ];
       
@@ -185,20 +212,28 @@ describe('Timeline Utility Functions', () => {
     
     test('keeps separate groups for distant expenses', () => {
       // Create expenses with distant dates
-      const distantExpenses: TimelineExpense[] = [
+      const distantExpenses: Expense[] = [
         {
           id: 'exp1',
           amount: 100,
           currency: 'USD',
           date: '2023-06-02',
-          description: 'Expense 1'
+          description: 'Expense 1',
+          paidBy: 'user1',
+          participants: ['user1'],
+          settled: false,
+          createdAt: '2023-06-02T00:00:00Z'
         },
         {
           id: 'exp2',
           amount: 200,
           currency: 'USD',
           date: '2023-06-08', // 6 days later
-          description: 'Expense 2'
+          description: 'Expense 2',
+          paidBy: 'user1',
+          participants: ['user1'],
+          settled: false,
+          createdAt: '2023-06-08T00:00:00Z'
         }
       ];
       

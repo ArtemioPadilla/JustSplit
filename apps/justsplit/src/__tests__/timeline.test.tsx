@@ -23,7 +23,7 @@ const mockExpenses = [
   {
     id: 'exp1',
     type: 'expense',
-    date: new Date('2023-05-20'),
+    date: '2023-05-20',
     title: 'Pre-event expense',
     amount: 100,
     currency: 'USD',
@@ -38,7 +38,7 @@ const mockExpenses = [
   {
     id: 'exp2',
     type: 'expense',
-    date: new Date('2023-06-01'),
+    date: '2023-06-01',
     title: 'Start date expense',
     amount: 50,
     currency: 'USD',
@@ -53,7 +53,7 @@ const mockExpenses = [
   {
     id: 'exp3',
     type: 'expense',
-    date: new Date('2023-06-05'),
+    date: '2023-06-05',
     title: 'Mid-event expense',
     amount: 200,
     currency: 'USD',
@@ -68,7 +68,7 @@ const mockExpenses = [
   {
     id: 'exp4',
     type: 'expense',
-    date: new Date('2023-06-05T12:00:00'),
+    date: '2023-06-05T12:00:00',
     title: 'Same day expense',
     amount: 75,
     currency: 'EUR',
@@ -83,7 +83,7 @@ const mockExpenses = [
   {
     id: 'exp5',
     type: 'expense',
-    date: new Date('2023-06-10'),
+    date: '2023-06-10',
     title: 'End date expense',
     amount: 25,
     currency: 'USD',
@@ -379,7 +379,7 @@ describe('Timeline Component', () => {
       {
         id: 'exp1',
         type: 'expense',
-        date: new Date('2023-06-15'),
+        date: '2023-06-15',
         title: 'Test expense',
         amount: 100,
         currency: 'USD',
