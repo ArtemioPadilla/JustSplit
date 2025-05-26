@@ -1,0 +1,46 @@
+name: Deploy JustSplit
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/justsplit/**'
+      - 'packages/**'
+      - 'firebase/justsplit/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Run tests
+        run: pnpm --filter @justsplit/app test
+      
+      - name: Build JustSplit
+        run: pnpm --filter @justsplit/app build
+      
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting:justsplit-app,firestore
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          PROJECT_PATH: ./firebase/justsplit

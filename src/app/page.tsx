@@ -8,7 +8,6 @@ import { clearExchangeRateCache } from '../utils/currencyExchange';
 import WelcomeScreen from '../components/Dashboard/WelcomeScreen';
 import DashboardHeader from '../components/Dashboard/DashboardHeader';
 import FinancialSummary from '../components/Dashboard/FinancialSummary';
-import MonthlyTrendsChart from '../components/Dashboard/MonthlyTrendsChart';
 import ExpenseDistribution from '../components/Dashboard/ExpenseDistribution';
 import BalanceOverview from '../components/Dashboard/BalanceOverview';
 import RecentExpenses from '../components/Dashboard/RecentExpenses';
@@ -24,8 +23,8 @@ export default function Home() {
   
   const [localPreferredCurrency, setLocalPreferredCurrency] = useState(preferredCurrency);
   const [localIsConvertingCurrencies, setLocalIsConvertingCurrencies] = useState(isConvertingCurrencies);
-  const [isLoadingRates, setIsLoadingRates] = useState(false);
-  const [conversionError, setConversionError] = useState<string | null>(null);
+  // const [isLoadingRates, setIsLoadingRates] = useState(false);
+  // const [conversionError, setConversionError] = useState<string | null>(null);
   
   // Calculate if we have any data to show
   const hasData = state?.expenses?.length > 0 || state?.events?.length > 0;
@@ -59,11 +58,11 @@ export default function Home() {
     avgPerDay: 0
   });
 
-  const [processedTrends, setProcessedTrends] = useState<any[]>([]);
-  const [categoryDistribution, setCategoryDistribution] = useState<any[]>([]);
-  const [balanceDistribution, setBalanceDistribution] = useState<any[]>([]);
-  const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
-  const [recentSettlements, setRecentSettlements] = useState<any[]>([]);
+  // const [processedTrends, setProcessedTrends] = useState<unknown[]>([]);
+  // const [categoryDistribution, setCategoryDistribution] = useState<unknown[]>([]);
+  // const [balanceDistribution, setBalanceDistribution] = useState<unknown[]>([]);
+  // const [recentExpenses, setRecentExpenses] = useState<unknown[]>([]);
+  // const [recentSettlements, setRecentSettlements] = useState<unknown[]>([]);
 
   useEffect(() => {
     if (!state) return;
@@ -81,20 +80,23 @@ export default function Home() {
     setRecentExpenses(state.expenses?.slice(0, 5) || []);
     setRecentSettlements(state.settlements?.slice(0, 3) || []);
     
-  }, [state]);
+  }, [state, financialSummary]);
 
   // Add this function to convert AppContext events to our Event interface
-  const convertEvents = (contextEvents: any[]): LocalEvent[] => {
-    if (!contextEvents) return [];
-    return contextEvents.map(event => ({
-      ...event, // Spread existing properties from the source event
-      date: event.startDate || event.date || new Date().toISOString().split('T')[0], // Ensure 'date' is present
-      // Provide defaults for other required LocalEvent properties if not in 'event'
-      createdAt: event.createdAt || new Date().toISOString(),
-      createdBy: event.createdBy || 'system', // Or some other appropriate default
-      members: event.members || [],
-      expenseIds: event.expenseIds || [],
-    }));
+  const convertEvents = (contextEvents: unknown[]): LocalEvent[] => {
+    if (!contextEvents || !Array.isArray(contextEvents)) return [];
+    return contextEvents.map((event: unknown) => {
+      const eventObj = event as Record<string, unknown>;
+      return {
+        ...eventObj, // Spread existing properties from the source event
+        date: (eventObj.startDate as string) || (eventObj.date as string) || new Date().toISOString().split('T')[0], // Ensure 'date' is present
+        // Provide defaults for other required LocalEvent properties if not in 'event'
+        createdAt: (eventObj.createdAt as string) || new Date().toISOString(),
+        createdBy: (eventObj.createdBy as string) || 'system', // Or some other appropriate default
+        members: (eventObj.members as string[]) || [],
+        expenseIds: (eventObj.expenseIds as string[]) || [],
+      } as LocalEvent;
+    });
   };
 
   if (!state) {

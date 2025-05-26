@@ -1,0 +1,432 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+}
+
+.backButton {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: var(--primary-color);
+  border-radius: 6px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.backButton:hover {
+  background-color: #e5e7eb;
+}
+
+.section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--primary-color); /* Changed from #4f46e5 to Next.js blue */
+}
+
+.description {
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.dates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dateItem {
+  display: flex;
+  align-items: center;
+}
+
+.dateLabel {
+  font-weight: 500;
+  width: 100px;
+  color: #6b7280;
+}
+
+.dateValue {
+  color: #111827;
+}
+
+.participantsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.participantItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f3f4f6;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.participantBalance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.positive {
+  color: #10b981; /* green */
+}
+
+.negative {
+  color: #ef4444; /* red */
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.addExpenseButton {
+  padding: 6px 12px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.expensesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.expenseCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: white;
+}
+
+.expenseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.expenseName {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.expenseAmount {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.expenseDetails {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.expenseDetail {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.settledBadge, .unsettledBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.settledBadge {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.unsettledBadge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.expenseActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.viewExpenseButton {
+  font-size: 12px;
+  padding: 4px 8px;
+  color: var(--primary-color);
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.emptyExpenses {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.actions {
+  margin-top: 32px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  padding: 10px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.tertiaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.tertiaryButton:hover {
+  background-color: #e5e7eb;
+}
+
+.tertiaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButton:hover {
+  background-color: #45A049; /* Slightly darker shade for hover state */
+}
+
+.secondaryButton:hover {
+  background-color: #f0f0f0;
+}
+
+.editButton {
+  background-color: #f59e0b; /* amber color for edit button */
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #d97706; /* darker amber for hover state */
+}
+
+.currencySelector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  background-color: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.currencyControl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.currencySelect {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.refreshButton {
+  padding: 6px 12px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #45A049;
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.originalAmount,
+.originalAmountBalance {
+  display: block;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.25rem;
+  font-weight: normal;
+}
+
+.timelineFooter {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.settlementProgress {
+  margin-top: 8px;
+}
+
+.progressTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #4b5563;
+}
+
+.convertingIndicator {
+  font-style: italic;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.updating {
+  animation: fadeUpdateAnimation 0.5s ease;
+}
+
+@keyframes fadeUpdateAnimation {
+  0% {
+    background-color: var(--color-primary-alpha-20);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (max-width: 640px) {
+  .participantsList {
+    grid-template-columns: 1fr;
+  }
+  
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .actionButton {
+    width: 100%;
+  }
+  
+  .expenseDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .currencySelector {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .currencyControl {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .currencySelect {
+    width: 100%;
+  }
+  
+  .refreshButton {
+    width: 100%;
+  }
+}

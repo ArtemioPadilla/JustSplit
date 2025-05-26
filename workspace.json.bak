@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/nx/schemas/workspace-schema.json",
+  "version": 2,
+  "projects": {
+    "hub": "apps/hub",
+    "justsplit-app": "apps/justsplit",
+    "shared-types": "libs/shared-types",
+    "firebase-config": "libs/firebase-config",
+    "ui-components": "libs/ui-components"
+  }
+}

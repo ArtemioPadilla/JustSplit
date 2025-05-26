@@ -1,0 +1,22 @@
+
+> @justsplit/hub@0.1.0 dev
+> next dev -p 3000
+
+node:internal/modules/cjs/loader:1397
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/apps/hub/node_modules/next/dist/bin/next'
+[90m    at Function._resolveFilename (node:internal/modules/cjs/loader:1394:15)[39m
+[90m    at defaultResolveImpl (node:internal/modules/cjs/loader:1050:19)[39m
+[90m    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1055:22)[39m
+[90m    at Function._load (node:internal/modules/cjs/loader:1204:37)[39m
+[90m    at TracingChannel.traceSync (node:diagnostics_channel:322:14)[39m
+[90m    at wrapModuleLoad (node:internal/modules/cjs/loader:234:24)[39m
+[90m    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:151:5)[39m
+[90m    at node:internal/main/run_main_module:33:47[39m {
+  code: [32m'MODULE_NOT_FOUND'[39m,
+  requireStack: []
+}
+
+Node.js v23.7.0

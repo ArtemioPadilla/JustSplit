@@ -1,0 +1,21 @@
+{
+  "run": {
+    "command": "nx run-many --target=dev --projects=justsplit,hub --parallel",
+    "startTime": "2025-05-26T04:48:39.250Z",
+    "endTime": "2025-05-26T04:53:44.260Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "hub:dev",
+      "target": "dev",
+      "projectName": "hub",
+      "hash": "13319582994510611064",
+      "startTime": "2025-05-26T04:48:39.254Z",
+      "endTime": "2025-05-26T04:53:44.259Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    }
+  ]
+}

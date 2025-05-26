@@ -1,0 +1,132 @@
+.timelineContainer {
+  margin: var(--space-md) 0;
+  position: relative;
+  padding: 10px 0; /* Add padding to give room for hover effects */
+}
+
+.timeline {
+  position: relative;
+  height: 6px;
+  background-color: var(--color-divider);
+  border-radius: var(--border-radius-sm);
+  margin: 8px 0 4px;
+}
+
+.timelineProgress {
+  position: absolute;
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: var(--border-radius-sm);
+  top: 0;
+  left: 0;
+  transition: width var(--transition-normal) var(--transition-timing-out);
+}
+
+.timelineDot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--border-radius-full);
+  background-color: var(--color-accent);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+  z-index: 5;
+}
+
+.expenseMarker {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--border-radius-full);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  z-index: 4;
+  transition: transform 0.15s ease-out, 
+              box-shadow 0.15s ease-out;
+}
+
+/* Create a larger invisible hit area for small markers to make them easier to click */
+.expenseMarker::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.expenseMarker:hover, .expenseMarker:focus {
+  transform: translate(-50%, -50%) scale(1.4) !important;
+  box-shadow: var(--shadow-md);
+  z-index: 6;
+  outline: none;
+}
+
+.settledExpense {
+  background-color: var(--color-success);
+}
+
+.unsettledExpense {
+  background-color: var(--color-error);
+}
+
+.mixedExpense {
+  background: linear-gradient(135deg, var(--color-success) 50%, var(--color-error) 50%);
+  position: relative;
+}
+
+.preEventExpense {
+  background-color: #8b5cf6; /* Purple - consider adding to theme */
+}
+
+.postEventExpense {
+  background-color: #ec4899; /* Pink - consider adding to theme */
+}
+
+.groupedExpense {
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.timelineDates {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.timelineLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.legendColor {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--border-radius-full);
+  margin-right: var(--space-xs);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+  .timelineLegend {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

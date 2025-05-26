@@ -1,0 +1,214 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xl);
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.select {
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-background);
+  font-size: var(--font-size-sm);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--space-2xl) 0;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  margin-top: var(--space-lg);
+}
+
+.emptyState p {
+  color: var(--color-text-secondary);
+}
+
+.expensesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.expenseCard {
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  background-color: var(--color-background);
+  transition: all var(--transition-fast) var(--transition-timing-default);
+}
+
+.expenseCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.expenseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.expenseName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+/* Add animation for updating expense description */
+.updating {
+  position: relative;
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.updating {
+  animation: fadeUpdateAnimation 0.5s ease;
+}
+
+@keyframes fadeUpdateAnimation {
+  0% {
+    background-color: var(--color-primary-alpha-20);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.expenseAmount {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+.expenseDetails {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.detailValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.viewButton {
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface);
+  color: var(--color-accent);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.viewButton:hover {
+  background-color: var(--color-divider);
+}
+
+@media (max-width: 640px) {
+  .expenseDetails {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .filter {
+    width: 100%;
+  }
+  
+  .select {
+    flex-grow: 1;
+  }
+}
+
+.createButton {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
+}
+
+.createButton:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.exportButton, .refreshButton {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
+}
+
+.exportButton:hover, .refreshButton:hover {
+  background-color: var(--color-divider);
+}
+
+.exportButton:disabled, .refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.originalAmount {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}

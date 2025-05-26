@@ -1,0 +1,1214 @@
+/* Main layout styles */
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+.button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.button:hover {
+  background-color: #45A049;
+}
+
+/* Dashboard layout */
+.dashboardMain {
+  padding: var(--space-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboardHeader {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-lg);
+  gap: var(--space-md);
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboardHeader h1 {
+  margin: 0;
+}
+
+.quickActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.currencySelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: var(--color-surface);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-md);
+  border: var(--border-width-thin) solid var(--color-border);
+  margin-top: var(--space-md);
+}
+
+.currencySelector label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.select {
+  background-color: var(--color-background);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: calc(var(--space-xs) - 1px) var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.refreshButton {
+  padding: calc(var(--space-xs) - 1px) var(--space-xs);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.refreshButton:hover {
+  background-color: var(--color-divider);
+}
+
+/* Dashboard summary section */
+.dashboardSummary {
+  margin-bottom: var(--space-xl);
+}
+
+.summaryCard {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--space-lg);
+}
+
+.dashboardCard {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.cardTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-top: 0;
+  margin-bottom: var(--space-md);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+}
+
+.cardTitle::after {
+  content: '';
+  flex-grow: 1;
+  height: 1px;
+  background-color: var(--color-divider);
+  margin-left: var(--space-md);
+}
+
+.summaryStats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: var(--space-md);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: var(--space-md);
+  border-radius: var(--border-radius-md);
+  background-color: var(--color-surface);
+  width: 30%;
+}
+
+.statValue {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.statLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.statIcon {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: var(--color-secondary);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md);
+}
+
+/* Charts and visualizations */
+.chartContainer {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chart styles and other specialized elements remain the same */
+.barChart {
+  flex-grow: 1;
+  display: flex;
+  align-items: flex-end; /* Align items at bottom */
+  justify-content: space-between;
+  height: 180px;
+  margin-bottom: var(--space-md);
+  padding: 1rem;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+  position: relative;
+  background-color: var(--color-surface);
+}
+
+.barChart::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+  opacity: 0.5;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+.bar {
+  width: 75%;
+  background-color: var(--primary-color);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+  min-height: 0; /* Allow zero height */
+  border: 1px solid rgba(0,0,0,0.1); /* Add border for better visibility */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.barValue {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 0.2rem;
+  font-weight: 500;
+}
+
+.barDebug {
+  position: absolute;
+  top: -20px;
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  width: 100%;
+}
+
+.barLabel {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.chartLegend {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.legendTotal {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.legendValue {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Distribution chart */
+.distributionChart {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.distributionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.distributionLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.categoryColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.distributionBar {
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.distributionFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.distributionValue {
+  font-size: 0.75rem;
+  text-align: right;
+  color: #6b7280;
+}
+
+/* Balance distribution */
+.balanceChart {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.balanceItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.balanceName {
+  width: 25%;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.balanceBarContainer {
+  flex-grow: 1;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.balanceBar {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.positiveBalance {
+  background-color: #10b981; /* green */
+}
+
+.negativeBalance {
+  background-color: #ef4444; /* red */
+}
+
+.balanceValue {
+  width: 20%;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.positive {
+  color: #10b981; /* green */
+}
+
+.negative {
+  color: #ef4444; /* red */
+}
+
+.expensesList, .eventsList, .settlementsList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-md) 0;
+  flex-grow: 1;
+}
+
+.expenseItem, .eventItem, .settlementItem {
+  padding: var(--space-sm) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+}
+
+.expenseItem a, .eventItem a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.expenseName, .eventName {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-xs);
+}
+
+.expenseDetails, .eventDate {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.expenseAmount, .settlementAmount {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+}
+
+.expensePaidBy, .eventParticipants {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-disabled);
+}
+
+.cardFooter {
+  margin-top: auto;
+  padding-top: var(--space-md);
+}
+
+.viewAllLink {
+  margin-top: auto;
+  text-align: center;
+  padding-top: var(--space-sm);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+}
+
+.emptyMessage {
+  text-align: center;
+  color: var(--color-text-disabled);
+  font-style: italic;
+  padding: var(--space-md) 0;
+}
+
+@media (max-width: 768px) {
+  .dashboardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+  
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .summaryStats {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  
+  .statItem {
+    width: 100%;
+  }
+}
+
+.createButton {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.createButton:hover {
+  background-color: #45A049;
+}
+
+.settlementEvent {
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.settlementUsers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.settlementArrow {
+  color: #9ca3af;
+}
+
+.secondaryButton {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.secondaryButton:hover {
+  background-color: #e5e7eb;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Chart controls */
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.chartControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controlLabel {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.buttonToggle {
+  display: flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.toggleButton {
+  padding: 0.25rem 0.75rem;
+  background-color: #f9fafb;
+  border: none;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleActive {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.switchControl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.switchLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Enhanced bar chart */
+.stackedBar {
+  width: 75%;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.1);
+  background-color: #f0f0f0; /* Light background to show empty bars */
+  transition: height 0.3s ease;
+}
+
+.barSegment {
+  transition: all 0.3s ease;
+  min-height: 4px;
+}
+
+.barSegment:hover {
+  filter: brightness(1.1);
+}
+
+/* Legend for chart */
+.legendItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.legendColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.chartLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 180px;
+  background-color: #f9fafb;
+  border-radius: 4px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+  text-align: center;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Balance Overview Styles - Simplified to match screenshot */
+.balanceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.balanceSummary {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+}
+
+.balanceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.balanceLabel {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.balanceValueGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.balanceBars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.balanceBarPositive {
+  width: 1.5rem;
+  height: 0.75rem;
+  background-color: #4CAF50;
+  border-radius: 2px;
+}
+
+.balanceBarNegative {
+  width: 1.5rem;
+  height: 0.75rem;
+  background-color: #F44336;
+  border-radius: 2px;
+}
+
+.balanceAmount {
+  font-weight: var(--font-weight-medium);
+  text-align: right;
+}
+
+.positiveBalance {
+  color: #4CAF50;
+}
+
+.negativeBalance {
+  color: #F44336;
+}
+
+.balanceDivider {
+  height: 1px;
+  background-color: var(--color-divider);
+  margin: 0.75rem 0;
+}
+
+/* Balance Distribution Section */
+.balanceDistribution {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.balanceDistributionContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.balanceDistributionAmount {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  width: 5rem;
+}
+
+.balanceDistributionAmount:first-child {
+  text-align: left;
+}
+
+.balanceDistributionAmount:last-child {
+  text-align: right;
+}
+
+.balanceDistributionLine {
+  flex: 1;
+  height: 2px;
+  background-color: #E0E0E0;
+  position: relative;
+  margin: 0 0.75rem;
+}
+
+.balanceDistributionRedLine {
+  position: absolute;
+  right: 50%;
+  top: 0;
+  height: 100%;
+  background-color: #F44336;
+}
+
+.balanceDistributionGreenLine {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 100%;
+  background-color: #4CAF50;
+}
+
+/* Settlement Button */
+.actionButtonContainer {
+  margin-top: 1.5rem;
+}
+
+.settleButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #102a49;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+/* User Balances Section */
+.userBalancesHeader {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.userBalancesHeader h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text);
+}
+
+.userBalances {
+  display: flex;
+  flex-direction: column;
+}
+
+.userBalance {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.userBalance:first-child {
+  padding-top: 0.5rem;
+}
+
+.userName {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 0.75rem;
+}
+
+/* Simple bar visualization for individual balances */
+.simpleBarContainer {
+  height: 6px;
+  width: 100%;
+  position: relative;
+}
+
+.simpleBarGreen {
+  position: absolute;
+  height: 6px;
+  background-color: #4CAF50;
+  right: 0;
+}
+
+.simpleBarRed {
+  position: absolute;
+  height: 6px;
+  background-color: #F44336;
+  left: 0;
+}
+
+/* Individual user balance line visualization */
+.userBalanceLine {
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.userBalanceLineInner {
+  height: 1px;
+  width: 100%;
+  background-color: #E0E0E0;
+  position: relative;
+}
+
+/* Positive balance bars - on the right side */
+.userBalancePositiveBar {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 40%;
+  height: 7px;
+  background-color: #4CAF50;
+}
+
+.userBalancePositiveBar2 {
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 15%;
+  height: 7px;
+  background-color: #4CAF50;
+  transform: translateX(-120%);
+}
+
+/* Negative balance bars - on the left side */
+.userBalanceNegativeBar {
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 70%;
+  height: 7px;
+  background-color: #F44336;
+}
+
+.userBalanceNegativeBar2 {
+  position: absolute;
+  left: 30%; 
+  top: -3px;
+  width: 20%;
+  height: 7px;
+  background-color: #F44336;
+}
+
+/* Loading styles */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.loadingSpinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--color-divider);
+  border-top-color: var(--color-primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Updated Balance Overview Styles */
+.balanceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.balanceSummary {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 1.25rem;
+}
+
+.balanceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.balanceLabel {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.balanceValueGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.balanceBars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.balanceBarPositive {
+  width: 2rem;
+  height: 1rem;
+  background-color: #4CAF50;
+  border-radius: 2px;
+}
+
+.balanceBarNegative {
+  width: 2rem;
+  height: 1rem;
+  background-color: #F44336;
+  border-radius: 2px;
+}
+
+.balanceAmount {
+  font-weight: var(--font-weight-bold);
+  text-align: right;
+}
+
+.positiveBalance {
+  color: #4CAF50;
+  background-color: transparent;
+}
+
+.negativeBalance {
+  color: #F44336;
+  background-color: transparent;
+}
+
+.zeroBalance {
+  color: var(--color-text);
+}
+
+.balanceDivider {
+  height: 1px;
+  background-color: var(--color-divider);
+  margin: 0.75rem 0;
+}
+
+/* Balance Distribution Section */
+.balanceDistribution {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.balanceDistributionContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.balanceDistributionAmount {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Balance bar that spans the width */
+.balanceBarComplete {
+  position: relative;
+  flex-grow: 1;
+  height: 4px;
+  background-color: #E0E0E0;
+  margin: 0 0.5rem;
+}
+
+.balanceBarLeftRed {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background-color: #F44336;
+}
+
+.balanceBarRightGreen {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background-color: #4CAF50;
+}
+
+/* Settlement Button */
+.actionButtonContainer {
+  margin-top: 2rem;
+}
+
+.settleButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #102a49;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+/* Individual Balances Section */
+.userBalancesHeader {
+  margin-bottom: 1rem;
+}
+
+.userBalancesHeader h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text);
+}
+
+.userBalances {
+  display: flex;
+  flex-direction: column;
+}
+
+.userBalance {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.userBalance:first-child {
+  padding-top: 0;
+}
+
+.userName {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: 0.5rem;
+}
+
+.userBalanceBarArea {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.userPositiveBalanceBar, .userNegativeBalanceBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userBalanceBarGreen, .userBalanceBarRed {
+  width: 5rem;
+  height: 1.25rem;
+  border-radius: 2px;
+}
+
+.userBalanceBarGreen {
+  background-color: #4CAF50;
+}
+
+.userBalanceBarRed {
+  background-color: #F44336;
+}
+
+.userBalanceAmount {
+  font-weight: var(--font-weight-medium);
+}
+
+/* Waterfall Chart Visualization */
+.waterfallBalanceRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.waterfallChartContainer {
+  flex-grow: 1;
+  position: relative;
+  height: 24px;
+  margin-left: 1rem;
+}
+
+.waterfallCenterLine {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--color-divider);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.waterfallBarPositive {
+  position: absolute;
+  top: 50%;
+  height: 12px;
+  background-color: #4CAF50;
+  transform: translateY(-50%);
+}
+
+.waterfallBarNegative {
+  position: absolute;
+  top: 50%;
+  height: 12px;
+  background-color: #F44336;
+  transform: translateY(-50%);
+}
+
+.waterfallAmount {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+/* Responsive adjustments for waterfall chart */
+@media (max-width: 640px) {
+  .waterfallBalanceRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .waterfallChartContainer {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Direction arrow animation */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.directionArrow {
+  animation: pulse 2s infinite;
+}
+
+/* Balance line hover effect */
+.userBalanceHover:hover {
+  background-color: rgba(245, 247, 250, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle & info icon animation */
+.infoIcon:hover {
+  transform: rotate(10deg);
+}
+
+.toggleLabel:hover {
+  background-color: #f8fafc;
+}

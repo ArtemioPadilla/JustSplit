@@ -1,0 +1,81 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Variants */
+.primary {
+  background-color: #007bff;
+  color: white;
+}
+.primary:hover {
+  background-color: #0056b3;
+}
+
+.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+.secondary:hover {
+  background-color: #5a6268;
+}
+
+.secondarylight {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+.secondarylight:hover {
+  background-color: #e2e6ea;
+}
+.secondarydark {
+  background-color: #343a40;
+  color: white;
+}
+.secondarydark:hover {
+  background-color: #23272b;
+}
+.success {
+  background-color: #28a745;
+  color: white;
+}
+.success:hover {
+  background-color: #218838;
+}
+.tertiary {
+  background-color: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+.tertiary:hover {
+  background-color: #e9ecef;
+}
+
+/* Sizes */
+.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.medium {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+.large {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+}
+
+/* Disabled state */
+.disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}

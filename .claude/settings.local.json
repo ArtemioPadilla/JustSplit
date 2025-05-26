@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/migrate-justsplit.sh:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(npm view:*)",
+      "Bash(npm install)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm install:*)",
+      "Bash(npx nx g:*)",
+      "Bash(ls:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx nx show:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,309 @@
+.financialSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.summaryBlock {
+  flex: 1;
+  min-width: 280px;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.blockTitle {
+  font-size: 1rem;
+  color: #555;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Block 1: Period Summary */
+.metric {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.metricIcon {
+  font-size: 1.5rem;
+  margin-right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricContent {
+  flex: 1;
+}
+
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.metricLabel {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.metricNote {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+.comparison {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.increased {
+  color: #e74c3c;
+}
+
+.decreased {
+  color: #2ecc71;
+}
+
+/* Block 2: Balance Situation */
+.balanceOverview {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.balanceItem {
+  flex: 1;
+}
+
+.balanceLabel {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.balanceValue {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.balanceDivider {
+  margin: 0 12px;
+  color: #ccc;
+}
+
+.netBalance {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.pendingActionsContainer {
+  display: flex;
+  justify-content: space-between; /* Distributes space between items */
+  gap: 1rem; /* Space between the two boxes if they are next to each other */
+  margin-top: 1rem; /* Space above the container */
+}
+
+.pendingSettlements {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  background-color: #f9f9f9;
+  flex: 1; /* Allows the boxes to grow and fill the space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* Pushes button to bottom if content is short */
+  min-width: 0; /* Prevents flex items from overflowing if content is too wide */
+}
+
+/* Specific styling for the receipts box if needed, can inherit from pendingSettlements */
+.pendingReceipts {
+  /* background-color: #f0f9ff; /* Example: different background */
+  /* border-color: #cce7ff;   /* Example: different border */
+}
+
+.pendingLabel {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 0.25rem;
+}
+
+.pendingAmount {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.settlementButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  width: 100%; /* Make button take full width of its container */
+  margin-top: auto; /* Pushes button to the bottom if flex container */
+}
+
+.settlementButton:hover {
+  background-color: #0056b3;
+}
+
+.remindButton {
+  background-color: #28a745; /* Green for remind */
+}
+
+.remindButton:hover {
+  background-color: #1e7e34;
+}
+
+.balanceDivider {
+  margin: 0 12px;
+  color: #ccc;
+}
+
+.netBalance {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 16px 0;
+  padding: 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.positive {
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.negative {
+  color: #e74c3c;
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.pendingSettlements {
+  background-color: #fff9e6;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 16px;
+}
+
+.pendingLabel {
+  font-size: 0.875rem;
+  color: #b7791f;
+}
+
+.pendingAmount {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #744210;
+  margin: 4px 0 8px;
+}
+
+.settlementButton {
+  background-color: #f6ad55;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settlementButton:hover {
+  background-color: #ed8936;
+}
+
+/* Block 3: Personal Insights */
+.insight {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.insightIcon {
+  font-size: 1.25rem;
+  margin-right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.insightContent {
+  flex: 1;
+}
+
+.insightLabel {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.insightValue {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.noActivityPrompt {
+  background-color: #f0f4ff;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.promptIcon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.promptMessage {
+  font-size: 0.875rem;
+  color: #4a5568;
+  margin-bottom: 12px;
+}
+
+.promptButton {
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.promptButton:hover {
+  background-color: #3182ce;
+}
+
+@media (max-width: 768px) {
+  .financialSummary {
+    flex-direction: column;
+  }
+  
+  .summaryBlock {
+    width: 100%;
+  }
+}

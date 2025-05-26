@@ -5,9 +5,11 @@ import RecentSettlements from '../RecentSettlements';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode, href: string }) => {
+  const LinkComponent = ({ children, href }: { children: React.ReactNode, href: string }) => {
     return <a href={href} data-testid="next-link">{children}</a>;
   };
+  LinkComponent.displayName = 'Link';
+  return LinkComponent;
 });
 
 // Mock currency conversion functions

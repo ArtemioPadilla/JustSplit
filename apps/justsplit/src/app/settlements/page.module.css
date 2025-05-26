@@ -1,0 +1,516 @@
+.container {
+  padding: var(--space-lg) 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-xl);
+  color: var(--color-primary);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+  margin-bottom: var(--space-xl);
+}
+
+.tabButton {
+  padding: var(--space-sm) var(--space-lg);
+  background: none;
+  border: none;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  position: relative;
+}
+
+.activeTab {
+  color: var(--color-primary);
+}
+
+.activeTab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-primary);
+}
+
+.tabContent {
+  min-height: 300px;
+}
+
+.summaryCard {
+  display: flex;
+  justify-content: space-around;
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.summaryLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.summaryValue {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.settlementsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.settlementCard {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.completedSettlement {
+  opacity: 0.8;
+  background-color: var(--color-surface);
+}
+
+.settlementDetails {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.settlementUsers {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.settlementUser {
+  display: flex;
+  flex-direction: column;
+}
+
+.userLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.userName {
+  font-weight: var(--font-weight-medium);
+}
+
+.arrowIcon {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.settlementAmount {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.settlementActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settlementMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.settlementStatus {
+  color: var(--color-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.settleButton {
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--color-secondary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--transition-timing-default);
+}
+
+.settleButton:hover {
+  background-color: var(--color-secondary-dark);
+}
+
+.emptyState {
+  border: 2px dashed var(--color-divider);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  margin: var(--space-2xl) 0;
+}
+
+.emptyState h3 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
+}
+
+.emptyState p {
+  color: var(--color-text-secondary);
+}
+
+.filterContainer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.filterLabel {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.filterSelect {
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-background);
+  min-width: 150px;
+}
+
+.loadingState {
+  border: 2px dashed var(--color-divider);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-2xl);
+  text-align: center;
+  margin: var(--space-2xl) 0;
+  color: var(--color-text-secondary);
+}
+
+.balanceHeader {
+  margin-bottom: var(--space-lg);
+}
+
+.balanceDescription {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.balanceTable {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-xl);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-sm);
+  text-align: left;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+}
+
+.table th {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.positive {
+  color: var(--color-success);
+}
+
+.negative {
+  color: var(--color-error);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: var(--space-xl) 0 var(--space-md);
+  color: var(--color-primary);
+}
+
+.eventBreakdownList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-md);
+}
+
+.eventBreakdownCard {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.eventBreakdownTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-sm);
+  color: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+  .settlementDetails {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+  
+  .settlementAmount {
+    align-self: flex-end;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+  }
+  
+  .filterContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filterItem {
+    width: 100%;
+  }
+  
+  .filterSelect {
+    width: 100%;
+  }
+  
+  .eventBreakdownList {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Calculation Details Section */
+.calculationDetails {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--space-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.detailHeader {
+  padding: var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-surface);
+  cursor: pointer;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+}
+
+.detailHeader h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-primary);
+}
+
+.toggleIcon {
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+}
+
+.detailContent {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-normal) var(--transition-timing-default);
+}
+
+.detailContent.expanded {
+  max-height: 1000px;
+}
+
+.detailSection {
+  padding: var(--space-md);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+}
+
+.detailSection:last-child {
+  border-bottom: none;
+}
+
+.detailSection h4 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.detailSection h5 {
+  margin: var(--space-sm) 0 var(--space-xs) 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Settlement specialized components */
+.currencyBreakdown {
+  margin-top: var(--space-sm);
+}
+
+.currencyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.currencyItem {
+  padding: var(--space-xs) 0;
+  font-size: var(--font-size-xs);
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.currencyCode {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+}
+
+.exchangeRatesTable {
+  margin-top: var(--space-sm);
+  overflow-x: auto;
+}
+
+.ratesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+
+.ratesTable th, .ratesTable td {
+  padding: var(--space-xs);
+  text-align: left;
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+}
+
+.ratesTable th {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface);
+}
+
+.rateValue {
+  font-family: monospace;
+}
+
+.disclaimer {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-disabled);
+  font-style: italic;
+}
+
+/* Settlement Expenses Details */
+.settlementExpenses {
+  margin-top: var(--space-sm);
+  border-top: 1px dashed var(--color-divider);
+  padding-top: var(--space-sm);
+}
+
+.expensesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.detailsToggle {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.expensesDetails {
+  margin-top: var(--space-xs);
+}
+
+.expensesList {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-xs) 0 0 0;
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+.expenseItem {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  border-bottom: var(--border-width-thin) solid var(--color-divider);
+  background-color: var(--color-surface);
+}
+
+.expenseItem:last-child {
+  border-bottom: none;
+}
+
+.expenseName {
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2xs);
+}
+
+.expenseInfo {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.expenseAmount {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+}
+
+.convertedAmount {
+  margin-left: var(--space-xs);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}

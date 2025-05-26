@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useRouter } from 'next/navigation';
 import Timeline from '../components/ui/Timeline';
-import { groupNearbyExpenses, calculatePositionPercentage } from '../utils/timelineUtils';
+import { groupNearbyExpenses } from '../utils/timelineUtils';
 
 // Mock data
 const mockEvent = {
