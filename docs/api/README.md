@@ -1,6 +1,17 @@
-# Data Models Documentation Index
+# CyberEco Platform API Documentation
 
-This directory contains comprehensive documentation for all data models used across the JustSplit platform.
+> **🌿 CyberEco Vision**: This documentation covers the API design and data models for the CyberEco human-centered digital ecosystem, emphasizing digital sovereignty, wellbeing by design, and community connection.
+
+This directory contains comprehensive documentation for all data models and APIs used across the CyberEco platform, with JustSplit as the foundational application implementing our core values.
+
+## Platform Philosophy
+
+CyberEco APIs are designed with our core principles in mind:
+
+- **🔐 Digital Sovereignty**: Users control their data and digital identity
+- **🌱 Wellbeing by Design**: Technology that enhances rather than exploits
+- **🤝 Community Connection**: APIs that foster meaningful social interaction
+- **🔓 Open by Nature**: Transparent, extensible, and community-driven design
 
 ## Documentation Structure
 
@@ -12,16 +23,16 @@ This directory contains comprehensive documentation for all data models used acr
 
 ## Platform Architecture
 
-The JustSplit platform follows an NX monorepo architecture with the following structure:
+The CyberEco platform follows an NX monorepo architecture designed for human-centered application development:
 
-### Applications
-- **Hub App** (`apps/hub`) - Central authentication and app management
-- **JustSplit App** (`apps/justsplit`) - Core expense splitting functionality
+### Core Applications
+- **Hub App** (`apps/hub`) - Central authentication and app ecosystem management
+- **JustSplit App** (`apps/justsplit`) - Conscious expense sharing and financial wellbeing
 
-### Shared Libraries
-- **Shared Types** (`libs/shared-types`) - Platform-wide type definitions
-- **Firebase Config** (`libs/firebase-config`) - Shared Firebase configuration
-- **UI Components** (`libs/ui-components`) - Shared component library
+### Shared Ecosystem Libraries
+- **Shared Types** (`libs/shared-types`) - Platform-wide type definitions promoting consistency
+- **Firebase Config** (`libs/firebase-config`) - Shared infrastructure respecting data sovereignty
+- **UI Components** (`libs/ui-components`) - Human-centered design system components
 
 ## Data Model Categories
 

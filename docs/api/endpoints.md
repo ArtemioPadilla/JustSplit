@@ -1,6 +1,15 @@
-# JustSplit API Endpoints
+# CyberEco Platform API Endpoints
 
-This document outlines the API endpoints available in the JustSplit application, including their request and response formats.
+> **🌿 CyberEco Context**: These API endpoints embody our platform's human-centered design philosophy, prioritizing user autonomy, transparent data handling, and conscious technology interactions.
+
+This document outlines the API endpoints available across CyberEco applications, with current implementation in JustSplit demonstrating our core values of digital sovereignty and wellbeing by design.
+
+## 🎯 API Design Principles
+
+- **🔐 Privacy First**: All endpoints respect user data sovereignty
+- **🤝 Community Focused**: APIs designed to strengthen social connections
+- **🌱 Wellbeing Oriented**: Technology that enhances rather than exploits user attention
+- **🔓 Transparency**: Clear, documented, and open endpoint behavior
 
 ## Base URL
 

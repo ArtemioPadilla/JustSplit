@@ -1,8 +1,16 @@
-# Project Roadmap for JustSplit
+# CyberEco Platform Development Roadmap
 
-## Overview
+> **🌿 Human-Centered Evolution**: This roadmap outlines CyberEco's journey toward building a comprehensive human-centered digital ecosystem that prioritizes digital sovereignty, wellbeing by design, and meaningful community connections.
 
-The JustSplit project roadmap outlines the planned features, enhancements, and timelines for the application. This document serves as a guide for the development team and stakeholders to track progress and align on future goals.
+## 🎯 Vision Alignment
+
+Our development roadmap supports CyberEco's mission to create technology that:
+- **🔐 Empowers Digital Sovereignty**: User-controlled data and digital identity
+- **🌱 Promotes Wellbeing**: Technology that enhances rather than exploits human attention
+- **🤝 Fosters Community**: Applications that strengthen social bonds and mutual aid
+- **🔓 Embraces Openness**: Transparent, inclusive, and collaborative development
+
+For comprehensive platform evolution details, see our [main ROADMAP.md](../ROADMAP.md) covering the three-phase transition from centralized foundation to decentralized ecosystem.
 
 ## Roadmap Timeline
 

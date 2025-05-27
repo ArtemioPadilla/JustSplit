@@ -1,7 +1,7 @@
 # CyberEco Platform
 
-> 🌐 **A modular platform for digital lifestyle management**  
-> Starting with expense splitting, expanding to productivity, health, education, and more.
+> 🌐 **A human-centered digital ecosystem for conscious, connected, and sustainable living**  
+> In a world where digital life is fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
@@ -26,11 +26,27 @@ That's it! 🎉 You're now running the CyberEco platform locally.
 
 ## 🏗️ What is CyberEco?
 
-CyberEco is a **platform** that hosts multiple lifestyle management applications:
+CyberEco is not just another app. It is a **modular digital ecosystem** — an operating system for life — where each platform solves a real need while contributing to a greater whole.
+
+### Platform Philosophy
+
+We believe your digital presence should empower you, not exploit you. Your identity should belong to you. Your data should serve you. Your actions should connect you with others meaningfully.
+
+### Core Values
+
+- **🔐 Digital Sovereignty** - You own your identity, your data, your narrative
+- **🌱 Wellbeing by Design** - Tech must serve your life — not consume it
+- **🔗 Interconnection with Purpose** - Every platform is useful alone, but transformative together
+- **🤝 Community is Core** - We build tools for individuals, powered by the collective
+- **📖 Open by Nature** - Modular, transparent, and interoperable wherever possible
+
+### Current Applications
 
 - **🏠 Hub** - Central authentication and app launcher
 - **💰 JustSplit** - Expense splitting and financial management
 - **🚀 Future Apps** - TaskFlow, HealthTrack, LearnPath, TimeSync, DataVault
+
+At the center is the **CyberEco Hub** — your identity, your dashboard, your digital home.
 
 ## 📁 Project Structure
 
@@ -182,11 +198,11 @@ CyberEco will expand into a comprehensive digital lifestyle platform:
 
 Beyond the current centralized architecture, CyberEco envisions a **decentralized future** where:
 
-- **📱 Mobile P2P Network**: Your phone becomes part of a global, distributed computing network
-- **🔒 Complete Data Sovereignty**: You own and control 100% of your personal data  
-- **🎯 Privacy by Design**: Zero-knowledge proofs enable sharing without exposing sensitive information
-- **💰 Earn from Participation**: Get rewarded for contributing resources to the network
-- **🌍 Global Accessibility**: No central servers, no geographic restrictions, no corporate gatekeepers
+- **📱 Mobile P2P Networks** - Your phone becomes part of a global, distributed computing network
+- **🔒 Complete Data Sovereignty** - You own and control 100% of your personal data  
+- **🎯 Privacy by Design** - Zero-knowledge proofs enable sharing without exposing sensitive information
+- **💰 Earn from Participation** - Get rewarded for contributing resources to the network
+- **🌍 Global Accessibility** - No central servers, no geographic restrictions, no corporate gatekeepers
 
 > 🚀 **[Read the Full Decentralized Vision](./docs/vision/decentralized-future.md)** - Comprehensive roadmap for transitioning to a blockchain-based, privacy-first ecosystem powered by mobile devices and cryptographic guarantees.
 
@@ -199,7 +215,7 @@ Beyond the current centralized architecture, CyberEco envisions a **decentralize
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+Elastic License 2.0 (ELv2) - see [LICENSE](LICENSE) file for details.
 
 ---
 

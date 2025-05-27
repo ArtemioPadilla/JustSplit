@@ -1,19 +1,26 @@
-# JustSplit Platform Style Guide - NX Monorepo
+# CyberEco Platform Design System
 
-## Overview
+> **🌿 Human-Centered Design Philosophy**: This design system embodies CyberEco's commitment to wellbeing by design, creating interfaces that enhance rather than exploit human attention while fostering meaningful digital interactions.
 
-This style guide defines the design system for the JustSplit platform, which follows an NX monorepo architecture with multiple applications and shared libraries. This guide ensures consistent visual design across all platform applications while allowing for app-specific customizations.
+## 🎯 Design Principles
+
+Our design system is built on CyberEco's core values:
+
+- **🔐 Digital Sovereignty**: Interfaces that empower user control and transparency
+- **🌱 Wellbeing by Design**: Visual design that promotes calm, focused interaction
+- **🤝 Community Connection**: Elements that encourage authentic social engagement
+- **🔓 Open by Nature**: Accessible, inclusive design for all users
 
 ## Platform Architecture
 
-### Applications
-- **Hub App** (`apps/hub`): Central authentication and application management
-- **JustSplit App** (`apps/justsplit`): Core expense splitting functionality
+### Human-Centered Applications
+- **Hub App** (`apps/hub`): Mindful authentication and ecosystem navigation
+- **JustSplit App** (`apps/justsplit`): Conscious expense sharing and financial wellbeing
 
-### Shared Libraries
-- **UI Components** (`libs/ui-components`): Shared component library
-- **Shared Types** (`libs/shared-types`): Platform-wide type definitions
-- **Firebase Config** (`libs/firebase-config`): Shared Firebase configuration
+### Shared Design Libraries
+- **UI Components** (`libs/ui-components`): Human-centered component library
+- **Shared Types** (`libs/shared-types`): Consistent design pattern definitions
+- **Firebase Config** (`libs/firebase-config`): Transparent data interaction patterns
 
 ## Design System Hierarchy
 

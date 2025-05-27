@@ -1,12 +1,21 @@
-# Firebase Deployment Guide
+# CyberEco Platform Deployment Guide
 
-This guide covers deploying JustSplit applications to Firebase with a focus on low operational costs.
+> **🌿 Sustainable Infrastructure**: This deployment guide reflects CyberEco's commitment to cost-effective, environmentally conscious hosting that supports digital sovereignty and community access.
 
-## Overview
+## 🎯 Deployment Philosophy
 
-JustSplit uses a multi-project Firebase architecture:
-- **Hub Project**: Handles authentication for all apps
-- **App Projects**: Individual Firebase projects for each application
+Our deployment strategy embodies CyberEco values:
+
+- **🌱 Sustainable Hosting**: Minimize environmental impact through efficient resource usage
+- **🔐 Data Sovereignty**: Deploy with user data ownership and privacy as priorities
+- **💰 Community Accessibility**: Keep operational costs low to ensure broad access
+- **🔓 Transparent Operations**: Open deployment practices and clear cost structures
+
+## Platform Overview
+
+CyberEco uses a human-centered multi-project Firebase architecture:
+- **Hub Project**: Mindful authentication and ecosystem coordination
+- **App Projects**: Individual, sovereign application deployments
 
 ## Prerequisites
 

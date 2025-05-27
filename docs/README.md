@@ -1,10 +1,24 @@
 # CyberEco Platform Documentation
 
-Welcome to the CyberEco Platform documentation! This comprehensive NX monorepo contains multiple applications designed for digital lifestyle management with low-cost deployment on Firebase or on-premises hosting.
+Welcome to the CyberEco Platform documentation! This comprehensive NX monorepo contains multiple applications designed for conscious, connected, and sustainable digital living.
 
 ## 🌟 Platform Overview
 
-CyberEco is a modular platform featuring:
+CyberEco is a human-centered digital ecosystem — an operating system for life — where each platform solves a real need while contributing to a greater whole.
+
+### Platform Philosophy
+
+We believe your digital presence should empower you, not exploit you. Your identity should belong to you. Your data should serve you. Your actions should connect you with others meaningfully.
+
+### Core Values
+
+- **🔐 Digital Sovereignty** - You own your identity, your data, your narrative
+- **🌱 Wellbeing by Design** - Tech must serve your life — not consume it
+- **🔗 Interconnection with Purpose** - Every platform is useful alone, but transformative together
+- **🤝 Community is Core** - We build tools for individuals, powered by the collective
+- **📖 Open by Nature** - Modular, transparent, and interoperable wherever possible
+
+### Current Applications
 - **Hub** - Central authentication and app launcher
 - **JustSplit** - Comprehensive expense splitting application
 - **Future Apps** - TaskFlow, HealthTrack, LearnPath, and more
@@ -45,7 +59,9 @@ CyberEco is a modular platform featuring:
 ### 📋 Project Planning
 - **[Project Roadmap](./planning/project-roadmap.md)** - Feature roadmap and timeline
 - **[Milestones](./planning/milestones.md)** - Release milestones and goals
-- **[Requirements](./requirements/)** - Functional and non-functional requirements
+
+### 📱 Application-Specific Documentation
+- **[JustSplit App Docs](../apps/justsplit/docs/README.md)** - JustSplit-specific requirements, features, and implementation details
 
 ### 🔮 Future Vision & Strategy
 - **[Vision Overview](./vision/README.md)** - Navigation index for vision documents

@@ -1,6 +1,16 @@
-# Contributing to JustSplit
+# Contributing to CyberEco Platform
 
-Thank you for your interest in contributing to JustSplit! We welcome contributions from the community to help improve the project. Please follow the guidelines below to ensure a smooth contribution process.
+> **🌿 Welcome to the CyberEco Community**: Thank you for your interest in contributing to our human-centered digital ecosystem! We're building technology that prioritizes human wellbeing, digital sovereignty, and meaningful community connections.
+
+## 🎯 Our Mission
+
+We're creating a platform that embodies:
+- **🔐 Digital Sovereignty**: Technology that empowers rather than exploits
+- **🌱 Wellbeing by Design**: Applications that enhance human flourishing
+- **🤝 Community Core**: Building tools that strengthen social bonds
+- **🔓 Open by Nature**: Transparent, inclusive, and collaborative development
+
+Your contributions help us advance this vision of conscious technology.
 
 ## How to Contribute
 
@@ -16,15 +26,20 @@ Thank you for your interest in contributing to JustSplit! We welcome contributio
 
 4. **Development Workflow**: Familiarize yourself with our [Development Workflow](development-workflow.md) to understand the branching strategies, code review process, and deployment procedures.
 
-## Guidelines for Contributions
+## Guidelines for Conscious Contributions
 
-- Ensure that your code is well-documented and includes comments where necessary.
-- Write unit tests for new features and ensure that existing tests pass.
-- Keep your changes focused and avoid making unrelated modifications in a single pull request.
-- Follow the project's issue template when reporting bugs or suggesting features.
+- **Human-Centered Design**: Ensure your code promotes user wellbeing and autonomy
+- **Ethical Documentation**: Write clear, accessible documentation that respects user intelligence
+- **Community-Focused Testing**: Write tests that validate not just functionality but user experience
+- **Mindful Development**: Keep changes focused and consider their impact on the broader ecosystem
+- **Values Alignment**: Follow our platform philosophy in both code and community interactions
 
-## Community
+## 🌱 Community Values
 
-Join our community discussions and stay updated on project developments. We encourage you to share your ideas and feedback!
+Join our movement toward conscious technology! We encourage:
+- **Collaborative Learning**: Share knowledge and grow together
+- **Inclusive Innovation**: Everyone's perspective matters in building human-centered tech
+- **Sustainable Development**: Balance rapid iteration with thoughtful, lasting solutions
+- **Open Dialogue**: Honest, respectful communication about technology's role in society
 
-Thank you for helping us make JustSplit better!
+Thank you for helping us build technology that truly serves humanity!

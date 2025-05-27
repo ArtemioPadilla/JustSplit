@@ -204,3 +204,5 @@ firestore-debug.log
 ui-debug.log
 .firebaserc
 .runtimeconfig.json
+
+old/

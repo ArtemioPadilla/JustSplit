@@ -1,33 +1,39 @@
 # CyberEco Platform Architecture Overview
 
+> **🌿 CyberEco Vision**: Building a human-centered digital ecosystem for conscious, connected, and sustainable living through modular, interoperable applications.
+
 > **📋 Documentation Update**: This document provides the original platform overview. For updated NX monorepo architecture documentation, see [**NX Monorepo Architecture**](./nx-monorepo-architecture.md).
 
 ## 🏗️ System Architecture
 
-CyberEco is a comprehensive digital lifestyle management platform built as an NX monorepo. The platform follows a microservices-like architecture where each application serves a specific domain while sharing common infrastructure and authentication.
+CyberEco is a comprehensive human-centered digital ecosystem built as an NX monorepo. The platform follows a microservices-like architecture where each application serves a specific domain while sharing common infrastructure, authentication, and core values of digital sovereignty, wellbeing by design, and community connection.
 
 ## 🎯 Design Principles
 
-### 1. **Modular Architecture**
-- **Separation of Concerns**: Each app handles a specific domain (auth, expense management, etc.)
-- **Shared Libraries**: Common functionality in reusable libraries
-- **Independent Deployment**: Apps can be deployed independently
+### 1. **Human-Centered Modular Architecture**
+- **Digital Sovereignty**: Each app respects user autonomy and data ownership
+- **Wellbeing by Design**: Technology that enhances rather than exploits human attention
+- **Separation of Concerns**: Each app handles a specific domain while promoting holistic living
+- **Shared Values**: Common ethical framework and user-centric design principles
+- **Independent Yet Connected**: Apps can operate independently while fostering meaningful connections
 
-### 2. **Scalable Monorepo**
-- **NX Workspace**: Advanced build system with caching and dependency management
-- **Code Sharing**: Shared types, components, and utilities
-- **Incremental Builds**: Only rebuild what changed
+### 2. **Conscious Technology Monorepo**
+- **NX Workspace**: Advanced build system optimized for sustainable development practices
+- **Mindful Code Sharing**: Shared types, components, and utilities that promote consistency
+- **Incremental Evolution**: Only rebuild what changed, minimizing computational waste
+- **Community Contribution**: Architecture designed for collaborative development
 
-### 3. **Firebase-First Backend**
-- **Multi-Project Setup**: Separate Firebase projects for different concerns
-- **Unified Authentication**: Central auth system with token verification
-- **Cost-Effective**: Serverless architecture with generous free tiers
+### 3. **Open and Transparent Backend**
+- **Multi-Project Setup**: Separate Firebase projects promoting data sovereignty
+- **Unified Authentication**: Central auth system respecting privacy and user choice
+- **Sustainable Architecture**: Serverless design minimizing environmental impact
+- **Future-Ready**: Designed for eventual decentralized transition
 
-### 4. **Developer Experience**
-- **TypeScript**: Type safety across the entire platform
-- **Hot Reload**: Fast development cycles
-- **Testing**: Comprehensive test coverage with Jest
-- **Documentation**: Extensive docs and code comments
+### 4. **Holistic Developer Experience**
+- **TypeScript**: Type safety promoting code reliability and trust
+- **Rapid Iteration**: Fast development cycles for responsive community needs
+- **Comprehensive Testing**: Quality assurance aligned with platform values
+- **Living Documentation**: Docs that evolve with community input and platform growth
 
 ## 🌐 High-Level Architecture
 

@@ -4,6 +4,8 @@
 
 This document provides comprehensive documentation for all data models used across the CyberEco platform, including the Hub application for authentication and the JustSplit application for expense management. The platform follows a modular NX monorepo architecture with shared types and app-specific models.
 
+CyberEco is a human-centered digital ecosystem where each application solves real needs while contributing to a greater whole. This data architecture reflects our values of digital sovereignty, privacy by design, and user empowerment.
+
 ## Architecture
 
 ### Shared Types Library (`libs/shared-types`)
