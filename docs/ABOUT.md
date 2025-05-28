@@ -69,11 +69,24 @@ To create a modular digital ecosystem — an operating system for life — where
 
 ### 🚀 Future Applications
 **Expanding Ecosystem**
-- **TaskFlow** - Project and task management with community features
-- **HealthTrack** - Personal wellness tracking with privacy-first design
-- **LearnPath** - Educational content and progress with peer learning
-- **TimeSync** - Calendar and scheduling with community coordination
-- **DataVault** - Personal data management with full user control
+
+#### Priority Applications
+- **Somos** - Family and Family exploration, cultural heritage platform and observatory
+- **Demos** - Transparent voting and community decision-making platform and organization
+- **Plantopia** - Smart gardening platform with plant care knowledge and community sharing
+
+#### Secondary Applications
+- **Nexus** - Digital wellbeing social media hub with integrated platform management
+- **MyWealth** - Personal finance platform with goal tracking and investment management
+- **CrowdPool** - Community tasks system for collaborative problem-solving
+
+#### Future Planned Applications
+- **Education Hub** - Learning platform with skill-sharing and peer education
+- **Healthy** - Health recommendations and wellness tracking with privacy protections
+- **PetPal** - Pet health management and care tracking
+- **MyData** - Personal data control panel and sovereignty tools
+- **LawPal** - AI-assisted legal guidance and document management
+- **TravelMate** - Trip planning and travel companion with local discoveries
 
 ## 🔮 Our Future Vision
 

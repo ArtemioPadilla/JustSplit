@@ -23,7 +23,9 @@
       "Bash(pkill:*)",
       "Bash(nx test:*)",
       "Bash(npm test)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "WebFetch(domain:opensource.org)",
+      "WebFetch(domain:choosealicense.com)"
     ],
     "deny": []
   }

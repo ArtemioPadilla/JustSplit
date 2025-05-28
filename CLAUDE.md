@@ -4,18 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**CyberEco Monorepo** - A comprehensive platform for digital lifestyle management starting with expense splitting (JustSplit) and central authentication (Hub). This NX-powered monorepo uses advanced caching, dependency management, and parallel execution for optimal developer experience.
+**CyberEco Monorepo** - A comprehensive platform for digital lifestyle management starting with expense splitting (JustSplit) and central authentication (Hub), expanding to priority applications like Somos (family roots explorer), Demos (community governance), and Plantopia (smart gardening). This NX-powered monorepo uses advanced caching, dependency management, and parallel execution for optimal developer experience.
 
 ## NX Monorepo Structure
 
 This is an NX 19.8.14 monorepo with the following structure:
 - `apps/hub` - Central authentication hub application (Next.js, port 3000)
 - `apps/justsplit` - Expense splitting application (Next.js, port 4000)
+- `apps/somos` - Family roots explorer application (planned, Next.js)
+- `apps/demos` - Community governance application (planned, Next.js)
+- `apps/plantopia` - Smart gardening application (planned, Next.js)
 - `libs/shared-types` - Shared TypeScript types and interfaces
 - `libs/firebase-config` - Firebase configuration utilities and helpers
 - `libs/ui-components` - Shared React UI components library
 - `firebase/hub/` - Hub Firebase deployment configuration
 - `firebase/justsplit/` - JustSplit Firebase deployment configuration
+- `firebase/future-apps/` - Templates for future app Firebase configurations
 - `nx.json` - NX workspace configuration with caching and task runners
 
 ## Development Commands
@@ -139,6 +143,9 @@ Each app uses React Context for global state:
 Core entities defined in `libs/shared-types/src/`:
 - Hub entities: `AuthUser`, `HubUser`, `App`, `AppPermission`
 - JustSplit entities: `User`, `Group`, `Event`, `Expense`, `Settlement`
+- Somos entities (planned): `FamilyMember`, `Relationship`, `Memory`, `CulturalBackground`
+- Demos entities (planned): `Community`, `Proposal`, `Vote`, `Decision`
+- Plantopia entities (planned): `Plant`, `Garden`, `CareEvent`, `PlantSpecies`
 
 **NX Project Configuration**:
 - Each app/lib has a `project.json` defining build targets and executors

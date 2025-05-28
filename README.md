@@ -124,7 +124,7 @@ npm run hosting:hub      # Test Hub with hosting emulator
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions that align with our philosophy of digital sovereignty and human-centered design! All contributors must agree to our [Contributor Agreement](./CONTRIBUTOR-AGREEMENT.md).
 
 ### 1. **Setup Development Environment**
 ```bash
@@ -149,11 +149,14 @@ git push origin feature/your-feature-name
 # Create Pull Request
 ```
 
+By submitting a contribution, you agree to our [Contributor Agreement](./CONTRIBUTOR-AGREEMENT.md), which embodies our commitment to digital sovereignty and community-first development.
+
 ### 📋 Contribution Guidelines
 - **Code Style**: Follow TypeScript strict mode and ESLint rules
 - **Testing**: Write tests for new features (aim for 70% coverage)
 - **Documentation**: Update docs for any architectural changes
 - **Commits**: Use [conventional commits](https://conventionalcommits.org/)
+- **Philosophy**: Align with our [Platform Philosophy](./docs/PHILOSOPHY.md)
 
 ## 🏗️ Architecture
 
@@ -215,7 +218,9 @@ Beyond the current centralized architecture, CyberEco envisions a **decentralize
 
 ## 📄 License
 
-Elastic License 2.0 (ELv2) - see [LICENSE](LICENSE) file for details.
+CyberEco Digital Sovereignty License v1.0 - see [CYBERECO-LICENSE.md](CYBERECO-LICENSE.md) for details.
+
+This custom license is designed to protect user sovereignty and prevent extractive business practices while allowing personal and commercial use that aligns with our philosophy. It allows you to use, modify, and deploy the software for yourself and your clients, while preventing third-party hosted services that would compromise user digital sovereignty.
 
 ---
 

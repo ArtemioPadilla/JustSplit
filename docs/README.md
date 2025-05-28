@@ -21,15 +21,35 @@ We believe your digital presence should empower you, not exploit you. Your ident
 ### Current Applications
 - **Hub** - Central authentication and app launcher
 - **JustSplit** - Comprehensive expense splitting application
-- **Future Apps** - TaskFlow, HealthTrack, LearnPath, and more
 
-> 🔮 **Future Vision**: CyberEco is evolving toward a fully decentralized ecosystem powered by mobile peer-to-peer networks, blockchain technology, and privacy-first cryptographic architecture. [Learn more about our decentralized future →](./vision/decentralized-future.md)
+### Priority Applications (Next Wave)
+- **Somos** - Family roots exploration and cultural heritage platform
+- **Demos** - Transparent voting and community decision-making platform
+- **Plantopia** - Smart gardening platform with plant care knowledge
+
+### Secondary Applications (Future)
+- **Nexus** - Digital wellbeing social media hub
+- **MyWealth** - Personal finance platform
+- **CrowdPool** - Community tasks and collaboration system
+
+> 🔮 **Future Vision**: CyberEco is evolving toward a fully decentralized ecosystem powered by mobile peer-to-peer networks, blockchain technology, and privacy-first cryptographic architecture. Our roadmap spans multiple applications including Somos, Demos, and Plantopia, building toward our decentralized future. [Learn more about our vision →](./vision/decentralized-future.md)
 
 ## 📚 Documentation Structure
 
+### 📄 Legal & Community
+- **[CYBERECO-LICENSE.md](../CYBERECO-LICENSE.md)** - CyberEco Digital Sovereignty License
+- **[CONTRIBUTOR-AGREEMENT.md](../CONTRIBUTOR-AGREEMENT.md)** - Contributor legal agreement
+- **[PHILOSOPHY.md](./PHILOSOPHY.md)** - Platform philosophy and principles
+- **[Licensing](./development/licensing.md)** - License and agreement explanations
+
+### 💻 Applications Documentation
+- **[Applications Overview](./applications/README.md)** - Complete application ecosystem documentation
+- **[Priority Applications](./applications/priority-apps.md)** - Detailed specifications for Somos, Demos, and Plantopia
+- **[Application Matrix](./planning/app-matrix.md)** - Comprehensive overview of all CyberEco applications
+
 ### 🏗️ Architecture Documentation
 - **[System Overview](./architecture/overview.md)** - High-level platform architecture
-- **[NX Monorepo Architecture](./architecture/nx-monorepo-architecture.md)** - Complete NX monorepo structure and configuration
+- **[NX Monorepo Architecture](./architecture/nx-architecture-consolidated.md)** - Complete NX monorepo structure and configuration
 - **[Technical Design](./architecture/technical-design.md)** - Detailed technical specifications
 - **[Diagrams](./architecture/diagrams/)** - Architecture diagrams and visualizations
 
@@ -37,6 +57,7 @@ We believe your digital presence should empower you, not exploit you. Your ident
 - **[Getting Started](./development/getting-started.md)** - Comprehensive setup guide
 - **[Development Workflow](./development/development-workflow.md)** - Daily development practices
 - **[Contributing](./development/contributing.md)** - Contribution guidelines
+- **[Licensing](./development/licensing.md)** - Platform license and contributor agreement
 - **[Code Style](./development/code-style.md)** - Coding standards and best practices
 
 ### 🚀 Deployment Documentation
@@ -65,7 +86,9 @@ We believe your digital presence should empower you, not exploit you. Your ident
 
 ### 🔮 Future Vision & Strategy
 - **[Vision Overview](./vision/README.md)** - Navigation index for vision documents
-- **[Decentralized Future Vision](./vision/decentralized-future.md)** - Comprehensive roadmap for blockchain-based, privacy-first ecosystem with mobile P2P networks
+- **[Decentralized Future Vision](./vision/decentralized-future.md)** - Comprehensive roadmap for blockchain-based, privacy-first ecosystem
+- **[Platform Roadmap](./ROADMAP.md)** - Complete platform evolution timeline
+- **[Application Matrix](./planning/app-matrix.md)** - Full ecosystem of planned applications
 
 ## 🚀 Quick Start
 
@@ -229,13 +252,24 @@ nx g @nx/react:component Button --project=ui-components
 
 ## 🔮 Future Roadmap
 
-### Near-term Applications
-Planned applications for the CyberEco ecosystem:
-- **TaskFlow** - Project and task management
-- **HealthTrack** - Personal health and fitness tracking
-- **LearnPath** - Educational content and progress tracking
-- **TimeSync** - Calendar and scheduling management
-- **DataVault** - Personal data management and backup
+### Prioritized Application Development
+The comprehensive set of applications for the CyberEco ecosystem is prioritized as follows:
+
+**Current (Active Development)**
+- **Hub** - Central authentication and application management
+- **JustSplit** - Expense splitting and financial management
+
+**Priority Applications (Next Wave)**
+- **Somos** - Family roots exploration and cultural heritage platform
+- **Demos** - Transparent voting and community governance
+- **Plantopia** - Smart gardening and plant care platform
+
+**Secondary Applications (Future)**
+- **Nexus** - Digital wellbeing social media hub
+- **MyWealth** - Personal finance and investment tracking
+- **CrowdPool** - Community tasks system for collaboration
+
+**For the complete application ecosystem, see the [Application Matrix](./planning/app-matrix.md)**
 
 ### Long-term Vision: Decentralized Ecosystem
 The platform is evolving toward a revolutionary decentralized architecture featuring:
@@ -253,11 +287,13 @@ The platform is evolving toward a revolutionary decentralized architecture featu
 - **Issues**: Create an issue for bugs or feature requests
 - **Development**: See [Getting Started Guide](./development/getting-started.md)
 - **Contributing**: Check [Contributing Guidelines](./development/contributing.md)
+- **Licensing**: Review our [Licensing Documentation](./development/licensing.md)
 
 ## 📄 Additional Resources
 
-- **[Feature Matrix](./JustSplit%20Consolidated%20Feature%20Matrix%20and%20Detailed%20Roadmap.markdown)** - Comprehensive feature overview
-- **[Development Goals](./Short-Term%20Goals%20(Next%201-2%20Weeks).md)** - Current development priorities
+- **[Application Matrix](./planning/app-matrix.md)** - Comprehensive application ecosystem overview
+- **[Master Roadmap](./ROADMAP.md)** - Complete platform evolution timeline
+- **[Project Roadmap](./planning/project-roadmap.md)** - Detailed implementation timeline
 - **[Architecture Diagrams](./architecture/diagrams/)** - Visual system overviews
 
 ---

@@ -11075,6 +11075,16 @@
       },
       {
         "source": "justsplit-app",
+        "target": "npm:@types/node",
+        "type": "static"
+      },
+      {
+        "source": "justsplit-app",
+        "target": "npm:eslint",
+        "type": "static"
+      },
+      {
+        "source": "justsplit-app",
         "target": "npm:jest",
         "type": "static"
       },
@@ -11102,9 +11112,29 @@
         "source": "justsplit-app",
         "target": "npm:react",
         "type": "static"
+      },
+      {
+        "source": "justsplit-app",
+        "target": "npm:react-dom",
+        "type": "static"
+      },
+      {
+        "source": "justsplit-app",
+        "target": "npm:uuid",
+        "type": "static"
       }
     ],
     "hub": [
+      {
+        "source": "hub",
+        "target": "npm:@types/node",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:eslint",
+        "type": "static"
+      },
       {
         "source": "hub",
         "target": "npm:typescript",
@@ -11128,6 +11158,16 @@
       {
         "source": "hub",
         "target": "npm:next",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:react",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:react-dom",
         "type": "static"
       }
     ],

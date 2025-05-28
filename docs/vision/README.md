@@ -54,9 +54,10 @@
 
 | Phase | Timeline | Key Milestones |
 |-------|----------|----------------|
-| **Hybrid Foundation** | 2025-2026 | Protocol research, encryption by default, DID integration |
-| **Network Foundation** | 2026-2027 | Mobile nodes, blockchain deployment, P2P protocol |
-| **Full Decentralization** | 2027-2028 | Complete migration, data sovereignty, global accessibility |
+| **Centralized Foundation** | 2025-2028 | NX monorepo, Firebase, Hub & JustSplit development |
+| **Hybrid Foundation** | 2028-2030 | Protocol research, encryption by default, DID integration |
+| **Network Foundation** | 2030-2035 | Mobile nodes, blockchain deployment, P2P protocol |
+| **Full Decentralization** | 2035-* | Complete migration, data sovereignty, global accessibility |
 
 ---
 
@@ -116,13 +117,13 @@ interface NetworkEconomics {
 └── 🌱 Carbon-Negative Network Operations
 ```
 
-### Network Applications
+### Priority Network Applications
 - **JustSplit**: Decentralized expense sharing with privacy-preserving settlement
-- **TaskFlow**: Collaborative project management with encrypted team communication
-- **HealthTrack**: Personal health data with selective sharing to healthcare providers
-- **LearnPath**: Educational progress tracking with verifiable credentials
-- **TimeSync**: Calendar management with privacy-preserving scheduling
-- **DataVault**: Personal data backup and recovery with cryptographic guarantees
+- **Somos**: Family roots exploration with cultural heritage preservation
+- **Demos**: Community governance with transparent, verifiable voting
+- **Plantopia**: Smart gardening platform with community knowledge sharing
+- **Nexus**: Digital wellbeing social media hub with managed connections
+- **MyWealth**: Personal finance platform with privacy-preserving insights
 
 ---
 
