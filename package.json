@@ -5,8 +5,10 @@
   "license": "SEE LICENSE IN LICENSE",
   "description": "CyberEco - A comprehensive platform for digital lifestyle management starting with expense splitting (JustSplit) and central authentication (Hub)",
   "scripts": {
-    "dev": "nx run-many --target=dev --projects=justsplit-app,hub --parallel",
-    "build": "nx run-many --target=build --projects=justsplit-app,hub",
+    "dev": "nx run-many --target=dev --projects=justsplit-app,hub,website --parallel",
+    "dev:website": "cd apps/website && npm run dev",
+    "build": "nx run-many --target=build --projects=justsplit-app,hub,website",
+    "build:website": "cd apps/website && npm run build",
     "test": "nx run-many --target=test --all",
     "lint": "nx run-many --target=lint --all",
     "clean": "nx reset",
@@ -14,8 +16,10 @@
     "emulators:hosting": "firebase emulators:start --only hosting,auth,firestore,ui",
     "hosting:justsplit": "nx run justsplit-app:hosting:emulator",
     "hosting:hub": "nx run hub:hosting:emulator",
+    "hosting:website": "firebase serve --only hosting:website -p 5000",
     "hosting:dev:justsplit": "nx run justsplit-app:hosting:dev",
-    "hosting:dev:hub": "nx run hub:hosting:dev"
+    "hosting:dev:hub": "nx run hub:hosting:dev",
+    "hosting:dev:website": "concurrently \"npm run dev:website\" \"npm run hosting:website\""
   },
   "dependencies": {
     "jest": "^29.7.0"
@@ -33,6 +37,7 @@
     "@swc/helpers": ">=0.5.17",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "concurrently": "^8.2.0",
     "nx": "19.8.14",
     "typescript": "^5"
   }

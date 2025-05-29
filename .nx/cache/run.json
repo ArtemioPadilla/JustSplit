@@ -1,18 +1,29 @@
 {
   "run": {
-    "command": "nx test",
-    "startTime": "2025-05-26T05:42:39.318Z",
-    "endTime": "2025-05-26T05:42:48.799Z",
+    "command": "nx build website",
+    "startTime": "2025-05-29T05:37:19.192Z",
+    "endTime": "2025-05-29T05:37:25.525Z",
     "inner": false
   },
   "tasks": [
     {
-      "taskId": "justsplit-app:test",
-      "target": "test",
-      "projectName": "justsplit-app",
-      "hash": "11267751768529899288",
-      "startTime": "2025-05-26T05:42:39.335Z",
-      "endTime": "2025-05-26T05:42:48.799Z",
+      "taskId": "ui-components:build",
+      "target": "build",
+      "projectName": "ui-components",
+      "hash": "2848439388048435687",
+      "startTime": "2025-05-29T05:37:19.195Z",
+      "endTime": "2025-05-29T05:37:19.213Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    },
+    {
+      "taskId": "website:build:production",
+      "target": "build",
+      "projectName": "website",
+      "hash": "5270702704736576950",
+      "startTime": "2025-05-29T05:37:19.216Z",
+      "endTime": "2025-05-29T05:37:25.525Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 1

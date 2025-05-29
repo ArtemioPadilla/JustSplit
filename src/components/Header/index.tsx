@@ -72,7 +72,7 @@ const Header = () => {
             <div className={styles.logoText}>JustSplit</div>
           ) : (
             <Image 
-              src="/images/justsplit-logo.png" 
+              src="/images/justsplit-logo.svg" 
               alt="JustSplit Logo" 
               width={150}
               height={40}

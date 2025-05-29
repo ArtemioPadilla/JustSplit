@@ -14,4 +14,10 @@ echo "Deploying JustSplit..."
 echo "========================================="
 ./scripts/deploy-justsplit.sh
 
+# Deploy Website
+echo "========================================="
+echo "Deploying Website..."
+echo "========================================="
+./scripts/deploy-website.sh
+
 echo "All deployments complete!"

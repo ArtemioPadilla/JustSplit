@@ -143,15 +143,14 @@
             "parallelism": true
           },
           "build": {
-            "executor": "@nx/react:build",
+            "executor": "@nx/js:tsc",
             "outputs": [
               "{options.outputPath}"
             ],
             "options": {
               "outputPath": "dist/libs/ui-components",
-              "entryFile": "libs/ui-components/src/index.ts",
-              "project": "libs/ui-components/tsconfig.json",
-              "rollupConfig": "@nx/react/plugins/bundle-rollup"
+              "main": "libs/ui-components/src/index.ts",
+              "tsConfig": "libs/ui-components/tsconfig.json"
             },
             "configurations": {},
             "parallelism": true,
@@ -517,6 +516,175 @@
                 "cd firebase/justsplit && firebase deploy --only hosting:justsplit-app,firestore"
               ],
               "parallel": false
+            },
+            "configurations": {},
+            "parallelism": true
+          }
+        },
+        "$schema": "../../node_modules/nx/schemas/project-schema.json",
+        "projectType": "application",
+        "implicitDependencies": []
+      }
+    },
+    "website": {
+      "name": "website",
+      "type": "app",
+      "data": {
+        "root": "apps/website",
+        "sourceRoot": "apps/website/src",
+        "name": "website",
+        "tags": [
+          "npm:private"
+        ],
+        "metadata": {
+          "targetGroups": {
+            "NPM Scripts": [
+              "start"
+            ]
+          }
+        },
+        "targets": {
+          "start": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "start"
+            },
+            "metadata": {
+              "scriptContent": "next start",
+              "runCommand": "npm run start"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "build": {
+            "executor": "@nx/next:build",
+            "outputs": [
+              "{options.outputPath}"
+            ],
+            "defaultConfiguration": "production",
+            "options": {
+              "outputPath": "dist/apps/website",
+              "standalone": true
+            },
+            "configurations": {
+              "development": {
+                "outputPath": "apps/website"
+              },
+              "production": {}
+            },
+            "parallelism": true,
+            "dependsOn": [
+              "^build"
+            ],
+            "inputs": [
+              "production",
+              "^production"
+            ],
+            "cache": true
+          },
+          "serve": {
+            "executor": "@nx/next:server",
+            "defaultConfiguration": "development",
+            "options": {
+              "buildTarget": "website:build",
+              "dev": true,
+              "port": 5001
+            },
+            "configurations": {
+              "development": {
+                "buildTarget": "website:build:development",
+                "dev": true
+              },
+              "production": {
+                "buildTarget": "website:build:production",
+                "dev": false
+              }
+            },
+            "parallelism": true,
+            "dependsOn": [
+              "^build"
+            ]
+          },
+          "dev": {
+            "executor": "@nx/next:server",
+            "defaultConfiguration": "development",
+            "options": {
+              "buildTarget": "website:build",
+              "dev": true,
+              "port": 5001
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "lint": {
+            "executor": "@nx/linter:eslint",
+            "outputs": [
+              "{options.outputFile}"
+            ],
+            "options": {
+              "lintFilePatterns": [
+                "apps/website/**/*.{ts,tsx,js,jsx}"
+              ]
+            },
+            "configurations": {},
+            "parallelism": true,
+            "inputs": [
+              "default",
+              "{workspaceRoot}/.eslintrc.json"
+            ],
+            "cache": true
+          },
+          "test": {
+            "executor": "@nx/jest:jest",
+            "outputs": [
+              "{workspaceRoot}/coverage/{projectRoot}"
+            ],
+            "options": {
+              "jestConfig": "apps/website/jest.config.js"
+            },
+            "configurations": {},
+            "parallelism": true,
+            "inputs": [
+              "default",
+              "^production",
+              "{workspaceRoot}/jest.preset.js"
+            ],
+            "cache": true
+          },
+          "hosting:emulator": {
+            "executor": "nx:run-commands",
+            "options": {
+              "command": "firebase serve --only hosting:website -p 5000",
+              "cwd": "."
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "hosting:dev": {
+            "executor": "nx:run-commands",
+            "options": {
+              "commands": [
+                "nx run website:dev",
+                "nx run website:hosting:emulator"
+              ],
+              "parallel": true
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "deploy": {
+            "executor": "nx:run-commands",
+            "options": {
+              "command": "firebase deploy --only hosting:website",
+              "cwd": "."
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "export": {
+            "executor": "@nx/next:export",
+            "options": {
+              "buildTarget": "website:build:production"
             },
             "configurations": {},
             "parallelism": true
@@ -11065,8 +11233,30 @@
         "type": "static"
       }
     ],
-    "ui-components": [],
-    "shared-types": [],
+    "ui-components": [
+      {
+        "source": "ui-components",
+        "target": "npm:react",
+        "type": "static"
+      },
+      {
+        "source": "ui-components",
+        "target": "npm:react-dom",
+        "type": "static"
+      },
+      {
+        "source": "ui-components",
+        "target": "npm:typescript",
+        "type": "static"
+      }
+    ],
+    "shared-types": [
+      {
+        "source": "shared-types",
+        "target": "npm:typescript",
+        "type": "static"
+      }
+    ],
     "justsplit-app": [
       {
         "source": "justsplit-app",
@@ -11121,6 +11311,48 @@
       {
         "source": "justsplit-app",
         "target": "npm:uuid",
+        "type": "static"
+      }
+    ],
+    "website": [
+      {
+        "source": "website",
+        "target": "npm:@nx/next",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:@types/node",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:eslint",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:typescript",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:next",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:react",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:react-dom",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "ui-components",
         "type": "static"
       }
     ],

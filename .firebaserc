@@ -3,6 +3,20 @@
     "default": "justsplit-eef51",
     "justsplit": "justsplit-eef51"
   },
-  "targets": {},
+  "targets": {
+    "justsplit-eef51": {
+      "hosting": {
+        "justsplit-app": [
+          "justsplit-eef51"
+        ],
+        "hub": [
+          "hub-justsplit"
+        ],
+        "website": [
+          "cybereco-website"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

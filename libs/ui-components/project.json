@@ -5,13 +5,12 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nx/react:build",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/ui-components",
-        "entryFile": "libs/ui-components/src/index.ts",
-        "project": "libs/ui-components/tsconfig.json",
-        "rollupConfig": "@nx/react/plugins/bundle-rollup"
+        "main": "libs/ui-components/src/index.ts",
+        "tsConfig": "libs/ui-components/tsconfig.json"
       }
     },
     "lint": {

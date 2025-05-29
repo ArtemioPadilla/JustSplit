@@ -19,6 +19,7 @@ We believe your digital presence should empower you, not exploit you. Your ident
 - **📖 Open by Nature** - Modular, transparent, and interoperable wherever possible
 
 ### Current Applications
+- **Website** - Main CyberEco marketing website and application hub
 - **Hub** - Central authentication and app launcher
 - **JustSplit** - Comprehensive expense splitting application
 
@@ -107,6 +108,7 @@ npm install
 
 # Start all applications
 npm run dev
+# Website: http://localhost:5000
 # Hub: http://localhost:3000
 # JustSplit: http://localhost:4000
 ```
@@ -119,6 +121,7 @@ npm run test
 # Run specific app tests
 nx test hub
 nx test justsplit-app
+nx test website
 
 # Run with coverage
 nx test justsplit-app --coverage
@@ -131,6 +134,11 @@ npm run build
 
 # Build specific application
 nx build justsplit-app --configuration=production
+nx build hub --configuration=production
+nx build website
+
+# Build website (static export)
+cd apps/website && npm run build
 ```
 
 ## 🏗️ Platform Architecture
@@ -139,13 +147,16 @@ nx build justsplit-app --configuration=production
 ```
 cybereco-monorepo/
 ├── apps/                    # Applications
+│   ├── website/            # Main marketing website
 │   ├── hub/                # Central authentication hub
 │   └── justsplit/          # Expense splitting application
 ├── libs/                   # Shared libraries
 │   ├── shared-types/       # Common TypeScript types
 │   ├── firebase-config/    # Firebase utilities
+│   ├── shared-assets/      # Common assets
 │   └── ui-components/      # Shared UI components
 ├── firebase/               # Firebase configurations
+│   ├── website/           # Website Firebase config
 │   ├── hub/               # Hub Firebase config
 │   └── justsplit/         # JustSplit Firebase config
 ├── scripts/               # Deployment scripts
@@ -162,6 +173,14 @@ cybereco-monorepo/
 - **CI/CD**: GitHub Actions
 
 ## 📱 Applications
+
+### Website Application
+**Port: 5000** | **Purpose**: Marketing website and application hub
+
+Features:
+- Application showcase
+- Platform features and benefits
+- Shared branding and assets
 
 ### Hub Application
 **Port: 3000** | **Purpose**: Central authentication and app launcher
@@ -191,8 +210,9 @@ Features:
 npm run emulators
 
 # Start hosting emulators for testing
-npm run hosting:justsplit  # localhost:5000
-npm run hosting:hub       # localhost:5001
+npm run hosting:website    # localhost:5000
+npm run hosting:justsplit  # localhost:4000
+npm run hosting:hub       # localhost:3000
 ```
 
 ### NX Commands
@@ -256,6 +276,7 @@ nx g @nx/react:component Button --project=ui-components
 The comprehensive set of applications for the CyberEco ecosystem is prioritized as follows:
 
 **Current (Active Development)**
+- **Website** - Marketing website and application hub
 - **Hub** - Central authentication and application management
 - **JustSplit** - Expense splitting and financial management
 

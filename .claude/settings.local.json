@@ -25,8 +25,24 @@
       "Bash(npm test)",
       "Bash(npm test:*)",
       "WebFetch(domain:opensource.org)",
-      "WebFetch(domain:choosealicense.com)"
+      "WebFetch(domain:choosealicense.com)",
+      "Bash(nx g:*)",
+      "Bash(npx nx:*)",
+      "Bash(npm run build:website:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx serve:*)",
+      "Bash(python3:*)",
+      "Bash(npm run export:*)",
+      "Bash(nx run:*)",
+      "Bash(npm ls:*)",
+      "Bash(nx reset:*)",
+      "Bash(nx show project:*)",
+      "Bash(node:*)",
+      "Bash(nx serve:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
