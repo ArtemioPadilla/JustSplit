@@ -26,7 +26,21 @@ const nestedTranslations = {
       home: 'Home',
       portfolio: 'Solutions',
       about: 'About Us',
-      help: 'Help'
+      help: 'Help',
+      hub: 'Hub',
+      settings: 'Settings'
+    },
+    
+    // Theme settings
+    theme: {
+      title: 'Theme',
+      light: 'Light',
+      dark: 'Dark'
+    },
+    
+    // Language settings
+    language: {
+      title: 'Language'
     },
     
     footer: {
@@ -558,7 +572,21 @@ const nestedTranslations = {
       home: 'Inicio',
       portfolio: 'Soluciones',
       about: 'Nosotros',
-      help: 'Ayuda'
+      help: 'Ayuda',
+      hub: 'Hub',
+      settings: 'Configuración'
+    },
+    
+    // Theme settings
+    theme: {
+      title: 'Tema',
+      light: 'Claro',
+      dark: 'Oscuro'
+    },
+    
+    // Language settings
+    language: {
+      title: 'Idioma'
     },
     
     footer: {

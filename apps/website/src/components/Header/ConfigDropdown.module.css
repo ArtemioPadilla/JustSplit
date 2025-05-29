@@ -1,0 +1,233 @@
+.configDropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.configButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+}
+
+.configButton:hover {
+  background: var(--surface-hover, var(--surface));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-light, var(--primary));
+  transform: translateY(-2px);
+}
+
+.configButton.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 98, 65, 0.3);
+  border-color: var(--primary);
+}
+
+.configIcon {
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.configIcon.spinning {
+  animation: spin 0.5s ease-in-out;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+  z-index: 1000;
+  animation: dropdownSlideIn 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdownHeader {
+  padding: 16px 20px 12px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #005235));
+  color: white;
+}
+
+.dropdownTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.dropdownSection {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdownSection:last-child {
+  border-bottom: none;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sectionIcon {
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.sectionTitle {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.themeOptions,
+.languageOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.themeOption,
+.languageOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+
+.themeOption:hover,
+.languageOption:hover {
+  background: var(--surface-hover, rgba(0, 98, 65, 0.05));
+  transform: translateX(4px);
+}
+
+.themeOption.selected,
+.languageOption.selected {
+  background: var(--primary-light, rgba(0, 98, 65, 0.1));
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.themeIcon {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.languageFlag {
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+}
+
+.checkIcon {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--primary);
+  opacity: 0.8;
+}
+
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .dropdownMenu {
+    width: 260px;
+    right: -10px;
+  }
+
+  .dropdownHeader {
+    padding: 14px 16px 10px;
+  }
+
+  .dropdownSection {
+    padding: 14px 16px;
+  }
+
+  .themeOption,
+  .languageOption {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dropdownMenu {
+    width: calc(100vw - 40px);
+    right: -20px;
+    max-width: 280px;
+  }
+
+  .configButton {
+    width: 36px;
+    height: 36px;
+  }
+
+  .configIcon {
+    font-size: 1rem;
+  }
+}
+
+/* Dark theme specific adjustments */
+[data-theme="dark"] .dropdownMenu {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .languageFlag {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .themeOption:hover,
+[data-theme="dark"] .languageOption:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .themeOption.selected,
+[data-theme="dark"] .languageOption.selected {
+  background: rgba(0, 98, 65, 0.2);
+}

@@ -24,31 +24,67 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
+// Function to get initial theme synchronously
+const getInitialTheme = (): ThemeType => {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+  
+  try {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme;
+    }
+    
+    // Check system preference
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  } catch (error) {
+    console.warn('Failed to read theme from localStorage:', error);
+  }
+  
+  return 'light';
+};
+
 // Regular function declaration for better Next.js compatibility
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  // Initialize state from local storage or system preference if available
-  const [theme, setTheme] = useState<ThemeType>('light');
+  // Initialize state from local storage or system preference immediately
+  const [theme, setTheme] = useState<ThemeType>(() => getInitialTheme());
+  const [isHydrated, setIsHydrated] = useState(false);
   
-  // On mount, check local storage or system preference
+  // Handle hydration on the client side
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      
-      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-        setTheme(savedTheme);
-      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        setTheme('dark');
-      }
+    setIsHydrated(true);
+    
+    // Double-check the theme after hydration to ensure consistency
+    const initialTheme = getInitialTheme();
+    if (initialTheme !== theme) {
+      setTheme(initialTheme);
     }
   }, []);
   
-  // Update body class and local storage when theme changes
+  // Update document attributes and local storage when theme changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isHydrated) {
+      // Apply theme immediately to prevent flash
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+      } catch (error) {
+        console.warn('Failed to save theme to localStorage:', error);
+      }
+    }
+  }, [theme, isHydrated]);
+  
+  // Apply theme immediately on initial render to prevent flash
   useEffect(() => {
     if (typeof window !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
     }
-  }, [theme]);
+  }, []);
   
   // Toggle between light and dark theme
   const toggleTheme = () => {

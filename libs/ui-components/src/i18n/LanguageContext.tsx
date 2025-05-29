@@ -63,6 +63,93 @@ interface LanguageProviderProps {
   initialTranslations?: TranslationsMap;
 }
 
+// Function to detect language based on user location
+const detectLanguageFromLocation = async (): Promise<LanguageType> => {
+  try {
+    // Try to get user's timezone
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Spanish-speaking countries/regions based on timezone
+    const spanishTimezones = [
+      'America/Mexico_City', 'America/Cancun', 'America/Merida', 'America/Monterrey',
+      'America/Mazatlan', 'America/Chihuahua', 'America/Hermosillo', 'America/Tijuana',
+      'America/Argentina/Buenos_Aires', 'America/Argentina/Catamarca', 'America/Argentina/Cordoba',
+      'America/Argentina/Jujuy', 'America/Argentina/La_Rioja', 'America/Argentina/Mendoza',
+      'America/Argentina/Rio_Gallegos', 'America/Argentina/Salta', 'America/Argentina/San_Juan',
+      'America/Argentina/San_Luis', 'America/Argentina/Tucuman', 'America/Argentina/Ushuaia',
+      'America/La_Paz', 'America/Santiago', 'America/Bogota', 'America/Costa_Rica',
+      'America/Havana', 'America/Santo_Domingo', 'America/Guayaquil', 'America/El_Salvador',
+      'America/Guatemala', 'America/Tegucigalpa', 'America/Managua', 'America/Panama',
+      'America/Asuncion', 'America/Lima', 'America/Montevideo', 'America/Caracas',
+      'Europe/Madrid', 'Africa/Ceuta', 'Atlantic/Canary'
+    ];
+    
+    if (spanishTimezones.includes(timezone)) {
+      return 'es';
+    }
+    
+    // Try to use geolocation API as fallback
+    if ('geolocation' in navigator) {
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              // Use a public API to get country from coordinates
+              const response = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+              );
+              const data = await response.json();
+              
+              // Spanish-speaking countries
+              const spanishCountries = [
+                'ES', 'MX', 'AR', 'CO', 'PE', 'VE', 'CL', 'EC', 'GT', 'CU',
+                'BO', 'DO', 'HN', 'PY', 'SV', 'NI', 'CR', 'PA', 'UY', 'GQ'
+              ];
+              
+              if (spanishCountries.includes(data.countryCode)) {
+                resolve('es');
+              } else {
+                resolve('en');
+              }
+            } catch {
+              resolve('en');
+            }
+          },
+          () => resolve('en'), // Fallback to English on geolocation error
+          { timeout: 5000 }
+        );
+      });
+    }
+  } catch {
+    // Fallback to browser language
+    const browserLang = navigator.language.split('-')[0];
+    return browserLang === 'es' ? 'es' : 'en';
+  }
+  
+  return 'en';
+};
+
+// Function to get initial language synchronously
+const getInitialLanguage = (): LanguageType => {
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
+  
+  try {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (savedLanguage === 'en' || savedLanguage === 'es') {
+      return savedLanguage;
+    }
+    
+    // Fallback to browser language for immediate rendering
+    const browserLang = navigator.language.split('-')[0];
+    return browserLang === 'es' ? 'es' : 'en';
+  } catch (error) {
+    console.warn('Failed to read language from localStorage:', error);
+    return 'en';
+  }
+};
+
 // Use regular function declaration for better Next.js compatibility
 export function LanguageProvider({ 
   children, 
@@ -74,35 +161,59 @@ export function LanguageProvider({
     es: { ...defaultTranslations.es, ...(initialTranslations?.es || {}) },
   };
   
-  // Initialize state from local storage if available
-  const [language, setLanguageState] = useState<LanguageType>('en');
-  const [translations, setTranslations] = useState<TranslationsMap>(mergedTranslations);
+  // Initialize state from local storage immediately
+  const [language, setLanguageState] = useState<LanguageType>(() => getInitialLanguage());
+  const [translations] = useState<TranslationsMap>(mergedTranslations);
+  const [isHydrated, setIsHydrated] = useState(false);
   
-  // Check localStorage on mount
+  // Handle hydration and async language detection
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      
-      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'es')) {
-        setLanguageState(savedLanguage);
-      } else {
-        // Use browser language if available
-        const browserLang = navigator.language.split('-')[0];
-        if (browserLang === 'es') {
-          setLanguageState('es');
+    setIsHydrated(true);
+    
+    const initializeLanguage = async () => {
+      if (typeof window !== 'undefined') {
+        const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        
+        if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'es')) {
+          // Language already set correctly from getInitialLanguage
+          return;
+        } else {
+          // Detect language from location, timezone, and browser
+          const detectedLanguage = await detectLanguageFromLocation();
+          if (detectedLanguage !== language) {
+            setLanguageState(detectedLanguage);
+          }
         }
       }
-    }
+    };
+    
+    initializeLanguage();
   }, []);
   
-  // Update localStorage when language changes
+  // Update localStorage and document attributes when language changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isHydrated) {
+      // Save to localStorage
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+      } catch (error) {
+        console.warn('Failed to save language to localStorage:', error);
+      }
+      
+      // Document lang attribute for accessibility and SEO
+      document.documentElement.setAttribute('lang', language);
+      // Also set the dir attribute for RTL languages if needed in the future
+      document.documentElement.setAttribute('dir', 'ltr');
+    }
+  }, [language, isHydrated]);
+  
+  // Apply language immediately on initial render
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-      // Document lang attribute for accessibility
       document.documentElement.setAttribute('lang', language);
+      document.documentElement.setAttribute('dir', 'ltr');
     }
-  }, [language]);
+  }, []);
   
   // Set language helper
   const setLanguage = (lang: LanguageType) => {

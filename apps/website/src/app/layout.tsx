@@ -1,5 +1,7 @@
 // Server Component
 import React from 'react';
+import Script from 'next/script';
+import { createThemeScript, themeTransitionCSS } from '@justsplit/ui-components';
 import './globals.css';
 import '../styles/theme-variables.css';
 import ClientLayout from './client-layout';
@@ -12,6 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themeTransitionCSS }} />
+        <script dangerouslySetInnerHTML={{ __html: createThemeScript() }} />
+      </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
       </body>

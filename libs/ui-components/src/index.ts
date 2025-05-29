@@ -5,7 +5,7 @@ export { Alert } from './Alert';
 export { Logo } from './Logo/Logo';
 
 // Theme exports
-export { ThemeProvider, useTheme, getThemeTokens, themeTokens, type ThemeType } from './theme';
+export { ThemeProvider, useTheme, getThemeTokens, themeTokens, createThemeScript, themeTransitionCSS, type ThemeType } from './theme';
 export { ThemeToggle } from './theme/ThemeToggle';
 
 // Internationalization exports
