@@ -24,10 +24,10 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
-// Function to get initial theme synchronously
+// Function to get initial theme synchronously - matches themeScript.ts logic
 const getInitialTheme = (): ThemeType => {
   if (typeof window === 'undefined') {
-    return 'light';
+    return 'light'; // SSR default
   }
   
   try {
@@ -36,7 +36,7 @@ const getInitialTheme = (): ThemeType => {
       return savedTheme;
     }
     
-    // Check system preference
+    // Check system preference (matches script logic)
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
@@ -49,25 +49,23 @@ const getInitialTheme = (): ThemeType => {
 
 // Regular function declaration for better Next.js compatibility
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  // Initialize state from local storage or system preference immediately
-  const [theme, setTheme] = useState<ThemeType>(() => getInitialTheme());
+  // Initialize with 'light' for SSR, then sync with actual value after hydration
+  const [theme, setTheme] = useState<ThemeType>('light');
   const [isHydrated, setIsHydrated] = useState(false);
   
   // Handle hydration on the client side
   useEffect(() => {
     setIsHydrated(true);
     
-    // Double-check the theme after hydration to ensure consistency
-    const initialTheme = getInitialTheme();
-    if (initialTheme !== theme) {
-      setTheme(initialTheme);
-    }
+    // Sync with the actual theme after hydration
+    const actualTheme = getInitialTheme();
+    setTheme(actualTheme);
   }, []);
   
   // Update document attributes and local storage when theme changes
   useEffect(() => {
     if (typeof window !== 'undefined' && isHydrated) {
-      // Apply theme immediately to prevent flash
+      // Only apply theme after hydration to prevent hydration mismatch
       document.documentElement.setAttribute('data-theme', theme);
       
       // Save to localStorage
@@ -78,13 +76,6 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       }
     }
   }, [theme, isHydrated]);
-  
-  // Apply theme immediately on initial render to prevent flash
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', theme);
-    }
-  }, []);
   
   // Toggle between light and dark theme
   const toggleTheme = () => {

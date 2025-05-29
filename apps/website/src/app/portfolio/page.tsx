@@ -16,73 +16,76 @@ interface Solution {
 }
 
 const getSolutions = (t: (key: string) => string): Solution[] => [
-  // Community & Governance
-  { id: 'demos', title: t('portfolioPage.demosTitle'), description: t('portfolioPage.demosDesc'), color: '#006241', category: 'community', phase: 'phase1' },
-  { id: 'community-manager', title: t('portfolioPage.communityManagerTitle'), description: t('portfolioPage.communityManagerDesc'), color: '#8E24AA', category: 'community', phase: 'phase3' },
-  { id: 'mycommunity', title: t('portfolioPage.myCommunityTitle'), description: t('portfolioPage.myCommunityDesc'), color: '#757575', category: 'community', phase: 'phase4' },
-  { id: 'conciliation', title: t('portfolioPage.conciliationTitle'), description: t('portfolioPage.conciliationDesc'), color: '#388E3C', category: 'community', phase: 'phase4' },
-  { id: 'crowdpool', title: t('portfolioPage.crowdPoolTitle'), description: t('portfolioPage.crowdPoolDesc'), color: '#0288D1', category: 'community', phase: 'phase3' },
+  // CURRENT APPLICATIONS (Live/In Development)
+  { id: 'hub', title: t('portfolioPage.hubTitle'), description: t('portfolioPage.hubDesc'), color: '#006241', url: 'https://hub.cybere.co', category: 'current', phase: 'current' },
+  { id: 'justsplit', title: t('portfolioPage.justSplitTitle'), description: t('portfolioPage.justSplitDesc'), color: '#006241', image: '/portfolio/justsplit.png', url: 'https://justsplit.cybere.co', category: 'current', phase: 'current' },
+  { id: 'website', title: t('portfolioPage.websiteTitle'), description: t('portfolioPage.websiteDesc'), color: '#006241', url: '/', category: 'current', phase: 'current' },
   
-  // Finance & Economy
-  { id: 'justsplit', title: t('portfolioPage.justSplitTitle'), description: t('portfolioPage.justSplitDesc'), color: '#006241', image: '/portfolio/justsplit.png', url: 'https://justsplit.cybere.co', category: 'finance', phase: 'phase1' },
-  { id: 'mywealth', title: t('portfolioPage.myWealthTitle'), description: t('portfolioPage.myWealthDesc'), color: '#F57C00', category: 'finance', phase: 'phase2' },
-  { id: 'mybusiness', title: t('portfolioPage.myBusinessTitle'), description: t('portfolioPage.myBusinessDesc'), color: '#303F9F', category: 'finance', phase: 'phase3' },
-  { id: 'crowdfund', title: t('portfolioPage.crowdFundTitle'), description: t('portfolioPage.crowdFundDesc'), color: '#00796B', category: 'finance', phase: 'phase3' },
-  { id: 'offerme', title: t('portfolioPage.offerMeTitle'), description: t('portfolioPage.offerMeDesc'), color: '#C2185B', category: 'finance', phase: 'phase4' },
+  // PRIORITY APPLICATIONS (Next Wave 2025-2026)
+  { id: 'somos', title: t('portfolioPage.somosTitle'), description: t('portfolioPage.somosDesc'), color: '#8B4513', category: 'priority', phase: 'priority' },
+  { id: 'demos', title: t('portfolioPage.demosTitle'), description: t('portfolioPage.demosDesc'), color: '#4A5568', category: 'priority', phase: 'priority' },
+  { id: 'plantopia', title: t('portfolioPage.plantopiaTitle'), description: t('portfolioPage.plantopiaDesc'), color: '#48BB78', category: 'priority', phase: 'priority' },
   
-  // Sustainability & Home
-  { id: 'plantopia', title: t('portfolioPage.plantopiaTitle'), description: t('portfolioPage.plantopiaDesc'), color: '#006241', category: 'sustainability', phase: 'phase1' },
-  { id: 'ecotul', title: t('portfolioPage.ecoTulTitle'), description: t('portfolioPage.ecoTulDesc'), color: '#689F38', category: 'sustainability', phase: 'phase2' },
-  { id: 'myhome', title: t('portfolioPage.myHomeTitle'), description: t('portfolioPage.myHomeDesc'), color: '#795548', category: 'sustainability', phase: 'phase3' },
+  // FUTURE ECOSYSTEM - Finance & Economy
+  { id: 'mywealth', title: t('portfolioPage.myWealthTitle'), description: t('portfolioPage.myWealthDesc'), color: '#F57C00', category: 'finance', phase: 'future' },
+  { id: 'mybusiness', title: t('portfolioPage.myBusinessTitle'), description: t('portfolioPage.myBusinessDesc'), color: '#303F9F', category: 'finance', phase: 'future' },
+  { id: 'crowdfund', title: t('portfolioPage.crowdFundTitle'), description: t('portfolioPage.crowdFundDesc'), color: '#00796B', category: 'finance', phase: 'future' },
+  { id: 'offerme', title: t('portfolioPage.offerMeTitle'), description: t('portfolioPage.offerMeDesc'), color: '#C2185B', category: 'finance', phase: 'future' },
   
-  // Education & Growth
-  { id: 'education-hub', title: t('portfolioPage.educationHubTitle'), description: t('portfolioPage.educationHubDesc'), color: '#FFA000', category: 'education', phase: 'phase2' },
-  { id: 'skill-share', title: t('portfolioPage.skillShareTitle'), description: t('portfolioPage.skillShareDesc'), color: '#5E35B1', category: 'education', phase: 'phase3' },
-  { id: 'habits', title: t('portfolioPage.habitsTitle'), description: t('portfolioPage.habitsDesc'), color: '#43A047', category: 'education', phase: 'phase2' },
-  { id: 'one-step', title: t('portfolioPage.oneStepTitle'), description: t('portfolioPage.oneStepDesc'), color: '#00ACC1', category: 'education', phase: 'phase4' },
+  // FUTURE ECOSYSTEM - Community & Governance
+  { id: 'community-manager', title: t('portfolioPage.communityManagerTitle'), description: t('portfolioPage.communityManagerDesc'), color: '#8E24AA', category: 'community', phase: 'future' },
+  { id: 'mycommunity', title: t('portfolioPage.myCommunityTitle'), description: t('portfolioPage.myCommunityDesc'), color: '#757575', category: 'community', phase: 'future' },
+  { id: 'conciliation', title: t('portfolioPage.conciliationTitle'), description: t('portfolioPage.conciliationDesc'), color: '#388E3C', category: 'community', phase: 'future' },
+  { id: 'crowdpool', title: t('portfolioPage.crowdPoolTitle'), description: t('portfolioPage.crowdPoolDesc'), color: '#0288D1', category: 'community', phase: 'future' },
   
-  // Health & Wellness
-  { id: 'healthy', title: t('portfolioPage.healthyTitle'), description: t('portfolioPage.healthyDesc'), color: '#D32F2F', category: 'health', phase: 'phase2' },
-  { id: 'petpal', title: t('portfolioPage.petPalTitle'), description: t('portfolioPage.petPalDesc'), color: '#F4511E', category: 'health', phase: 'phase3' },
+  // FUTURE ECOSYSTEM - Sustainability & Home
+  { id: 'ecotul', title: t('portfolioPage.ecoTulTitle'), description: t('portfolioPage.ecoTulDesc'), color: '#689F38', category: 'sustainability', phase: 'future' },
+  { id: 'myhome', title: t('portfolioPage.myHomeTitle'), description: t('portfolioPage.myHomeDesc'), color: '#795548', category: 'sustainability', phase: 'future' },
   
-  // Identity, Data & Legal
-  { id: 'lawpal', title: t('portfolioPage.lawPalTitle'), description: t('portfolioPage.lawPalDesc'), color: '#616161', category: 'identity', phase: 'phase2' },
-  { id: 'mydata', title: t('portfolioPage.myDataTitle'), description: t('portfolioPage.myDataDesc'), color: '#455A64', category: 'identity', phase: 'phase3' },
-  { id: 'digitalme', title: t('portfolioPage.digitalMeTitle'), description: t('portfolioPage.digitalMeDesc'), color: '#0097A7', category: 'identity', phase: 'phase3' },
-  { id: 'mydocs', title: t('portfolioPage.myDocsTitle'), description: t('portfolioPage.myDocsDesc'), color: '#7B1FA2', category: 'identity', phase: 'phase3' },
-  { id: 'govaccess', title: t('portfolioPage.govAccessTitle'), description: t('portfolioPage.govAccessDesc'), color: '#1976D2', category: 'identity', phase: 'phase4' },
+  // FUTURE ECOSYSTEM - Education & Growth
+  { id: 'education-hub', title: t('portfolioPage.educationHubTitle'), description: t('portfolioPage.educationHubDesc'), color: '#FFA000', category: 'education', phase: 'future' },
+  { id: 'skill-share', title: t('portfolioPage.skillShareTitle'), description: t('portfolioPage.skillShareDesc'), color: '#5E35B1', category: 'education', phase: 'future' },
+  { id: 'habits', title: t('portfolioPage.habitsTitle'), description: t('portfolioPage.habitsDesc'), color: '#43A047', category: 'education', phase: 'future' },
+  { id: 'one-step', title: t('portfolioPage.oneStepTitle'), description: t('portfolioPage.oneStepDesc'), color: '#00ACC1', category: 'education', phase: 'future' },
   
-  // Family & Memory
-  { id: 'somos', title: t('portfolioPage.somosTitle'), description: t('portfolioPage.somosDesc'), color: '#006241', category: 'family', phase: 'phase1' },
-  { id: 'remember-me', title: t('portfolioPage.rememberMeTitle'), description: t('portfolioPage.rememberMeDesc'), color: '#6A1B9A', category: 'family', phase: 'phase3' },
+  // FUTURE ECOSYSTEM - Health & Wellness
+  { id: 'healthy', title: t('portfolioPage.healthyTitle'), description: t('portfolioPage.healthyDesc'), color: '#D32F2F', category: 'health', phase: 'future' },
+  { id: 'petpal', title: t('portfolioPage.petPalTitle'), description: t('portfolioPage.petPalDesc'), color: '#F4511E', category: 'health', phase: 'future' },
   
-  // Travel & Local Discovery
-  { id: 'travelmate', title: t('portfolioPage.travelMateTitle'), description: t('portfolioPage.travelMateDesc'), color: '#039BE5', category: 'travel', phase: 'phase3' },
-  { id: 'eventconnect', title: t('portfolioPage.eventConnectTitle'), description: t('portfolioPage.eventConnectDesc'), color: '#FB8C00', category: 'travel', phase: 'phase4' },
+  // FUTURE ECOSYSTEM - Identity & Legal
+  { id: 'lawpal', title: t('portfolioPage.lawPalTitle'), description: t('portfolioPage.lawPalDesc'), color: '#616161', category: 'identity', phase: 'future' },
+  { id: 'mydata', title: t('portfolioPage.myDataTitle'), description: t('portfolioPage.myDataDesc'), color: '#455A64', category: 'identity', phase: 'future' },
+  { id: 'digitalme', title: t('portfolioPage.digitalMeTitle'), description: t('portfolioPage.digitalMeDesc'), color: '#0097A7', category: 'identity', phase: 'future' },
+  { id: 'mydocs', title: t('portfolioPage.myDocsTitle'), description: t('portfolioPage.myDocsDesc'), color: '#7B1FA2', category: 'identity', phase: 'future' },
   
-  // Tech & Productivity
-  { id: 'tradepilot', title: t('portfolioPage.tradePilotTitle'), description: t('portfolioPage.tradePilotDesc'), color: '#37474F', category: 'tech', phase: 'phase3' },
-  { id: 'nexus', title: t('portfolioPage.nexusTitle'), description: t('portfolioPage.nexusDesc'), color: '#E91E63', category: 'tech', phase: 'phase4' },
+  // FUTURE ECOSYSTEM - Travel & Discovery
+  { id: 'travelmate', title: t('portfolioPage.travelMateTitle'), description: t('portfolioPage.travelMateDesc'), color: '#039BE5', category: 'travel', phase: 'future' },
+  { id: 'eventconnect', title: t('portfolioPage.eventConnectTitle'), description: t('portfolioPage.eventConnectDesc'), color: '#FB8C00', category: 'travel', phase: 'future' },
+  { id: 'localwonders', title: t('portfolioPage.localWondersTitle'), description: t('portfolioPage.localWondersDesc'), color: '#795548', category: 'travel', phase: 'future' },
+  
+  // FUTURE ECOSYSTEM - Tech & Social
+  { id: 'nexus', title: t('portfolioPage.nexusTitle'), description: t('portfolioPage.nexusDesc'), color: '#E91E63', category: 'tech', phase: 'future' },
+  { id: 'timesync', title: t('portfolioPage.timeSyncTitle'), description: t('portfolioPage.timeSyncDesc'), color: '#607D8B', category: 'tech', phase: 'future' },
 ];
 
 const getCategories = (t: (key: string) => string) => [
-  { id: 'all', name: t('portfolioPage.filterAll'), icon: '🎯' },
-  { id: 'community', name: t('portfolioPage.communityGovernanceTitle'), icon: '🏛️' },
-  { id: 'finance', name: t('portfolioPage.financeEconomyTitle'), icon: '💰' },
-  { id: 'sustainability', name: t('portfolioPage.sustainabilityHomeTitle'), icon: '🌱' },
-  { id: 'education', name: t('portfolioPage.educationTitle'), icon: '📚' },
-  { id: 'health', name: t('portfolioPage.healthWellnessTitle'), icon: '❤️' },
-  { id: 'identity', name: t('portfolioPage.identityDataLegalTitle'), icon: '🔐' },
-  { id: 'family', name: t('portfolioPage.familyMemoryTitle'), icon: '👨‍👩‍👧‍👦' },
-  { id: 'travel', name: t('portfolioPage.travelLocalDiscoveryTitle'), icon: '✈️' },
-  { id: 'tech', name: t('portfolioPage.techProductivityTitle'), icon: '💻' },
+  { id: 'all', name: t('portfolioPage.allSolutions'), icon: '🎯' },
+  { id: 'current', name: t('portfolioPage.currentApplications'), icon: '🚀' },
+  { id: 'priority', name: t('portfolioPage.priorityApplications'), icon: '⭐' },
+  { id: 'community', name: t('portfolioPage.communityGovernance'), icon: '🏛️' },
+  { id: 'finance', name: t('portfolioPage.financeEconomy'), icon: '💰' },
+  { id: 'sustainability', name: t('portfolioPage.sustainabilityHome'), icon: '🌱' },
+  { id: 'education', name: t('portfolioPage.educationGrowth'), icon: '📚' },
+  { id: 'health', name: t('portfolioPage.healthWellness'), icon: '❤️' },
+  { id: 'identity', name: t('portfolioPage.identityLegal'), icon: '🔐' },
+  { id: 'travel', name: t('portfolioPage.travelDiscovery'), icon: '✈️' },
+  { id: 'tech', name: t('portfolioPage.techSocial'), icon: '💻' },
 ];
 
 const getPhaseInfo = (t: (key: string) => string) => ({
-  phase1: { label: t('portfolioPage.phaseMvp'), color: '#006241' },
-  phase2: { label: t('portfolioPage.phaseGreen'), color: '#388E3C' },
-  phase3: { label: t('portfolioPage.phasePersonal'), color: '#1976D2' },
-  phase4: { label: t('portfolioPage.phaseExpansion'), color: '#7B1FA2' },
+  current: { label: t('portfolioPage.liveLabel'), color: '#006241' },
+  priority: { label: t('portfolioPage.planning2025Label'), color: '#F57C00' },
+  future: { label: t('portfolioPage.futureEcosystemLabel'), color: '#1976D2' },
 });
 
 export default function PortfolioPage() {
@@ -97,10 +100,20 @@ export default function PortfolioPage() {
     : solutions.filter(solution => solution.category === selectedCategory);
 
   const groupedSolutions = selectedCategory === 'all'
-    ? categories.slice(1).map(cat => ({
-        category: cat,
-        solutions: solutions.filter(s => s.category === cat.id)
-      }))
+    ? [
+        // Priority-based grouping
+        { category: { id: 'current', name: t('portfolioPage.currentApplications'), icon: '🚀' }, solutions: solutions.filter(s => s.phase === 'current') },
+        { category: { id: 'priority', name: t('portfolioPage.priorityAppsSubtitle'), icon: '⭐' }, solutions: solutions.filter(s => s.phase === 'priority') },
+        // Category-based grouping for future applications
+        { category: { id: 'finance', name: t('portfolioPage.financeEconomy'), icon: '💰' }, solutions: solutions.filter(s => s.category === 'finance') },
+        { category: { id: 'community', name: t('portfolioPage.communityGovernance'), icon: '🏛️' }, solutions: solutions.filter(s => s.category === 'community') },
+        { category: { id: 'sustainability', name: t('portfolioPage.sustainabilityHome'), icon: '🌱' }, solutions: solutions.filter(s => s.category === 'sustainability') },
+        { category: { id: 'education', name: t('portfolioPage.educationGrowth'), icon: '📚' }, solutions: solutions.filter(s => s.category === 'education') },
+        { category: { id: 'health', name: t('portfolioPage.healthWellness'), icon: '❤️' }, solutions: solutions.filter(s => s.category === 'health') },
+        { category: { id: 'identity', name: t('portfolioPage.identityLegal'), icon: '🔐' }, solutions: solutions.filter(s => s.category === 'identity') },
+        { category: { id: 'travel', name: t('portfolioPage.travelDiscovery'), icon: '✈️' }, solutions: solutions.filter(s => s.category === 'travel') },
+        { category: { id: 'tech', name: t('portfolioPage.techSocial'), icon: '💻' }, solutions: solutions.filter(s => s.category === 'tech') },
+      ].filter(group => group.solutions.length > 0)
     : null;
 
   return (
@@ -111,6 +124,49 @@ export default function PortfolioPage() {
           <p className={styles.heroDescription}>
             {t('portfolioPage.subtitle')}
           </p>
+        </div>
+      </section>
+      
+      <section className={styles.statusSection}>
+        <div className={styles.container}>
+          <h2 className={styles.statusTitle}>🚀 {t('portfolioPage.statusTitle')}</h2>
+          <div className={styles.statusGrid}>
+            <div className={styles.statusCard}>
+              <div className={styles.statusIcon}>✅</div>
+              <h3>{t('portfolioPage.currentAppsTitle')}</h3>
+              <p>{t('portfolioPage.currentAppsDesc')}</p>
+              <div className={styles.statusApps}>
+                <span>Hub</span>
+                <span>JustSplit</span>
+                <span>Website</span>
+              </div>
+            </div>
+            <div className={styles.statusCard}>
+              <div className={styles.statusIcon}>🔄</div>
+              <h3>{t('portfolioPage.priorityDevTitle')}</h3>
+              <p>{t('portfolioPage.priorityDevDesc')}</p>
+              <div className={styles.statusApps}>
+                <span>Somos</span>
+                <span>Demos</span>
+                <span>Plantopia</span>
+              </div>
+            </div>
+            <div className={styles.statusCard}>
+              <div className={styles.statusIcon}>🌟</div>
+              <h3>{t('portfolioPage.futureEcosystemTitle')}</h3>
+              <p>{t('portfolioPage.futureEcosystemDesc')}</p>
+              <div className={styles.statusApps}>
+                <span>{t('portfolioPage.financeArea')}</span>
+                <span>{t('portfolioPage.communityArea')}</span>
+                <span>{t('portfolioPage.sustainabilityArea')}</span>
+                <span>{t('portfolioPage.educationArea')}</span>
+                <span>{t('portfolioPage.healthArea')}</span>
+                <span>{t('portfolioPage.identityArea')}</span>
+                <span>{t('portfolioPage.travelArea')}</span>
+                <span>{t('portfolioPage.techArea')}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       
@@ -177,7 +233,7 @@ function SolutionCard({ solution }: { solution: Solution }) {
             className={styles.projectPlaceholder}
             style={{ backgroundColor: solution.color }}
           >
-            <span className={styles.placeholderText}>{t('portfolioPage.comingSoon') || 'Coming Soon'}</span>
+            <span className={styles.placeholderText}>{t('portfolioPage.comingSoon')}</span>
           </div>
         )}
         <div 

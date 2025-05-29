@@ -96,6 +96,105 @@ export default function RoadmapPage() {
         </div>
       </section>
 
+      {/* Current Focus Section */}
+      <section className={styles.currentFocusSection}>
+        <div className={styles.sectionContent}>
+          <h2 className={styles.sectionTitle}>🎯 Current Development Focus</h2>
+          <div className={styles.focusGrid}>
+            <div className={styles.focusCard}>
+              <div className={styles.focusIcon}>🔧</div>
+              <h3 className={styles.focusTitle}>Critical Fixes</h3>
+              <div className={styles.focusDetails}>
+                <h4>JustSplit Stabilization:</h4>
+                <ul>
+                  <li>Fix component prop type errors</li>
+                  <li>Implement proper data flow patterns</li>
+                  <li>Add comprehensive error boundaries</li>
+                  <li>Resolve TypeScript compilation issues</li>
+                </ul>
+              </div>
+              <div className={styles.focusStatus}>🔄 In Progress</div>
+            </div>
+
+            <div className={styles.focusCard}>
+              <div className={styles.focusIcon}>🏢</div>
+              <h3 className={styles.focusTitle}>Hub Development</h3>
+              <div className={styles.focusDetails}>
+                <h4>Core Authentication:</h4>
+                <ul>
+                  <li>User registration and login forms</li>
+                  <li>Password reset functionality</li>
+                  <li>Application launcher dashboard</li>
+                  <li>Cross-app session management</li>
+                </ul>
+              </div>
+              <div className={styles.focusStatus}>📋 Planned</div>
+            </div>
+
+            <div className={styles.focusCard}>
+              <div className={styles.focusIcon}>🔗</div>
+              <h3 className={styles.focusTitle}>Integration</h3>
+              <div className={styles.focusDetails}>
+                <h4>Cross-App Features:</h4>
+                <ul>
+                  <li>JWT token-based authentication</li>
+                  <li>User profile synchronization</li>
+                  <li>Unified navigation experience</li>
+                  <li>Shared component libraries</li>
+                </ul>
+              </div>
+              <div className={styles.focusStatus}>⏳ Next Quarter</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Technical Roadmap */}
+      <section className={styles.technicalSection}>
+        <div className={styles.sectionContent}>
+          <h2 className={styles.sectionTitle}>🛠️ Technical Evolution</h2>
+          <div className={styles.evolutionTimeline}>
+            <div className={styles.evolutionPhase}>
+              <h3>Phase 1: Centralized Foundation (2025-2026)</h3>
+              <p>Build robust applications on traditional infrastructure</p>
+              <div className={styles.techStack}>
+                <span>Firebase</span>
+                <span>Next.js</span>
+                <span>TypeScript</span>
+                <span>NX Monorepo</span>
+              </div>
+            </div>
+            <div className={styles.evolutionPhase}>
+              <h3>Phase 2: Privacy Enhancement (2026-2028)</h3>
+              <p>Implement advanced privacy features and user control</p>
+              <div className={styles.techStack}>
+                <span>Client-side Encryption</span>
+                <span>Local-first Data</span>
+                <span>Zero-trust Architecture</span>
+              </div>
+            </div>
+            <div className={styles.evolutionPhase}>
+              <h3>Phase 3: Hybrid Systems (2028-2030)</h3>
+              <p>Bridge centralized and decentralized architectures</p>
+              <div className={styles.techStack}>
+                <span>P2P Protocols</span>
+                <span>Blockchain Integration</span>
+                <span>Mobile Node Networks</span>
+              </div>
+            </div>
+            <div className={styles.evolutionPhase}>
+              <h3>Phase 4: Full Decentralization (2030+)</h3>
+              <p>Complete transition to user-sovereign architecture</p>
+              <div className={styles.techStack}>
+                <span>Self-Sovereign Identity</span>
+                <span>Zero-Knowledge Proofs</span>
+                <span>Token Economics</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Milestones */}
       <section className={styles.milestonesSection}>
         <div className={styles.sectionContent}>
@@ -169,7 +268,7 @@ export default function RoadmapPage() {
             {t('roadmapPage.ctaText')}
           </p>
           <div className={styles.ctaButtons}>
-            <a href="/applications" className={styles.ctaButton}>
+            <a href="/portfolio" className={styles.ctaButton}>
               {t('roadmapPage.ctaButton')}
             </a>
             <a href="/vision" className={styles.ctaButtonSecondary}>

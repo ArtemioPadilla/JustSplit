@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: themeTransitionCSS }} />
         <script dangerouslySetInnerHTML={{ __html: createThemeScript() }} />

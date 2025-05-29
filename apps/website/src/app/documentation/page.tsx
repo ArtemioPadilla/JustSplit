@@ -8,7 +8,7 @@ import styles from './page.module.css';
 
 interface DocContent {
   title: string;
-  content: JSX.Element;
+  content: React.ReactElement;
 }
 
 interface DocSections {
@@ -34,6 +34,32 @@ export default function DocumentationPage() {
             <p className={styles.contentText}>
               {t('documentationPage.introductionText') || 'Welcome to CyberEco documentation! This guide will help you get started with our digital ecosystem. CyberEco offers a suite of digital solutions designed to enhance financial collaboration, community engagement, and social connectivity, all within a human-centered framework for conscious, connected, and sustainable living.'}
             </p>
+          </div>
+
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>📚 Key Documentation Pages</h3>
+            <div className={styles.docLinksGrid}>
+              <a href="/philosophy" className={styles.docLinkCard}>
+                <div className={styles.docLinkIcon}>📖</div>
+                <h4>Platform Philosophy</h4>
+                <p>Digital sovereignty, human-centered design principles, and our commitment to user empowerment.</p>
+              </a>
+              <a href="/vision" className={styles.docLinkCard}>
+                <div className={styles.docLinkIcon}>🔮</div>
+                <h4>Decentralized Future</h4>
+                <p>Long-term vision for P2P networks, blockchain integration, and complete data sovereignty.</p>
+              </a>
+              <a href="/roadmap" className={styles.docLinkCard}>
+                <div className={styles.docLinkIcon}>🛠️</div>
+                <h4>Development Roadmap</h4>
+                <p>Detailed technical roadmap from current centralized architecture to decentralized future.</p>
+              </a>
+              <a href="/portfolio" className={styles.docLinkCard}>
+                <div className={styles.docLinkIcon}>🚀</div>
+                <h4>Solutions Portfolio</h4>
+                <p>Complete overview of current solutions and planned ecosystem expansion.</p>
+              </a>
+            </div>
           </div>
 
           <div className={styles.contentSection}>
@@ -357,25 +383,25 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
           <div className={styles.navSection}>
             <h3 className={styles.navTitle}>Core Documentation</h3>
             <a href="/philosophy" className={styles.navLink}>
-              Our Philosophy
+              📖 Platform Philosophy - Digital Sovereignty & Human-Centered Design
               <FaChevronRight size={10} />
             </a>
             <a href="/vision" className={styles.navLink}>
-              Vision & Future
+              🔮 Decentralized Future - P2P Networks & Token Economics
               <FaChevronRight size={10} />
             </a>
             <a href="/roadmap" className={styles.navLink}>
-              Development Roadmap
+              🛠️ Development Roadmap - Technical Evolution & Milestones
               <FaChevronRight size={10} />
             </a>
-            <a href="/applications" className={styles.navLink}>
-              Application Ecosystem
+            <a href="/portfolio" className={styles.navLink}>
+              🚀 Solutions Portfolio - Current & Future Solutions
               <FaChevronRight size={10} />
             </a>
           </div>
           
           <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>{t('documentationPage.applicationsNavTitle') || 'Applications'}</h3>
+            <h3 className={styles.navTitle}>{t('documentationPage.applicationsNavTitle') || 'Solution Categories'}</h3>
             <button 
               onClick={() => setActiveDoc('community-governance')}
               className={`${styles.navItem} ${activeDoc === 'community-governance' ? styles.active : ''}`}

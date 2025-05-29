@@ -277,8 +277,143 @@ const nestedTranslations = {
       timeSyncTitle: 'TimeSync',
       timeSyncDesc: 'Smart scheduling and time management platform integrating with all CyberEco applications.',
       
-      comingSoon: 'Detailed information about each solution coming soon.',
-      viewSolution: 'View Solution'
+      // Category headings
+      communityGovernanceTitle: 'Community & Governance',
+      communityGovernanceDesc: 'Tools to create, manage, and participate in digital communities with transparent governance and engagement.',
+      
+      financeEconomyTitle: 'Finance & Collaborative Economy',
+      financeEconomyDesc: 'Solutions to manage personal finances, share expenses, and support business operations.',
+      
+      sustainabilityHomeTitle: 'Sustainability & Home Life',
+      sustainabilityHomeDesc: 'Applications to manage sustainable lifestyles, gardening, and home maintenance.',
+      
+      educationTitle: 'Education & Personal Growth',
+      educationDesc: 'Platforms for learning, skill sharing, and personal development.',
+      
+      healthWellnessTitle: 'Health & Wellness',
+      healthWellnessDesc: 'Tools to improve physical and mental health, including pet wellness.',
+      
+      identityDataLegalTitle: 'Identity, Data & Legal',
+      identityDataLegalDesc: 'Solutions for managing digital identity, personal data, documents, and legal assistance.',
+      
+      familyMemoryTitle: 'Family & Memory',
+      familyMemoryDesc: 'Applications to preserve personal stories and explore cultural heritage.',
+      
+      travelLocalDiscoveryTitle: 'Travel, Events & Local Discovery',
+      travelLocalDiscoveryDesc: 'Tools to explore local communities, organize events, and plan travels.',
+      
+      techProductivityTitle: 'Tech, Productivity & Career',
+      techProductivityDesc: 'Applications to enhance professional growth, digital wellbeing, and project management.',
+      
+      // Phase indicators
+      phaseMvp: 'Priority MVP (Phase 1)',
+      phaseGreen: 'Green Impact (Phase 2)',
+      phasePersonal: 'Personalization (Phase 3)',
+      phaseExpansion: 'Expansion (Phase 4)',
+      phaseFuture: 'Future Development',
+      
+      filterLabel: 'Filter by category',
+      filterAll: 'All Solutions',
+      viewDetails: 'View Details',
+      viewSolution: 'Open Solution',
+      
+      
+      // Finance & Collaborative Economy (DUPLICATE SECTION - REMOVING)
+      // myWealthTitle: 'MyWealth', - DUPLICATE REMOVED
+      // myWealthDesc: 'Platform to visualize and control personal finances and investments.',
+      
+      myBusinessTitle: 'MyBusiness',
+      myBusinessDesc: 'Lightweight tool for entrepreneurs that combines operational and accounting management.',
+      
+      crowdFundTitle: 'CrowdFund',
+      crowdFundDesc: 'Create collective funding campaigns for ideas, causes, or products.',
+      
+      offerMeTitle: 'OfferMe',
+      offerMeDesc: 'Find verified local offers, discounts, and promotions.',
+      
+      // Sustainability & Home Solutions
+      plantopiaTitle: 'Plantopia',
+      plantopiaDesc: 'Smart gardening platform with sensors and personalized recommendations.',
+      
+      ecoTulTitle: 'EcoTul',
+      ecoTulDesc: 'Recommender of eco-friendly products and services curated by real impact.',
+      
+      myHomeTitle: 'MyHome',
+      myHomeDesc: 'App to organize home maintenance, expenses, and improvements.',
+      
+      // Education Solutions
+      educationHubTitle: 'Education Hub',
+      educationHubDesc: 'Modular platform to access learning paths and educational content.',
+      
+      skillShareTitle: 'Skill Share',
+      skillShareDesc: 'Collaborative network where people share and teach their skills.',
+      
+      habitsTitle: 'Habits',
+      habitsDesc: 'Record and track habits to achieve personal goals.',
+      
+      oneStepTitle: 'One Step',
+      oneStepDesc: 'Micro-action system to advance toward big goals with small steps.',
+      
+      // Health & Wellness
+      healthyTitle: 'Healthy',
+      healthyDesc: 'Personalized recommendations to improve physical and mental health.',
+      
+      petPalTitle: 'PetPal',
+      petPalDesc: 'App to manage pet health and wellness with veterinary connection.',
+      
+      // Identity, Data & Legal
+      lawPalTitle: 'LawPal',
+      lawPalDesc: 'AI legal assistant that helps understand documents and connect with lawyers.',
+      
+      myDataTitle: 'MyData',
+      myDataDesc: 'Control panel to manage, authorize, and track use of your personal data.',
+      
+      digitalMeTitle: 'DigitalMe',
+      digitalMeDesc: 'Central management of digital identity, reputation, and online presence.',
+      
+      myDocsTitle: 'MyDocs',
+      myDocsDesc: 'Secure storage for legal, personal, and educational documents.',
+      
+      govAccessTitle: 'GovAccess',
+      govAccessDesc: 'Unified and simplified access to government procedures and services.',
+      
+      // Family & Memory
+      somosTitle: 'Somos',
+      somosDesc: 'Platform to explore family roots, cultural history, and sense of identity.',
+      
+      rememberMeTitle: 'Remember Me',
+      rememberMeDesc: 'Tool to save memories, stories, and intergenerational messages.',
+      
+      // Travel, Events & Local Discovery
+      travelMateTitle: 'TravelMate',
+      travelMateDesc: 'Trip planner with local guides and personalized recommendations.',
+      
+      eventConnectTitle: 'EventConnect',
+      eventConnectDesc: 'Discover or create community events with local impact.',
+      
+      localWondersTitle: 'LocalWonders',
+      localWondersDesc: 'Find cultural and natural gems in your environment.',
+      
+      hobbistTitle: 'Hobbist',
+      hobbistDesc: 'Connect with people who share your hobbies and passions.',
+      
+      // Tech, Productivity & Career
+      tradePilotTitle: 'TradePilot',
+      tradePilotDesc: 'Platform for traders with analytics, automation, and educational simulation.',
+      
+      nexusTitle: 'Nexus',
+      nexusDesc: 'Center to manage social networks while preserving digital wellbeing.',
+      
+      providerConnectTitle: 'ProviderConnect',
+      providerConnectDesc: 'Provider comparison with ratings and transparency for better choices.',
+      
+      myProjectsTitle: 'MyProjects',
+      myProjectsDesc: 'Lightweight app to manage personal or collaborative tasks and projects.',
+      
+      myCareerTitle: 'MyCareer',
+      myCareerDesc: 'Career tracking, goals, and networking in one place.',
+      
+      comingSoon: 'Detailed information about each solution coming soon.'
     },
     
     // PhilosophyPage translations
@@ -979,9 +1114,161 @@ const nestedTranslations = {
       timeSyncTitle: 'TimeSync',
       timeSyncDesc: 'Plataforma inteligente de programación y gestión del tiempo que se integra con todas las aplicaciones de CyberEco.',
       
+      // Títulos de categorías
+      communityGovernanceTitle: 'Comunidad y Gobernanza',
+      communityGovernanceDesc: 'Herramientas para crear, gestionar y participar en comunidades digitales con gobernanza y participación transparentes.',
       
-      comingSoon: 'Información detallada sobre cada solución próximamente.',
-      viewSolution: 'Ver Solución'
+      financeEconomyTitle: 'Finanzas y Economía Colaborativa',
+      financeEconomyDesc: 'Soluciones para administrar finanzas personales, compartir gastos y apoyar operaciones comerciales.',
+      
+      sustainabilityHomeTitle: 'Sostenibilidad y Hogar',
+      sustainabilityHomeDesc: 'Aplicaciones para gestionar estilos de vida sostenibles, jardinería y mantenimiento del hogar.',
+      
+      educationTitle: 'Educación y Crecimiento Personal',
+      educationDesc: 'Plataformas para el aprendizaje, intercambio de habilidades y desarrollo personal.',
+      
+      healthWellnessTitle: 'Salud y Bienestar',
+      healthWellnessDesc: 'Herramientas para mejorar la salud física y mental, incluyendo el bienestar de mascotas.',
+      
+      identityDataLegalTitle: 'Identidad, Datos y Legal',
+      identityDataLegalDesc: 'Soluciones para gestionar tu identidad digital, datos personales, documentos importantes y obtener asistencia legal inteligente.',
+      
+      familyMemoryTitle: 'Familia y Memoria',
+      familyMemoryDesc: 'Aplicaciones para preservar historias personales y explorar el patrimonio cultural.',
+      
+      travelLocalDiscoveryTitle: 'Viajes, Eventos y Descubrimiento Local',
+      travelLocalDiscoveryDesc: 'Herramientas para explorar comunidades locales, organizar eventos y planificar viajes.',
+      
+      techProductivityTitle: 'Tecnología, Productividad y Carrera',
+      techProductivityDesc: 'Aplicaciones para mejorar el crecimiento profesional, el bienestar digital y la gestión de proyectos.',
+      
+      // Indicadores de fase
+      phaseMvp: 'MVP Prioritario (Fase 1)',
+      phaseGreen: 'Impacto Verde (Fase 2)',
+      phasePersonal: 'Personalización (Fase 3)',
+      phaseExpansion: 'Expansión (Fase 4)',
+      phaseFuture: 'Desarrollo Futuro',
+      
+      filterLabel: 'Filtrar por categoría',
+      filterAll: 'Todas las Soluciones',
+      viewDetails: 'Ver Detalles',
+      viewSolution: 'Abrir Solución',
+      
+      // Soluciones de Comunidad y Gobernanza
+      justSplitTitle: 'JustSplit',
+      justSplitDesc: 'Una aplicación simple e intuitiva para el seguimiento y división de gastos que ayuda a amigos, compañeros de piso y grupos a gestionar fácilmente sus finanzas compartidas.',
+      
+      demosTitle: 'Demos',
+      demosDesc: 'Plataforma transparente de votación y toma de decisiones para organizaciones y vecindarios.',
+      
+      communityManagerTitle: 'Community Manager',
+      communityManagerDesc: 'Herramientas para crear, organizar y gobernar comunidades digitales o físicas.',
+      
+      myCommunityTitle: 'MyCommunity',
+      myCommunityDesc: 'Descubre recursos, eventos e iniciativas locales relevantes en tu entorno.',
+      
+      conciliationTitle: 'Conciliation',
+      conciliationDesc: 'Resolución de conflictos con mediadores neutrales humanos o de IA de manera justa.',
+      
+      crowdPoolTitle: 'CrowdPool', 
+      crowdPoolDesc: 'Sistema para asignar tareas comunitarias o micro-trabajos con incentivos.',
+      
+      // Finanzas y Economía Colaborativa
+      myWealthTitle: 'MyWealth',
+      myWealthDesc: 'Plataforma para visualizar y controlar finanzas personales e inversiones.',
+      
+      myBusinessTitle: 'MyBusiness',
+      myBusinessDesc: 'Herramienta ligera para emprendedores que combina gestión operativa y contable.',
+      
+      crowdFundTitle: 'CrowdFund',
+      crowdFundDesc: 'Crea campañas de financiación colectiva para ideas, causas o productos.',
+      
+      offerMeTitle: 'OfferMe',
+      offerMeDesc: 'Encuentra ofertas, descuentos y promociones locales verificadas.',
+      
+      // Soluciones de Sostenibilidad y Hogar
+      plantopiaTitle: 'Plantopia',
+      plantopiaDesc: 'Plataforma de jardinería inteligente con sensores y recomendaciones personalizadas.',
+      
+      ecoTulTitle: 'EcoTul',
+      ecoTulDesc: 'Recomendador de productos y servicios ecológicos seleccionados por su impacto real.',
+      
+      myHomeTitle: 'MyHome',
+      myHomeDesc: 'Aplicación para organizar el mantenimiento, gastos y mejoras del hogar.',
+      
+      // Soluciones de Educación
+      educationHubTitle: 'Education Hub',
+      educationHubDesc: 'Plataforma modular para acceder a rutas de aprendizaje y contenido educativo.',
+      
+      skillShareTitle: 'Skill Share',
+      skillShareDesc: 'Red colaborativa donde las personas comparten y enseñan sus habilidades.',
+      
+      habitsTitle: 'Habits',
+      habitsDesc: 'Registra y realiza seguimiento de hábitos para lograr metas personales.',
+      
+      oneStepTitle: 'One Step',
+      oneStepDesc: 'Sistema de micro-acciones para avanzar hacia grandes objetivos con pequeños pasos.',
+      
+      // Salud y Bienestar
+      healthyTitle: 'Healthy',
+      healthyDesc: 'Recomendaciones personalizadas para mejorar la salud física y mental.',
+      
+      petPalTitle: 'PetPal',
+      petPalDesc: 'Aplicación para gestionar la salud y el bienestar de mascotas con conexión veterinaria.',
+      
+      // Identidad, Datos y Legal
+      lawPalTitle: 'LawPal',
+      lawPalDesc: 'Asistente legal con IA que ayuda a entender documentos y conectar con abogados.',
+      
+      myDataTitle: 'MyData',
+      myDataDesc: 'Panel de control para gestionar, autorizar y rastrear el uso de tus datos personales.',
+      
+      digitalMeTitle: 'DigitalMe',
+      digitalMeDesc: 'Gestión central de identidad digital, reputación y presencia online.',
+      
+      myDocsTitle: 'MyDocs',
+      myDocsDesc: 'Almacenamiento seguro para documentos legales, personales y educativos.',
+      
+      govAccessTitle: 'GovAccess',
+      govAccessDesc: 'Acceso unificado y simplificado a trámites y servicios gubernamentales.',
+      
+      // Familia y Memoria
+      somosTitle: 'Somos',
+      somosDesc: 'Plataforma para explorar raíces familiares, historia cultural y sentido de identidad.',
+      
+      rememberMeTitle: 'Remember Me',
+      rememberMeDesc: 'Herramienta para guardar memorias, historias y mensajes intergeneracionales.',
+      
+      // Viajes, Eventos y Descubrimiento Local
+      travelMateTitle: 'TravelMate',
+      travelMateDesc: 'Planificador de viajes con guías locales y recomendaciones personalizadas.',
+      
+      eventConnectTitle: 'EventConnect',
+      eventConnectDesc: 'Descubre o crea eventos comunitarios con impacto local.',
+      
+      localWondersTitle: 'LocalWonders',
+      localWondersDesc: 'Encuentra joyas culturales y naturales en tu entorno.',
+      
+      hobbistTitle: 'Hobbist',
+      hobbistDesc: 'Conecta con personas que comparten tus aficiones y pasiones.',
+      
+      // Tecnología, Productividad y Carrera
+      tradePilotTitle: 'TradePilot',
+      tradePilotDesc: 'Plataforma para traders con análisis, automatización y simulación educativa.',
+      
+      nexusTitle: 'Nexus',
+      nexusDesc: 'Centro para gestionar redes sociales mientras preserva el bienestar digital.',
+      
+      providerConnectTitle: 'ProviderConnect',
+      providerConnectDesc: 'Comparación de proveedores con calificaciones y transparencia para mejores elecciones.',
+      
+      myProjectsTitle: 'MyProjects',
+      myProjectsDesc: 'Aplicación ligera para gestionar tareas y proyectos personales o colaborativos.',
+      
+      myCareerTitle: 'MyCareer',
+      myCareerDesc: 'Seguimiento de carrera, objetivos y networking en un solo lugar.',
+      
+      comingSoon: 'Información detallada sobre cada solución próximamente.'
     },
     
     // PhilosophyPage translations
@@ -1164,34 +1451,6 @@ const nestedTranslations = {
       ctaText: 'Sé parte de construir el futuro de la tecnología centrada en el ser humano.',
       ctaButton: 'Explorar Soluciones',
       ctaButtonSecondary: 'Nuestra Visión'
-    },
-    
-    // ApplicationsPage translations
-    applicationsPage: {
-      title: 'Ecosistema de Aplicaciones',
-      subtitle: 'Un conjunto integral de aplicaciones diseñadas para mejorar cada aspecto de la vida digital',
-      
-      currentAppsTitle: 'Disponibles Ahora',
-      priorityAppsTitle: 'Aplicaciones Prioritarias',
-      futureAppsTitle: 'Ecosistema Futuro',
-      
-      hubTitle: 'CyberEco Hub',
-      hubDescription: 'Tu centro de identidad digital y autenticación. Una sola cuenta para todas las aplicaciones CyberEco con control completo de privacidad.',
-      
-      justSplitTitle: 'JustSplit',
-      justSplitDescription: 'Compartir gastos transparente que promueve la claridad financiera y equidad entre amigos, familia y grupos.',
-      
-      somosTitle: 'Somos',
-      somosDescription: 'Conecta con tus raíces a través de la exploración del patrimonio familiar, descubrimiento cultural y construcción comunitaria.',
-      
-      demosTitle: 'Demos',
-      demosDescription: 'Gobernanza comunitaria transparente con votación segura, gestión de propuestas y herramientas de toma de decisiones colectivas.',
-      
-      plantopiaTitle: 'Plantopia',
-      plantopiaDescription: 'Plataforma de jardinería inteligente que te conecta con la naturaleza mientras promueve prácticas de vida sostenible.',
-      
-      ecosystemVisionTitle: 'Visión Completa del Ecosistema',
-      ecosystemVisionText: 'Más de 30 aplicaciones planificadas cubriendo finanzas, comunidad, educación, salud, sostenibilidad y crecimiento personal — todas trabajando juntas como un ecosistema digital unificado.'
     },
     
     // HelpPage translations

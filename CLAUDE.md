@@ -106,13 +106,14 @@ nx affected:test
 - `nx serve website` - Start Website app (port 5000)
 - `nx build hub --configuration=production` - Production build for Hub
 - `nx build justsplit-app --configuration=production` - Production build for JustSplit
-- `nx build website --configuration=production` - Production build for Website (static export)
+- **KNOWN ISSUE**: `nx build website` - NX build fails with React rendering error during static export
+- `cd apps/website && npm run build` - Working website build (use this for deployment)
 - `nx run justsplit-app:emulators` - Start Firebase emulators for JustSplit
 - `nx run hub:deploy` - Deploy Hub to Firebase hosting
 - `nx run justsplit-app:deploy` - Deploy JustSplit to Firebase hosting
 - `nx run website:deploy` - Deploy Website to Firebase hosting
 - `./scripts/deploy-all.sh` - Deploy all applications
-- `./scripts/deploy-website.sh` - Deploy only the website
+- `./scripts/deploy-website.sh` - Deploy only the website (uses working npm build)
 
 ## Architecture Overview
 

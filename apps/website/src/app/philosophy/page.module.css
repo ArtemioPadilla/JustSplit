@@ -133,11 +133,84 @@
   margin: 0 0 1rem;
 }
 
-.principleText {
+.principleQuote {
   font-size: 1rem;
   color: var(--text-secondary);
   line-height: 1.6;
+  margin: 0 0 1.5rem;
+  font-style: italic;
+}
+
+.principleDetails {
+  text-align: left;
+  margin-top: 1.5rem;
+}
+
+.principleDetails h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.principleDetails ul {
+  list-style: none;
+  padding: 0;
   margin: 0;
+}
+
+.principleDetails li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.principleDetails li::before {
+  content: '•';
+  color: var(--primary);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.manifestoBeliefs {
+  margin-top: 2rem;
+  text-align: left;
+}
+
+.manifestoBeliefs h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.manifestoBeliefs ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.manifestoBeliefs li {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.manifestoBeliefs li::before {
+  content: '→';
+  color: var(--primary);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
 }
 
 .ctaSection {
@@ -208,6 +281,67 @@
   background: var(--primary);
   color: white;
   transform: translateY(-2px);
+}
+
+.implementationSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.sectionContent {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.sectionTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+.sectionDescription {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 3rem;
+  text-align: center;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.actionCard {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.actionCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.actionCard h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.actionCard p {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* Mobile Responsiveness */

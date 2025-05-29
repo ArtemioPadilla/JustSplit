@@ -45,7 +45,9 @@
       "Bash(awk:*)",
       "Bash(sed:*)",
       "Bash(timeout:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(./deploy-website.sh:*)",
+      "Bash(npx next dev:*)"
     ],
     "deny": []
   },

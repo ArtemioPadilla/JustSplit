@@ -166,7 +166,110 @@
   font-size: 1rem;
   color: var(--text-secondary);
   line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.visionDetails {
+  text-align: left;
+  margin-top: 1.5rem;
+}
+
+.visionDetails ul {
+  list-style: none;
+  padding: 0;
   margin: 0;
+}
+
+.visionDetails li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.visionDetails li::before {
+  content: '✓';
+  color: #64b5f6;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.architectureSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.architectureDiagram {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.architectureLayer {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.architectureLayer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.architectureLayer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.architectureLayer:hover::before {
+  transform: scaleX(1);
+}
+
+.architectureLayer h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.architectureLayer p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.layerComponents {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.layerComponents span {
+  background: var(--background);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
 }
 
 .timelineSection {
@@ -371,6 +474,7 @@
 
   .currentSection,
   .futureSection,
+  .architectureSection,
   .timelineSection,
   .ctaSection {
     padding: 3rem 1rem;
@@ -382,5 +486,18 @@
 
   .timelineContent {
     padding: 1rem;
+  }
+
+  .architectureLayer {
+    padding: 1.5rem;
+  }
+
+  .layerComponents {
+    gap: 0.5rem;
+  }
+
+  .layerComponents span {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
   }
 }

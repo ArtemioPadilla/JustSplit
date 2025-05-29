@@ -129,10 +129,10 @@ const detectLanguageFromLocation = async (): Promise<LanguageType> => {
   return 'en';
 };
 
-// Function to get initial language synchronously
+// Function to get initial language synchronously - matches themeScript.ts logic
 const getInitialLanguage = (): LanguageType => {
   if (typeof window === 'undefined') {
-    return 'en';
+    return 'en'; // SSR default
   }
   
   try {
@@ -141,13 +141,16 @@ const getInitialLanguage = (): LanguageType => {
       return savedLanguage;
     }
     
-    // Fallback to browser language for immediate rendering
+    // Check browser language (matches script logic)
     const browserLang = navigator.language.split('-')[0];
-    return browserLang === 'es' ? 'es' : 'en';
+    if (browserLang === 'es') {
+      return 'es';
+    }
   } catch (error) {
     console.warn('Failed to read language from localStorage:', error);
-    return 'en';
   }
+  
+  return 'en';
 };
 
 // Use regular function declaration for better Next.js compatibility
@@ -178,11 +181,14 @@ export function LanguageProvider({
           // Language already set correctly from getInitialLanguage
           return;
         } else {
-          // Detect language from location, timezone, and browser
-          const detectedLanguage = await detectLanguageFromLocation();
-          if (detectedLanguage !== language) {
-            setLanguageState(detectedLanguage);
-          }
+          // Only detect language automatically for new users (no saved preference)
+          // Use a timeout to ensure this happens after hydration
+          setTimeout(async () => {
+            const detectedLanguage = await detectLanguageFromLocation();
+            if (detectedLanguage !== language) {
+              setLanguageState(detectedLanguage);
+            }
+          }, 100);
         }
       }
     };
@@ -200,28 +206,25 @@ export function LanguageProvider({
         console.warn('Failed to save language to localStorage:', error);
       }
       
-      // Document lang attribute for accessibility and SEO
+      // Only update document attributes after hydration to prevent mismatch
       document.documentElement.setAttribute('lang', language);
-      // Also set the dir attribute for RTL languages if needed in the future
       document.documentElement.setAttribute('dir', 'ltr');
     }
   }, [language, isHydrated]);
-  
-  // Apply language immediately on initial render
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      document.documentElement.setAttribute('lang', language);
-      document.documentElement.setAttribute('dir', 'ltr');
-    }
-  }, []);
   
   // Set language helper
   const setLanguage = (lang: LanguageType) => {
     setLanguageState(lang);
   };
   
-  // Translation helper function
+  // Translation helper function with hydration-safe fallback
   const t = (key: string): string => {
+    // During SSR or before hydration, always return English to prevent hydration mismatch
+    if (typeof window === 'undefined' || !isHydrated) {
+      const englishTranslations = translations['en'];
+      return englishTranslations?.[key] || key;
+    }
+    
     const currentTranslations = translations[language];
     return currentTranslations?.[key] || key;
   };
