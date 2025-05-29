@@ -40,7 +40,12 @@
       "Bash(nx show project:*)",
       "Bash(node:*)",
       "Bash(nx serve:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(rg:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(timeout:*)",
+      "Bash(true)"
     ],
     "deny": []
   },

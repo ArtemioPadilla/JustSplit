@@ -1,8 +1,8 @@
 {
   "run": {
-    "command": "nx build website",
-    "startTime": "2025-05-29T05:37:19.192Z",
-    "endTime": "2025-05-29T05:37:25.525Z",
+    "command": "nx build website --configuration=production",
+    "startTime": "2025-05-29T19:32:07.133Z",
+    "endTime": "2025-05-29T19:32:13.849Z",
     "inner": false
   },
   "tasks": [
@@ -10,9 +10,9 @@
       "taskId": "ui-components:build",
       "target": "build",
       "projectName": "ui-components",
-      "hash": "2848439388048435687",
-      "startTime": "2025-05-29T05:37:19.195Z",
-      "endTime": "2025-05-29T05:37:19.213Z",
+      "hash": "2121684516957281629",
+      "startTime": "2025-05-29T19:32:07.138Z",
+      "endTime": "2025-05-29T19:32:07.158Z",
       "params": "",
       "cacheStatus": "local-cache-hit",
       "status": 0
@@ -21,9 +21,9 @@
       "taskId": "website:build:production",
       "target": "build",
       "projectName": "website",
-      "hash": "5270702704736576950",
-      "startTime": "2025-05-29T05:37:19.216Z",
-      "endTime": "2025-05-29T05:37:25.525Z",
+      "hash": "17351554235502896254",
+      "startTime": "2025-05-29T19:32:07.165Z",
+      "endTime": "2025-05-29T19:32:13.849Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 1

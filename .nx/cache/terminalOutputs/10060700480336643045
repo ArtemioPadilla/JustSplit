@@ -1,0 +1,28 @@
+   [1m[38;2;173;127;168m▲ Next.js 15.3.2[39m[22m
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+[31mFailed to compile.
+[39m
+./src/translations/index.ts
+Error:   [31mx[0m Expression expected
+      ,-[[36;1;4m/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/apps/website/src/translations/index.ts[0m:1548:1]
+ [2m1545[0m |     termsOfService: 'Términos de Servicio',
+ [2m1546[0m |     rightsReserved: 'Todos los derechos reservados.'
+ [2m1547[0m |   }
+ [2m1548[0m | };
+      : [35;1m^[0m
+ [2m1549[0m | 
+ [2m1550[0m | // Flatten the nested translations to match the expected TranslationsMap interface
+ [2m1551[0m | const translations: TranslationsMap = {
+      `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/translations/index.ts
+./src/app/client-layout.tsx
+
+
+> Build failed because of webpack errors
+[1m[31mBuild process exited due to code 1  [39m[22m

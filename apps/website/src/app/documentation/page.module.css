@@ -115,6 +115,22 @@
   font-weight: 500;
 }
 
+.navLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-decoration: none;
+  padding: var(--spacing-xs) 0;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  font-size: 0.95rem;
+}
+
+.navLink:hover {
+  color: var(--primary);
+}
+
 .mainContent {
   background: var(--surface);
   border-radius: var(--border-radius);
@@ -160,4 +176,20 @@
   font-family: 'Courier New', monospace;
   color: var(--text-primary);
   border: 1px solid var(--border);
+}
+
+.conceptList {
+  margin: var(--spacing-md) 0;
+  padding-left: var(--spacing-lg);
+}
+
+.conceptList li {
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.conceptList li strong {
+  color: var(--primary);
+  font-weight: 600;
 }

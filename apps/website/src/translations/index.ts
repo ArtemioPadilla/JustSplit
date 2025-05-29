@@ -307,6 +307,216 @@ const nestedTranslations = {
       comingSoon: 'Detailed information about each solution coming soon.'
     },
     
+    // PhilosophyPage translations
+    philosophyPage: {
+      title: 'CyberEco Platform Philosophy',
+      subtitle: 'Building technology that serves human flourishing, not corporate extraction',
+      
+      manifestoTitle: 'The Digital Sovereignty Manifesto',
+      manifestoQuote: 'In a world where digital life has become fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.',
+      manifestoBeliefTitle: 'We believe:',
+      manifestoBelief1: 'Your digital presence should empower you, not exploit you',
+      manifestoBelief2: 'Your identity should belong to you',
+      manifestoBelief3: 'Your data should serve you',
+      manifestoBelief4: 'Your actions should connect you with others meaningfully',
+      
+      principlesSectionTitle: 'Our Guiding Principles',
+      
+      digitalSovereigntyTitle: 'Digital Sovereignty',
+      digitalSovereigntyQuote: 'You own your identity, your data, your narrative',
+      digitalSovereigntyMeansTitle: 'What this means:',
+      digitalSovereigntyMeans1: 'Complete control over personal data and digital identity',
+      digitalSovereigntyMeans2: 'Transparency in how data is used and shared',
+      digitalSovereigntyMeans3: 'Right to data portability and deletion',
+      digitalSovereigntyMeans4: 'Freedom from vendor lock-in',
+      digitalSovereigntyImplTitle: 'How we implement this:',
+      digitalSovereigntyImpl1: 'Open data formats and APIs',
+      digitalSovereigntyImpl2: 'Local-first data storage with cloud sync',
+      digitalSovereigntyImpl3: 'User-controlled encryption keys',
+      digitalSovereigntyImpl4: 'Transparent privacy policies',
+      
+      wellbeingTitle: 'Wellbeing by Design',
+      wellbeingQuote: 'Tech must serve your life — not consume it',
+      wellbeingMeansTitle: 'What this means:',
+      wellbeingMeans1: 'Technology should enhance human capabilities',
+      wellbeingMeans2: 'Interfaces designed to respect user attention',
+      wellbeingMeans3: 'Features that promote healthy digital habits',
+      wellbeingMeans4: 'No dark patterns or addictive mechanics',
+      wellbeingImplTitle: 'How we implement this:',
+      wellbeingImpl1: 'Mindful notification systems',
+      wellbeingImpl2: 'Time-based usage insights',
+      wellbeingImpl3: 'Intentional UI/UX design',
+      wellbeingImpl4: 'Regular digital wellness features',
+      
+      interconnectionTitle: 'Interconnection with Purpose',
+      interconnectionQuote: 'Every platform is useful alone, but transformative together',
+      interconnectionMeansTitle: 'What this means:',
+      interconnectionMeans1: 'Seamless integration between different applications',
+      interconnectionMeans2: 'Shared identity and data across platforms',
+      interconnectionMeans3: 'Network effects that benefit all users',
+      interconnectionMeans4: 'Collaborative features that enhance individual tools',
+      interconnectionImplTitle: 'How we implement this:',
+      interconnectionImpl1: 'Unified authentication and identity management',
+      interconnectionImpl2: 'Cross-platform data sharing and synchronization',
+      interconnectionImpl3: 'Standardized APIs for third-party integration',
+      interconnectionImpl4: 'Community-driven feature development',
+      
+      communityTitle: 'Community is Core',
+      communityQuote: 'We build tools for individuals, powered by the collective',
+      communityMeansTitle: 'What this means:',
+      communityMeans1: 'Community engagement drives platform evolution',
+      communityMeans2: 'Collaborative governance and decision-making',
+      communityMeans3: 'Shared knowledge and resource pooling',
+      communityMeans4: 'Individual empowerment through collective wisdom',
+      communityImplTitle: 'How we implement this:',
+      communityImpl1: 'Open-source development practices',
+      communityImpl2: 'Community voting on feature priorities',
+      communityImpl3: 'User-generated content and resources',
+      communityImpl4: 'Transparent communication channels',
+      
+      opennessTitle: 'Open by Nature',
+      opennessQuote: 'Wherever possible, CyberEco is modular, transparent, and interoperable',
+      opennessMeansTitle: 'What this means:',
+      opennessMeans1: 'Open-source code and documentation',
+      opennessMeans2: 'Transparent development processes',
+      opennessMeans3: 'Interoperable data formats and protocols',
+      opennessMeans4: 'Community-driven innovation',
+      opennessImplTitle: 'How we implement this:',
+      opennessImpl1: 'Public GitHub repositories',
+      opennessImpl2: 'Comprehensive API documentation',
+      opennessImpl3: 'Standard data formats (JSON, CSV, etc.)',
+      opennessImpl4: 'Plugin and extension architectures',
+      
+      ctaTitle: 'Join the Movement',
+      ctaText: 'Experience technology that respects your sovereignty and serves your community.',
+      ctaButton: 'Explore Our Solutions',
+      ctaButtonSecondary: 'Our Vision',
+      
+      implementationTitle: 'Philosophy in Action',
+      implementationText: 'These aren\'t just ideals — they\'re principles we actively implement in every line of code, every design decision, and every user interaction across the CyberEco ecosystem.',
+      privacyTitle: 'Privacy First',
+      privacyText: 'All user data is encrypted by default, with users controlling their own encryption keys.',
+      decentralizedTitle: 'Decentralized Future',
+      decentralizedText: 'Building toward a peer-to-peer network where users own and control their digital ecosystem.',
+      innovationTitle: 'Open Innovation',
+      innovationText: 'All development happens in the open, with community input shaping our roadmap.',
+      humanCenteredTitle: 'Human-Centered',
+      humanCenteredText: 'Every feature is evaluated through the lens of human wellbeing and empowerment.'
+    },
+    
+    // VisionPage translations
+    visionPage: {
+      title: 'Our Vision',
+      subtitle: 'Building toward a decentralized future where technology serves humanity',
+      
+      currentStateTitle: 'Where We Are Today',
+      currentStateText: 'We start with practical applications that solve real problems while building the foundation for a decentralized future.',
+      
+      futureVisionTitle: 'The Decentralized Future',
+      futureVisionText: 'Our vision extends to a world of mobile P2P networks, complete data sovereignty, and a participation economy where users are rewarded for their contributions.',
+      
+      p2pNetworksTitle: 'Mobile P2P Networks',
+      p2pNetworksText: 'Smartphones become network nodes, eliminating the need for central servers and creating truly distributed applications.',
+      
+      dataSovereigntyTitle: 'Complete Data Sovereignty',
+      dataSovereigntyText: 'Cryptographic guarantees ensure users have complete control over their data, with zero-knowledge proofs protecting privacy.',
+      
+      participationEconomyTitle: 'Participation Economy',
+      participationEconomyText: 'Users earn tokens for contributing to the network, creating a sustainable economy that rewards community participation.',
+      
+      globalAccessTitle: 'Global Accessibility',
+      globalAccessText: 'No central servers or gatekeepers means anyone with a smartphone can participate in the global digital economy.',
+      
+      timelineTitle: 'The Journey Ahead',
+      phase1Title: 'Foundation (2024-2025)',
+      phase1Text: 'Establish core applications and user base',
+      phase2Title: 'Growth (2025-2027)',
+      phase2Text: 'Expand ecosystem with priority applications',
+      phase3Title: 'Integration (2027-2030)',
+      phase3Text: 'Build comprehensive interconnected ecosystem',
+      phase4Title: 'Decentralization (2030+)',
+      phase4Text: 'Transition to fully decentralized P2P networks',
+      
+      ctaTitle: 'Be Part of the Future',
+      ctaText: 'Join us in building a digital ecosystem that puts humanity first.',
+      ctaButton: 'View Roadmap',
+      ctaButtonSecondary: 'Our Philosophy'
+    },
+    
+    // RoadmapPage translations
+    roadmapPage: {
+      title: 'Development Roadmap',
+      subtitle: 'Our journey from current applications to a fully decentralized ecosystem',
+      
+      phase1Title: 'Phase 1: Foundation (2024-2025)',
+      phase1Text: 'Launch core applications: Hub for authentication, JustSplit for expense sharing, and Website for community engagement.',
+      
+      phase2Title: 'Phase 2: Growth (2025-2027)',
+      phase2Text: 'Expand with priority applications: Somos for family connections, Demos for community governance, and Plantopia for sustainable living.',
+      
+      phase3Title: 'Phase 3: Ecosystem (2027-2030)',
+      phase3Text: 'Build comprehensive application ecosystem covering all aspects of digital life with seamless integration and data portability.',
+      
+      phase4Title: 'Phase 4: Decentralization (2030-2035)',
+      phase4Text: 'Transition to fully decentralized architecture with mobile P2P networks, blockchain integration, and user-owned infrastructure.',
+      
+      milestonesTitle: 'Key Milestones',
+      currentMilestone: 'Current: Building foundational applications',
+      nextMilestone: 'Next: Launch priority application suite',
+      futureMilestone: 'Future: Complete ecosystem integration',
+      
+      progressComplete: '75% Complete',
+      planningPhase: 'Planning Phase',
+      planned: 'Planned',
+      longTermVision: 'Long-term Vision',
+      
+      currentFocusTitle: 'Current Focus',
+      nextQuarterTitle: 'Next Quarter',
+      longTermTitle: 'Long-term Goal',
+      inProgressStatus: 'In Progress',
+      q2Status: 'Q2 2025',
+      timeframeStatus: '2027-2030',
+      
+      timelineTitle: 'Development Timeline',
+      timeline2024: 'Foundation Launch',
+      timeline2025: 'Priority Apps',
+      timeline2027: 'Full Ecosystem',
+      timeline2030: 'Decentralization',
+      
+      ctaTitle: 'Join Our Journey',
+      ctaText: 'Be part of building the future of human-centered technology.',
+      ctaButton: 'Explore Applications',
+      ctaButtonSecondary: 'Our Vision'
+    },
+    
+    // ApplicationsPage translations
+    applicationsPage: {
+      title: 'Application Ecosystem',
+      subtitle: 'A comprehensive suite of applications designed to enhance every aspect of digital living',
+      
+      currentAppsTitle: 'Available Now',
+      priorityAppsTitle: 'Priority Applications',
+      futureAppsTitle: 'Future Ecosystem',
+      
+      hubTitle: 'CyberEco Hub',
+      hubDescription: 'Your digital identity and authentication center. One login for all CyberEco applications with complete privacy control.',
+      
+      justSplitTitle: 'JustSplit',
+      justSplitDescription: 'Transparent expense sharing that promotes financial clarity and fairness among friends, family, and groups.',
+      
+      somosTitle: 'Somos',
+      somosDescription: 'Connect with your roots through family heritage exploration, cultural discovery, and community building.',
+      
+      demosTitle: 'Demos',
+      demosDescription: 'Transparent community governance with secure voting, proposal management, and collective decision-making tools.',
+      
+      plantopiaTitle: 'Plantopia',
+      plantopiaDescription: 'Smart gardening platform that connects you with nature while promoting sustainable living practices.',
+      
+      ecosystemVisionTitle: 'Complete Ecosystem Vision',
+      ecosystemVisionText: 'Over 30 planned applications covering finance, community, education, health, sustainability, and personal growth — all working together as a unified digital ecosystem.'
+    },
+    
     // HelpPage translations
     helpPage: {
       title: 'Help & Support',
@@ -564,7 +774,7 @@ const nestedTranslations = {
     financeEconomy: 'Finance & Economy',
     sustainabilityHome: 'Sustainability & Home',
     educationGrowth: 'Education & Growth',
-    healthWellness: 'Health & Wellness'
+    healthWellness: 'Health & Wellness',
   },
   es: {
     // Navigation and common UI elements
@@ -853,6 +1063,216 @@ const nestedTranslations = {
       comingSoon: 'Información detallada sobre cada solución próximamente.'
     },
     
+    // PhilosophyPage translations
+    philosophyPage: {
+      title: 'Filosofía de la Plataforma CyberEco',
+      subtitle: 'Construyendo tecnología que sirve al florecimiento humano, no a la extracción corporativa',
+      
+      manifestoTitle: 'El Manifiesto de Soberanía Digital',
+      manifestoQuote: 'En un mundo donde la vida digital se ha vuelto fragmentada, extractiva y abrumadora, CyberEco existe para ofrecer un mejor camino, uno arraigado en la soberanía, la comunidad y el equilibrio.',
+      manifestoBeliefTitle: 'Creemos que:',
+      manifestoBelief1: 'Tu presencia digital debe empoderarte, no explotarte',
+      manifestoBelief2: 'Tu identidad debe pertenecerte',
+      manifestoBelief3: 'Tus datos deben servirte',
+      manifestoBelief4: 'Tus acciones deben conectarte significativamente con otros',
+      
+      principlesSectionTitle: 'Nuestros Principios Rectores',
+      
+      digitalSovereigntyTitle: 'Soberanía Digital',
+      digitalSovereigntyQuote: 'Tú eres dueño de tu identidad, tus datos, tu narrativa',
+      digitalSovereigntyMeansTitle: 'Qué significa esto:',
+      digitalSovereigntyMeans1: 'Control completo sobre datos personales e identidad digital',
+      digitalSovereigntyMeans2: 'Transparencia en cómo se usan y comparten los datos',
+      digitalSovereigntyMeans3: 'Derecho a la portabilidad y eliminación de datos',
+      digitalSovereigntyMeans4: 'Libertad del encierro de proveedores',
+      digitalSovereigntyImplTitle: 'Cómo implementamos esto:',
+      digitalSovereigntyImpl1: 'Formatos de datos abiertos y APIs',
+      digitalSovereigntyImpl2: 'Almacenamiento local de datos con sincronización en la nube',
+      digitalSovereigntyImpl3: 'Claves de encriptación controladas por el usuario',
+      digitalSovereigntyImpl4: 'Políticas de privacidad transparentes',
+      
+      wellbeingTitle: 'Bienestar por Diseño',
+      wellbeingQuote: 'La tecnología debe servir a tu vida, no consumirla',
+      wellbeingMeansTitle: 'Qué significa esto:',
+      wellbeingMeans1: 'La tecnología debe mejorar las capacidades humanas',
+      wellbeingMeans2: 'Interfaces diseñadas para respetar la atención del usuario',
+      wellbeingMeans3: 'Características que promueven hábitos digitales saludables',
+      wellbeingMeans4: 'Sin patrones oscuros o mecánicas adictivas',
+      wellbeingImplTitle: 'Cómo implementamos esto:',
+      wellbeingImpl1: 'Sistemas de notificación conscientes',
+      wellbeingImpl2: 'Insights de uso basados en tiempo',
+      wellbeingImpl3: 'Diseño intencional de UI/UX',
+      wellbeingImpl4: 'Características regulares de bienestar digital',
+      
+      interconnectionTitle: 'Interconexión con Propósito',
+      interconnectionQuote: 'Cada plataforma es útil por sí sola, pero transformadora en conjunto',
+      interconnectionMeansTitle: 'Qué significa esto:',
+      interconnectionMeans1: 'Integración perfecta entre diferentes aplicaciones',
+      interconnectionMeans2: 'Identidad y datos compartidos entre plataformas',
+      interconnectionMeans3: 'Efectos de red que benefician a todos los usuarios',
+      interconnectionMeans4: 'Características colaborativas que mejoran herramientas individuales',
+      interconnectionImplTitle: 'Cómo implementamos esto:',
+      interconnectionImpl1: 'Autenticación unificada y gestión de identidad',
+      interconnectionImpl2: 'Compartición y sincronización de datos entre plataformas',
+      interconnectionImpl3: 'APIs estandarizadas para integración de terceros',
+      interconnectionImpl4: 'Desarrollo de características impulsado por la comunidad',
+      
+      communityTitle: 'La Comunidad es el Núcleo',
+      communityQuote: 'Construimos herramientas para individuos, impulsadas por lo colectivo',
+      communityMeansTitle: 'Qué significa esto:',
+      communityMeans1: 'El compromiso comunitario impulsa la evolución de la plataforma',
+      communityMeans2: 'Gobernanza colaborativa y toma de decisiones',
+      communityMeans3: 'Conocimiento compartido y agrupación de recursos',
+      communityMeans4: 'Empoderamiento individual a través de la sabiduría colectiva',
+      communityImplTitle: 'Cómo implementamos esto:',
+      communityImpl1: 'Prácticas de desarrollo de código abierto',
+      communityImpl2: 'Votación comunitaria sobre prioridades de características',
+      communityImpl3: 'Contenido y recursos generados por usuarios',
+      communityImpl4: 'Canales de comunicación transparentes',
+      
+      opennessTitle: 'Abiertos por Naturaleza',
+      opennessQuote: 'Donde sea posible, CyberEco es modular, transparente e interoperable',
+      opennessMeansTitle: 'Qué significa esto:',
+      opennessMeans1: 'Código abierto y documentación',
+      opennessMeans2: 'Procesos de desarrollo transparentes',
+      opennessMeans3: 'Formatos de datos y protocolos interoperables',
+      opennessMeans4: 'Innovación impulsada por la comunidad',
+      opennessImplTitle: 'Cómo implementamos esto:',
+      opennessImpl1: 'Repositorios públicos de GitHub',
+      opennessImpl2: 'Documentación completa de API',
+      opennessImpl3: 'Formatos de datos estándar (JSON, CSV, etc.)',
+      opennessImpl4: 'Arquitecturas de plugins y extensiones',
+      
+      ctaTitle: 'Únete al Movimiento',
+      ctaText: 'Experimenta tecnología que respeta tu soberanía y sirve a tu comunidad.',
+      ctaButton: 'Explora Nuestras Soluciones',
+      ctaButtonSecondary: 'Nuestra Visión',
+      
+      implementationTitle: 'Filosofía en Acción',
+      implementationText: 'Estos no son solo ideales: son principios que implementamos activamente en cada línea de código, cada decisión de diseño y cada interacción de usuario en todo el ecosistema CyberEco.',
+      privacyTitle: 'Privacidad Primero',
+      privacyText: 'Todos los datos de usuario están encriptados por defecto, con usuarios controlando sus propias claves de encriptación.',
+      decentralizedTitle: 'Futuro Descentralizado',
+      decentralizedText: 'Construyendo hacia una red peer-to-peer donde los usuarios poseen y controlan su ecosistema digital.',
+      innovationTitle: 'Innovación Abierta',
+      innovationText: 'Todo el desarrollo ocurre abiertamente, con la entrada de la comunidad dando forma a nuestra hoja de ruta.',
+      humanCenteredTitle: 'Centrado en el Humano',
+      humanCenteredText: 'Cada característica se evalúa a través del lente del bienestar y empoderamiento humano.'
+    },
+    
+    // VisionPage translations
+    visionPage: {
+      title: 'Nuestra Visión',
+      subtitle: 'Construyendo hacia un futuro descentralizado donde la tecnología sirve a la humanidad',
+      
+      currentStateTitle: 'Dónde Estamos Hoy',
+      currentStateText: 'Comenzamos con aplicaciones prácticas que resuelven problemas reales mientras construimos la base para un futuro descentralizado.',
+      
+      futureVisionTitle: 'El Futuro Descentralizado',
+      futureVisionText: 'Nuestra visión se extiende a un mundo de redes P2P móviles, soberanía completa de datos y una economía de participación donde los usuarios son recompensados por sus contribuciones.',
+      
+      p2pNetworksTitle: 'Redes P2P Móviles',
+      p2pNetworksText: 'Los smartphones se convierten en nodos de red, eliminando la necesidad de servidores centrales y creando aplicaciones verdaderamente distribuidas.',
+      
+      dataSovereigntyTitle: 'Soberanía Completa de Datos',
+      dataSovereigntyText: 'Las garantías criptográficas aseguran que los usuarios tengan control completo sobre sus datos, con pruebas de conocimiento cero protegiendo la privacidad.',
+      
+      participationEconomyTitle: 'Economía de Participación',
+      participationEconomyText: 'Los usuarios ganan tokens por contribuir a la red, creando una economía sostenible que recompensa la participación comunitaria.',
+      
+      globalAccessTitle: 'Accesibilidad Global',
+      globalAccessText: 'Sin servidores centrales o intermediarios significa que cualquiera con un smartphone puede participar en la economía digital global.',
+      
+      timelineTitle: 'El Camino por Delante',
+      phase1Title: 'Fundación (2024-2025)',
+      phase1Text: 'Establecer aplicaciones centrales y base de usuarios',
+      phase2Title: 'Crecimiento (2025-2027)',
+      phase2Text: 'Expandir ecosistema con aplicaciones prioritarias',
+      phase3Title: 'Integración (2027-2030)',
+      phase3Text: 'Construir ecosistema interconectado integral',
+      phase4Title: 'Descentralización (2030+)',
+      phase4Text: 'Transición a redes P2P completamente descentralizadas',
+      
+      ctaTitle: 'Sé Parte del Futuro',
+      ctaText: 'Únete a nosotros en la construcción de un ecosistema digital que pone a la humanidad primero.',
+      ctaButton: 'Ver Hoja de Ruta',
+      ctaButtonSecondary: 'Nuestra Filosofía'
+    },
+    
+    // RoadmapPage translations
+    roadmapPage: {
+      title: 'Hoja de Ruta de Desarrollo',
+      subtitle: 'Nuestro viaje desde las aplicaciones actuales hasta un ecosistema completamente descentralizado',
+      
+      phase1Title: 'Fase 1: Fundación (2024-2025)',
+      phase1Text: 'Lanzar aplicaciones principales: Hub para autenticación, JustSplit para compartir gastos, y Website para compromiso comunitario.',
+      
+      phase2Title: 'Fase 2: Crecimiento (2025-2027)',
+      phase2Text: 'Expandir con aplicaciones prioritarias: Somos para conexiones familiares, Demos para gobernanza comunitaria, y Plantopia para vida sostenible.',
+      
+      phase3Title: 'Fase 3: Ecosistema (2027-2030)',
+      phase3Text: 'Construir ecosistema de aplicaciones integral cubriendo todos los aspectos de la vida digital con integración perfecta y portabilidad de datos.',
+      
+      phase4Title: 'Fase 4: Descentralización (2030-2035)',
+      phase4Text: 'Transición a arquitectura completamente descentralizada con redes P2P móviles, integración blockchain e infraestructura propiedad del usuario.',
+      
+      milestonesTitle: 'Hitos Clave',
+      currentMilestone: 'Actual: Construyendo aplicaciones fundamentales',
+      nextMilestone: 'Próximo: Lanzar suite de aplicaciones prioritarias',
+      futureMilestone: 'Futuro: Integración completa del ecosistema',
+      
+      currentFocusTitle: 'Enfoque Actual',
+      nextQuarterTitle: 'Próximo Trimestre',
+      longTermTitle: 'Meta a Largo Plazo',
+      inProgressStatus: 'En Progreso',
+      q2Status: 'Q2 2025',
+      timeframeStatus: '2027-2030',
+      
+      timelineTitle: 'Cronograma de Desarrollo',
+      timeline2024: 'Lanzamiento de Fundación',
+      timeline2025: 'Aplicaciones Prioritarias',
+      timeline2027: 'Ecosistema Completo',
+      timeline2030: 'Descentralización',
+      
+      progressComplete: '75% Completo',
+      planningPhase: 'Fase de Planificación',
+      planned: 'Planificado',
+      longTermVision: 'Visión a Largo Plazo',
+      
+      ctaTitle: 'Únete a Nuestro Viaje',
+      ctaText: 'Sé parte de construir el futuro de la tecnología centrada en el ser humano.',
+      ctaButton: 'Explorar Aplicaciones',
+      ctaButtonSecondary: 'Nuestra Visión'
+    },
+    
+    // ApplicationsPage translations
+    applicationsPage: {
+      title: 'Ecosistema de Aplicaciones',
+      subtitle: 'Un conjunto integral de aplicaciones diseñadas para mejorar cada aspecto de la vida digital',
+      
+      currentAppsTitle: 'Disponibles Ahora',
+      priorityAppsTitle: 'Aplicaciones Prioritarias',
+      futureAppsTitle: 'Ecosistema Futuro',
+      
+      hubTitle: 'CyberEco Hub',
+      hubDescription: 'Tu centro de identidad digital y autenticación. Una sola cuenta para todas las aplicaciones CyberEco con control completo de privacidad.',
+      
+      justSplitTitle: 'JustSplit',
+      justSplitDescription: 'Compartir gastos transparente que promueve la claridad financiera y equidad entre amigos, familia y grupos.',
+      
+      somosTitle: 'Somos',
+      somosDescription: 'Conecta con tus raíces a través de la exploración del patrimonio familiar, descubrimiento cultural y construcción comunitaria.',
+      
+      demosTitle: 'Demos',
+      demosDescription: 'Gobernanza comunitaria transparente con votación segura, gestión de propuestas y herramientas de toma de decisiones colectivas.',
+      
+      plantopiaTitle: 'Plantopia',
+      plantopiaDescription: 'Plataforma de jardinería inteligente que te conecta con la naturaleza mientras promueve prácticas de vida sostenible.',
+      
+      ecosystemVisionTitle: 'Visión Completa del Ecosistema',
+      ecosystemVisionText: 'Más de 30 aplicaciones planificadas cubriendo finanzas, comunidad, educación, salud, sostenibilidad y crecimiento personal — todas trabajando juntas como un ecosistema digital unificado.'
+    },
+    
     // HelpPage translations
     helpPage: {
       title: 'Ayuda y Soporte',
@@ -1103,12 +1523,7 @@ const nestedTranslations = {
     support: 'Soporte',
     privacyPolicy: 'Política de Privacidad',
     termsOfService: 'Términos de Servicio',
-    rightsReserved: 'Todos los derechos reservados.',
-    communityGovernance: 'Comunidad y Gobernanza',
-    financeEconomy: 'Finanzas y Economía',
-    sustainabilityHome: 'Sostenibilidad y Hogar',
-    educationGrowth: 'Educación y Crecimiento',
-    healthWellness: 'Salud y Bienestar'
+    rightsReserved: 'Todos los derechos reservados.'
   }
 };
 

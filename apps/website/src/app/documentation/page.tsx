@@ -52,6 +52,64 @@ export default function DocumentationPage() {
         </>
       )
     },
+    'key-concepts': {
+      title: 'Key Concepts & Architecture',
+      content: (
+        <>
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>Digital Sovereignty</h3>
+            <p className={styles.contentText}>
+              At the core of CyberEco is the principle of digital sovereignty - the idea that individuals should own and control their digital identity and data. Our architecture ensures that:
+            </p>
+            <ul className={styles.conceptList}>
+              <li>Users maintain ownership of their personal data</li>
+              <li>Applications are designed to be interoperable and user-controlled</li>
+              <li>No single entity has monopolistic control over user information</li>
+              <li>Privacy is built into the core design, not added as an afterthought</li>
+            </ul>
+          </div>
+
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>Ecosystem Architecture</h3>
+            <p className={styles.contentText}>
+              CyberEco is built as a modular ecosystem where each application serves a specific purpose while contributing to the greater whole:
+            </p>
+            <ul className={styles.conceptList}>
+              <li><strong>Hub:</strong> Central authentication and identity management</li>
+              <li><strong>Application Layer:</strong> Specialized apps for different life domains</li>
+              <li><strong>Data Layer:</strong> User-controlled data storage and sharing</li>
+              <li><strong>Integration Layer:</strong> APIs and protocols for seamless interaction</li>
+            </ul>
+          </div>
+
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>Human-Centered Design</h3>
+            <p className={styles.contentText}>
+              Every application in the CyberEco ecosystem is designed with human well-being and authentic connection at its center. This means:
+            </p>
+            <ul className={styles.conceptList}>
+              <li>Minimizing addictive design patterns</li>
+              <li>Promoting real-world relationships and activities</li>
+              <li>Supporting individual growth and community building</li>
+              <li>Respecting human attention and mental health</li>
+            </ul>
+          </div>
+
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>Community-Driven Development</h3>
+            <p className={styles.contentText}>
+              Our development process is guided by actual community needs rather than profit maximization. We prioritize:
+            </p>
+            <ul className={styles.conceptList}>
+              <li>Open-source development where possible</li>
+              <li>Community feedback and involvement in feature development</li>
+              <li>Transparent roadmaps and decision-making processes</li>
+              <li>Sustainable business models that align with user interests</li>
+            </ul>
+          </div>
+        </>
+      )
+    },
     'community-governance': {
       title: t('documentationPage.communityGovernanceTitle') || 'Community & Governance',
       content: (
@@ -287,6 +345,33 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
               {t('documentationPage.introductionNavItem') || 'Introduction'}
               <FaChevronRight size={10} />
             </button>
+            <button 
+              onClick={() => setActiveDoc('key-concepts')}
+              className={`${styles.navItem} ${activeDoc === 'key-concepts' ? styles.active : ''}`}
+            >
+              Key Concepts
+              <FaChevronRight size={10} />
+            </button>
+          </div>
+          
+          <div className={styles.navSection}>
+            <h3 className={styles.navTitle}>Core Documentation</h3>
+            <a href="/philosophy" className={styles.navLink}>
+              Our Philosophy
+              <FaChevronRight size={10} />
+            </a>
+            <a href="/vision" className={styles.navLink}>
+              Vision & Future
+              <FaChevronRight size={10} />
+            </a>
+            <a href="/roadmap" className={styles.navLink}>
+              Development Roadmap
+              <FaChevronRight size={10} />
+            </a>
+            <a href="/applications" className={styles.navLink}>
+              Application Ecosystem
+              <FaChevronRight size={10} />
+            </a>
           </div>
           
           <div className={styles.navSection}>
