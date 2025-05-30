@@ -323,6 +323,224 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
           </div>
         </>
       )
+    },
+    'philosophy': {
+      title: t('documentationPage.philosophyDocTitle'),
+      content: (
+        <div className={styles.coreDocSection}>
+          <div className={styles.coreDocHeader}>
+            <div className={styles.coreDocIcon}>📖</div>
+            <div className={styles.docTypeTag}>
+              <span>{t('documentationPage.coreDocument')}</span>
+            </div>
+            <p className={styles.coreDocSummary}>
+              {t('documentationPage.philosophyDocSummary')}
+            </p>
+          </div>
+          
+          <div className={`${styles.contentSection} ${styles.coreDocContent}`}>
+            <h3 className={styles.subTitle}>{t('documentationPage.keyPrinciples')}</h3>
+            <div className={styles.principleCards}>
+              <div className={styles.principleCard}>
+                <div className={styles.principleIcon}>🔐</div>
+                <h4 className={styles.principleTitle}>{t('documentationPage.digitalSovereigntyPrinciple')}</h4>
+                <p className={styles.principleDescription}>{t('documentationPage.digitalSovereigntyDesc')}</p>
+              </div>
+              <div className={styles.principleCard}>
+                <div className={styles.principleIcon}>❤️</div>
+                <h4 className={styles.principleTitle}>{t('documentationPage.humanCenteredPrinciple')}</h4>
+                <p className={styles.principleDescription}>{t('documentationPage.humanCenteredDesc')}</p>
+              </div>
+              <div className={styles.principleCard}>
+                <div className={styles.principleIcon}>🌱</div>
+                <h4 className={styles.principleTitle}>{t('documentationPage.sustainablePrinciple')}</h4>
+                <p className={styles.principleDescription}>{t('documentationPage.sustainableDesc')}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles.contentSection}>
+            <div className={styles.redirectCard}>
+              <h4>{t('documentationPage.completePhilosophyDoc')}</h4>
+              <p>{t('documentationPage.completePhilosophyDesc')}</p>
+              <a href="/philosophy" className={styles.redirectButton}>
+                {t('documentationPage.viewFullPhilosophy')}
+                <FaChevronRight />
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    'vision': {
+      title: t('documentationPage.visionDocTitle'),
+      content: (
+        <div className={styles.coreDocSection}>
+          <div className={styles.coreDocHeader}>
+            <div className={styles.coreDocIcon}>🔮</div>
+            <div className={styles.docTypeTag}>
+              <span>{t('documentationPage.futureVision')}</span>
+            </div>
+            <p className={styles.coreDocSummary}>
+              {t('documentationPage.visionDocSummary')}
+            </p>
+          </div>
+          
+          <div className={`${styles.contentSection} ${styles.coreDocContent}`}>
+            <h3 className={styles.subTitle}>{t('documentationPage.visionComponents')}</h3>
+            <div className={styles.enhancedContentList}>
+              <div className={styles.contentListItem}>
+                <h4 className={styles.listItemTitle}>📱 {t('documentationPage.mobileP2PComponent')}</h4>
+                <p className={styles.listItemDescription}>{t('documentationPage.mobileP2PDesc')}</p>
+              </div>
+              <div className={styles.contentListItem}>
+                <h4 className={styles.listItemTitle}>🔐 {t('documentationPage.dataSovereigntyComponent')}</h4>
+                <p className={styles.listItemDescription}>{t('documentationPage.dataSovereigntyDesc')}</p>
+              </div>
+              <div className={styles.contentListItem}>
+                <h4 className={styles.listItemTitle}>🪙 {t('documentationPage.tokenEconomicsComponent')}</h4>
+                <p className={styles.listItemDescription}>{t('documentationPage.tokenEconomicsDesc')}</p>
+              </div>
+              <div className={styles.contentListItem}>
+                <h4 className={styles.listItemTitle}>🌍 {t('documentationPage.globalAccessComponent')}</h4>
+                <p className={styles.listItemDescription}>{t('documentationPage.globalAccessDesc')}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles.contentSection}>
+            <div className={styles.redirectCard}>
+              <h4>{t('documentationPage.completeVisionDoc')}</h4>
+              <p>{t('documentationPage.completeVisionDesc')}</p>
+              <a href="/vision" className={styles.redirectButton}>
+                {t('documentationPage.viewFullVision')}
+                <FaChevronRight />
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    'roadmap': {
+      title: t('documentationPage.roadmapDocTitle'),
+      content: (
+        <div className={styles.coreDocSection}>
+          <div className={styles.coreDocHeader}>
+            <div className={styles.coreDocIcon}>🛠️</div>
+            <div className={styles.docTypeTag}>
+              <span>{t('documentationPage.developmentPlan')}</span>
+            </div>
+            <p className={styles.coreDocSummary}>
+              {t('documentationPage.roadmapDocSummary')}
+            </p>
+          </div>
+          
+          <div className={`${styles.contentSection} ${styles.coreDocContent}`}>
+            <h3 className={styles.subTitle}>{t('documentationPage.developmentPhases')}</h3>
+            <div className={styles.phaseTimeline}>
+              <div className={styles.phaseItem}>
+                <div className={styles.phaseNumber}>1</div>
+                <div className={styles.phaseContent}>
+                  <h4 className={styles.phaseTitle}>{t('documentationPage.foundationPhase')}</h4>
+                  <p className={styles.phaseDescription}>{t('documentationPage.foundationDesc')}</p>
+                </div>
+              </div>
+              <div className={styles.phaseItem}>
+                <div className={styles.phaseNumber}>2</div>
+                <div className={styles.phaseContent}>
+                  <h4 className={styles.phaseTitle}>{t('documentationPage.growthPhase')}</h4>
+                  <p className={styles.phaseDescription}>{t('documentationPage.growthDesc')}</p>
+                </div>
+              </div>
+              <div className={styles.phaseItem}>
+                <div className={styles.phaseNumber}>3</div>
+                <div className={styles.phaseContent}>
+                  <h4 className={styles.phaseTitle}>{t('documentationPage.integrationPhase')}</h4>
+                  <p className={styles.phaseDescription}>{t('documentationPage.integrationDesc')}</p>
+                </div>
+              </div>
+              <div className={styles.phaseItem}>
+                <div className={styles.phaseNumber}>4</div>
+                <div className={styles.phaseContent}>
+                  <h4 className={styles.phaseTitle}>{t('documentationPage.decentralizationPhase')}</h4>
+                  <p className={styles.phaseDescription}>{t('documentationPage.decentralizationDesc')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles.contentSection}>
+            <div className={styles.redirectCard}>
+              <h4>{t('documentationPage.completeRoadmapDoc')}</h4>
+              <p>{t('documentationPage.completeRoadmapDesc')}</p>
+              <a href="/roadmap" className={styles.redirectButton}>
+                {t('documentationPage.viewFullRoadmap')}
+                <FaChevronRight />
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    'portfolio': {
+      title: t('documentationPage.portfolioDocTitle'),
+      content: (
+        <div className={styles.coreDocSection}>
+          <div className={styles.coreDocHeader}>
+            <div className={styles.coreDocIcon}>🚀</div>
+            <div className={styles.docTypeTag}>
+              <span>{t('documentationPage.solutionsOverview')}</span>
+            </div>
+            <p className={styles.coreDocSummary}>
+              {t('documentationPage.portfolioDocSummary')}
+            </p>
+          </div>
+          
+          <div className={`${styles.contentSection} ${styles.coreDocContent}`}>
+            <h3 className={styles.subTitle}>{t('documentationPage.solutionCategories')}</h3>
+            <div className={styles.solutionCategories}>
+              <div className={styles.categorySection}>
+                <h4 className={styles.categoryTitle}>✅ {t('documentationPage.currentSolutions')}</h4>
+                <div className={styles.categoryApps}>
+                  <span className={styles.appChip}>Hub</span>
+                  <span className={styles.appChip}>JustSplit</span>
+                  <span className={styles.appChip}>Website</span>
+                </div>
+              </div>
+              <div className={styles.categorySection}>
+                <h4 className={styles.categoryTitle}>🎯 {t('documentationPage.priorityApplications')}</h4>
+                <div className={styles.categoryApps}>
+                  <span className={styles.appChip}>Somos</span>
+                  <span className={styles.appChip}>Demos</span>
+                  <span className={styles.appChip}>Plantopia</span>
+                </div>
+              </div>
+              <div className={styles.categorySection}>
+                <h4 className={styles.categoryTitle}>🚀 {t('documentationPage.futureEcosystem')}</h4>
+                <div className={styles.categoryApps}>
+                  <span className={styles.appChip}>{t('documentationPage.thirtyPlusApplications')}</span>
+                  <span className={styles.appChip}>Finance</span>
+                  <span className={styles.appChip}>Community</span>
+                  <span className={styles.appChip}>Education</span>
+                  <span className={styles.appChip}>Health</span>
+                  <span className={styles.appChip}>Sustainability</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className={styles.contentSection}>
+            <div className={styles.redirectCard}>
+              <h4>{t('documentationPage.completeSolutionsPortfolio')}</h4>
+              <p>{t('documentationPage.completeSolutionsDesc')}</p>
+              <a href="/portfolio" className={styles.redirectButton}>
+                {t('documentationPage.viewFullPortfolio')}
+                <FaChevronRight />
+              </a>
+            </div>
+          </div>
+        </div>
+      )
     }
   };
   
@@ -382,22 +600,34 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
           
           <div className={styles.navSection}>
             <h3 className={styles.navTitle}>{t('documentationPage.coreDocumentationTitle')}</h3>
-            <a href="/philosophy" className={styles.navLink}>
-              📖 {t('documentationPage.platformPhilosophyNav')}
+            <button 
+              onClick={() => setActiveDoc('philosophy')}
+              className={`${styles.navItem} ${activeDoc === 'philosophy' ? styles.active : ''}`}
+            >
+              📖 {t('documentationPage.philosophyDocTitle')}
               <FaChevronRight size={10} />
-            </a>
-            <a href="/vision" className={styles.navLink}>
-              🔮 {t('documentationPage.decentralizedFutureNav')}
+            </button>
+            <button 
+              onClick={() => setActiveDoc('vision')}
+              className={`${styles.navItem} ${activeDoc === 'vision' ? styles.active : ''}`}
+            >
+              🔮 {t('documentationPage.visionDocTitle')}
               <FaChevronRight size={10} />
-            </a>
-            <a href="/roadmap" className={styles.navLink}>
-              🛠️ {t('documentationPage.developmentRoadmapNav')}
+            </button>
+            <button 
+              onClick={() => setActiveDoc('roadmap')}
+              className={`${styles.navItem} ${activeDoc === 'roadmap' ? styles.active : ''}`}
+            >
+              🛠️ {t('documentationPage.roadmapDocTitle')}
               <FaChevronRight size={10} />
-            </a>
-            <a href="/portfolio" className={styles.navLink}>
-              🚀 {t('documentationPage.solutionsPortfolioNav')}
+            </button>
+            <button 
+              onClick={() => setActiveDoc('portfolio')}
+              className={`${styles.navItem} ${activeDoc === 'portfolio' ? styles.active : ''}`}
+            >
+              🚀 {t('documentationPage.portfolioDocTitle')}
               <FaChevronRight size={10} />
-            </a>
+            </button>
           </div>
           
           <div className={styles.navSection}>

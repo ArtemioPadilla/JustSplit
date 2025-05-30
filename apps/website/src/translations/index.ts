@@ -734,6 +734,81 @@ const nestedTranslations = {
       developmentRoadmapNav: 'Development Roadmap - Technical Evolution & Milestones',
       solutionsPortfolioNav: 'Solutions Portfolio - Current & Future Solutions',
       
+      // Core Documentation simplified pages
+      philosophyDocTitle: 'Platform Philosophy',
+      philosophyDocSummary: 'CyberEco is built on principles of digital sovereignty, human-centered design, and sustainable technology. We believe technology should empower individuals and communities, not exploit them.',
+      philosophyDocPreview: 'Our philosophy centers on three core principles: Digital Sovereignty (users own their data), Human-Centered Design (technology serves human wellbeing), and Sustainable Development (long-term thinking over short-term profits).',
+      viewFullPhilosophy: 'View Full Philosophy',
+      
+      visionDocTitle: 'Decentralized Future Vision',
+      visionDocSummary: 'By 2030+, CyberEco will transition to a revolutionary decentralized architecture featuring mobile P2P networks, complete data sovereignty, and token-based economics.',
+      visionDocPreview: 'Our vision includes: Mobile P2P Networks (smartphones as network nodes), Complete Data Sovereignty (cryptographic guarantees), Token Economics (participation rewards), and Global Accessibility (censorship-resistant platform).',
+      viewFullVision: 'View Full Vision',
+      
+      roadmapDocTitle: 'Development Roadmap',
+      roadmapDocSummary: 'Our journey from current centralized applications to a fully decentralized ecosystem, spanning four phases from 2024 to 2030+.',
+      roadmapDocPreview: 'Phase 1: Foundation (2024-2025) - Core applications. Phase 2: Growth (2025-2027) - Priority apps. Phase 3: Integration (2027-2030) - Ecosystem. Phase 4: Decentralization (2030+) - P2P networks.',
+      viewFullRoadmap: 'View Full Roadmap',
+      
+      portfolioDocTitle: 'Solutions Portfolio',
+      portfolioDocSummary: 'Comprehensive overview of our current solutions and planned ecosystem expansion covering all aspects of digital life.',
+      portfolioDocPreview: 'Current: Hub (authentication), JustSplit (expense sharing), Website. Priority: Somos (family roots), Demos (governance), Plantopia (gardening). Future: 30+ applications across finance, community, education, health, and sustainability.',
+      viewFullPortfolio: 'View Full Portfolio',
+      
+      // Redirect card content
+      keyPrinciples: 'Key Principles',
+      visionComponents: 'Vision Components',
+      developmentPhases: 'Development Phases',
+      solutionCategories: 'Solution Categories',
+      completePhilosophyDoc: 'Complete Philosophy Documentation',
+      completePhilosophyDesc: 'For the full detailed philosophy including our commitment to digital sovereignty, human-centered design principles, and sustainable development practices.',
+      completeVisionDoc: 'Complete Vision Documentation',
+      completeVisionDesc: 'Explore the full decentralized future vision including technical architecture, timeline, and implementation details.',
+      completeRoadmapDoc: 'Complete Roadmap Documentation',
+      completeRoadmapDesc: 'View the detailed development roadmap including technical evolution, milestones, and current focus areas.',
+      completeSolutionsPortfolio: 'Complete Solutions Portfolio',
+      completeSolutionsDesc: 'Explore our full solutions portfolio with detailed descriptions, features, and status for all current and planned applications.',
+      
+      // Doc type tags
+      coreDocument: 'Core Document',
+      futureVision: 'Future Vision',
+      developmentPlan: 'Development Plan',
+      solutionsOverview: 'Solutions Overview',
+      
+      // Enhanced content components
+      digitalSovereigntyPrinciple: 'Digital Sovereignty',
+      digitalSovereigntyDesc: 'Users own their data and control their digital identity',
+      humanCenteredPrinciple: 'Human-Centered Design',
+      humanCenteredDesc: 'Technology serves human wellbeing and authentic connection',
+      sustainablePrinciple: 'Sustainable Development',
+      sustainableDesc: 'Long-term thinking over short-term profits',
+      
+      // Vision components
+      mobileP2PComponent: 'Mobile P2P Networks',
+      mobileP2PDesc: 'Smartphones as network nodes eliminating central servers',
+      dataSovereigntyComponent: 'Complete Data Sovereignty',
+      dataSovereigntyDesc: 'Cryptographic guarantees for user data control',
+      tokenEconomicsComponent: 'Token Economics',
+      tokenEconomicsDesc: 'Participation rewards for network contributions',
+      globalAccessComponent: 'Global Accessibility',
+      globalAccessDesc: 'Censorship-resistant platform worldwide',
+      
+      // Development phases
+      foundationPhase: 'Foundation (2024-2025)',
+      foundationDesc: 'Core applications and user base establishment',
+      growthPhase: 'Growth (2025-2027)',
+      growthDesc: 'Priority applications and ecosystem expansion',
+      integrationPhase: 'Integration (2027-2030)',
+      integrationDesc: 'Comprehensive interconnected ecosystem',
+      decentralizationPhase: 'Decentralization (2030+)',
+      decentralizationDesc: 'Fully decentralized P2P networks',
+      
+      // Solution categories
+      currentSolutions: 'Current Solutions',
+      priorityApplications: 'Priority Applications',
+      futureEcosystem: 'Future Ecosystem',
+      thirtyPlusApplications: '30+ Applications',
+      
       // Navigation items
       gettingStartedNavTitle: 'Getting Started',
       introductionNavItem: 'Introduction',
@@ -1620,6 +1695,81 @@ const nestedTranslations = {
       decentralizedFutureNav: 'Futuro Descentralizado - Redes P2P y Economía de Tokens',
       developmentRoadmapNav: 'Hoja de Ruta de Desarrollo - Evolución Técnica e Hitos',
       solutionsPortfolioNav: 'Portafolio de Soluciones - Soluciones Actuales y Futuras',
+      
+      // Core Documentation simplified pages
+      philosophyDocTitle: 'Filosofía de la Plataforma',
+      philosophyDocSummary: 'CyberEco está construido sobre principios de soberanía digital, diseño centrado en el ser humano y tecnología sostenible. Creemos que la tecnología debe empoderar a individuos y comunidades, no explotarlos.',
+      philosophyDocPreview: 'Nuestra filosofía se centra en tres principios fundamentales: Soberanía Digital (los usuarios poseen sus datos), Diseño Centrado en el Ser Humano (la tecnología sirve al bienestar humano), y Desarrollo Sostenible (pensamiento a largo plazo sobre ganancias a corto plazo).',
+      viewFullPhilosophy: 'Ver Filosofía Completa',
+      
+      visionDocTitle: 'Visión del Futuro Descentralizado',
+      visionDocSummary: 'Para 2030+, CyberEco hará la transición a una arquitectura descentralizada revolucionaria con redes P2P móviles, soberanía completa de datos y economía basada en tokens.',
+      visionDocPreview: 'Nuestra visión incluye: Redes P2P Móviles (smartphones como nodos de red), Soberanía Completa de Datos (garantías criptográficas), Economía de Tokens (recompensas por participación), y Accesibilidad Global (plataforma resistente a la censura).',
+      viewFullVision: 'Ver Visión Completa',
+      
+      roadmapDocTitle: 'Hoja de Ruta de Desarrollo',
+      roadmapDocSummary: 'Nuestro viaje desde las aplicaciones centralizadas actuales hasta un ecosistema completamente descentralizado, abarcando cuatro fases de 2024 a 2030+.',
+      roadmapDocPreview: 'Fase 1: Fundación (2024-2025) - Aplicaciones centrales. Fase 2: Crecimiento (2025-2027) - Apps prioritarias. Fase 3: Integración (2027-2030) - Ecosistema. Fase 4: Descentralización (2030+) - Redes P2P.',
+      viewFullRoadmap: 'Ver Hoja de Ruta Completa',
+      
+      portfolioDocTitle: 'Portafolio de Soluciones',
+      portfolioDocSummary: 'Visión completa de nuestras soluciones actuales y expansión del ecosistema planificada cubriendo todos los aspectos de la vida digital.',
+      portfolioDocPreview: 'Actuales: Hub (autenticación), JustSplit (compartir gastos), Website. Prioritarias: Somos (raíces familiares), Demos (gobernanza), Plantopia (jardinería). Futuras: 30+ aplicaciones en finanzas, comunidad, educación, salud y sostenibilidad.',
+      viewFullPortfolio: 'Ver Portafolio Completo',
+      
+      // Redirect card content
+      keyPrinciples: 'Principios Clave',
+      visionComponents: 'Componentes de la Visión',
+      developmentPhases: 'Fases de Desarrollo',
+      solutionCategories: 'Categorías de Soluciones',
+      completePhilosophyDoc: 'Documentación Completa de Filosofía',
+      completePhilosophyDesc: 'Para la filosofía completa y detallada incluyendo nuestro compromiso con la soberanía digital, principios de diseño centrado en el ser humano y prácticas de desarrollo sostenible.',
+      completeVisionDoc: 'Documentación Completa de Visión',
+      completeVisionDesc: 'Explora la visión completa del futuro descentralizado incluyendo arquitectura técnica, cronología y detalles de implementación.',
+      completeRoadmapDoc: 'Documentación Completa de Hoja de Ruta',
+      completeRoadmapDesc: 'Ve la hoja de ruta de desarrollo detallada incluyendo evolución técnica, hitos y áreas de enfoque actual.',
+      completeSolutionsPortfolio: 'Portafolio Completo de Soluciones',
+      completeSolutionsDesc: 'Explora nuestro portafolio completo de soluciones con descripciones detalladas, características y estado de todas las aplicaciones actuales y planificadas.',
+      
+      // Doc type tags
+      coreDocument: 'Documento Central',
+      futureVision: 'Visión Futura',
+      developmentPlan: 'Plan de Desarrollo',
+      solutionsOverview: 'Resumen de Soluciones',
+      
+      // Enhanced content components
+      digitalSovereigntyPrinciple: 'Soberanía Digital',
+      digitalSovereigntyDesc: 'Los usuarios poseen sus datos y controlan su identidad digital',
+      humanCenteredPrinciple: 'Diseño Centrado en el Ser Humano',
+      humanCenteredDesc: 'La tecnología sirve al bienestar humano y la conexión auténtica',
+      sustainablePrinciple: 'Desarrollo Sostenible',
+      sustainableDesc: 'Pensamiento a largo plazo sobre ganancias a corto plazo',
+      
+      // Vision components
+      mobileP2PComponent: 'Redes P2P Móviles',
+      mobileP2PDesc: 'Smartphones como nodos de red eliminando servidores centrales',
+      dataSovereigntyComponent: 'Soberanía Completa de Datos',
+      dataSovereigntyDesc: 'Garantías criptográficas para el control de datos del usuario',
+      tokenEconomicsComponent: 'Economía de Tokens',
+      tokenEconomicsDesc: 'Recompensas por participación en contribuciones de red',
+      globalAccessComponent: 'Accesibilidad Global',
+      globalAccessDesc: 'Plataforma resistente a la censura mundialmente',
+      
+      // Development phases
+      foundationPhase: 'Fundación (2024-2025)',
+      foundationDesc: 'Establecimiento de aplicaciones centrales y base de usuarios',
+      growthPhase: 'Crecimiento (2025-2027)',
+      growthDesc: 'Aplicaciones prioritarias y expansión del ecosistema',
+      integrationPhase: 'Integración (2027-2030)',
+      integrationDesc: 'Ecosistema interconectado integral',
+      decentralizationPhase: 'Descentralización (2030+)',
+      decentralizationDesc: 'Redes P2P completamente descentralizadas',
+      
+      // Solution categories
+      currentSolutions: 'Soluciones Actuales',
+      priorityApplications: 'Aplicaciones Prioritarias',
+      futureEcosystem: 'Ecosistema Futuro',
+      thirtyPlusApplications: '30+ Aplicaciones',
       
       // Navigation items
       gettingStartedNavTitle: 'Primeros Pasos',
