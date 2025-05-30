@@ -6,13 +6,20 @@
 
 ### The Digital Sovereignty Manifesto
 
+> *"A human-centered digital ecosystem for conscious, connected, and sustainable living."*
+
 In a world where digital life has become **fragmented**, **extractive**, and **overwhelming**, CyberEco exists to offer a better path — one rooted in **sovereignty**, **community**, and **balance**.
+
+**CyberEco** is not just another app — it is a modular digital ecosystem, an **operating system for life**, where each platform solves a real need while contributing to a greater whole.
 
 We believe:
 - Your digital presence should **empower** you, not exploit you
 - Your identity should **belong** to you
 - Your data should **serve** you
 - Your actions should **connect** you with others meaningfully
+- Technology should create **clarity, autonomy, and connection** — not more notifications
+
+At the center is the **CyberEco Hub** — your identity, your dashboard, your digital home.
 
 ## 🌱 Our Guiding Principles
 
