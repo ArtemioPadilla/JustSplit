@@ -33,876 +33,196 @@
   "fileMap": {
     "nonProjectFiles": [
       {
+        "file": "docs/ROADMAP.md",
+        "hash": "15325183163922271635"
+      },
+      {
+        "file": "docs/applications/priority-apps.md",
+        "hash": "5554359294631199910"
+      },
+      {
         "file": "next.config.js",
         "hash": "9818338129017865219"
       },
       {
-        "file": "src/components/ui/__tests__/EditableText.test.tsx",
-        "hash": "1957289107743776329"
-      },
-      {
-        "file": "src/components/Dashboard/WelcomeScreen.tsx",
-        "hash": "2422186152266837599"
-      },
-      {
-        "file": "docs/deployment/low-cost-optimization.md",
-        "hash": "9737116763807544584"
-      },
-      {
-        "file": "src/components/ImageUploader/__tests__/ImageUploader.test.tsx",
-        "hash": "3504495836089562901"
-      },
-      {
-        "file": "docs/development/contributing.md",
-        "hash": "4004076637206140642"
-      },
-      {
-        "file": "jest.config.js",
-        "hash": "8462842095913692943"
-      },
-      {
-        "file": "docs/development/local-development.md",
-        "hash": "8512887853619601945"
-      },
-      {
-        "file": "src/app/landing/page.tsx.new",
-        "hash": "8845999478321472734"
-      },
-      {
-        "file": "src/components/Header/styles.module.css",
-        "hash": "1457313833929826598"
-      },
-      {
-        "file": "src/app/expenses/new/page.module.css",
-        "hash": "10999109022124884747"
-      },
-      {
-        "file": "src/components/ui/__tests__/CurrencySelector.test.tsx",
-        "hash": "14962661240726275507"
-      },
-      {
-        "file": "archived-docs/MIGRATION_SUMMARY.md",
-        "hash": "8144385075245862509"
-      },
-      {
-        "file": "src/app/layout.tsx",
-        "hash": "14769783227431204225"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/UpcomingEvents.test.tsx",
-        "hash": "15930997749909947089"
-      },
-      {
-        "file": "tree.txt",
-        "hash": "4596994459039677782"
-      },
-      {
-        "file": "src/app/expenses/page.tsx",
-        "hash": "6317599059855084413"
-      },
-      {
-        "file": "src/components/Dashboard/DashboardHeader.tsx",
-        "hash": "10546102287794295399"
-      },
-      {
-        "file": "apphosting.emulator.yaml",
-        "hash": "2281618896110692474"
-      },
-      {
-        "file": "src/__tests__/timelineCalculations.test.tsx",
-        "hash": "10183972895480610667"
-      },
-      {
-        "file": "debug-reducer.js",
-        "hash": "7420771614984516490"
-      },
-      {
-        "file": "src/app/friends/[id]/page.tsx",
-        "hash": "11348398067610551012"
-      },
-      {
-        "file": "src/app/landing/landing.module.css",
-        "hash": "2216060904382189983"
-      },
-      {
-        "file": "docs/vision/README.md",
-        "hash": "4113051274851676917"
-      },
-      {
-        "file": "CYBERECO-LICENSE.md",
-        "hash": "17184261828977620282"
-      },
-      {
-        "file": "docs/architecture/diagrams/system-architecture.md",
-        "hash": "1119911349734281752"
-      },
-      {
-        "file": "src/components/ImageUploader/index.tsx",
-        "hash": "8523001190667856413"
-      },
-      {
-        "file": "src/app/groups/new/page.module.css",
-        "hash": "10778728952872799435"
-      },
-      {
-        "file": "docs/development/code-style.md",
-        "hash": "7599353455910653061"
-      },
-      {
-        "file": "src/context/__tests__/AppContext.test.tsx",
-        "hash": "5153440768492784942"
-      },
-      {
-        "file": "src/app/groups/[id]/page.tsx",
-        "hash": "2046706619230064262"
-      },
-      {
-        "file": "src/app/expenses/list/page.tsx",
-        "hash": "1790989125191769166"
-      },
-      {
-        "file": "public/images/favicon.ico",
-        "hash": "17851128216583331379"
-      },
-      {
-        "file": "docs/ABOUT.md",
-        "hash": "10373037422785146181"
-      },
-      {
-        "file": "src/app/groups/list/page.module.css",
-        "hash": "34710485025936816"
-      },
-      {
-        "file": "src/utils/debug-firebase.js",
-        "hash": "13337756043628716955"
-      },
-      {
-        "file": "src/app/help/help.module.css",
-        "hash": "16021032255736942716"
-      },
-      {
-        "file": "src/app/events/page.tsx",
-        "hash": "5118471508273818554"
-      },
-      {
-        "file": "src/components/ui/EntityList/styles.module.css",
-        "hash": "10309928718628205683"
-      },
-      {
-        "file": "docs/applications/README.md",
-        "hash": "1384152929420135908"
-      },
-      {
-        "file": "src/app/friends/[id]/page.module.css",
-        "hash": "10648789197694072631"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/ExpenseDistribution.test.tsx",
-        "hash": "8668921269727653827"
-      },
-      {
-        "file": "libs/shared-assets/src/assets/brand/logo.svg",
-        "hash": "11661841135424751394"
-      },
-      {
-        "file": "docs/design/style-guide.md",
-        "hash": "7970815222749568876"
-      },
-      {
-        "file": "src/utils/emulator-setup.js",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "README.md",
-        "hash": "1532203502318915338"
-      },
-      {
-        "file": "docs/vision/decentralized-future.md",
-        "hash": "3621239844531721743"
-      },
-      {
-        "file": "src/__tests__/timeline.test.tsx",
-        "hash": "7750437757242827053"
-      },
-      {
-        "file": "firebase/justsplit/firestore.indexes.json",
-        "hash": "2048261650710551311"
-      },
-      {
-        "file": "src/components/ui/CurrencySelector.tsx",
-        "hash": "12792410269172541729"
-      },
-      {
-        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.png",
-        "hash": "15738933302531348868"
-      },
-      {
-        "file": "docs/development/firebase-deployment.md",
-        "hash": "5314392235327397841"
-      },
-      {
-        "file": "public/images/logo.xcf",
-        "hash": "252626238791764474"
-      },
-      {
-        "file": "docs/architecture/diagrams/component-diagram.md",
-        "hash": "9964653968450415802"
-      },
-      {
-        "file": "src/components/ui/DatabaseRecovery.tsx",
-        "hash": "15733213663743782202"
-      },
-      {
-        "file": "src/components/ui/ProgressBar.tsx",
-        "hash": "356381512628639512"
-      },
-      {
-        "file": "public/images/logo.png",
-        "hash": "10121345660719554501"
-      },
-      {
-        "file": "src/components/ui/CurrencySelector.module.css",
-        "hash": "6208571376204452201"
-      },
-      {
-        "file": "src/app/groups/new/page.tsx",
-        "hash": "5058682899814633644"
-      },
-      {
-        "file": "debug-timeline.js",
-        "hash": "4218103594999658789"
-      },
-      {
-        "file": ".github/workflows/deploy-hub.yml",
-        "hash": "14904646870289032487"
-      },
-      {
-        "file": "docs/api/data-models-nx-comprehensive.md",
-        "hash": "2305906320830654484"
-      },
-      {
-        "file": "src/components/ui/PageRedirect/styles.module.css",
-        "hash": "938511256362342080"
-      },
-      {
-        "file": "docs/development/getting-started.md",
-        "hash": "14618129162254763513"
-      },
-      {
-        "file": "src/app/expenses/[id]/page.module.css",
-        "hash": "6035623851093240656"
-      },
-      {
-        "file": "src/app/expenses/list/page.module.css",
-        "hash": "5242826446068615735"
-      },
-      {
-        "file": "src/app/groups/[id]/page.module.css",
-        "hash": "8127175074076037297"
-      },
-      {
-        "file": "src/components/Dashboard/RecentSettlements.tsx",
-        "hash": "15795181569205308866"
-      },
-      {
-        "file": "docs/PHILOSOPHY.md",
-        "hash": "10712314288399398704"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/UserSummary.test.tsx",
-        "hash": "3029324777993541860"
-      },
-      {
-        "file": "src/app/page.module.css",
-        "hash": "18145703436964097024"
-      },
-      {
-        "file": "archived-docs/MONOREPO_ARCHITECTURE.md",
-        "hash": "578493759782880572"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/WelcomeScreen.test.tsx",
-        "hash": "13644977267817413682"
-      },
-      {
-        "file": "archived-docs/NX_MIGRATION_COMPLETE.md",
-        "hash": "11614504007559306489"
-      },
-      {
-        "file": "src/utils/timelineUtils/index.ts",
-        "hash": "16579923885767923489"
-      },
-      {
-        "file": "scripts/deploy-hub.sh",
-        "hash": "12444477468883296986"
-      },
-      {
-        "file": "src/app/events/new/page.module.css",
-        "hash": "7025989797683316320"
-      },
-      {
-        "file": "src/app/page.tsx.bak",
-        "hash": "16499633644165374077"
-      },
-      {
-        "file": "src/components/Header/index.tsx",
-        "hash": "9988312511681708228"
-      },
-      {
-        "file": "src/components/ui/Timeline/index.tsx",
-        "hash": "407139562706667911"
-      },
-      {
-        "file": "src/utils/testUtils.tsx",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "libs/shared-assets/src/assets/brand/logo.png",
-        "hash": "8307353577392312031"
-      },
-      {
-        "file": "src/app/events/new/page.tsx",
-        "hash": "5214559755529434863"
-      },
-      {
-        "file": "src/components/ui/Timeline/styles.module.css",
-        "hash": "12660532460451059026"
-      },
-      {
-        "file": "package-lock.json",
-        "hash": "16383264897298423430"
-      },
-      {
-        "file": "src/pages/_app.tsx",
-        "hash": "4985717882098476734"
-      },
-      {
-        "file": "docs/design/ui-components.md",
-        "hash": "2112972569154542228"
-      },
-      {
-        "file": "src/test-utils.tsx",
-        "hash": "7417933509556867382"
-      },
-      {
-        "file": "src/components/Dashboard/FinancialSummary.tsx",
-        "hash": "2863264400230099642"
-      },
-      {
-        "file": "src/components/Dashboard/UpcomingEvents.tsx",
-        "hash": "4913033431395648882"
-      },
-      {
-        "file": "src/components/Header/__tests__/Header.test.tsx",
-        "hash": "4107486718113308483"
-      },
-      {
-        "file": "src/components/AvatarUploader/index.tsx",
-        "hash": "6521219042673009786"
-      },
-      {
-        "file": "src/services/firebaseService.ts",
-        "hash": "16063111239427519666"
-      },
-      {
-        "file": "docs/architecture/diagrams/data-flow-diagram.md",
-        "hash": "13498230696896051549"
-      },
-      {
-        "file": "src/context/AppContext.tsx",
-        "hash": "16674713917935283717"
-      },
-      {
-        "file": "public/images/old-justsplit-logo.png",
-        "hash": "6646454001633406036"
-      },
-      {
-        "file": "src/components/ui/EditableText.tsx",
-        "hash": "16433364691521304169"
-      },
-      {
-        "file": "src/components/Dashboard/MonthlyTrendsChart.tsx",
-        "hash": "5021683864324098776"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/RecentSettlements.test.tsx",
-        "hash": "4944102822601095766"
-      },
-      {
-        "file": "CONTRIBUTOR-AGREEMENT.md",
-        "hash": "352414687446605377"
-      },
-      {
-        "file": "src/app/auth/page.module.css",
-        "hash": "15627190187256041564"
-      },
-      {
-        "file": "src/utils/indexedDBReset.ts",
-        "hash": "3336378411971118871"
-      },
-      {
-        "file": "src/utils/currencyExchange.ts",
-        "hash": "14085714282500064789"
-      },
-      {
-        "file": "src/__tests__/progressBar.test.tsx",
-        "hash": "3555107306923498840"
-      },
-      {
-        "file": "scripts/deploy-website.sh",
-        "hash": "8953027014179350123"
-      },
-      {
-        "file": "src/app/landing.module.css",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "src/components/CurrencyExchangeTicker/index.tsx",
-        "hash": "7085056754182641282"
-      },
-      {
-        "file": "src/components/ui/Button.tsx",
-        "hash": "6897201359693722727"
-      },
-      {
-        "file": "src/app/auth/signin/page.tsx",
-        "hash": "3494767591798973301"
-      },
-      {
-        "file": "src/components/ui/IconButton.tsx",
-        "hash": "10114469174467125288"
-      },
-      {
-        "file": "src/components/Dashboard/BalanceOverview.tsx",
-        "hash": "6859930416274118720"
-      },
-      {
-        "file": "src/components/Auth/ProtectedRoute.tsx",
-        "hash": "10286021754421955037"
-      },
-      {
-        "file": "docs/GETTING_STARTED.md",
-        "hash": "18117739586287141005"
-      },
-      {
-        "file": "public/images/favicon.xcf",
-        "hash": "8640323294574686936"
-      },
-      {
-        "file": "public/images/logo.ai",
-        "hash": "12297371206118583459"
-      },
-      {
-        "file": "docs/architecture/technical-design.md",
-        "hash": "4779240100550480952"
-      },
-      {
-        "file": "src/firebase/config.ts",
-        "hash": "11044956388458133398"
-      },
-      {
-        "file": "src/components/ui/ProgressBar.module.css",
-        "hash": "15998072709597278643"
-      },
-      {
-        "file": "scripts/verify-firebase-fixes.sh",
-        "hash": "3244421341483603138"
+        "file": "docs/development/licensing.md",
+        "hash": "16848997591162541555"
       },
       {
         "file": "src/app/page.tsx.new",
         "hash": "3244421341483603138"
       },
       {
-        "file": "src/components/Dashboard/__tests__/BalanceOverview.test.tsx",
-        "hash": "1417580118776627011"
+        "file": "public/images/logo-white.ai",
+        "hash": "11821677504841959118"
       },
       {
-        "file": ".eslintrc.json",
-        "hash": "9931958704351428339"
+        "file": "src/components/ui/DatabaseRecovery.tsx",
+        "hash": "15733213663743782202"
       },
       {
-        "file": "src/__tests__/hoverCard.test.tsx",
-        "hash": "13014806558298523340"
+        "file": "src/types/index.ts",
+        "hash": "8049685851798633416"
       },
       {
-        "file": "src/components/ImageUploader/styles.module.css",
-        "hash": "4362194966899092981"
+        "file": "docs/design/style-guide.md",
+        "hash": "7970815222749568876"
       },
       {
-        "file": "src/app/friends/page.module.css",
-        "hash": "11954212589481953392"
-      },
-      {
-        "file": "scripts/deploy-justsplit.sh",
-        "hash": "12337437298465743602"
-      },
-      {
-        "file": "firebase.json",
-        "hash": "7145915806055601649"
-      },
-      {
-        "file": "src/__tests__/debug-grouping.test.tsx",
-        "hash": "11270281977226759344"
-      },
-      {
-        "file": "docs/architecture/overview.md",
-        "hash": "12318906351880462017"
+        "file": "src/components/ImageUploader/__tests__/ImageUploader.test.tsx",
+        "hash": "3504495836089562901"
       },
       {
         "file": "src/app/landing/page.tsx",
         "hash": "12264369777957799276"
       },
       {
-        "file": "src/components/Dashboard/FinancialSummary.module.css",
-        "hash": "6174506528560259849"
+        "file": "libs/shared-assets/src/assets/brand/logo.svg",
+        "hash": "11661841135424751394"
       },
       {
-        "file": "src/styles/theme.css",
-        "hash": "16969421834739300508"
+        "file": "src/app/landing/page.tsx.new",
+        "hash": "8845999478321472734"
       },
       {
-        "file": "archived-docs/architecture/nx-monorepo-architecture.md",
-        "hash": "7635970482608179775"
-      },
-      {
-        "file": "src/app/about/page.tsx",
-        "hash": "5521217341805135055"
-      },
-      {
-        "file": "src/components/ui/ProgressBar/index.tsx",
-        "hash": "17208752406854821153"
-      },
-      {
-        "file": "src/context/AuthContext.tsx",
-        "hash": "16373233053313828617"
-      },
-      {
-        "file": "src/app/expenses/ExpenseDetail.tsx",
-        "hash": "5454086049512419241"
-      },
-      {
-        "file": "firebase/website/firestore.indexes.json",
-        "hash": "3555221527634086333"
-      },
-      {
-        "file": "docs/api/data-models.md",
-        "hash": "7118840247970817605"
-      },
-      {
-        "file": "src/utils/firebase-test.ts",
-        "hash": "1489823342386489802"
-      },
-      {
-        "file": "src/app/expenses/__tests__/ExpenseDetail.test.tsx",
-        "hash": "17402086236459797709"
-      },
-      {
-        "file": "src/app/events/[id]/page.module.css",
-        "hash": "7560119981426441238"
-      },
-      {
-        "file": "src/app/about/about.module.css",
-        "hash": "10908805417356207629"
-      },
-      {
-        "file": "debug-grouping.js",
-        "hash": "6613399473553849888"
-      },
-      {
-        "file": "src/components/Dashboard/UserSummary.tsx",
-        "hash": "480167652728514103"
-      },
-      {
-        "file": "src/app/help/page.tsx",
-        "hash": "581737727329503916"
-      },
-      {
-        "file": "src/components/Dashboard/BalanceLine.tsx",
-        "hash": "3542227931518120130"
-      },
-      {
-        "file": "src/app/expenses/edit/[id]/page.module.css",
-        "hash": "4944601711238547665"
-      },
-      {
-        "file": "git-diff.txt",
-        "hash": "18307121629659335294"
-      },
-      {
-        "file": "firebase/justsplit/firebase.json",
-        "hash": "18105152660540395598"
-      },
-      {
-        "file": "src/components/ui/PageRedirect/index.tsx",
-        "hash": "14606361719459333899"
-      },
-      {
-        "file": "public/images/justsplit-logo.png",
-        "hash": "14642510108795447006"
-      },
-      {
-        "file": "docs/planning/project-roadmap.md",
-        "hash": "4597156141566748584"
-      },
-      {
-        "file": "src/utils/__tests__/expenseCalculator.test.ts",
-        "hash": "282328112556546761"
-      },
-      {
-        "file": ".gitignore",
-        "hash": "6410555716852949148"
-      },
-      {
-        "file": "firebase/hub/firestore.rules",
-        "hash": "15339715675116569506"
-      },
-      {
-        "file": "src/app/expenses/page.module.css",
-        "hash": "3974311272393902031"
-      },
-      {
-        "file": "firestore.indexes.json",
-        "hash": "2048261650710551311"
-      },
-      {
-        "file": "src/app/events/__tests__/EventDetail.test.tsx",
-        "hash": "15957028254002309443"
-      },
-      {
-        "file": "package.json",
-        "hash": "2201680338058697014"
-      },
-      {
-        "file": "src/context/NotificationContext.tsx",
-        "hash": "6474228776354756200"
-      },
-      {
-        "file": "src/components/ui/IconButton.module.css",
-        "hash": "9023964348915947400"
-      },
-      {
-        "file": "nx.json",
-        "hash": "920439469811061970"
-      },
-      {
-        "file": "src/app/events/edit/[id]/page.tsx",
-        "hash": "1365357745697936220"
-      },
-      {
-        "file": "archived-docs/planning/to-do.md",
-        "hash": "614306799937716421"
-      },
-      {
-        "file": "src/__tests__/expenseGroups.test.tsx",
-        "hash": "15874879196623770982"
-      },
-      {
-        "file": "firebase/website/firestore.rules",
-        "hash": "3767280522401315746"
-      },
-      {
-        "file": "src/app/components/EventList.tsx",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "src/app/profile/page.tsx",
-        "hash": "16489382474167951780"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/FinancialSummary.test.tsx",
-        "hash": "16683720139647886420"
-      },
-      {
-        "file": "src/app/settlements/page.module.css",
-        "hash": "12472064766656690851"
-      },
-      {
-        "file": "src/components/ui/HoverCard/index.tsx",
-        "hash": "164709062933460964"
-      },
-      {
-        "file": "docs/api/data-models-comprehensive.md",
-        "hash": "8790058396702789796"
-      },
-      {
-        "file": "src/utils/__tests__/timelineCalculations.test.ts",
-        "hash": "11340293204601674489"
-      },
-      {
-        "file": "src/app/friends/add/page.module.css",
-        "hash": "5944235634812686105"
-      },
-      {
-        "file": "public/images/logo-white.ai",
-        "hash": "11821677504841959118"
-      },
-      {
-        "file": "archived-docs/architecture/nx-architecture.md",
-        "hash": "4271754735296967264"
-      },
-      {
-        "file": "src/components/ui/EntityList/index.tsx",
-        "hash": "13347964838246182438"
-      },
-      {
-        "file": "src/firebase/firestore.rules",
-        "hash": "942080856305809795"
-      },
-      {
-        "file": "src/components/ui/EditableText.module.css",
-        "hash": "8665424013710129462"
-      },
-      {
-        "file": "src/app/events/[id]/page.tsx",
-        "hash": "16617299240402417969"
-      },
-      {
-        "file": ".claude/settings.local.json",
-        "hash": "11951571522753574763"
-      },
-      {
-        "file": "firebase/hub/firestore.indexes.json",
-        "hash": "7803971378084317444"
-      },
-      {
-        "file": "src/context/__tests__/SettlementCurrency.test.tsx",
-        "hash": "4701494350422846218"
-      },
-      {
-        "file": "src/app/friends/add/page.tsx",
-        "hash": "7222293700986547417"
-      },
-      {
-        "file": "src/app/auth/signup/page.tsx",
-        "hash": "669720043491927407"
-      },
-      {
-        "file": "src/app/test-notification/page.tsx",
-        "hash": "1822737500992389098"
-      },
-      {
-        "file": "src/app/expenses/[id]/page.tsx",
-        "hash": "9715939531230098537"
-      },
-      {
-        "file": "jest.setup.js",
-        "hash": "14233628554511469093"
-      },
-      {
-        "file": "src/components/CurrencyExchangeTicker/styles.module.css",
-        "hash": "8166462660790309904"
-      },
-      {
-        "file": "docs/architecture/nx-architecture-consolidated.md",
-        "hash": "5082302903956316898"
-      },
-      {
-        "file": "src/app/groups/page.tsx",
-        "hash": "148399400747670980"
+        "file": "LICENSE",
+        "hash": "475094082454657105"
       },
       {
         "file": ".github/workflows/README.md",
         "hash": "14371088399430693962"
       },
       {
-        "file": "src/app/events/edit/[id]/page.module.css",
-        "hash": "13820989517387087264"
+        "file": "TO_CLEANSE.md",
+        "hash": "13425496497405114821"
       },
       {
-        "file": "src/app/groups/list/page.tsx",
-        "hash": "1317226043782058758"
+        "file": "src/components/ui/PageRedirect/styles.module.css",
+        "hash": "938511256362342080"
       },
       {
-        "file": "src/utils/__tests__/csvExport.test.ts",
-        "hash": "13353963254172525385"
+        "file": "src/app/events/list/page.tsx",
+        "hash": "2728559554475538882"
       },
       {
-        "file": "docs/deployment/on-premises-deployment.md",
-        "hash": "11759857248411326240"
+        "file": "docs/development/code-style.md",
+        "hash": "7599353455910653061"
       },
       {
-        "file": "docs/README.md",
-        "hash": "15954620561093366819"
-      },
-      {
-        "file": "reports/test-report.html",
-        "hash": "2452450448052846848"
-      },
-      {
-        "file": "src/utils/fileUtils.ts",
-        "hash": "17149719204828043755"
-      },
-      {
-        "file": "firebase/website/firebase.json",
-        "hash": "18088032973900790086"
-      },
-      {
-        "file": "src/utils/formatters.ts",
-        "hash": "11310258987300788292"
-      },
-      {
-        "file": "src/app/client-layout-wrapper.tsx",
-        "hash": "347629024220404070"
-      },
-      {
-        "file": "docs/planning/app-matrix.md",
-        "hash": "10356832507431718864"
-      },
-      {
-        "file": "src/__tests__/authContext.test.tsx",
-        "hash": "10385170281499734203"
-      },
-      {
-        "file": "CLAUDE.md",
-        "hash": "10233891591175300939"
-      },
-      {
-        "file": "src/components/Button/index.tsx",
-        "hash": "8604410498664869420"
-      },
-      {
-        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.svg",
-        "hash": "4068850462378546880"
-      },
-      {
-        "file": "src/components/ui/ProgressBar/styles.module.css",
-        "hash": "15345157746216104186"
-      },
-      {
-        "file": "src/utils/__tests__/currencyExchange.test.ts",
-        "hash": "13570473548140716924"
-      },
-      {
-        "file": "public/images/logo-square.png",
-        "hash": "7518962060427561028"
-      },
-      {
-        "file": "docs/development/development-workflow.md",
-        "hash": "1236499871742380411"
-      },
-      {
-        "file": "docs/development/logo-creation.md",
-        "hash": "17885300203393607172"
+        "file": "src/components/Dashboard/__tests__/UserSummary.test.tsx",
+        "hash": "3029324777993541860"
       },
       {
         "file": "src/app/globals.css",
         "hash": "11431437583383931932"
       },
       {
-        "file": "src/app/settlements/page.tsx",
-        "hash": "3733006652877156791"
+        "file": "src/components/Dashboard/__tests__/MonthlyTrendsChart.test.tsx",
+        "hash": "17660959070379717454"
       },
       {
-        "file": "src/components/ui/Button.module.css",
-        "hash": "6193414495590315518"
+        "file": "src/firebase/config.ts",
+        "hash": "11044956388458133398"
       },
       {
-        "file": "src/utils/timelineUtils.ts",
-        "hash": "1168074218312920893"
+        "file": "scripts/verify-firebase-fixes.sh",
+        "hash": "3244421341483603138"
       },
       {
-        "file": "src/utils/expenseCalculator.ts",
-        "hash": "631578524985884343"
+        "file": "archived-docs/architecture/nx-architecture.md",
+        "hash": "4271754735296967264"
+      },
+      {
+        "file": "src/context/__tests__/AppContext.test.tsx",
+        "hash": "5153440768492784942"
+      },
+      {
+        "file": "public/images/favicon.xcf",
+        "hash": "8640323294574686936"
+      },
+      {
+        "file": "tsconfig.json",
+        "hash": "4932956569858600249"
+      },
+      {
+        "file": "src/components/Dashboard/RecentSettlements.tsx",
+        "hash": "15795181569205308866"
+      },
+      {
+        "file": "docs/api/data-models-comprehensive.md",
+        "hash": "8790058396702789796"
+      },
+      {
+        "file": "src/__tests__/timelineCalculations.test.tsx",
+        "hash": "10183972895480610667"
+      },
+      {
+        "file": "firebase/website/firestore.indexes.json",
+        "hash": "3555221527634086333"
+      },
+      {
+        "file": "src/app/expenses/list/page.tsx",
+        "hash": "1790989125191769166"
+      },
+      {
+        "file": "src/utils/timelineUtils/index.ts",
+        "hash": "16579923885767923489"
+      },
+      {
+        "file": "src/components/AvatarUploader/index.tsx",
+        "hash": "6521219042673009786"
+      },
+      {
+        "file": "docs/design/ui-components.md",
+        "hash": "2112972569154542228"
+      },
+      {
+        "file": "public/images/favicon.ico",
+        "hash": "17851128216583331379"
+      },
+      {
+        "file": "public/images/justsplit-logo.png",
+        "hash": "14642510108795447006"
+      },
+      {
+        "file": "src/components/ui/IconButton.tsx",
+        "hash": "10114469174467125288"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-ico.svg",
+        "hash": "6367968871152200380"
+      },
+      {
+        "file": "src/components/ui/IconButton.module.css",
+        "hash": "9023964348915947400"
+      },
+      {
+        "file": "src/components/AvatarUploader/styles.module.css",
+        "hash": "17767637255944446697"
+      },
+      {
+        "file": "src/components/ui/EntityList/styles.module.css",
+        "hash": "10309928718628205683"
+      },
+      {
+        "file": ".eslintrc.json",
+        "hash": "9931958704351428339"
+      },
+      {
+        "file": "jest.config.js",
+        "hash": "8462842095913692943"
+      },
+      {
+        "file": "src/utils/indexedDBReset.ts",
+        "hash": "3336378411971118871"
+      },
+      {
+        "file": "archived-docs/MONOREPO_ARCHITECTURE.md",
+        "hash": "578493759782880572"
+      },
+      {
+        "file": "src/components/Auth/ProtectedRoute.tsx",
+        "hash": "10286021754421955037"
       },
       {
         "file": "public/images/logo-ico.png",
@@ -913,244 +233,924 @@
         "hash": "5169721907021774746"
       },
       {
-        "file": "src/types/index.ts",
-        "hash": "8049685851798633416"
+        "file": "debug-reducer.js",
+        "hash": "7420771614984516490"
       },
       {
-        "file": "src/test-utils/withAppContext.tsx",
-        "hash": "6486087694071177176"
+        "file": "debug-grouping.js",
+        "hash": "6613399473553849888"
       },
       {
-        "file": "src/app/events/page.module.css",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "src/components/AvatarUploader/styles.module.css",
-        "hash": "17767637255944446697"
-      },
-      {
-        "file": "tsconfig.json",
-        "hash": "4932956569858600249"
-      },
-      {
-        "file": "docs/design/wireframes.md",
-        "hash": "8290711046325508420"
-      },
-      {
-        "file": "tsconfig.tsbuildinfo",
-        "hash": "411523011705140380"
-      },
-      {
-        "file": "firebase/hub/firebase.json",
-        "hash": "217510055411048674"
-      },
-      {
-        "file": "docs/ROADMAP.md",
-        "hash": "15325183163922271635"
-      },
-      {
-        "file": "src/app/__tests__/page.test.tsx",
-        "hash": "593943420572897572"
-      },
-      {
-        "file": "src/reducers/friendsReducer.ts",
-        "hash": "137627956401644936"
-      },
-      {
-        "file": "docs/development/licensing.md",
-        "hash": "16848997591162541555"
-      },
-      {
-        "file": "LICENSE",
-        "hash": "475094082454657105"
-      },
-      {
-        "file": "src/app/__tests__/exampleTest.tsx",
-        "hash": "488338948004308572"
-      },
-      {
-        "file": "scripts/deploy-all.sh",
-        "hash": "14203827832601848623"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/RecentExpenses.test.tsx",
-        "hash": "900729487665592331"
-      },
-      {
-        "file": "src/app/groups/new/page.tsx.new",
-        "hash": "10125768842597480056"
-      },
-      {
-        "file": "src/app/events/list/page.module.css",
-        "hash": "11080117714816853953"
-      },
-      {
-        "file": "src/app/profile/page.module.css",
-        "hash": "1236480173823829344"
-      },
-      {
-        "file": "scripts/migrate-justsplit.sh",
-        "hash": "4974419454513872303"
+        "file": "docs/ABOUT.md",
+        "hash": "10373037422785146181"
       },
       {
         "file": "public/images/logo-square.ai",
         "hash": "4485435657714055927"
       },
       {
-        "file": "tsconfig.base.json",
-        "hash": "17909670004219583655"
+        "file": "src/app/layout.tsx",
+        "hash": "14769783227431204225"
       },
       {
-        "file": ".github/workflows/deploy-justsplit.yml",
-        "hash": "10333529973144727285"
+        "file": "src/app/page.tsx.bak",
+        "hash": "16499633644165374077"
       },
       {
-        "file": "src/docs/design-system.md",
-        "hash": "11502012541449085567"
+        "file": "nx.json",
+        "hash": "920439469811061970"
       },
       {
-        "file": "public/images/logo-ico.ai",
-        "hash": "15989550874253672698"
+        "file": "public/images/logo-square.png",
+        "hash": "7518962060427561028"
       },
       {
-        "file": "src/utils/authEmulatorFix.ts",
-        "hash": "3244421341483603138"
+        "file": "apphosting.emulator.yaml",
+        "hash": "2281618896110692474"
       },
       {
-        "file": "src/components/Dashboard/ExpenseDistribution.tsx",
-        "hash": "6870971202262531840"
+        "file": "tree.txt",
+        "hash": "4596994459039677782"
       },
       {
-        "file": ".github/workflows/ci.yml",
-        "hash": "5842225275676383450"
-      },
-      {
-        "file": "workspace.json.bak",
-        "hash": "10793711952705658213"
-      },
-      {
-        "file": "src/app/friends/page.tsx",
-        "hash": "12968095049942240653"
-      },
-      {
-        "file": "report.txt",
-        "hash": "2153045119146551087"
-      },
-      {
-        "file": "src/utils/firebase-test.js",
-        "hash": "3244421341483603138"
-      },
-      {
-        "file": "docs/planning/release-planning.md",
-        "hash": "9383720433431838468"
-      },
-      {
-        "file": "src/app/events/list/page.tsx",
-        "hash": "2728559554475538882"
-      },
-      {
-        "file": "docs/api/README.md",
-        "hash": "12572550095925916573"
-      },
-      {
-        "file": "docs/applications/priority-apps.md",
-        "hash": "5554359294631199910"
-      },
-      {
-        "file": "src/components/ui/Notification/styles.module.css",
-        "hash": "13830769819420438766"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/DashboardHeader.test.tsx",
-        "hash": "6005504235104300323"
-      },
-      {
-        "file": "src/__tests__/postEventExpenses.test.tsx",
-        "hash": "7967880886946473268"
-      },
-      {
-        "file": "src/app/page.tsx",
-        "hash": "14528307620739209189"
-      },
-      {
-        "file": "src/components/ui/HoverCard/styles.module.css",
-        "hash": "7494610670068460635"
-      },
-      {
-        "file": "apphosting.yaml",
-        "hash": "8627724752436180461"
-      },
-      {
-        "file": "src/app/expenses/edit/[id]/page.tsx",
-        "hash": "7824477664238620070"
-      },
-      {
-        "file": "src/components/Dashboard/RecentExpenses.tsx",
-        "hash": "17273297251427529127"
-      },
-      {
-        "file": "docs/api/endpoints.md",
-        "hash": "5154342191976047869"
-      },
-      {
-        "file": "src/components/ExpenseSplitter/index.tsx",
-        "hash": "2417265577966377108"
-      },
-      {
-        "file": "src/context/Providers.tsx",
-        "hash": "15215295634033274071"
-      },
-      {
-        "file": "src/components/ui/DatabaseErrorRecovery.tsx",
-        "hash": "10274667536771384435"
-      },
-      {
-        "file": "libs/shared-assets/src/assets/brand/logo-ico.svg",
-        "hash": "6367968871152200380"
-      },
-      {
-        "file": "src/components/Dashboard/__tests__/MonthlyTrendsChart.test.tsx",
-        "hash": "17660959070379717454"
-      },
-      {
-        "file": "src/app/client-layout-wrapper.test.tsx",
-        "hash": "5017349195844249181"
-      },
-      {
-        "file": "src/components/ui/Notification/index.tsx",
-        "hash": "3995554166009605481"
-      },
-      {
-        "file": "src/app/expenses/new/page.tsx",
-        "hash": "5323004710788655149"
-      },
-      {
-        "file": "src/__tests__/timelineEvents.test.tsx",
-        "hash": "11512092485738014150"
-      },
-      {
-        "file": "src/components/ui/__mocks__/Button.tsx",
-        "hash": "1563929730383219903"
-      },
-      {
-        "file": "src/app/events/new/page-fixed.tsx",
-        "hash": "16977138639443136824"
+        "file": "CONTRIBUTOR-AGREEMENT.md",
+        "hash": "352414687446605377"
       },
       {
         "file": "src/app/events/EventDetail.tsx",
         "hash": "1577566084676478024"
       },
       {
-        "file": "TO_CLEANSE.md",
-        "hash": "13425496497405114821"
+        "file": "src/app/help/page.tsx",
+        "hash": "581737727329503916"
+      },
+      {
+        "file": "src/app/friends/[id]/page.tsx",
+        "hash": "11348398067610551012"
+      },
+      {
+        "file": "firestore.indexes.json",
+        "hash": "2048261650710551311"
+      },
+      {
+        "file": "src/context/__tests__/SettlementCurrency.test.tsx",
+        "hash": "4701494350422846218"
+      },
+      {
+        "file": "src/__tests__/timeline.test.tsx",
+        "hash": "7750437757242827053"
+      },
+      {
+        "file": "src/app/events/__tests__/EventDetail.test.tsx",
+        "hash": "15957028254002309443"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.png",
+        "hash": "15738933302531348868"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "16383264897298423430"
+      },
+      {
+        "file": "src/app/groups/[id]/page.module.css",
+        "hash": "8127175074076037297"
+      },
+      {
+        "file": "src/components/ui/ProgressBar/index.tsx",
+        "hash": "17208752406854821153"
+      },
+      {
+        "file": "src/__tests__/debug-grouping.test.tsx",
+        "hash": "11270281977226759344"
+      },
+      {
+        "file": "src/components/Dashboard/UserSummary.tsx",
+        "hash": "480167652728514103"
+      },
+      {
+        "file": "src/utils/firebase-test.ts",
+        "hash": "1489823342386489802"
+      },
+      {
+        "file": "docs/architecture/nx-architecture-consolidated.md",
+        "hash": "5082302903956316898"
+      },
+      {
+        "file": "src/context/AppContext.tsx",
+        "hash": "16674713917935283717"
+      },
+      {
+        "file": "src/context/NotificationContext.tsx",
+        "hash": "6474228776354756200"
+      },
+      {
+        "file": "src/app/groups/page.tsx",
+        "hash": "148399400747670980"
+      },
+      {
+        "file": "src/components/ExpenseSplitter/index.tsx",
+        "hash": "2417265577966377108"
+      },
+      {
+        "file": "docs/deployment/on-premises-deployment.md",
+        "hash": "11759857248411326240"
+      },
+      {
+        "file": "docs/PHILOSOPHY.md",
+        "hash": "10712314288399398704"
+      },
+      {
+        "file": "src/app/expenses/[id]/page.module.css",
+        "hash": "6035623851093240656"
+      },
+      {
+        "file": "src/app/landing/landing.module.css",
+        "hash": "2216060904382189983"
+      },
+      {
+        "file": "src/app/groups/list/page.module.css",
+        "hash": "34710485025936816"
+      },
+      {
+        "file": "src/utils/firebase-test.js",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "src/utils/debug-firebase.js",
+        "hash": "13337756043628716955"
       },
       {
         "file": "firebase/justsplit/firestore.rules",
         "hash": "942080856305809795"
       },
       {
+        "file": "src/app/expenses/ExpenseDetail.tsx",
+        "hash": "5454086049512419241"
+      },
+      {
+        "file": "src/app/friends/add/page.tsx",
+        "hash": "7222293700986547417"
+      },
+      {
+        "file": "tsconfig.tsbuildinfo",
+        "hash": "411523011705140380"
+      },
+      {
+        "file": "src/services/firebaseService.ts",
+        "hash": "16063111239427519666"
+      },
+      {
+        "file": "src/app/events/page.module.css",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "docs/development/development-workflow.md",
+        "hash": "1236499871742380411"
+      },
+      {
+        "file": "src/components/Dashboard/BalanceLine.tsx",
+        "hash": "3542227931518120130"
+      },
+      {
+        "file": "src/docs/design-system.md",
+        "hash": "11502012541449085567"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/RecentExpenses.test.tsx",
+        "hash": "900729487665592331"
+      },
+      {
+        "file": "src/app/auth/page.module.css",
+        "hash": "15627190187256041564"
+      },
+      {
+        "file": "src/utils/emulator-setup.js",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "docs/design/wireframes.md",
+        "hash": "8290711046325508420"
+      },
+      {
+        "file": "src/utils/expenseCalculator.ts",
+        "hash": "631578524985884343"
+      },
+      {
+        "file": "src/components/Header/styles.module.css",
+        "hash": "1457313833929826598"
+      },
+      {
+        "file": "src/app/test-notification/page.tsx",
+        "hash": "1822737500992389098"
+      },
+      {
+        "file": "docs/api/README.md",
+        "hash": "12572550095925916573"
+      },
+      {
+        "file": "src/reducers/friendsReducer.ts",
+        "hash": "137627956401644936"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/DashboardHeader.test.tsx",
+        "hash": "6005504235104300323"
+      },
+      {
+        "file": "src/utils/currencyExchange.ts",
+        "hash": "14085714282500064789"
+      },
+      {
+        "file": "src/app/events/new/page-fixed.tsx",
+        "hash": "16977138639443136824"
+      },
+      {
+        "file": "src/components/ui/ProgressBar.module.css",
+        "hash": "15998072709597278643"
+      },
+      {
+        "file": "src/components/Dashboard/FinancialSummary.tsx",
+        "hash": "2863264400230099642"
+      },
+      {
+        "file": "src/utils/__tests__/csvExport.test.ts",
+        "hash": "13353963254172525385"
+      },
+      {
+        "file": "src/app/landing.module.css",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "src/components/ui/Notification/index.tsx",
+        "hash": "3995554166009605481"
+      },
+      {
+        "file": "docs/planning/project-roadmap.md",
+        "hash": "4597156141566748584"
+      },
+      {
+        "file": "src/app/expenses/new/page.tsx",
+        "hash": "5323004710788655149"
+      },
+      {
+        "file": "src/app/friends/[id]/page.module.css",
+        "hash": "10648789197694072631"
+      },
+      {
+        "file": "src/app/friends/add/page.module.css",
+        "hash": "5944235634812686105"
+      },
+      {
+        "file": "archived-docs/architecture/nx-monorepo-architecture.md",
+        "hash": "7635970482608179775"
+      },
+      {
+        "file": "src/app/events/[id]/page.module.css",
+        "hash": "7560119981426441238"
+      },
+      {
+        "file": "docs/GETTING_STARTED.md",
+        "hash": "18117739586287141005"
+      },
+      {
+        "file": "docs/development/local-development.md",
+        "hash": "8512887853619601945"
+      },
+      {
+        "file": "src/app/expenses/list/page.module.css",
+        "hash": "5242826446068615735"
+      },
+      {
+        "file": "src/app/page.tsx",
+        "hash": "14528307620739209189"
+      },
+      {
         "file": "docs/deployment/firebase-deployment.md",
         "hash": "1968709991282980391"
+      },
+      {
+        "file": "docs/architecture/diagrams/system-architecture.md",
+        "hash": "1119911349734281752"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/FinancialSummary.test.tsx",
+        "hash": "16683720139647886420"
+      },
+      {
+        "file": "src/components/ui/PageRedirect/index.tsx",
+        "hash": "14606361719459333899"
+      },
+      {
+        "file": "firebase/hub/firebase.json",
+        "hash": "217510055411048674"
+      },
+      {
+        "file": "src/context/Providers.tsx",
+        "hash": "15215295634033274071"
+      },
+      {
+        "file": "src/app/about/page.tsx",
+        "hash": "5521217341805135055"
+      },
+      {
+        "file": "src/components/ui/EntityList/index.tsx",
+        "hash": "13347964838246182438"
+      },
+      {
+        "file": "src/app/components/EventList.tsx",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "report.txt",
+        "hash": "2153045119146551087"
+      },
+      {
+        "file": "src/styles/theme.css",
+        "hash": "16969421834739300508"
+      },
+      {
+        "file": "src/app/__tests__/exampleTest.tsx",
+        "hash": "488338948004308572"
+      },
+      {
+        "file": "src/app/help/help.module.css",
+        "hash": "16021032255736942716"
+      },
+      {
+        "file": "docs/architecture/diagrams/component-diagram.md",
+        "hash": "9964653968450415802"
+      },
+      {
+        "file": "jest.setup.js",
+        "hash": "14233628554511469093"
+      },
+      {
+        "file": "src/components/Dashboard/BalanceOverview.tsx",
+        "hash": "6859930416274118720"
+      },
+      {
+        "file": "src/components/Dashboard/WelcomeScreen.tsx",
+        "hash": "2422186152266837599"
+      },
+      {
+        "file": "src/pages/_app.tsx",
+        "hash": "4985717882098476734"
+      },
+      {
+        "file": "src/app/groups/new/page.tsx.new",
+        "hash": "10125768842597480056"
+      },
+      {
+        "file": "archived-docs/planning/to-do.md",
+        "hash": "614306799937716421"
+      },
+      {
+        "file": "src/app/settlements/page.tsx",
+        "hash": "3733006652877156791"
+      },
+      {
+        "file": "src/app/events/page.tsx",
+        "hash": "5118471508273818554"
+      },
+      {
+        "file": "src/app/auth/signin/page.tsx",
+        "hash": "3494767591798973301"
+      },
+      {
+        "file": "src/app/events/list/page.module.css",
+        "hash": "11080117714816853953"
+      },
+      {
+        "file": "docs/api/data-models-nx-comprehensive.md",
+        "hash": "2305906320830654484"
+      },
+      {
+        "file": "src/context/AuthContext.tsx",
+        "hash": "16373233053313828617"
+      },
+      {
+        "file": "scripts/deploy-hub.sh",
+        "hash": "12444477468883296986"
+      },
+      {
+        "file": "src/components/ui/HoverCard/index.tsx",
+        "hash": "164709062933460964"
+      },
+      {
+        "file": "public/images/old-justsplit-logo.png",
+        "hash": "6646454001633406036"
+      },
+      {
+        "file": "src/app/profile/page.tsx",
+        "hash": "16489382474167951780"
+      },
+      {
+        "file": "docs/development/getting-started.md",
+        "hash": "14618129162254763513"
+      },
+      {
+        "file": "src/components/CurrencyExchangeTicker/styles.module.css",
+        "hash": "8166462660790309904"
+      },
+      {
+        "file": "src/app/groups/new/page.module.css",
+        "hash": "10778728952872799435"
+      },
+      {
+        "file": "archived-docs/MIGRATION_SUMMARY.md",
+        "hash": "8144385075245862509"
+      },
+      {
+        "file": "CLAUDE.md",
+        "hash": "10233891591175300939"
+      },
+      {
+        "file": "src/components/ui/Notification/styles.module.css",
+        "hash": "13830769819420438766"
+      },
+      {
+        "file": "docs/architecture/diagrams/data-flow-diagram.md",
+        "hash": "13498230696896051549"
+      },
+      {
+        "file": "CYBERECO-LICENSE.md",
+        "hash": "17184261828977620282"
+      },
+      {
+        "file": "docs/applications/README.md",
+        "hash": "1384152929420135908"
+      },
+      {
+        "file": "src/components/Dashboard/DashboardHeader.tsx",
+        "hash": "10546102287794295399"
+      },
+      {
+        "file": "src/app/expenses/edit/[id]/page.module.css",
+        "hash": "4944601711238547665"
+      },
+      {
+        "file": "src/app/client-layout-wrapper.tsx",
+        "hash": "347629024220404070"
+      },
+      {
+        "file": "src/utils/formatters.ts",
+        "hash": "11310258987300788292"
+      },
+      {
+        "file": "src/utils/testUtils.tsx",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "src/app/expenses/page.tsx",
+        "hash": "6317599059855084413"
+      },
+      {
+        "file": "src/app/expenses/[id]/page.tsx",
+        "hash": "9715939531230098537"
+      },
+      {
+        "file": "src/__tests__/authContext.test.tsx",
+        "hash": "10385170281499734203"
+      },
+      {
+        "file": "src/app/profile/page.module.css",
+        "hash": "1236480173823829344"
+      },
+      {
+        "file": "firebase/justsplit/firebase.json",
+        "hash": "18105152660540395598"
+      },
+      {
+        "file": "scripts/deploy-justsplit.sh",
+        "hash": "12337437298465743602"
+      },
+      {
+        "file": "src/components/Header/index.tsx",
+        "hash": "9988312511681708228"
+      },
+      {
+        "file": "src/app/__tests__/page.test.tsx",
+        "hash": "593943420572897572"
+      },
+      {
+        "file": "firebase/hub/firestore.indexes.json",
+        "hash": "7803971378084317444"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/RecentSettlements.test.tsx",
+        "hash": "4944102822601095766"
+      },
+      {
+        "file": "scripts/deploy-website.sh",
+        "hash": "8953027014179350123"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/WelcomeScreen.test.tsx",
+        "hash": "13644977267817413682"
+      },
+      {
+        "file": "package.json",
+        "hash": "2201680338058697014"
+      },
+      {
+        "file": "src/app/events/edit/[id]/page.tsx",
+        "hash": "1365357745697936220"
+      },
+      {
+        "file": "docs/architecture/overview.md",
+        "hash": "12318906351880462017"
+      },
+      {
+        "file": "docs/development/firebase-deployment.md",
+        "hash": "5314392235327397841"
+      },
+      {
+        "file": "src/app/page.module.css",
+        "hash": "18145703436964097024"
+      },
+      {
+        "file": "src/__tests__/postEventExpenses.test.tsx",
+        "hash": "7967880886946473268"
+      },
+      {
+        "file": "src/app/client-layout-wrapper.test.tsx",
+        "hash": "5017349195844249181"
+      },
+      {
+        "file": "docs/planning/release-planning.md",
+        "hash": "9383720433431838468"
+      },
+      {
+        "file": "src/components/Dashboard/ExpenseDistribution.tsx",
+        "hash": "6870971202262531840"
+      },
+      {
+        "file": "src/utils/__tests__/expenseCalculator.test.ts",
+        "hash": "282328112556546761"
+      },
+      {
+        "file": "firebase/website/firebase.json",
+        "hash": "18088032973900790086"
+      },
+      {
+        "file": "src/utils/authEmulatorFix.ts",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "public/images/logo.xcf",
+        "hash": "252626238791764474"
+      },
+      {
+        "file": "src/__tests__/progressBar.test.tsx",
+        "hash": "3555107306923498840"
+      },
+      {
+        "file": "docs/README.md",
+        "hash": "15954620561093366819"
+      },
+      {
+        "file": "src/components/ui/ProgressBar/styles.module.css",
+        "hash": "15345157746216104186"
+      },
+      {
+        "file": "src/app/expenses/new/page.module.css",
+        "hash": "10999109022124884747"
+      },
+      {
+        "file": "scripts/deploy-all.sh",
+        "hash": "14203827832601848623"
+      },
+      {
+        "file": ".claude/settings.local.json",
+        "hash": "11951571522753574763"
+      },
+      {
+        "file": "src/components/ui/__tests__/EditableText.test.tsx",
+        "hash": "1957289107743776329"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "17909670004219583655"
+      },
+      {
+        "file": "src/components/ui/EditableText.module.css",
+        "hash": "8665424013710129462"
+      },
+      {
+        "file": "src/components/ui/ProgressBar.tsx",
+        "hash": "356381512628639512"
+      },
+      {
+        "file": "src/components/ui/DatabaseErrorRecovery.tsx",
+        "hash": "10274667536771384435"
+      },
+      {
+        "file": "src/components/ImageUploader/styles.module.css",
+        "hash": "4362194966899092981"
+      },
+      {
+        "file": "src/components/Dashboard/MonthlyTrendsChart.tsx",
+        "hash": "5021683864324098776"
+      },
+      {
+        "file": "scripts/migrate-justsplit.sh",
+        "hash": "4974419454513872303"
+      },
+      {
+        "file": "src/app/about/about.module.css",
+        "hash": "10908805417356207629"
+      },
+      {
+        "file": "src/components/ui/CurrencySelector.module.css",
+        "hash": "6208571376204452201"
+      },
+      {
+        "file": "firebase/justsplit/firestore.indexes.json",
+        "hash": "2048261650710551311"
+      },
+      {
+        "file": "src/test-utils/withAppContext.tsx",
+        "hash": "6486087694071177176"
+      },
+      {
+        "file": "src/app/expenses/edit/[id]/page.tsx",
+        "hash": "7824477664238620070"
+      },
+      {
+        "file": "src/firebase/firestore.rules",
+        "hash": "942080856305809795"
+      },
+      {
+        "file": "git-diff.txt",
+        "hash": "18307121629659335294"
+      },
+      {
+        "file": "firebase/website/firestore.rules",
+        "hash": "3767280522401315746"
+      },
+      {
+        "file": ".github/workflows/ci.yml",
+        "hash": "5842225275676383450"
+      },
+      {
+        "file": "docs/development/contributing.md",
+        "hash": "4004076637206140642"
+      },
+      {
+        "file": "src/test-utils.tsx",
+        "hash": "7417933509556867382"
+      },
+      {
+        "file": "public/images/logo-ico.ai",
+        "hash": "15989550874253672698"
+      },
+      {
+        "file": "src/components/Dashboard/RecentExpenses.tsx",
+        "hash": "17273297251427529127"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/BalanceOverview.test.tsx",
+        "hash": "1417580118776627011"
+      },
+      {
+        "file": "src/app/settlements/page.module.css",
+        "hash": "12472064766656690851"
+      },
+      {
+        "file": "src/app/events/[id]/page.tsx",
+        "hash": "16617299240402417969"
+      },
+      {
+        "file": "docs/api/data-models.md",
+        "hash": "7118840247970817605"
+      },
+      {
+        "file": "workspace.json.bak",
+        "hash": "10793711952705658213"
+      },
+      {
+        "file": "src/app/groups/list/page.tsx",
+        "hash": "1317226043782058758"
+      },
+      {
+        "file": "src/app/groups/new/page.tsx",
+        "hash": "5058682899814633644"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo.png",
+        "hash": "8307353577392312031"
+      },
+      {
+        "file": "src/components/ui/HoverCard/styles.module.css",
+        "hash": "7494610670068460635"
+      },
+      {
+        "file": "src/components/Dashboard/FinancialSummary.module.css",
+        "hash": "6174506528560259849"
+      },
+      {
+        "file": "src/components/ui/__tests__/CurrencySelector.test.tsx",
+        "hash": "14962661240726275507"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/ExpenseDistribution.test.tsx",
+        "hash": "8668921269727653827"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "6410555716852949148"
+      },
+      {
+        "file": "src/app/events/new/page.module.css",
+        "hash": "7025989797683316320"
+      },
+      {
+        "file": "src/components/Header/__tests__/Header.test.tsx",
+        "hash": "4107486718113308483"
+      },
+      {
+        "file": "src/app/auth/signup/page.tsx",
+        "hash": "669720043491927407"
+      },
+      {
+        "file": "src/app/events/edit/[id]/page.module.css",
+        "hash": "13820989517387087264"
+      },
+      {
+        "file": "public/images/logo.ai",
+        "hash": "12297371206118583459"
+      },
+      {
+        "file": "src/app/expenses/__tests__/ExpenseDetail.test.tsx",
+        "hash": "17402086236459797709"
+      },
+      {
+        "file": ".github/workflows/deploy-justsplit.yml",
+        "hash": "10333529973144727285"
+      },
+      {
+        "file": "docs/api/endpoints.md",
+        "hash": "5154342191976047869"
+      },
+      {
+        "file": "src/components/ui/Button.module.css",
+        "hash": "6193414495590315518"
+      },
+      {
+        "file": "src/utils/timelineUtils.ts",
+        "hash": "1168074218312920893"
+      },
+      {
+        "file": "src/utils/fileUtils.ts",
+        "hash": "17149719204828043755"
+      },
+      {
+        "file": "src/app/events/new/page.tsx",
+        "hash": "5214559755529434863"
+      },
+      {
+        "file": "src/components/ui/CurrencySelector.tsx",
+        "hash": "12792410269172541729"
+      },
+      {
+        "file": ".github/workflows/deploy-hub.yml",
+        "hash": "14904646870289032487"
+      },
+      {
+        "file": "docs/architecture/technical-design.md",
+        "hash": "4779240100550480952"
+      },
+      {
+        "file": "src/components/ui/EditableText.tsx",
+        "hash": "16433364691521304169"
+      },
+      {
+        "file": "docs/deployment/low-cost-optimization.md",
+        "hash": "9737116763807544584"
+      },
+      {
+        "file": "src/app/friends/page.module.css",
+        "hash": "11954212589481953392"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.svg",
+        "hash": "4068850462378546880"
+      },
+      {
+        "file": "reports/test-report.html",
+        "hash": "2452450448052846848"
+      },
+      {
+        "file": "firebase/hub/firestore.rules",
+        "hash": "15339715675116569506"
+      },
+      {
+        "file": "src/__tests__/hoverCard.test.tsx",
+        "hash": "13014806558298523340"
+      },
+      {
+        "file": "src/components/ui/Timeline/styles.module.css",
+        "hash": "12660532460451059026"
+      },
+      {
+        "file": "src/components/CurrencyExchangeTicker/index.tsx",
+        "hash": "7085056754182641282"
+      },
+      {
+        "file": "public/images/logo.png",
+        "hash": "10121345660719554501"
+      },
+      {
+        "file": "src/app/expenses/page.module.css",
+        "hash": "3974311272393902031"
+      },
+      {
+        "file": "apphosting.yaml",
+        "hash": "8627724752436180461"
+      },
+      {
+        "file": "docs/vision/README.md",
+        "hash": "4113051274851676917"
+      },
+      {
+        "file": "docs/vision/decentralized-future.md",
+        "hash": "3621239844531721743"
+      },
+      {
+        "file": "src/__tests__/timelineEvents.test.tsx",
+        "hash": "11512092485738014150"
+      },
+      {
+        "file": "firebase.json",
+        "hash": "7145915806055601649"
+      },
+      {
+        "file": "debug-timeline.js",
+        "hash": "4218103594999658789"
+      },
+      {
+        "file": "src/app/friends/page.tsx",
+        "hash": "12968095049942240653"
+      },
+      {
+        "file": "src/components/ImageUploader/index.tsx",
+        "hash": "8523001190667856413"
+      },
+      {
+        "file": "src/components/ui/Timeline/index.tsx",
+        "hash": "407139562706667911"
+      },
+      {
+        "file": "src/utils/__tests__/currencyExchange.test.ts",
+        "hash": "13570473548140716924"
+      },
+      {
+        "file": "src/utils/__tests__/timelineCalculations.test.ts",
+        "hash": "11340293204601674489"
+      },
+      {
+        "file": "src/components/Dashboard/__tests__/UpcomingEvents.test.tsx",
+        "hash": "15930997749909947089"
+      },
+      {
+        "file": "README.md",
+        "hash": "1532203502318915338"
+      },
+      {
+        "file": "src/components/ui/__mocks__/Button.tsx",
+        "hash": "1563929730383219903"
+      },
+      {
+        "file": "docs/development/logo-creation.md",
+        "hash": "17885300203393607172"
+      },
+      {
+        "file": "src/components/Dashboard/UpcomingEvents.tsx",
+        "hash": "4913033431395648882"
+      },
+      {
+        "file": "src/components/Button/index.tsx",
+        "hash": "8604410498664869420"
+      },
+      {
+        "file": "docs/planning/app-matrix.md",
+        "hash": "10356832507431718864"
+      },
+      {
+        "file": "src/__tests__/expenseGroups.test.tsx",
+        "hash": "15874879196623770982"
+      },
+      {
+        "file": "src/components/ui/Button.tsx",
+        "hash": "6897201359693722727"
+      },
+      {
+        "file": "src/app/groups/[id]/page.tsx",
+        "hash": "2046706619230064262"
+      },
+      {
+        "file": "archived-docs/NX_MIGRATION_COMPLETE.md",
+        "hash": "11614504007559306489"
       }
     ],
     "projectFileMap": {
@@ -2795,11 +2795,11 @@
         },
         {
           "file": "apps/website/src/app/documentation/page.module.css",
-          "hash": "239064521717211445"
+          "hash": "12727543293655895680"
         },
         {
           "file": "apps/website/src/app/documentation/page.tsx",
-          "hash": "17320100627764211322",
+          "hash": "2532611386827411926",
           "deps": [
             "npm:react",
             "ui-components"
@@ -3088,7 +3088,7 @@
         },
         {
           "file": "apps/website/src/translations/index.ts",
-          "hash": "8180157128969311863",
+          "hash": "8829768798721983786",
           "deps": [
             "ui-components"
           ]

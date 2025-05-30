@@ -65,10 +65,50 @@ export default function DocumentationPage() {
       content: (
         <>
           <div className={styles.contentSection}>
+            <div className={styles.progressIndicator}>
+              <span className={styles.progressLabel}>📍 Quick Start Guide</span>
+              <div className={styles.estimatedTime}>⏱️ 5 minutes</div>
+            </div>
             <h3 className={styles.subTitle}>{t('documentationPage.introductionTitle') || 'Introduction'}</h3>
             <p className={styles.contentText}>
               {t('documentationPage.introductionText') || 'Welcome to CyberEco documentation! This guide will help you get started with our digital ecosystem. CyberEco offers a suite of digital solutions designed to enhance financial collaboration, community engagement, and social connectivity, all within a human-centered framework for conscious, connected, and sustainable living.'}
             </p>
+          </div>
+
+          <div className={styles.contentSection}>
+            <h3 className={styles.subTitle}>🚀 {t('documentationPage.quickStartTitle') || 'Quick Start'}</h3>
+            <div className={styles.stepByStepGuide}>
+              <div className={styles.step}>
+                <div className={styles.stepNumber}>1</div>
+                <div className={styles.stepContent}>
+                  <h4>{t('documentationPage.step1Title') || 'Create Your Account'}</h4>
+                  <p>{t('documentationPage.step1Desc') || 'Sign up for a CyberEco Hub account to access all applications with a single identity.'}</p>
+                  <button className={styles.actionButton}>
+                    {t('documentationPage.signUpNow') || 'Sign Up Now'} →
+                  </button>
+                </div>
+              </div>
+              <div className={styles.step}>
+                <div className={styles.stepNumber}>2</div>
+                <div className={styles.stepContent}>
+                  <h4>{t('documentationPage.step2Title') || 'Explore Applications'}</h4>
+                  <p>{t('documentationPage.step2Desc') || 'Start with JustSplit for expense sharing, then discover our growing ecosystem.'}</p>
+                  <button className={styles.actionButton}>
+                    {t('documentationPage.exploreApps') || 'Explore Apps'} →
+                  </button>
+                </div>
+              </div>
+              <div className={styles.step}>
+                <div className={styles.stepNumber}>3</div>
+                <div className={styles.stepContent}>
+                  <h4>{t('documentationPage.step3Title') || 'Join the Community'}</h4>
+                  <p>{t('documentationPage.step3Desc') || 'Connect with other users and contribute to our human-centered technology vision.'}</p>
+                  <button className={styles.actionButton}>
+                    {t('documentationPage.joinCommunity') || 'Join Community'} →
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className={styles.contentSection}>
@@ -117,6 +157,41 @@ export default function DocumentationPage() {
       title: t('documentationPage.keyConceptsTitle'),
       content: (
         <>
+          <div className={styles.contentSection}>
+            <div className={styles.learningPath}>
+              <h3 className={styles.subTitle}>🎯 {t('documentationPage.learningPathTitle') || 'Choose Your Learning Path'}</h3>
+              <div className={styles.pathOptions}>
+                <div className={styles.pathCard}>
+                  <div className={styles.pathIcon}>👨‍💼</div>
+                  <h4>{t('documentationPage.businessUserPath') || 'Business User'}</h4>
+                  <p>{t('documentationPage.businessUserDesc') || 'Learn to use applications for team collaboration and expense management.'}</p>
+                  <div className={styles.pathStats}>
+                    <span>⏱️ 15 min</span>
+                    <span>📚 5 topics</span>
+                  </div>
+                </div>
+                <div className={styles.pathCard}>
+                  <div className={styles.pathIcon}>👩‍💻</div>
+                  <h4>{t('documentationPage.developerPath') || 'Developer'}</h4>
+                  <p>{t('documentationPage.developerDesc') || 'Technical integration, API usage, and platform architecture.'}</p>
+                  <div className={styles.pathStats}>
+                    <span>⏱️ 45 min</span>
+                    <span>📚 12 topics</span>
+                  </div>
+                </div>
+                <div className={styles.pathCard}>
+                  <div className={styles.pathIcon}>🏛️</div>
+                  <h4>{t('documentationPage.communityPath') || 'Community Leader'}</h4>
+                  <p>{t('documentationPage.communityDesc') || 'Governance, digital sovereignty, and platform philosophy.'}</p>
+                  <div className={styles.pathStats}>
+                    <span>⏱️ 30 min</span>
+                    <span>📚 8 topics</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.contentSection}>
             <h3 className={styles.subTitle}>{t('documentationPage.digitalSovereigntyConceptTitle')}</h3>
             <p className={styles.contentText}>
@@ -323,8 +398,25 @@ export default function DocumentationPage() {
               {t('documentationPage.apiAuthText') || 'All API requests require authentication using OAuth 2.0 bearer tokens. To obtain a token, make a POST request to our authentication endpoint with your client credentials.'}
             </p>
             
-            <pre className={styles.codeBlock}>
-              {`// Authentication request
+            <div className={styles.interactiveCodeBlock}>
+              <div className={styles.codeHeader}>
+                <span className={styles.codeLanguage}>JavaScript</span>
+                <button className={styles.copyButton} onClick={() => navigator.clipboard.writeText(`fetch('https://api.cybereco.io/auth/token', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    client_id: 'your_client_id',
+    client_secret: 'your_client_secret',
+    grant_type: 'client_credentials'
+  })
+})`)}>
+                  📋 Copy
+                </button>
+              </div>
+              <pre className={styles.codeBlock}>
+                {`// Authentication request
 fetch('https://api.cybereco.io/auth/token', {
   method: 'POST',
   headers: {
@@ -336,7 +428,16 @@ fetch('https://api.cybereco.io/auth/token', {
     grant_type: 'client_credentials'
   })
 })`}
-            </pre>
+              </pre>
+              <div className={styles.codeActions}>
+                <button className={styles.tryButton}>
+                  ⚡ Try in Sandbox
+                </button>
+                <a href="#api-playground" className={styles.playgroundLink}>
+                  🔗 Open in API Playground
+                </a>
+              </div>
+            </div>
           </div>
 
           <div className={styles.contentSection}>
@@ -537,17 +638,35 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
               <div className={styles.categorySection}>
                 <h4 className={styles.categoryTitle}>✅ {t('documentationPage.currentSolutions')}</h4>
                 <div className={styles.categoryApps}>
-                  <span className={styles.appChip}>Hub</span>
-                  <span className={styles.appChip}>JustSplit</span>
-                  <span className={styles.appChip}>Website</span>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>Hub</span>
+                    <span className={styles.statusBadge} data-status="live">🟢 Live</span>
+                  </div>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>JustSplit</span>
+                    <span className={styles.statusBadge} data-status="live">🟢 Live</span>
+                  </div>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>Website</span>
+                    <span className={styles.statusBadge} data-status="live">🟢 Live</span>
+                  </div>
                 </div>
               </div>
               <div className={styles.categorySection}>
                 <h4 className={styles.categoryTitle}>🎯 {t('documentationPage.priorityApplications')}</h4>
                 <div className={styles.categoryApps}>
-                  <span className={styles.appChip}>Somos</span>
-                  <span className={styles.appChip}>Demos</span>
-                  <span className={styles.appChip}>Plantopia</span>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>Somos</span>
+                    <span className={styles.statusBadge} data-status="development">🟡 In Development</span>
+                  </div>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>Demos</span>
+                    <span className={styles.statusBadge} data-status="planning">🔵 Planned</span>
+                  </div>
+                  <div className={styles.appChipWithStatus}>
+                    <span className={styles.appChip}>Plantopia</span>
+                    <span className={styles.statusBadge} data-status="planning">🔵 Planned</span>
+                  </div>
                 </div>
               </div>
               <div className={styles.categorySection}>

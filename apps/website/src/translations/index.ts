@@ -697,6 +697,27 @@ const nestedTranslations = {
       solutionsPortfolioTitle: 'Solutions Portfolio',
       solutionsPortfolioDesc: 'Complete overview of current solutions and planned ecosystem expansion.',
       
+      // Quick Start Guide section
+      quickStartTitle: 'Quick Start',
+      step1Title: 'Create Your Account',
+      step1Desc: 'Sign up for a CyberEco Hub account to access all applications with a single identity.',
+      signUpNow: 'Sign Up Now',
+      step2Title: 'Explore Applications',
+      step2Desc: 'Start with JustSplit for expense sharing, then discover our growing ecosystem.',
+      exploreApps: 'Explore Apps',
+      step3Title: 'Join the Community',
+      step3Desc: 'Connect with other users and contribute to our human-centered technology vision.',
+      joinCommunity: 'Join Community',
+      
+      // Learning Path section
+      learningPathTitle: 'Choose Your Learning Path',
+      businessUserPath: 'Business User',
+      businessUserDesc: 'Learn to use applications for team collaboration and expense management.',
+      developerPath: 'Developer',
+      developerDesc: 'Technical integration, API usage, and platform architecture.',
+      communityPath: 'Community Leader',
+      communityDesc: 'Governance, digital sovereignty, and platform philosophy.',
+      
       // Key Concepts section
       keyConceptsTitle: 'Key Concepts & Architecture',
       digitalSovereigntyConceptTitle: 'Digital Sovereignty',
@@ -1658,6 +1679,27 @@ const nestedTranslations = {
       developmentRoadmapDesc: 'Hoja de ruta técnica detallada desde la arquitectura centralizada actual hasta el futuro descentralizado.',
       solutionsPortfolioTitle: 'Portafolio de Soluciones',
       solutionsPortfolioDesc: 'Visión completa de las soluciones actuales y la expansión del ecosistema planificada.',
+      
+      // Quick Start Guide section
+      quickStartTitle: 'Inicio Rápido',
+      step1Title: 'Crea tu Cuenta',
+      step1Desc: 'Regístrate para una cuenta de CyberEco Hub para acceder a todas las aplicaciones con una sola identidad.',
+      signUpNow: 'Regístrate Ahora',
+      step2Title: 'Explora las Aplicaciones',
+      step2Desc: 'Comienza con JustSplit para compartir gastos, luego descubre nuestro ecosistema en crecimiento.',
+      exploreApps: 'Explorar Aplicaciones',
+      step3Title: 'Únete a la Comunidad',
+      step3Desc: 'Conecta con otros usuarios y contribuye a nuestra visión de tecnología centrada en el ser humano.',
+      joinCommunity: 'Únete a la Comunidad',
+      
+      // Learning Path section
+      learningPathTitle: 'Elige tu Ruta de Aprendizaje',
+      businessUserPath: 'Usuario de Negocio',
+      businessUserDesc: 'Aprende a usar las aplicaciones para colaboración en equipo y gestión de gastos.',
+      developerPath: 'Desarrollador',
+      developerDesc: 'Integración técnica, uso de API y arquitectura de la plataforma.',
+      communityPath: 'Líder Comunitario',
+      communityDesc: 'Gobernanza, soberanía digital y filosofía de la plataforma.',
       
       // Key Concepts section
       keyConceptsTitle: 'Conceptos Clave y Arquitectura',
