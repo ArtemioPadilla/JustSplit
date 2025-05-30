@@ -24,7 +24,7 @@ export default function RoadmapPage() {
             <div className={`${styles.phaseCard} ${styles.currentPhase}`}>
               <div className={styles.phaseHeader}>
                 <div className={styles.phaseNumber}>1</div>
-                <div className={styles.phaseStatus}>Current</div>
+                <div className={styles.phaseStatus}>{t('roadmapPage.currentStatus')}</div>
               </div>
               <h3 className={styles.phaseTitle}>{t('roadmapPage.phase1Title')}</h3>
               <p className={styles.phaseText}>{t('roadmapPage.phase1Text')}</p>
@@ -42,7 +42,7 @@ export default function RoadmapPage() {
             <div className={styles.phaseCard}>
               <div className={styles.phaseHeader}>
                 <div className={styles.phaseNumber}>2</div>
-                <div className={styles.phaseStatus}>Next</div>
+                <div className={styles.phaseStatus}>{t('roadmapPage.nextStatus')}</div>
               </div>
               <h3 className={styles.phaseTitle}>{t('roadmapPage.phase2Title')}</h3>
               <p className={styles.phaseText}>{t('roadmapPage.phase2Text')}</p>
@@ -60,14 +60,14 @@ export default function RoadmapPage() {
             <div className={styles.phaseCard}>
               <div className={styles.phaseHeader}>
                 <div className={styles.phaseNumber}>3</div>
-                <div className={styles.phaseStatus}>Future</div>
+                <div className={styles.phaseStatus}>{t('roadmapPage.futureStatus')}</div>
               </div>
               <h3 className={styles.phaseTitle}>{t('roadmapPage.phase3Title')}</h3>
               <p className={styles.phaseText}>{t('roadmapPage.phase3Text')}</p>
               <div className={styles.phaseApps}>
-                <div className={styles.appTag}>30+ Apps</div>
-                <div className={styles.appTag}>Integration</div>
-                <div className={styles.appTag}>Ecosystem</div>
+                <div className={styles.appTag}>{t('roadmapPage.thirtyPlusApps')}</div>
+                <div className={styles.appTag}>{t('roadmapPage.integration')}</div>
+                <div className={styles.appTag}>{t('roadmapPage.ecosystem')}</div>
               </div>
               <div className={styles.progressBar}>
                 <div className={styles.progressFill} style={{width: '0%'}}></div>
@@ -78,14 +78,14 @@ export default function RoadmapPage() {
             <div className={styles.phaseCard}>
               <div className={styles.phaseHeader}>
                 <div className={styles.phaseNumber}>4</div>
-                <div className={styles.phaseStatus}>Vision</div>
+                <div className={styles.phaseStatus}>{t('roadmapPage.visionStatus')}</div>
               </div>
               <h3 className={styles.phaseTitle}>{t('roadmapPage.phase4Title')}</h3>
               <p className={styles.phaseText}>{t('roadmapPage.phase4Text')}</p>
               <div className={styles.phaseApps}>
-                <div className={styles.appTag}>P2P Networks</div>
-                <div className={styles.appTag}>Blockchain</div>
-                <div className={styles.appTag}>Decentralized</div>
+                <div className={styles.appTag}>{t('roadmapPage.p2pNetworks')}</div>
+                <div className={styles.appTag}>{t('roadmapPage.blockchain')}</div>
+                <div className={styles.appTag}>{t('roadmapPage.decentralized')}</div>
               </div>
               <div className={styles.progressBar}>
                 <div className={styles.progressFill} style={{width: '0%'}}></div>
@@ -99,51 +99,51 @@ export default function RoadmapPage() {
       {/* Current Focus Section */}
       <section className={styles.currentFocusSection}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>🎯 Current Development Focus</h2>
+          <h2 className={styles.sectionTitle}>🎯 {t('roadmapPage.currentFocusSectionTitle')}</h2>
           <div className={styles.focusGrid}>
             <div className={styles.focusCard}>
               <div className={styles.focusIcon}>🔧</div>
-              <h3 className={styles.focusTitle}>Critical Fixes</h3>
+              <h3 className={styles.focusTitle}>{t('roadmapPage.criticalFixesTitle')}</h3>
               <div className={styles.focusDetails}>
-                <h4>JustSplit Stabilization:</h4>
+                <h4>{t('roadmapPage.justSplitStabilization')}</h4>
                 <ul>
-                  <li>Fix component prop type errors</li>
-                  <li>Implement proper data flow patterns</li>
-                  <li>Add comprehensive error boundaries</li>
-                  <li>Resolve TypeScript compilation issues</li>
+                  <li>{t('roadmapPage.criticalFix1')}</li>
+                  <li>{t('roadmapPage.criticalFix2')}</li>
+                  <li>{t('roadmapPage.criticalFix3')}</li>
+                  <li>{t('roadmapPage.criticalFix4')}</li>
                 </ul>
               </div>
-              <div className={styles.focusStatus}>🔄 In Progress</div>
+              <div className={styles.focusStatus}>🔄 {t('roadmapPage.inProgressStatus2')}</div>
             </div>
 
             <div className={styles.focusCard}>
               <div className={styles.focusIcon}>🏢</div>
-              <h3 className={styles.focusTitle}>Hub Development</h3>
+              <h3 className={styles.focusTitle}>{t('roadmapPage.hubDevelopmentTitle')}</h3>
               <div className={styles.focusDetails}>
-                <h4>Core Authentication:</h4>
+                <h4>{t('roadmapPage.coreAuthentication')}</h4>
                 <ul>
-                  <li>User registration and login forms</li>
-                  <li>Password reset functionality</li>
-                  <li>Application launcher dashboard</li>
-                  <li>Cross-app session management</li>
+                  <li>{t('roadmapPage.hubFeature1')}</li>
+                  <li>{t('roadmapPage.hubFeature2')}</li>
+                  <li>{t('roadmapPage.hubFeature3')}</li>
+                  <li>{t('roadmapPage.hubFeature4')}</li>
                 </ul>
               </div>
-              <div className={styles.focusStatus}>📋 Planned</div>
+              <div className={styles.focusStatus}>📋 {t('roadmapPage.plannedStatus')}</div>
             </div>
 
             <div className={styles.focusCard}>
               <div className={styles.focusIcon}>🔗</div>
-              <h3 className={styles.focusTitle}>Integration</h3>
+              <h3 className={styles.focusTitle}>{t('roadmapPage.integrationTitle')}</h3>
               <div className={styles.focusDetails}>
-                <h4>Cross-App Features:</h4>
+                <h4>{t('roadmapPage.crossAppFeatures')}</h4>
                 <ul>
-                  <li>JWT token-based authentication</li>
-                  <li>User profile synchronization</li>
-                  <li>Unified navigation experience</li>
-                  <li>Shared component libraries</li>
+                  <li>{t('roadmapPage.integrationFeature1')}</li>
+                  <li>{t('roadmapPage.integrationFeature2')}</li>
+                  <li>{t('roadmapPage.integrationFeature3')}</li>
+                  <li>{t('roadmapPage.integrationFeature4')}</li>
                 </ul>
               </div>
-              <div className={styles.focusStatus}>⏳ Next Quarter</div>
+              <div className={styles.focusStatus}>⏳ {t('roadmapPage.nextQuarterStatus')}</div>
             </div>
           </div>
         </div>
@@ -152,43 +152,43 @@ export default function RoadmapPage() {
       {/* Technical Roadmap */}
       <section className={styles.technicalSection}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>🛠️ Technical Evolution</h2>
+          <h2 className={styles.sectionTitle}>🛠️ {t('roadmapPage.technicalEvolutionTitle')}</h2>
           <div className={styles.evolutionTimeline}>
             <div className={styles.evolutionPhase}>
-              <h3>Phase 1: Centralized Foundation (2025-2026)</h3>
-              <p>Build robust applications on traditional infrastructure</p>
+              <h3>{t('roadmapPage.techPhase1Title')}</h3>
+              <p>{t('roadmapPage.techPhase1Text')}</p>
               <div className={styles.techStack}>
-                <span>Firebase</span>
-                <span>Next.js</span>
-                <span>TypeScript</span>
-                <span>NX Monorepo</span>
+                <span>{t('roadmapPage.techStack1')}</span>
+                <span>{t('roadmapPage.techStack2')}</span>
+                <span>{t('roadmapPage.techStack3')}</span>
+                <span>{t('roadmapPage.techStack4')}</span>
               </div>
             </div>
             <div className={styles.evolutionPhase}>
-              <h3>Phase 2: Privacy Enhancement (2026-2028)</h3>
-              <p>Implement advanced privacy features and user control</p>
+              <h3>{t('roadmapPage.techPhase2Title')}</h3>
+              <p>{t('roadmapPage.techPhase2Text')}</p>
               <div className={styles.techStack}>
-                <span>Client-side Encryption</span>
-                <span>Local-first Data</span>
-                <span>Zero-trust Architecture</span>
+                <span>{t('roadmapPage.techStack5')}</span>
+                <span>{t('roadmapPage.techStack6')}</span>
+                <span>{t('roadmapPage.techStack7')}</span>
               </div>
             </div>
             <div className={styles.evolutionPhase}>
-              <h3>Phase 3: Hybrid Systems (2028-2030)</h3>
-              <p>Bridge centralized and decentralized architectures</p>
+              <h3>{t('roadmapPage.techPhase3Title')}</h3>
+              <p>{t('roadmapPage.techPhase3Text')}</p>
               <div className={styles.techStack}>
-                <span>P2P Protocols</span>
-                <span>Blockchain Integration</span>
-                <span>Mobile Node Networks</span>
+                <span>{t('roadmapPage.techStack8')}</span>
+                <span>{t('roadmapPage.techStack9')}</span>
+                <span>{t('roadmapPage.techStack10')}</span>
               </div>
             </div>
             <div className={styles.evolutionPhase}>
-              <h3>Phase 4: Full Decentralization (2030+)</h3>
-              <p>Complete transition to user-sovereign architecture</p>
+              <h3>{t('roadmapPage.techPhase4Title')}</h3>
+              <p>{t('roadmapPage.techPhase4Text')}</p>
               <div className={styles.techStack}>
-                <span>Self-Sovereign Identity</span>
-                <span>Zero-Knowledge Proofs</span>
-                <span>Token Economics</span>
+                <span>{t('roadmapPage.techStack11')}</span>
+                <span>{t('roadmapPage.techStack12')}</span>
+                <span>{t('roadmapPage.techStack13')}</span>
               </div>
             </div>
           </div>

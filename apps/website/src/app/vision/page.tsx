@@ -44,62 +44,62 @@ export default function VisionPage() {
       {/* Future Vision */}
       <section className={styles.futureSection}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>🔮 Decentralized Future Vision</h2>
-          <p className={styles.sectionText}>By 2030+, CyberEco will transition to a revolutionary decentralized architecture that empowers users with complete data sovereignty and privacy.</p>
+          <h2 className={styles.sectionTitle}>🔮 {t('visionPage.futureVisionTitle')}</h2>
+          <p className={styles.sectionText}>{t('visionPage.futureVisionText')}</p>
           
           <div className={styles.visionGrid}>
             <div className={styles.visionCard}>
               <div className={styles.visionIcon}>📱</div>
-              <h3 className={styles.visionTitle}>Mobile P2P Network</h3>
-              <p className={styles.visionText}>Transform smartphones into distributed computing nodes, creating a resilient mesh network powered by community participation.</p>
+              <h3 className={styles.visionTitle}>{t('visionPage.mobileP2PTitle')}</h3>
+              <p className={styles.visionText}>{t('visionPage.mobileP2PText')}</p>
               <div className={styles.visionDetails}>
                 <ul>
-                  <li>User devices as network infrastructure</li>
-                  <li>Mesh networking for resilient connectivity</li>
-                  <li>Edge computing for local data processing</li>
-                  <li>Community-driven network maintenance</li>
+                  <li>{t('visionPage.mobileP2PFeature1')}</li>
+                  <li>{t('visionPage.mobileP2PFeature2')}</li>
+                  <li>{t('visionPage.mobileP2PFeature3')}</li>
+                  <li>{t('visionPage.mobileP2PFeature4')}</li>
                 </ul>
               </div>
             </div>
 
             <div className={styles.visionCard}>
               <div className={styles.visionIcon}>🔐</div>
-              <h3 className={styles.visionTitle}>Complete Data Sovereignty</h3>
-              <p className={styles.visionText}>Users maintain full control over their data through cryptographic guarantees and self-sovereign identity systems.</p>
+              <h3 className={styles.visionTitle}>{t('visionPage.dataSovereigntyTitle')}</h3>
+              <p className={styles.visionText}>{t('visionPage.dataSovereigntyText')}</p>
               <div className={styles.visionDetails}>
                 <ul>
-                  <li>Zero-knowledge proofs for privacy</li>
-                  <li>Client-side encryption by default</li>
-                  <li>Self-sovereign digital identity</li>
-                  <li>Selective data sharing controls</li>
+                  <li>{t('visionPage.dataSovereigntyFeature1')}</li>
+                  <li>{t('visionPage.dataSovereigntyFeature2')}</li>
+                  <li>{t('visionPage.dataSovereigntyFeature3')}</li>
+                  <li>{t('visionPage.dataSovereigntyFeature4')}</li>
                 </ul>
               </div>
             </div>
 
             <div className={styles.visionCard}>
               <div className={styles.visionIcon}>🪙</div>
-              <h3 className={styles.visionTitle}>Token Economics (CYE)</h3>
-              <p className={styles.visionText}>Participate in network value creation through token rewards for contributing resources and maintaining network health.</p>
+              <h3 className={styles.visionTitle}>{t('visionPage.tokenEconomicsTitle')}</h3>
+              <p className={styles.visionText}>{t('visionPage.tokenEconomicsText')}</p>
               <div className={styles.visionDetails}>
                 <ul>
-                  <li>Earn tokens by running network nodes</li>
-                  <li>Governance rights through token holding</li>
-                  <li>Pay for premium privacy features</li>
-                  <li>Community-driven development funding</li>
+                  <li>{t('visionPage.tokenEconomicsFeature1')}</li>
+                  <li>{t('visionPage.tokenEconomicsFeature2')}</li>
+                  <li>{t('visionPage.tokenEconomicsFeature3')}</li>
+                  <li>{t('visionPage.tokenEconomicsFeature4')}</li>
                 </ul>
               </div>
             </div>
 
             <div className={styles.visionCard}>
               <div className={styles.visionIcon}>🌍</div>
-              <h3 className={styles.visionTitle}>Global Accessibility</h3>
-              <p className={styles.visionText}>Censorship-resistant platform accessible worldwide without geographic restrictions or corporate gatekeepers.</p>
+              <h3 className={styles.visionTitle}>{t('visionPage.globalAccessibilityTitle')}</h3>
+              <p className={styles.visionText}>{t('visionPage.globalAccessibilityText')}</p>
               <div className={styles.visionDetails}>
                 <ul>
-                  <li>No geographic restrictions</li>
-                  <li>Censorship-resistant architecture</li>
-                  <li>Works in low-connectivity areas</li>
-                  <li>Community-owned infrastructure</li>
+                  <li>{t('visionPage.globalAccessibilityFeature1')}</li>
+                  <li>{t('visionPage.globalAccessibilityFeature2')}</li>
+                  <li>{t('visionPage.globalAccessibilityFeature3')}</li>
+                  <li>{t('visionPage.globalAccessibilityFeature4')}</li>
                 </ul>
               </div>
             </div>
@@ -110,42 +110,42 @@ export default function VisionPage() {
       {/* Technical Architecture */}
       <section className={styles.architectureSection}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>🏗️ Decentralized Architecture</h2>
+          <h2 className={styles.sectionTitle}>🏗️ {t('visionPage.architectureTitle')}</h2>
           <div className={styles.architectureDiagram}>
             <div className={styles.architectureLayer}>
-              <h3>Layer 3: Application Layer</h3>
-              <p>Privacy-preserving personal data and application state</p>
+              <h3>{t('visionPage.layer3Title')}</h3>
+              <p>{t('visionPage.layer3Text')}</p>
               <div className={styles.layerComponents}>
-                <span>Personal Data Vaults</span>
-                <span>Zero-Knowledge Computations</span>
-                <span>Selective Disclosure</span>
+                <span>{t('visionPage.layer3Component1')}</span>
+                <span>{t('visionPage.layer3Component2')}</span>
+                <span>{t('visionPage.layer3Component3')}</span>
               </div>
             </div>
             <div className={styles.architectureLayer}>
-              <h3>Layer 2: Protocol Layer</h3>
-              <p>Application interactions and cross-app data sharing</p>
+              <h3>{t('visionPage.layer2Title')}</h3>
+              <p>{t('visionPage.layer2Text')}</p>
               <div className={styles.layerComponents}>
-                <span>Smart Contracts</span>
-                <span>Cross-App APIs</span>
-                <span>Data Synchronization</span>
+                <span>{t('visionPage.layer2Component1')}</span>
+                <span>{t('visionPage.layer2Component2')}</span>
+                <span>{t('visionPage.layer2Component3')}</span>
               </div>
             </div>
             <div className={styles.architectureLayer}>
-              <h3>Layer 1: Network Layer</h3>
-              <p>Network governance, consensus, and tokenomics</p>
+              <h3>{t('visionPage.layer1Title')}</h3>
+              <p>{t('visionPage.layer1Text')}</p>
               <div className={styles.layerComponents}>
-                <span>Consensus Mechanism</span>
-                <span>Token Economics</span>
-                <span>Network Governance</span>
+                <span>{t('visionPage.layer1Component1')}</span>
+                <span>{t('visionPage.layer1Component2')}</span>
+                <span>{t('visionPage.layer1Component3')}</span>
               </div>
             </div>
             <div className={styles.architectureLayer}>
-              <h3>Device Layer: Mobile Nodes</h3>
-              <p>User smartphones as distributed computing infrastructure</p>
+              <h3>{t('visionPage.deviceLayerTitle')}</h3>
+              <p>{t('visionPage.deviceLayerText')}</p>
               <div className={styles.layerComponents}>
-                <span>P2P Networking</span>
-                <span>Local Storage</span>
-                <span>Edge Computing</span>
+                <span>{t('visionPage.deviceLayerComponent1')}</span>
+                <span>{t('visionPage.deviceLayerComponent2')}</span>
+                <span>{t('visionPage.deviceLayerComponent3')}</span>
               </div>
             </div>
           </div>

@@ -37,27 +37,27 @@ export default function DocumentationPage() {
           </div>
 
           <div className={styles.contentSection}>
-            <h3 className={styles.subTitle}>📚 Key Documentation Pages</h3>
+            <h3 className={styles.subTitle}>📚 {t('documentationPage.keyDocumentationPagesTitle')}</h3>
             <div className={styles.docLinksGrid}>
               <a href="/philosophy" className={styles.docLinkCard}>
                 <div className={styles.docLinkIcon}>📖</div>
-                <h4>Platform Philosophy</h4>
-                <p>Digital sovereignty, human-centered design principles, and our commitment to user empowerment.</p>
+                <h4>{t('documentationPage.platformPhilosophyTitle')}</h4>
+                <p>{t('documentationPage.platformPhilosophyDesc')}</p>
               </a>
               <a href="/vision" className={styles.docLinkCard}>
                 <div className={styles.docLinkIcon}>🔮</div>
-                <h4>Decentralized Future</h4>
-                <p>Long-term vision for P2P networks, blockchain integration, and complete data sovereignty.</p>
+                <h4>{t('documentationPage.decentralizedFutureTitle')}</h4>
+                <p>{t('documentationPage.decentralizedFutureDesc')}</p>
               </a>
               <a href="/roadmap" className={styles.docLinkCard}>
                 <div className={styles.docLinkIcon}>🛠️</div>
-                <h4>Development Roadmap</h4>
-                <p>Detailed technical roadmap from current centralized architecture to decentralized future.</p>
+                <h4>{t('documentationPage.developmentRoadmapTitle')}</h4>
+                <p>{t('documentationPage.developmentRoadmapDesc')}</p>
               </a>
               <a href="/portfolio" className={styles.docLinkCard}>
                 <div className={styles.docLinkIcon}>🚀</div>
-                <h4>Solutions Portfolio</h4>
-                <p>Complete overview of current solutions and planned ecosystem expansion.</p>
+                <h4>{t('documentationPage.solutionsPortfolioTitle')}</h4>
+                <p>{t('documentationPage.solutionsPortfolioDesc')}</p>
               </a>
             </div>
           </div>
@@ -79,58 +79,58 @@ export default function DocumentationPage() {
       )
     },
     'key-concepts': {
-      title: 'Key Concepts & Architecture',
+      title: t('documentationPage.keyConceptsTitle'),
       content: (
         <>
           <div className={styles.contentSection}>
-            <h3 className={styles.subTitle}>Digital Sovereignty</h3>
+            <h3 className={styles.subTitle}>{t('documentationPage.digitalSovereigntyConceptTitle')}</h3>
             <p className={styles.contentText}>
-              At the core of CyberEco is the principle of digital sovereignty - the idea that individuals should own and control their digital identity and data. Our architecture ensures that:
+              {t('documentationPage.digitalSovereigntyConceptText')}
             </p>
             <ul className={styles.conceptList}>
-              <li>Users maintain ownership of their personal data</li>
-              <li>Applications are designed to be interoperable and user-controlled</li>
-              <li>No single entity has monopolistic control over user information</li>
-              <li>Privacy is built into the core design, not added as an afterthought</li>
+              <li>{t('documentationPage.digitalSovereigntyPoint1')}</li>
+              <li>{t('documentationPage.digitalSovereigntyPoint2')}</li>
+              <li>{t('documentationPage.digitalSovereigntyPoint3')}</li>
+              <li>{t('documentationPage.digitalSovereigntyPoint4')}</li>
             </ul>
           </div>
 
           <div className={styles.contentSection}>
-            <h3 className={styles.subTitle}>Ecosystem Architecture</h3>
+            <h3 className={styles.subTitle}>{t('documentationPage.ecosystemArchitectureTitle')}</h3>
             <p className={styles.contentText}>
-              CyberEco is built as a modular ecosystem where each application serves a specific purpose while contributing to the greater whole:
+              {t('documentationPage.ecosystemArchitectureText')}
             </p>
             <ul className={styles.conceptList}>
-              <li><strong>Hub:</strong> Central authentication and identity management</li>
-              <li><strong>Application Layer:</strong> Specialized apps for different life domains</li>
-              <li><strong>Data Layer:</strong> User-controlled data storage and sharing</li>
-              <li><strong>Integration Layer:</strong> APIs and protocols for seamless interaction</li>
+              <li><strong>{t('documentationPage.architecturePoint1')}</strong></li>
+              <li><strong>{t('documentationPage.architecturePoint2')}</strong></li>
+              <li><strong>{t('documentationPage.architecturePoint3')}</strong></li>
+              <li><strong>{t('documentationPage.architecturePoint4')}</strong></li>
             </ul>
           </div>
 
           <div className={styles.contentSection}>
-            <h3 className={styles.subTitle}>Human-Centered Design</h3>
+            <h3 className={styles.subTitle}>{t('documentationPage.humanCenteredDesignTitle')}</h3>
             <p className={styles.contentText}>
-              Every application in the CyberEco ecosystem is designed with human well-being and authentic connection at its center. This means:
+              {t('documentationPage.humanCenteredDesignText')}
             </p>
             <ul className={styles.conceptList}>
-              <li>Minimizing addictive design patterns</li>
-              <li>Promoting real-world relationships and activities</li>
-              <li>Supporting individual growth and community building</li>
-              <li>Respecting human attention and mental health</li>
+              <li>{t('documentationPage.humanCenteredPoint1')}</li>
+              <li>{t('documentationPage.humanCenteredPoint2')}</li>
+              <li>{t('documentationPage.humanCenteredPoint3')}</li>
+              <li>{t('documentationPage.humanCenteredPoint4')}</li>
             </ul>
           </div>
 
           <div className={styles.contentSection}>
-            <h3 className={styles.subTitle}>Community-Driven Development</h3>
+            <h3 className={styles.subTitle}>{t('documentationPage.communityDrivenTitle')}</h3>
             <p className={styles.contentText}>
-              Our development process is guided by actual community needs rather than profit maximization. We prioritize:
+              {t('documentationPage.communityDrivenText')}
             </p>
             <ul className={styles.conceptList}>
-              <li>Open-source development where possible</li>
-              <li>Community feedback and involvement in feature development</li>
-              <li>Transparent roadmaps and decision-making processes</li>
-              <li>Sustainable business models that align with user interests</li>
+              <li>{t('documentationPage.communityDrivenPoint1')}</li>
+              <li>{t('documentationPage.communityDrivenPoint2')}</li>
+              <li>{t('documentationPage.communityDrivenPoint3')}</li>
+              <li>{t('documentationPage.communityDrivenPoint4')}</li>
             </ul>
           </div>
         </>
@@ -375,27 +375,27 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
               onClick={() => setActiveDoc('key-concepts')}
               className={`${styles.navItem} ${activeDoc === 'key-concepts' ? styles.active : ''}`}
             >
-              Key Concepts
+{t('documentationPage.keyConceptsTitle')}
               <FaChevronRight size={10} />
             </button>
           </div>
           
           <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>Core Documentation</h3>
+            <h3 className={styles.navTitle}>{t('documentationPage.coreDocumentationTitle')}</h3>
             <a href="/philosophy" className={styles.navLink}>
-              📖 Platform Philosophy - Digital Sovereignty & Human-Centered Design
+              📖 {t('documentationPage.platformPhilosophyNav')}
               <FaChevronRight size={10} />
             </a>
             <a href="/vision" className={styles.navLink}>
-              🔮 Decentralized Future - P2P Networks & Token Economics
+              🔮 {t('documentationPage.decentralizedFutureNav')}
               <FaChevronRight size={10} />
             </a>
             <a href="/roadmap" className={styles.navLink}>
-              🛠️ Development Roadmap - Technical Evolution & Milestones
+              🛠️ {t('documentationPage.developmentRoadmapNav')}
               <FaChevronRight size={10} />
             </a>
             <a href="/portfolio" className={styles.navLink}>
-              🚀 Solutions Portfolio - Current & Future Solutions
+              🚀 {t('documentationPage.solutionsPortfolioNav')}
               <FaChevronRight size={10} />
             </a>
           </div>

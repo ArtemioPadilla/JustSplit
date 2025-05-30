@@ -386,20 +386,63 @@ const nestedTranslations = {
       currentStateTitle: 'Where We Are Today',
       currentStateText: 'We start with practical applications that solve real problems while building the foundation for a decentralized future.',
       
-      futureVisionTitle: 'The Decentralized Future',
-      futureVisionText: 'Our vision extends to a world of mobile P2P networks, complete data sovereignty, and a participation economy where users are rewarded for their contributions.',
+      futureVisionTitle: 'Decentralized Future Vision',
+      futureVisionText: 'By 2030+, CyberEco will transition to a revolutionary decentralized architecture that empowers users with complete data sovereignty and privacy.',
       
-      p2pNetworksTitle: 'Mobile P2P Networks',
-      p2pNetworksText: 'Smartphones become network nodes, eliminating the need for central servers and creating truly distributed applications.',
+      // Vision cards
+      mobileP2PTitle: 'Mobile P2P Network',
+      mobileP2PText: 'Transform smartphones into distributed computing nodes, creating a resilient mesh network powered by community participation.',
+      mobileP2PFeature1: 'User devices as network infrastructure',
+      mobileP2PFeature2: 'Mesh networking for resilient connectivity',
+      mobileP2PFeature3: 'Edge computing for local data processing',
+      mobileP2PFeature4: 'Community-driven network maintenance',
       
       dataSovereigntyTitle: 'Complete Data Sovereignty',
-      dataSovereigntyText: 'Cryptographic guarantees ensure users have complete control over their data, with zero-knowledge proofs protecting privacy.',
+      dataSovereigntyText: 'Users maintain full control over their data through cryptographic guarantees and self-sovereign identity systems.',
+      dataSovereigntyFeature1: 'Zero-knowledge proofs for privacy',
+      dataSovereigntyFeature2: 'Client-side encryption by default',
+      dataSovereigntyFeature3: 'Self-sovereign digital identity',
+      dataSovereigntyFeature4: 'Selective data sharing controls',
       
-      participationEconomyTitle: 'Participation Economy',
-      participationEconomyText: 'Users earn tokens for contributing to the network, creating a sustainable economy that rewards community participation.',
+      tokenEconomicsTitle: 'Token Economics (CYE)',
+      tokenEconomicsText: 'Participate in network value creation through token rewards for contributing resources and maintaining network health.',
+      tokenEconomicsFeature1: 'Earn tokens by running network nodes',
+      tokenEconomicsFeature2: 'Governance rights through token holding',
+      tokenEconomicsFeature3: 'Pay for premium privacy features',
+      tokenEconomicsFeature4: 'Community-driven development funding',
       
-      globalAccessTitle: 'Global Accessibility',
-      globalAccessText: 'No central servers or gatekeepers means anyone with a smartphone can participate in the global digital economy.',
+      globalAccessibilityTitle: 'Global Accessibility',
+      globalAccessibilityText: 'Censorship-resistant platform accessible worldwide without geographic restrictions or corporate gatekeepers.',
+      globalAccessibilityFeature1: 'No geographic restrictions',
+      globalAccessibilityFeature2: 'Censorship-resistant architecture',
+      globalAccessibilityFeature3: 'Works in low-connectivity areas',
+      globalAccessibilityFeature4: 'Community-owned infrastructure',
+      
+      // Technical architecture
+      architectureTitle: 'Decentralized Architecture',
+      layer3Title: 'Layer 3: Application Layer',
+      layer3Text: 'Privacy-preserving personal data and application state',
+      layer3Component1: 'Personal Data Vaults',
+      layer3Component2: 'Zero-Knowledge Computations',
+      layer3Component3: 'Selective Disclosure',
+      
+      layer2Title: 'Layer 2: Protocol Layer',
+      layer2Text: 'Application interactions and cross-app data sharing',
+      layer2Component1: 'Smart Contracts',
+      layer2Component2: 'Cross-App APIs',
+      layer2Component3: 'Data Synchronization',
+      
+      layer1Title: 'Layer 1: Network Layer',
+      layer1Text: 'Network governance, consensus, and tokenomics',
+      layer1Component1: 'Consensus Mechanism',
+      layer1Component2: 'Token Economics',
+      layer1Component3: 'Network Governance',
+      
+      deviceLayerTitle: 'Device Layer: Mobile Nodes',
+      deviceLayerText: 'User smartphones as distributed computing infrastructure',
+      deviceLayerComponent1: 'P2P Networking',
+      deviceLayerComponent2: 'Local Storage',
+      deviceLayerComponent3: 'Edge Computing',
       
       timelineTitle: 'The Journey Ahead',
       phase1Title: 'Foundation (2024-2025)',
@@ -456,6 +499,73 @@ const nestedTranslations = {
       timeline2025: 'Priority Apps',
       timeline2027: 'Full Ecosystem',
       timeline2030: 'Decentralization',
+      
+      // Phase status labels
+      currentStatus: 'Current',
+      nextStatus: 'Next',
+      futureStatus: 'Future',
+      visionStatus: 'Vision',
+      
+      // App tags
+      thirtyPlusApps: '30+ Apps',
+      integration: 'Integration',
+      ecosystem: 'Ecosystem',
+      p2pNetworks: 'P2P Networks',
+      blockchain: 'Blockchain',
+      decentralized: 'Decentralized',
+      
+      // Current Development Focus
+      currentFocusSectionTitle: 'Current Development Focus',
+      criticalFixesTitle: 'Critical Fixes',
+      justSplitStabilization: 'JustSplit Stabilization:',
+      criticalFix1: 'Fix component prop type errors',
+      criticalFix2: 'Implement proper data flow patterns',
+      criticalFix3: 'Add comprehensive error boundaries',
+      criticalFix4: 'Resolve TypeScript compilation issues',
+      inProgressStatus2: 'In Progress',
+      
+      hubDevelopmentTitle: 'Hub Development',
+      coreAuthentication: 'Core Authentication:',
+      hubFeature1: 'User registration and login forms',
+      hubFeature2: 'Password reset functionality',
+      hubFeature3: 'Application launcher dashboard',
+      hubFeature4: 'Cross-app session management',
+      plannedStatus: 'Planned',
+      
+      integrationTitle: 'Integration',
+      crossAppFeatures: 'Cross-App Features:',
+      integrationFeature1: 'JWT token-based authentication',
+      integrationFeature2: 'User profile synchronization',
+      integrationFeature3: 'Unified navigation experience',
+      integrationFeature4: 'Shared component libraries',
+      nextQuarterStatus: 'Next Quarter',
+      
+      // Technical Evolution
+      technicalEvolutionTitle: 'Technical Evolution',
+      techPhase1Title: 'Phase 1: Centralized Foundation (2025-2026)',
+      techPhase1Text: 'Build robust applications on traditional infrastructure',
+      techStack1: 'Firebase',
+      techStack2: 'Next.js',
+      techStack3: 'TypeScript',
+      techStack4: 'NX Monorepo',
+      
+      techPhase2Title: 'Phase 2: Privacy Enhancement (2026-2028)',
+      techPhase2Text: 'Implement advanced privacy features and user control',
+      techStack5: 'Client-side Encryption',
+      techStack6: 'Local-first Data',
+      techStack7: 'Zero-trust Architecture',
+      
+      techPhase3Title: 'Phase 3: Hybrid Systems (2028-2030)',
+      techPhase3Text: 'Bridge centralized and decentralized architectures',
+      techStack8: 'P2P Protocols',
+      techStack9: 'Blockchain Integration',
+      techStack10: 'Mobile Node Networks',
+      
+      techPhase4Title: 'Phase 4: Full Decentralization (2030+)',
+      techPhase4Text: 'Complete transition to user-sovereign architecture',
+      techStack11: 'Self-Sovereign Identity',
+      techStack12: 'Zero-Knowledge Proofs',
+      techStack13: 'Token Economics',
       
       ctaTitle: 'Join Our Journey',
       ctaText: 'Be part of building the future of human-centered technology.',
@@ -575,6 +685,54 @@ const nestedTranslations = {
       apiAuthText: 'All API requests require authentication using OAuth 2.0 bearer tokens. To obtain a token, make a POST request to our authentication endpoint with your client credentials.',
       apiRequestsTitle: 'Making API Requests',
       apiRequestsText: 'Once you have your token, include it in the Authorization header for all subsequent requests. Our API endpoints follow a consistent structure for all applications.',
+      
+      // Key Documentation Pages section
+      keyDocumentationPagesTitle: 'Key Documentation Pages',
+      platformPhilosophyTitle: 'Platform Philosophy',
+      platformPhilosophyDesc: 'Digital sovereignty, human-centered design principles, and our commitment to user empowerment.',
+      decentralizedFutureTitle: 'Decentralized Future',
+      decentralizedFutureDesc: 'Long-term vision for P2P networks, blockchain integration, and complete data sovereignty.',
+      developmentRoadmapTitle: 'Development Roadmap',
+      developmentRoadmapDesc: 'Detailed technical roadmap from current centralized architecture to decentralized future.',
+      solutionsPortfolioTitle: 'Solutions Portfolio',
+      solutionsPortfolioDesc: 'Complete overview of current solutions and planned ecosystem expansion.',
+      
+      // Key Concepts section
+      keyConceptsTitle: 'Key Concepts & Architecture',
+      digitalSovereigntyConceptTitle: 'Digital Sovereignty',
+      digitalSovereigntyConceptText: 'At the core of CyberEco is the principle of digital sovereignty - the idea that individuals should own and control their digital identity and data. Our architecture ensures that:',
+      digitalSovereigntyPoint1: 'Users maintain ownership of their personal data',
+      digitalSovereigntyPoint2: 'Applications are designed to be interoperable and user-controlled',
+      digitalSovereigntyPoint3: 'No single entity has monopolistic control over user information',
+      digitalSovereigntyPoint4: 'Privacy is built into the core design, not added as an afterthought',
+      
+      ecosystemArchitectureTitle: 'Ecosystem Architecture',
+      ecosystemArchitectureText: 'CyberEco is built as a modular ecosystem where each application serves a specific purpose while contributing to the greater whole:',
+      architecturePoint1: 'Hub: Central authentication and identity management',
+      architecturePoint2: 'Application Layer: Specialized apps for different life domains',
+      architecturePoint3: 'Data Layer: User-controlled data storage and sharing',
+      architecturePoint4: 'Integration Layer: APIs and protocols for seamless interaction',
+      
+      humanCenteredDesignTitle: 'Human-Centered Design',
+      humanCenteredDesignText: 'Every application in the CyberEco ecosystem is designed with human well-being and authentic connection at its center. This means:',
+      humanCenteredPoint1: 'Minimizing addictive design patterns',
+      humanCenteredPoint2: 'Promoting real-world relationships and activities',
+      humanCenteredPoint3: 'Supporting individual growth and community building',
+      humanCenteredPoint4: 'Respecting human attention and mental health',
+      
+      communityDrivenTitle: 'Community-Driven Development',
+      communityDrivenText: 'Our development process is guided by actual community needs rather than profit maximization. We prioritize:',
+      communityDrivenPoint1: 'Open-source development where possible',
+      communityDrivenPoint2: 'Community feedback and involvement in feature development',
+      communityDrivenPoint3: 'Transparent roadmaps and decision-making processes',
+      communityDrivenPoint4: 'Sustainable business models that align with user interests',
+      
+      // Core Documentation navigation
+      coreDocumentationTitle: 'Core Documentation',
+      platformPhilosophyNav: 'Platform Philosophy - Digital Sovereignty & Human-Centered Design',
+      decentralizedFutureNav: 'Decentralized Future - P2P Networks & Token Economics',
+      developmentRoadmapNav: 'Development Roadmap - Technical Evolution & Milestones',
+      solutionsPortfolioNav: 'Solutions Portfolio - Current & Future Solutions',
       
       // Navigation items
       gettingStartedNavTitle: 'Getting Started',
@@ -1089,20 +1247,63 @@ const nestedTranslations = {
       currentStateTitle: 'Dónde Estamos Hoy',
       currentStateText: 'Comenzamos con aplicaciones prácticas que resuelven problemas reales mientras construimos la base para un futuro descentralizado.',
       
-      futureVisionTitle: 'El Futuro Descentralizado',
-      futureVisionText: 'Nuestra visión se extiende a un mundo de redes P2P móviles, soberanía completa de datos y una economía de participación donde los usuarios son recompensados por sus contribuciones.',
+      futureVisionTitle: 'Visión del Futuro Descentralizado',
+      futureVisionText: 'Para 2030+, CyberEco hará la transición a una arquitectura descentralizada revolucionaria que empodera a los usuarios con soberanía completa de datos y privacidad.',
       
-      p2pNetworksTitle: 'Redes P2P Móviles',
-      p2pNetworksText: 'Los smartphones se convierten en nodos de red, eliminando la necesidad de servidores centrales y creando aplicaciones verdaderamente distribuidas.',
+      // Vision cards
+      mobileP2PTitle: 'Red P2P Móvil',
+      mobileP2PText: 'Transformar smartphones en nodos de computación distribuida, creando una red mesh resiliente impulsada por la participación comunitaria.',
+      mobileP2PFeature1: 'Dispositivos de usuario como infraestructura de red',
+      mobileP2PFeature2: 'Redes mesh para conectividad resiliente',
+      mobileP2PFeature3: 'Computación en el borde para procesamiento local de datos',
+      mobileP2PFeature4: 'Mantenimiento de red impulsado por la comunidad',
       
       dataSovereigntyTitle: 'Soberanía Completa de Datos',
-      dataSovereigntyText: 'Las garantías criptográficas aseguran que los usuarios tengan control completo sobre sus datos, con pruebas de conocimiento cero protegiendo la privacidad.',
+      dataSovereigntyText: 'Los usuarios mantienen control total sobre sus datos a través de garantías criptográficas y sistemas de identidad auto-soberanos.',
+      dataSovereigntyFeature1: 'Pruebas de conocimiento cero para privacidad',
+      dataSovereigntyFeature2: 'Cifrado del lado del cliente por defecto',
+      dataSovereigntyFeature3: 'Identidad digital auto-soberana',
+      dataSovereigntyFeature4: 'Controles de compartir datos selectivos',
       
-      participationEconomyTitle: 'Economía de Participación',
-      participationEconomyText: 'Los usuarios ganan tokens por contribuir a la red, creando una economía sostenible que recompensa la participación comunitaria.',
+      tokenEconomicsTitle: 'Economía de Tokens (CYE)',
+      tokenEconomicsText: 'Participa en la creación de valor de la red a través de recompensas de tokens por contribuir recursos y mantener la salud de la red.',
+      tokenEconomicsFeature1: 'Gana tokens ejecutando nodos de red',
+      tokenEconomicsFeature2: 'Derechos de gobierno a través de tenencia de tokens',
+      tokenEconomicsFeature3: 'Paga por características de privacidad premium',
+      tokenEconomicsFeature4: 'Financiamiento de desarrollo impulsado por la comunidad',
       
-      globalAccessTitle: 'Accesibilidad Global',
-      globalAccessText: 'Sin servidores centrales o intermediarios significa que cualquiera con un smartphone puede participar en la economía digital global.',
+      globalAccessibilityTitle: 'Accesibilidad Global',
+      globalAccessibilityText: 'Plataforma resistente a la censura accesible mundialmente sin restricciones geográficas o intermediarios corporativos.',
+      globalAccessibilityFeature1: 'Sin restricciones geográficas',
+      globalAccessibilityFeature2: 'Arquitectura resistente a la censura',
+      globalAccessibilityFeature3: 'Funciona en áreas de baja conectividad',
+      globalAccessibilityFeature4: 'Infraestructura propiedad de la comunidad',
+      
+      // Technical architecture
+      architectureTitle: 'Arquitectura Descentralizada',
+      layer3Title: 'Capa 3: Capa de Aplicación',
+      layer3Text: 'Datos personales que preservan la privacidad y estado de la aplicación',
+      layer3Component1: 'Bóvedas de Datos Personales',
+      layer3Component2: 'Computaciones de Conocimiento Cero',
+      layer3Component3: 'Divulgación Selectiva',
+      
+      layer2Title: 'Capa 2: Capa de Protocolo',
+      layer2Text: 'Interacciones de aplicaciones e intercambio de datos entre aplicaciones',
+      layer2Component1: 'Contratos Inteligentes',
+      layer2Component2: 'APIs Entre Aplicaciones',
+      layer2Component3: 'Sincronización de Datos',
+      
+      layer1Title: 'Capa 1: Capa de Red',
+      layer1Text: 'Gobierno de red, consenso y tokenomics',
+      layer1Component1: 'Mecanismo de Consenso',
+      layer1Component2: 'Economía de Tokens',
+      layer1Component3: 'Gobierno de Red',
+      
+      deviceLayerTitle: 'Capa de Dispositivo: Nodos Móviles',
+      deviceLayerText: 'Smartphones de usuarios como infraestructura de computación distribuida',
+      deviceLayerComponent1: 'Redes P2P',
+      deviceLayerComponent2: 'Almacenamiento Local',
+      deviceLayerComponent3: 'Computación en el Borde',
       
       timelineTitle: 'El Camino por Delante',
       phase1Title: 'Fundación (2024-2025)',
@@ -1159,6 +1360,73 @@ const nestedTranslations = {
       planningPhase: 'Fase de Planificación',
       planned: 'Planificado',
       longTermVision: 'Visión a Largo Plazo',
+      
+      // Phase status labels
+      currentStatus: 'Actual',
+      nextStatus: 'Próximo',
+      futureStatus: 'Futuro',
+      visionStatus: 'Visión',
+      
+      // App tags
+      thirtyPlusApps: '30+ Apps',
+      integration: 'Integración',
+      ecosystem: 'Ecosistema',
+      p2pNetworks: 'Redes P2P',
+      blockchain: 'Blockchain',
+      decentralized: 'Descentralizado',
+      
+      // Current Development Focus
+      currentFocusSectionTitle: 'Enfoque de Desarrollo Actual',
+      criticalFixesTitle: 'Correcciones Críticas',
+      justSplitStabilization: 'Estabilización de JustSplit:',
+      criticalFix1: 'Corregir errores de tipos de props de componentes',
+      criticalFix2: 'Implementar patrones de flujo de datos apropiados',
+      criticalFix3: 'Agregar límites de error comprensivos',
+      criticalFix4: 'Resolver problemas de compilación de TypeScript',
+      inProgressStatus2: 'En Progreso',
+      
+      hubDevelopmentTitle: 'Desarrollo del Hub',
+      coreAuthentication: 'Autenticación Central:',
+      hubFeature1: 'Formularios de registro e inicio de sesión de usuario',
+      hubFeature2: 'Funcionalidad de restablecimiento de contraseña',
+      hubFeature3: 'Panel de lanzador de aplicaciones',
+      hubFeature4: 'Gestión de sesión entre aplicaciones',
+      plannedStatus: 'Planificado',
+      
+      integrationTitle: 'Integración',
+      crossAppFeatures: 'Características Entre Aplicaciones:',
+      integrationFeature1: 'Autenticación basada en tokens JWT',
+      integrationFeature2: 'Sincronización de perfil de usuario',
+      integrationFeature3: 'Experiencia de navegación unificada',
+      integrationFeature4: 'Librerías de componentes compartidos',
+      nextQuarterStatus: 'Próximo Trimestre',
+      
+      // Technical Evolution
+      technicalEvolutionTitle: 'Evolución Técnica',
+      techPhase1Title: 'Fase 1: Fundación Centralizada (2025-2026)',
+      techPhase1Text: 'Construir aplicaciones robustas en infraestructura tradicional',
+      techStack1: 'Firebase',
+      techStack2: 'Next.js',
+      techStack3: 'TypeScript',
+      techStack4: 'Monorepo NX',
+      
+      techPhase2Title: 'Fase 2: Mejora de Privacidad (2026-2028)',
+      techPhase2Text: 'Implementar características avanzadas de privacidad y control de usuario',
+      techStack5: 'Cifrado del Lado del Cliente',
+      techStack6: 'Datos Locales Primero',
+      techStack7: 'Arquitectura de Confianza Cero',
+      
+      techPhase3Title: 'Fase 3: Sistemas Híbridos (2028-2030)',
+      techPhase3Text: 'Conectar arquitecturas centralizadas y descentralizadas',
+      techStack8: 'Protocolos P2P',
+      techStack9: 'Integración de Blockchain',
+      techStack10: 'Redes de Nodos Móviles',
+      
+      techPhase4Title: 'Fase 4: Descentralización Completa (2030+)',
+      techPhase4Text: 'Transición completa a arquitectura soberana del usuario',
+      techStack11: 'Identidad Auto-Soberana',
+      techStack12: 'Pruebas de Conocimiento Cero',
+      techStack13: 'Economía de Tokens',
       
       ctaTitle: 'Únete a Nuestro Viaje',
       ctaText: 'Sé parte de construir el futuro de la tecnología centrada en el ser humano.',
@@ -1304,6 +1572,54 @@ const nestedTranslations = {
       apiAuthText: 'Todas las solicitudes a la API requieren autenticación usando tokens bearer OAuth 2.0. Para obtener un token, realiza una solicitud POST a nuestro endpoint de autenticación con tus credenciales de cliente.',
       apiRequestsTitle: 'Realizando Solicitudes a la API',
       apiRequestsText: 'Una vez que tengas tu token, inclúyelo en el encabezado de Autorización para todas las solicitudes subsiguientes. Nuestros endpoints de API siguen una estructura consistente para todas las aplicaciones.',
+      
+      // Key Documentation Pages section
+      keyDocumentationPagesTitle: 'Páginas de Documentación Clave',
+      platformPhilosophyTitle: 'Filosofía de la Plataforma',
+      platformPhilosophyDesc: 'Soberanía digital, principios de diseño centrado en el ser humano, y nuestro compromiso con el empoderamiento del usuario.',
+      decentralizedFutureTitle: 'Futuro Descentralizado',
+      decentralizedFutureDesc: 'Visión a largo plazo para redes P2P, integración de blockchain y soberanía completa de datos.',
+      developmentRoadmapTitle: 'Hoja de Ruta de Desarrollo',
+      developmentRoadmapDesc: 'Hoja de ruta técnica detallada desde la arquitectura centralizada actual hasta el futuro descentralizado.',
+      solutionsPortfolioTitle: 'Portafolio de Soluciones',
+      solutionsPortfolioDesc: 'Visión completa de las soluciones actuales y la expansión del ecosistema planificada.',
+      
+      // Key Concepts section
+      keyConceptsTitle: 'Conceptos Clave y Arquitectura',
+      digitalSovereigntyConceptTitle: 'Soberanía Digital',
+      digitalSovereigntyConceptText: 'En el núcleo de CyberEco está el principio de soberanía digital - la idea de que los individuos deben poseer y controlar su identidad digital y datos. Nuestra arquitectura asegura que:',
+      digitalSovereigntyPoint1: 'Los usuarios mantienen la propiedad de sus datos personales',
+      digitalSovereigntyPoint2: 'Las aplicaciones están diseñadas para ser interoperables y controladas por el usuario',
+      digitalSovereigntyPoint3: 'Ninguna entidad única tiene control monopolístico sobre la información del usuario',
+      digitalSovereigntyPoint4: 'La privacidad está integrada en el diseño central, no agregada como una idea tardía',
+      
+      ecosystemArchitectureTitle: 'Arquitectura del Ecosistema',
+      ecosystemArchitectureText: 'CyberEco está construido como un ecosistema modular donde cada aplicación sirve un propósito específico mientras contribuye al todo mayor:',
+      architecturePoint1: 'Hub: Gestión central de autenticación e identidad',
+      architecturePoint2: 'Capa de Aplicación: Aplicaciones especializadas para diferentes dominios de vida',
+      architecturePoint3: 'Capa de Datos: Almacenamiento y compartición de datos controlada por el usuario',
+      architecturePoint4: 'Capa de Integración: APIs y protocolos para interacción perfecta',
+      
+      humanCenteredDesignTitle: 'Diseño Centrado en el Ser Humano',
+      humanCenteredDesignText: 'Cada aplicación en el ecosistema CyberEco está diseñada con el bienestar humano y la conexión auténtica en su centro. Esto significa:',
+      humanCenteredPoint1: 'Minimizar patrones de diseño adictivos',
+      humanCenteredPoint2: 'Promover relaciones y actividades del mundo real',
+      humanCenteredPoint3: 'Apoyar el crecimiento individual y la construcción comunitaria',
+      humanCenteredPoint4: 'Respetar la atención humana y la salud mental',
+      
+      communityDrivenTitle: 'Desarrollo Impulsado por la Comunidad',
+      communityDrivenText: 'Nuestro proceso de desarrollo está guiado por las necesidades reales de la comunidad en lugar de la maximización de beneficios. Priorizamos:',
+      communityDrivenPoint1: 'Desarrollo de código abierto donde sea posible',
+      communityDrivenPoint2: 'Retroalimentación e involucramiento de la comunidad en el desarrollo de características',
+      communityDrivenPoint3: 'Hojas de ruta transparentes y procesos de toma de decisiones',
+      communityDrivenPoint4: 'Modelos de negocio sostenibles que se alineen con los intereses del usuario',
+      
+      // Core Documentation navigation
+      coreDocumentationTitle: 'Documentación Central',
+      platformPhilosophyNav: 'Filosofía de la Plataforma - Soberanía Digital y Diseño Centrado en el Ser Humano',
+      decentralizedFutureNav: 'Futuro Descentralizado - Redes P2P y Economía de Tokens',
+      developmentRoadmapNav: 'Hoja de Ruta de Desarrollo - Evolución Técnica e Hitos',
+      solutionsPortfolioNav: 'Portafolio de Soluciones - Soluciones Actuales y Futuras',
       
       // Navigation items
       gettingStartedNavTitle: 'Primeros Pasos',
