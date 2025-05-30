@@ -1,8 +1,12 @@
-# CyberEco Platform
-
 <p align="center">
   <img src="apps/website/public/logo.svg" alt="CyberEco Logo" width="200">
 </p>
+
+
+![Build Status](https://github.com/cyber-eco/cybereco/workflows/Build/badge.svg) ![Deploy Status](https://github.com/cyber-eco/cybereco/workflows/Deploy%20to%20GitHub%20Pages/badge.svg) ![Tests Status](https://github.com/cyber-eco/cybereco/workflows/Tests/badge.svg) [![codecov](https://codecov.io/gh/cyber-eco/cybereco/branch/main/graph/badge.svg)](https://codecov.io/gh/cyber-eco/cybereco)
+
+# CyberEco Platform
+
 
 > 🌐 **A human-centered digital ecosystem for conscious, connected, and sustainable living**  
 > In a world where digital life is fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.
