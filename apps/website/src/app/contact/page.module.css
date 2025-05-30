@@ -99,8 +99,26 @@
   width: 100%;
 }
 
-.submitButton:hover {
+.submitButton:hover:not(:disabled) {
   background: var(--primary-dark);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.recaptchaContainer {
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  justify-content: center;
+}
+
+.recaptchaLoading {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 .submitIcon {
@@ -110,6 +128,15 @@
 
 .successMessage {
   background: #4caf50;
+  color: white;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-md);
+  text-align: center;
+}
+
+.errorMessage {
+  background: #f44336;
   color: white;
   padding: var(--spacing-md);
   border-radius: var(--border-radius);
