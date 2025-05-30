@@ -47,7 +47,8 @@
       "Bash(timeout:*)",
       "Bash(true)",
       "Bash(./deploy-website.sh:*)",
-      "Bash(npx next dev:*)"
+      "Bash(npx next dev:*)",
+      "Bash(npx next lint:*)"
     ],
     "deny": []
   },

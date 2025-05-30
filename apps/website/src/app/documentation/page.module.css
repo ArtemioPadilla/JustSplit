@@ -58,37 +58,100 @@
 .docGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
+  align-items: start;
 }
 
 @media (min-width: 768px) {
   .docGrid {
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 280px 1fr;
+    gap: var(--spacing-xl);
   }
 }
 
 .sidebarNav {
   background: var(--surface);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  padding: 0;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  position: sticky;
+  top: var(--spacing-md);
+  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(var(--primary), 0.01) 100%);
+  transition: all 0.3s ease;
+}
+
+.sidebarNav:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
 }
 
 .navSection {
-  margin-bottom: var(--spacing-md);
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.2s ease;
 }
 
 .navSection:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.navSection:hover {
+  background: rgba(var(--primary), 0.02);
 }
 
 .navTitle {
-  font-size: 1rem;
-  margin-bottom: var(--spacing-sm);
+  font-size: 0.875rem;
+  font-weight: 700;
   color: var(--text-primary);
-  padding-bottom: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0;
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(var(--primary), 0.03) 100%);
   border-bottom: 1px solid var(--border);
-  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  position: relative;
+}
+
+.navTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.navSection:hover .navTitle::after {
+  transform: scaleX(1);
+}
+
+/* Unified search and regular section styling */
+.searchSection {
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(var(--secondary), 0.05) 100%);
+  border-bottom: 2px solid var(--primary);
+}
+
+.searchSection .navTitle {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.searchSection .navTitle::after {
+  display: none;
+}
+
+.searchTitle {
+  color: white;
 }
 
 .navItem {
@@ -99,36 +162,88 @@
   text-align: left;
   background: none;
   border: none;
-  padding: var(--spacing-xs) 0;
+  padding: var(--spacing-sm) var(--spacing-md);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: color 0.2s;
-  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
   font-family: inherit;
+  position: relative;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
 }
 
-.navItem:hover, .navItem.active {
+.navItem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+  transition: width 0.3s ease;
+  z-index: 1;
+}
+
+.navItem::after {
+  content: '';
+  position: absolute;
+  right: var(--spacing-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.navItem:hover {
+  background: linear-gradient(135deg, rgba(var(--primary), 0.05) 0%, rgba(var(--secondary), 0.02) 100%);
   color: var(--primary);
+  padding-left: calc(var(--spacing-md) + 8px);
+}
+
+.navItem:hover::before {
+  width: 4px;
+}
+
+.navItem:hover::after {
+  opacity: 0.7;
+  transform: translateY(-50%) scale(1.2);
 }
 
 .navItem.active {
-  font-weight: 500;
-}
-
-.navLink {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  text-decoration: none;
-  padding: var(--spacing-xs) 0;
-  color: var(--text-secondary);
-  transition: color 0.2s;
-  font-size: 0.95rem;
-}
-
-.navLink:hover {
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(var(--secondary), 0.1) 100%);
   color: var(--primary);
+  font-weight: 600;
+  padding-left: calc(var(--spacing-md) + 8px);
+  border-bottom-color: var(--primary-light);
+}
+
+.navItem.active::before {
+  width: 4px;
+}
+
+.navItem.active::after {
+  opacity: 1;
+  background: var(--primary);
+  transform: translateY(-50%) scale(1.3);
+}
+
+/* Update the chevron icon styling */
+.navItem svg {
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  transform: translateX(0);
+}
+
+.navItem:hover svg,
+.navItem.active svg {
+  opacity: 1;
+  transform: translateX(2px);
 }
 
 .mainContent {
@@ -559,27 +674,25 @@
   left: 100%;
 }
 
-/* Enhanced navigation styling */
-.navItem, .navLink {
-  position: relative;
+/* Legacy navigation link styling (for external links if needed) */
+.navLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-decoration: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--text-secondary);
   transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
 }
 
-.navItem::before, .navLink::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 0;
-  height: 2px;
-  background: var(--primary);
-  transition: width 0.2s ease;
-  transform: translateY(-50%);
-}
-
-.navItem:hover::before, .navLink:hover::before,
-.navItem.active::before {
-  width: 20px;
+.navLink:hover {
+  background: linear-gradient(135deg, rgba(var(--primary), 0.05) 0%, rgba(var(--secondary), 0.02) 100%);
+  color: var(--primary);
+  padding-left: calc(var(--spacing-md) + 8px);
 }
 
 /* Content section enhancements */
@@ -662,8 +775,41 @@
     transform: none;
   }
   
-  .navItem::before, .navLink::before {
-    display: none;
+  /* Simplified mobile navigation */
+  .sidebarNav {
+    position: static;
+  }
+  
+  .navItem, .navLink {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+  }
+  
+  .navItem:hover, .navLink:hover {
+    padding-left: var(--spacing-sm);
+  }
+  
+  .navItem.active {
+    padding-left: var(--spacing-sm);
+  }
+  
+  .navItem::before {
+    width: 3px;
+  }
+  
+  .navItem:hover::before,
+  .navItem.active::before {
+    width: 3px;
+  }
+  
+  .navItem::after {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .navTitle {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
   }
 }
 
@@ -687,6 +833,23 @@
   
   .docTypeTag {
     justify-self: center;
+  }
+  
+  /* Ultra-simplified mobile navigation */
+  .navItem::before,
+  .navItem::after {
+    display: none;
+  }
+  
+  .navItem, .navLink {
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius);
+  }
+  
+  .navItem:hover, .navLink:hover,
+  .navItem.active {
+    padding: var(--spacing-xs);
+    background: var(--primary-light);
   }
 }
 
@@ -1034,6 +1197,11 @@
   .categoryApps {
     justify-content: center;
   }
+  
+  /* Search section responsive adjustments */
+  .searchSection {
+    margin-bottom: var(--spacing-sm);
+  }
 }
 
 @media (max-width: 480px) {
@@ -1048,5 +1216,99 @@
   
   .phaseTimeline::before {
     display: none;
+  }
+}
+
+/* Search results now inherit all navItem styling */
+.searchResult {
+  /* Inherits all navItem styles, just add slide animation */
+  animation: searchResultSlide 0.3s ease-out;
+}
+
+@keyframes searchResultSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Search results get a special indicator in the search section */
+.searchSection .searchResult::before {
+  background: linear-gradient(180deg, white 0%, rgba(255,255,255,0.8) 100%);
+}
+
+.searchSection .searchResult::after {
+  background: white;
+}
+
+.searchSection .searchResult:hover::before,
+.searchSection .searchResult.active::before {
+  background: white;
+}
+
+.searchSection .searchResult:hover::after,
+.searchSection .searchResult.active::after {
+  background: white;
+}
+
+.noResults {
+  text-align: center;
+  padding: var(--spacing-lg) var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.noResults p {
+  margin: 0;
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(var(--primary), 0.02) 100%);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-lg);
+  border: 2px dashed var(--border);
+  font-size: 0.875rem;
+  position: relative;
+}
+
+.noResults p::before {
+  content: '🔍';
+  display: block;
+  font-size: 2rem;
+  margin-bottom: var(--spacing-sm);
+  opacity: 0.5;
+}
+
+/* Enhanced search input with better feedback */
+.searchContainer {
+  position: relative;
+}
+
+.searchContainer::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.searchContainer:focus-within::after {
+  width: 100%;
+}
+
+.searchInput:focus + .searchIcon {
+  animation: searchPulse 1s ease-in-out infinite;
+}
+
+@keyframes searchPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
   }
 }

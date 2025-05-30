@@ -18,10 +18,45 @@ interface DocSections {
 export default function DocumentationPage() {
   const [activeDoc, setActiveDoc] = useState<string>('getting-started');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredDocs, setFilteredDocs] = useState<string[]>([]);
   const { t } = useLanguage();
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setSearchQuery(e.target.value);
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    
+    if (query.trim() === '') {
+      setFilteredDocs([]);
+      return;
+    }
+    
+    // Create searchable content for each document (English and Spanish)
+    const searchableContent = {
+      'getting-started': `getting started introduction cybereco digital ecosystem expense financial collaboration community engagement social connectivity human-centered framework conscious connected sustainable living primeros pasos introducción ecosistema digital colaboración financiera compromiso comunitario marco centrado humano vida consciente conectada sostenible`,
+      'key-concepts': `key concepts architecture digital sovereignty human-centered design community-driven development ecosystem modular applications interoperable user-controlled privacy core design conceptos clave arquitectura soberanía digital diseño centrado humano desarrollo impulsado comunidad ecosistema aplicaciones modulares interoperables controladas usuario privacidad diseño central`,
+      'philosophy': `philosophy platform digital sovereignty human-centered design sustainable development users own data technology serves human wellbeing long-term thinking short-term profits filosofía plataforma soberanía digital diseño centrado humano desarrollo sostenible usuarios poseen datos tecnología sirve bienestar humano pensamiento largo plazo ganancias corto`,
+      'vision': `vision decentralized future mobile p2p networks complete data sovereignty token economics global accessibility smartphones network nodes cryptographic guarantees participation rewards censorship-resistant visión futuro descentralizado redes p2p móviles soberanía completa datos economía tokens accesibilidad global smartphones nodos red garantías criptográficas recompensas participación resistente censura`,
+      'roadmap': `roadmap development foundation growth integration decentralization 2024 2025 2026 2027 2028 2029 2030 core applications priority apps ecosystem p2p networks hoja ruta desarrollo fundación crecimiento integración descentralización aplicaciones centrales prioritarias ecosistema redes`,
+      'portfolio': `portfolio solutions current hub justsplit website priority somos demos plantopia future applications finance community education health sustainability portafolio soluciones actuales futuras aplicaciones finanzas comunidad educación salud sostenibilidad`,
+      'community-governance': `community governance demos participatory digital democracy voting decision-making organizations neighborhoods community manager mycommunity conciliation conflict resolution comunidad gobernanza democracia digital participativa votación toma decisiones organizaciones vecindarios gestor comunitario conciliación resolución conflictos`,
+      'finance-economy': `finance economy collaborative justsplit expense tracking sharing mywealth personal finances investments mybusiness entrepreneurs operational accounting management finanzas economía colaborativa seguimiento gastos compartir riqueza personal inversiones negocio emprendedores gestión operativa contable`,
+      'sustainability-home': `sustainability home life plantopia smart gardening iot technology plant care ecotul eco-friendly products environmental impact myhome maintenance improvements sostenibilidad vida hogar jardinería inteligente tecnología iot cuidado plantas productos ecológicos impacto ambiental mantenimiento mejoras`,
+      'education-growth': `education personal growth education hub learning paths educational content skill share collaborative network habits tracking goals one step micro-action system educación crecimiento personal rutas aprendizaje contenido educativo compartir habilidades red colaborativa hábitos seguimiento objetivos sistema micro-acción`,
+      'api-reference': `api reference overview restful apis developers oauth authentication bearer tokens json format http methods client credentials authorization header referencia apis desarrolladores autenticación oauth tokens portador formato json métodos http credenciales cliente encabezado autorización`
+    };
+    
+    // Filter documents based on search query
+    const matches = Object.keys(searchableContent).filter(docKey => {
+      const content = searchableContent[docKey as keyof typeof searchableContent];
+      return content.includes(query);
+    });
+    
+    setFilteredDocs(matches);
+    
+    // Auto-select first match if available
+    if (matches.length > 0 && !matches.includes(activeDoc)) {
+      setActiveDoc(matches[0]);
+    }
   };
 
   const docs: DocSections = {
@@ -580,26 +615,69 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
       
       <div className={styles.docGrid}>
         <nav className={styles.sidebarNav}>
-          <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>{t('documentationPage.gettingStartedNavTitle') || 'Getting Started'}</h3>
-            <button 
-              onClick={() => setActiveDoc('getting-started')}
-              className={`${styles.navItem} ${activeDoc === 'getting-started' ? styles.active : ''}`}
-            >
-              {t('documentationPage.introductionNavItem') || 'Introduction'}
-              <FaChevronRight size={10} />
-            </button>
-            <button 
-              onClick={() => setActiveDoc('key-concepts')}
-              className={`${styles.navItem} ${activeDoc === 'key-concepts' ? styles.active : ''}`}
-            >
-{t('documentationPage.keyConceptsTitle')}
-              <FaChevronRight size={10} />
-            </button>
-          </div>
+          {searchQuery && filteredDocs.length > 0 && (
+            <div className={`${styles.navSection} ${styles.searchSection}`}>
+              <h3 className={`${styles.navTitle} ${styles.searchTitle}`}>🔍 Search Results ({filteredDocs.length})</h3>
+              {filteredDocs.map(docKey => {
+                const docTitles: {[key: string]: string} = {
+                  'getting-started': t('documentationPage.introductionNavItem') || 'Introduction',
+                  'key-concepts': t('documentationPage.keyConceptsTitle'),
+                  'philosophy': t('documentationPage.philosophyDocTitle'),
+                  'vision': t('documentationPage.visionDocTitle'),
+                  'roadmap': t('documentationPage.roadmapDocTitle'),
+                  'portfolio': t('documentationPage.portfolioDocTitle'),
+                  'community-governance': t('documentationPage.communityGovernanceNavItem') || 'Community & Governance',
+                  'finance-economy': t('documentationPage.financeEconomyNavItem') || 'Finance & Economy',
+                  'sustainability-home': t('documentationPage.sustainabilityHomeNavItem') || 'Sustainability & Home',
+                  'education-growth': t('documentationPage.educationGrowthNavItem') || 'Education & Growth',
+                  'api-reference': t('documentationPage.apiReferenceNavItem') || 'API Reference'
+                };
+                
+                return (
+                  <button 
+                    key={docKey}
+                    onClick={() => setActiveDoc(docKey)}
+                    className={`${styles.navItem} ${styles.searchResult} ${activeDoc === docKey ? styles.active : ''}`}
+                  >
+                    {docTitles[docKey]}
+                    <FaChevronRight size={10} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
           
-          <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>{t('documentationPage.coreDocumentationTitle')}</h3>
+          {searchQuery && filteredDocs.length === 0 && (
+            <div className={styles.navSection}>
+              <div className={styles.noResults}>
+                <p>No results found for "{searchQuery}"</p>
+              </div>
+            </div>
+          )}
+          
+          {!searchQuery && (
+            <div className={styles.navSection}>
+              <h3 className={styles.navTitle}>{t('documentationPage.gettingStartedNavTitle') || 'Getting Started'}</h3>
+              <button 
+                onClick={() => setActiveDoc('getting-started')}
+                className={`${styles.navItem} ${activeDoc === 'getting-started' ? styles.active : ''}`}
+              >
+                {t('documentationPage.introductionNavItem') || 'Introduction'}
+                <FaChevronRight size={10} />
+              </button>
+              <button 
+                onClick={() => setActiveDoc('key-concepts')}
+                className={`${styles.navItem} ${activeDoc === 'key-concepts' ? styles.active : ''}`}
+              >
+{t('documentationPage.keyConceptsTitle')}
+                <FaChevronRight size={10} />
+              </button>
+            </div>
+          )}
+          
+          {!searchQuery && (
+            <div className={styles.navSection}>
+              <h3 className={styles.navTitle}>{t('documentationPage.coreDocumentationTitle')}</h3>
             <button 
               onClick={() => setActiveDoc('philosophy')}
               className={`${styles.navItem} ${activeDoc === 'philosophy' ? styles.active : ''}`}
@@ -629,49 +707,54 @@ fetch('https://api.cybereco.io/justsplit/expenses', {
               <FaChevronRight size={10} />
             </button>
           </div>
+          )}
           
-          <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>{t('documentationPage.applicationsNavTitle') || 'Solution Categories'}</h3>
-            <button 
-              onClick={() => setActiveDoc('community-governance')}
-              className={`${styles.navItem} ${activeDoc === 'community-governance' ? styles.active : ''}`}
-            >
-              {t('documentationPage.communityGovernanceNavItem') || 'Community & Governance'}
-              <FaChevronRight size={10} />
-            </button>
-            <button 
-              onClick={() => setActiveDoc('finance-economy')}
-              className={`${styles.navItem} ${activeDoc === 'finance-economy' ? styles.active : ''}`}
-            >
-              {t('documentationPage.financeEconomyNavItem') || 'Finance & Economy'}
-              <FaChevronRight size={10} />
-            </button>
-            <button 
-              onClick={() => setActiveDoc('sustainability-home')}
-              className={`${styles.navItem} ${activeDoc === 'sustainability-home' ? styles.active : ''}`}
-            >
-              {t('documentationPage.sustainabilityHomeNavItem') || 'Sustainability & Home'}
-              <FaChevronRight size={10} />
-            </button>
-            <button 
-              onClick={() => setActiveDoc('education-growth')}
-              className={`${styles.navItem} ${activeDoc === 'education-growth' ? styles.active : ''}`}
-            >
-              {t('documentationPage.educationGrowthNavItem') || 'Education & Growth'}
-              <FaChevronRight size={10} />
-            </button>
-          </div>
+          {!searchQuery && (
+            <div className={styles.navSection}>
+              <h3 className={styles.navTitle}>{t('documentationPage.applicationsNavTitle') || 'Solution Categories'}</h3>
+              <button 
+                onClick={() => setActiveDoc('community-governance')}
+                className={`${styles.navItem} ${activeDoc === 'community-governance' ? styles.active : ''}`}
+              >
+                {t('documentationPage.communityGovernanceNavItem') || 'Community & Governance'}
+                <FaChevronRight size={10} />
+              </button>
+              <button 
+                onClick={() => setActiveDoc('finance-economy')}
+                className={`${styles.navItem} ${activeDoc === 'finance-economy' ? styles.active : ''}`}
+              >
+                {t('documentationPage.financeEconomyNavItem') || 'Finance & Economy'}
+                <FaChevronRight size={10} />
+              </button>
+              <button 
+                onClick={() => setActiveDoc('sustainability-home')}
+                className={`${styles.navItem} ${activeDoc === 'sustainability-home' ? styles.active : ''}`}
+              >
+                {t('documentationPage.sustainabilityHomeNavItem') || 'Sustainability & Home'}
+                <FaChevronRight size={10} />
+              </button>
+              <button 
+                onClick={() => setActiveDoc('education-growth')}
+                className={`${styles.navItem} ${activeDoc === 'education-growth' ? styles.active : ''}`}
+              >
+                {t('documentationPage.educationGrowthNavItem') || 'Education & Growth'}
+                <FaChevronRight size={10} />
+              </button>
+            </div>
+          )}
           
-          <div className={styles.navSection}>
-            <h3 className={styles.navTitle}>{t('documentationPage.developerNavTitle') || 'Developer'}</h3>
-            <button 
-              onClick={() => setActiveDoc('api-reference')}
-              className={`${styles.navItem} ${activeDoc === 'api-reference' ? styles.active : ''}`}
-            >
-              {t('documentationPage.apiReferenceNavItem') || 'API Reference'}
-              <FaChevronRight size={10} />
-            </button>
-          </div>
+          {!searchQuery && (
+            <div className={styles.navSection}>
+              <h3 className={styles.navTitle}>{t('documentationPage.developerNavTitle') || 'Developer'}</h3>
+              <button 
+                onClick={() => setActiveDoc('api-reference')}
+                className={`${styles.navItem} ${activeDoc === 'api-reference' ? styles.active : ''}`}
+              >
+                {t('documentationPage.apiReferenceNavItem') || 'API Reference'}
+                <FaChevronRight size={10} />
+              </button>
+            </div>
+          )}
         </nav>
         
         <main className={styles.mainContent}>
