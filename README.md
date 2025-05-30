@@ -1,5 +1,9 @@
 # CyberEco Platform
 
+<p align="center">
+  <img src="apps/website/public/logo.svg" alt="CyberEco Logo" width="200">
+</p>
+
 > 🌐 **A human-centered digital ecosystem for conscious, connected, and sustainable living**  
 > In a world where digital life is fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.
 
