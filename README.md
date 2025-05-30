@@ -1,20 +1,21 @@
-<p align="center">
-  <img src="apps/website/public/logo.svg" alt="CyberEco Logo" width="200">
-</p>
-
-
 ![Build Status](https://github.com/cyber-eco/cybereco/workflows/Build/badge.svg) ![Deploy Status](https://github.com/cyber-eco/cybereco/workflows/Deploy%20to%20GitHub%20Pages/badge.svg) ![Tests Status](https://github.com/cyber-eco/cybereco/workflows/Tests/badge.svg) [![codecov](https://codecov.io/gh/cyber-eco/cybereco/branch/main/graph/badge.svg)](https://codecov.io/gh/cyber-eco/cybereco)
 
-# CyberEco Platform
-
-
-> 🌐 **A human-centered digital ecosystem for conscious, connected, and sustainable living**  
-> In a world where digital life is fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=flat-square&logo=Firebase&logoColor=white)](https://firebase.google.com/)
 [![NX](https://img.shields.io/badge/NX-143055?style=flat-square&logo=nx&logoColor=white)](https://nx.dev/)
+
+# CyberEco Platform
+
+<p align="center">
+  <img src="apps/website/public/logo.svg" alt="CyberEco Logo" width="200">
+</p>
+
+
+> 🌐 **A human-centered digital ecosystem for conscious, connected, and sustainable living**  
+> In a world where digital life is fragmented, extractive, and overwhelming, CyberEco exists to offer a better path — one rooted in sovereignty, community, and balance.
+
 
 ## ⚡ Quick Start
 
