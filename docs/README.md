@@ -37,59 +37,80 @@ We believe your digital presence should empower you, not exploit you. Your ident
 
 ## 📚 Documentation Structure
 
+### 🏠 Core Documentation
+- **[About CyberEco](./ABOUT.md)** - Platform mission, vision, and application ecosystem
+- **[Platform Philosophy](./PHILOSOPHY.md)** - Core values and design principles
+- **[Platform Roadmap](./ROADMAP.md)** - 8-phase evolution from current to decentralized future
+- **[Getting Started](./GETTING_STARTED.md)** - Quick 10-minute setup guide
+
 ### 📄 Legal & Community
 - **[CYBERECO-LICENSE.md](../CYBERECO-LICENSE.md)** - CyberEco Digital Sovereignty License
 - **[CONTRIBUTOR-AGREEMENT.md](../CONTRIBUTOR-AGREEMENT.md)** - Contributor legal agreement
-- **[PHILOSOPHY.md](./PHILOSOPHY.md)** - Platform philosophy and principles
-- **[Licensing](./development/licensing.md)** - License and agreement explanations
+- **[Community Guidelines](./community/README.md)** - Community participation and governance
+- **[Licensing Documentation](./development/licensing.md)** - License and agreement explanations
+
+### 🏗️ Architecture Documentation
+- **[Architecture Overview](./architecture/overview.md)** - High-level platform architecture
+- **[NX Monorepo Architecture](./architecture/nx-architecture-consolidated.md)** - Complete NX monorepo structure
+- **[Technical Design](./architecture/technical-design.md)** - Detailed technical specifications
+- **[Modular Application Strategy](./architecture/modular-application-strategy.md)** - Scaling strategy for ecosystem growth
+- **[Architecture Diagrams](./architecture/diagrams/README.md)** - Visual architecture documentation
+  - **[Ecosystem Architecture](./architecture/diagrams/mermaid/ecosystem-architecture.mermaid)** - NX monorepo visual blueprint
+  - **[Technical Stack Diagram](./architecture/diagrams/mermaid/technical-stack-diagram.mermaid)** - End-to-end technical implementation
 
 ### 💻 Applications Documentation
 - **[Applications Overview](./applications/README.md)** - Complete application ecosystem documentation
 - **[Priority Applications](./applications/priority-apps.md)** - Detailed specifications for Somos, Demos, and Plantopia
-- **[Application Matrix](./planning/app-matrix.md)** - Comprehensive overview of all CyberEco applications
-
-### 🏗️ Architecture Documentation
-- **[System Overview](./architecture/overview.md)** - High-level platform architecture
-- **[NX Monorepo Architecture](./architecture/nx-architecture-consolidated.md)** - Complete NX monorepo structure and configuration
-- **[Technical Design](./architecture/technical-design.md)** - Detailed technical specifications
-- **[Diagrams](./architecture/diagrams/)** - Architecture diagrams and visualizations
+- **[JustSplit App Docs](../apps/justsplit/docs/README.md)** - JustSplit-specific implementation details
 
 ### 🛠️ Development Guides
-- **[Getting Started](./development/getting-started.md)** - Comprehensive setup guide
+- **[Getting Started](./development/getting-started.md)** - Comprehensive developer setup
 - **[Development Workflow](./development/development-workflow.md)** - Daily development practices
-- **[Contributing](./development/contributing.md)** - Contribution guidelines
-- **[Licensing](./development/licensing.md)** - Platform license and contributor agreement
-- **[Code Style](./development/code-style.md)** - Coding standards and best practices
+- **[Developer Workflow Diagram](./development/developer-workflow.mermaid)** - Visual workflow sequences
+- **[Contributing Guidelines](./development/contributing.md)** - How to contribute to CyberEco
+- **[Code Style Guide](./development/code-style.md)** - Coding standards and best practices
+- **[Local Development](./development/local-development.md)** - Local environment setup
+- **[Firebase Deployment](./development/firebase-deployment.md)** - Firebase-specific deployment
+- **[Logo Creation](./development/logo-creation.md)** - Brand asset guidelines
+- **[Testing Strategy](./development/testing/testing-strategy.md)** - Comprehensive testing approach
 
-### 🚀 Deployment Documentation
-- **[Firebase Deployment](./deployment/firebase-deployment.md)** - Production deployment guide
-- **[Low-Cost Optimization](./deployment/low-cost-optimization.md)** - Cost optimization strategies
+### 🚀 Deployment & Operations
+- **[Firebase Deployment Guide](./deployment/firebase-deployment.md)** - Production deployment with cost optimization
+- **[Low-Cost Optimization](./deployment/low-cost-optimization.md)** - Strategies for minimal operational costs
 - **[On-Premises Deployment](./deployment/on-premises-deployment.md)** - Self-hosting options
+- **[Performance Metrics](./operations/monitoring/performance-metrics.md)** - Monitoring and optimization
+- **[Compliance Framework](./operations/security/compliance-framework.md)** - Security and compliance
 
-### 📡 API & Integration
-- **[Data Models Overview](./api/README.md)** - Navigation index for all data model documentation
-- **[Comprehensive Data Models](./api/data-models-nx-comprehensive.md)** - Complete platform-wide data models for NX monorepo
-- **[Legacy Data Models](./api/data-models.md)** - Original data models reference
-- **[Endpoints](./api/endpoints.md)** - API reference and documentation
-- **[Authentication](./api/authentication.md)** - Cross-app authentication flows
+### 📡 API & Data Models
+- **[API Overview](./api/README.md)** - API documentation navigation
+- **[NX Comprehensive Data Models](./api/data-models-nx-comprehensive.md)** - Complete platform-wide data models
+- **[Data Models Overview](./api/data-models.md)** - High-level data model reference
+- **[Comprehensive Models](./api/data-models-comprehensive.md)** - Detailed data specifications
+- **[API Endpoints](./api/endpoints.md)** - REST API reference
 
 ### 🎨 Design System
-- **[UI Components](./design/ui-components.md)** - Shared component library
-- **[Style Guide](./design/style-guide.md)** - NX multiapp design system and patterns
+- **[Style Guide](./design/style-guide.md)** - NX multiapp design system with human-centered principles
+- **[UI Components](./design/ui-components.md)** - Shared component library documentation
 - **[Wireframes](./design/wireframes.md)** - UI mockups and user flows
 
-### 📋 Project Planning
+### 📋 Strategic Planning
+- **[Planning Overview](./planning/README.md)** - Strategic planning documentation index
 - **[Project Roadmap](./planning/project-roadmap.md)** - Feature roadmap and timeline
-- **[Milestones](./planning/milestones.md)** - Release milestones and goals
+- **[Release Planning](./planning/release-planning.md)** - Release milestones and goals
+- **[Application Matrix](./planning/app-matrix.md)** - Comprehensive application ecosystem
+- **[Strategic Solution Matrix](./planning/strategic-solution-matrix.md)** - Business analysis of 30+ applications
+- **[Interactive Roadmap](./planning/interactive-roadmap.ipynb)** - Data-driven planning with visual timeline
 
-### 📱 Application-Specific Documentation
-- **[JustSplit App Docs](../apps/justsplit/docs/README.md)** - JustSplit-specific requirements, features, and implementation details
+### 📖 User Guides
+- **[User Guide Overview](./user-guides/README.md)** - User documentation navigation
+- **[JustSplit User Guide](./user-guides/applications/justsplit-user-guide.md)** - Complete JustSplit usage guide
+- **[FAQ](./user-guides/faq.md)** - Frequently asked questions
+- **[Account Creation](./user-guides/getting-started/account-creation.md)** - Getting started with CyberEco
+- **[Common Issues](./user-guides/troubleshooting/common-issues.md)** - Troubleshooting guide
 
-### 🔮 Future Vision & Strategy
-- **[Vision Overview](./vision/README.md)** - Navigation index for vision documents
-- **[Decentralized Future Vision](./vision/decentralized-future.md)** - Comprehensive roadmap for blockchain-based, privacy-first ecosystem
-- **[Platform Roadmap](./ROADMAP.md)** - Complete platform evolution timeline
-- **[Application Matrix](./planning/app-matrix.md)** - Full ecosystem of planned applications
+### 🔮 Vision & Future
+- **[Vision Overview](./vision/README.md)** - Future vision documentation
+- **[Decentralized Future](./vision/decentralized-future.md)** - Comprehensive decentralized ecosystem roadmap
 
 ## 🚀 Quick Start
 
@@ -312,10 +333,23 @@ The platform is evolving toward a revolutionary decentralized architecture featu
 
 ## 📄 Additional Resources
 
+### 🎯 Strategic Resources
+- **[Strategic Solution Matrix](./planning/strategic-solution-matrix.md)** - Business analysis of all 30+ CyberEco applications
+- **[Interactive Roadmap](./planning/interactive-roadmap.ipynb)** - Data-driven timeline with resource allocation
 - **[Application Matrix](./planning/app-matrix.md)** - Comprehensive application ecosystem overview
-- **[Master Roadmap](./ROADMAP.md)** - Complete platform evolution timeline
-- **[Project Roadmap](./planning/project-roadmap.md)** - Detailed implementation timeline
-- **[Architecture Diagrams](./architecture/diagrams/)** - Visual system overviews
+- **[Master Roadmap](./ROADMAP.md)** - 8-phase platform evolution timeline
+
+### 🏗️ Technical Resources
+- **[Modular Application Strategy](./architecture/modular-application-strategy.md)** - Technical scaling strategy
+- **[Architecture Diagrams](./architecture/diagrams/README.md)** - Complete visual architecture documentation
+- **[Developer Workflow Diagram](./development/developer-workflow.mermaid)** - Visual development processes
+- **[NX Architecture Guide](./architecture/nx-architecture-consolidated.md)** - Monorepo structure details
+
+### 📚 Learning Resources
+- **[User Guides](./user-guides/README.md)** - Complete user documentation
+- **[FAQ](./user-guides/faq.md)** - Frequently asked questions
+- **[Getting Started](./GETTING_STARTED.md)** - Quick setup guide
+- **[Testing Strategy](./development/testing/testing-strategy.md)** - Testing best practices
 
 ---
 
