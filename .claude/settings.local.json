@@ -55,7 +55,8 @@
       "Bash(firebase deploy:*)",
       "Bash(FIREBASE_FRAMEWORKS_SKIP_BUILD=true firebase deploy --only hosting:justsplit-app --project justsplit-eef51)",
       "Bash(firebase hosting:channel:deploy:*)",
-      "Bash(firebase target:list:*)"
+      "Bash(firebase target:list:*)",
+      "Bash(diff:*)"
     ],
     "deny": []
   },
