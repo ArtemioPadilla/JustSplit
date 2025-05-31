@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, ChangeEvent, FormEvent, useEffect, useRef } from 'react';
-import { useLanguage } from '@justsplit/ui-components';
+import { useLanguage } from '@cybereco/ui-components';
 import styles from './page.module.css';
 
 declare global {

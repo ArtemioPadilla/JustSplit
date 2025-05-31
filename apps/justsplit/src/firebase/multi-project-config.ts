@@ -1,4 +1,4 @@
-// Temporary multi-project configuration until @justsplit/firebase-config is ready
+// Temporary multi-project configuration until @cybereco/firebase-config is ready
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 

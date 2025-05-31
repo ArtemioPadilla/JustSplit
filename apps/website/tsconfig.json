@@ -22,16 +22,16 @@
       "@/styles/*": [
         "./src/styles/*"
       ],
-      "@justsplit/shared-types": [
+      "@cybereco/shared-types": [
         "../../libs/shared-types/src/index.ts"
       ],
-      "@justsplit/firebase-config": [
+      "@cybereco/firebase-config": [
         "../../libs/firebase-config/src/index.ts"
       ],
-      "@justsplit/ui-components": [
+      "@cybereco/ui-components": [
         "../../libs/ui-components/src/index.ts"
       ],
-      "@justsplit/shared-assets": [
+      "@cybereco/shared-assets": [
         "../../libs/shared-assets/src/index.ts"
       ]
     },

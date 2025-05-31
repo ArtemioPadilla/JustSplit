@@ -46,7 +46,7 @@ Successfully migrated JustSplit to a monorepo architecture with the following st
 5. Test the monorepo: `pnpm test`
 
 ### Future Enhancements
-1. Complete the `@justsplit/firebase-config` package implementation
+1. Complete the `@cybereco/firebase-config` package implementation
 2. Migrate more components to the shared UI library
 3. Add more applications to the monorepo
 4. Implement cross-app data sharing mechanisms
@@ -71,7 +71,7 @@ Successfully migrated JustSplit to a monorepo architecture with the following st
 
 ## Known Issues
 
-1. The `@justsplit/firebase-config` package import needs to be completed
+1. The `@cybereco/firebase-config` package import needs to be completed
 2. Some tests may need adjustment for the monorepo structure
 3. Environment variables need to be configured for both hub and app
 

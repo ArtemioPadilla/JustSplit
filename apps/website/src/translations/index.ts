@@ -1,4 +1,4 @@
-import { TranslationsMap } from '@justsplit/ui-components';
+import { TranslationsMap } from '@cybereco/ui-components';
 
 // Helper function to flatten nested objects
 function flattenTranslations(obj: any, prefix = ''): { [key: string]: string } {

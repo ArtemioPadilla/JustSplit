@@ -122,7 +122,7 @@ nx affected:test
 - **Build System**: NX with computation caching, parallel execution (max 3), and affected commands
 - **Shared Libraries**: Types, UI components, Firebase configuration, and assets in `libs/`
 - **Multi-Project Firebase**: Hub for centralized auth, individual projects for app-specific data
-- **Package Scope**: `@justsplit` namespace for all shared libraries
+- **Package Scope**: `@cybereco` namespace for all shared libraries
 - **Deployment**: Optimized for Firebase hosting with separate hosting targets per app
 
 ### Framework Stack
@@ -142,10 +142,10 @@ nx affected:test
 - Cross-project token verification and user management
 
 **Shared Libraries Structure**:
-- `libs/shared-types` (`@justsplit/shared-types`) - Common TypeScript interfaces and types
-- `libs/firebase-config` (`@justsplit/firebase-config`) - Firebase utilities and multi-project configuration
-- `libs/ui-components` (`@justsplit/ui-components`) - Reusable React components with CSS Modules
-- `libs/shared-assets` (`@justsplit/shared-assets`) - Common assets including logos and brand materials
+- `libs/shared-types` (`@cybereco/shared-types`) - Common TypeScript interfaces and types
+- `libs/firebase-config` (`@cybereco/firebase-config`) - Firebase utilities and multi-project configuration
+- `libs/ui-components` (`@cybereco/ui-components`) - Reusable React components with CSS Modules
+- `libs/shared-assets` (`@cybereco/shared-assets`) - Common assets including logos and brand materials
 
 **Context-Based State Management**:
 Each app uses React Context for global state:
@@ -195,10 +195,10 @@ Each app has its own tsconfig with aliases:
 - `@/components/*` → `./src/components/*`
 - `@/context/*` → `./src/context/*`
 - `@/utils/*` → `./src/utils/*`
-- `@justsplit/shared-types` → `libs/shared-types`
-- `@justsplit/firebase-config` → `libs/firebase-config`
-- `@justsplit/ui-components` → `libs/ui-components`
-- `@justsplit/shared-assets` → `libs/shared-assets`
+- `@cybereco/shared-types` → `libs/shared-types`
+- `@cybereco/firebase-config` → `libs/firebase-config`
+- `@cybereco/ui-components` → `libs/ui-components`
+- `@cybereco/shared-assets` → `libs/shared-assets`
 
 ## Working with NX
 
@@ -235,7 +235,7 @@ nx affected:libs --base=main
 - Parallel execution is limited to 3 concurrent tasks for optimal performance
 
 ### NX Configuration Details
-- **npmScope**: `justsplit` - used for package naming and imports
+- **npmScope**: `cybereco` - used for package naming and imports
 - **defaultProject**: `justsplit-app` - the primary application
 - **Task Runner**: Uses default NX task runner with caching enabled
 - **Target Dependencies**: Build targets depend on upstream library builds

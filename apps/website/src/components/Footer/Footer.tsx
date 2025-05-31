@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Logo, useLanguage } from '@justsplit/ui-components';
+import { Logo, useLanguage } from '@cybereco/ui-components';
 import styles from './Footer.module.css';
 
 export default function Footer() {

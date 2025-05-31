@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Button } from '@justsplit/ui-components';
+import { Button } from '@cybereco/ui-components';
 import styles from './LoginForm.module.css';
 
 export function LoginForm() {

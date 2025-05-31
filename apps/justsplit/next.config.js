@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: [
-    '@justsplit/shared-types',
-    '@justsplit/firebase-config',
-    '@justsplit/ui-components'
+    '@cybereco/shared-types',
+    '@cybereco/firebase-config',
+    '@cybereco/ui-components'
   ],
   images: {
     unoptimized: true,

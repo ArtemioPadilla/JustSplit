@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaUsers, FaLeaf, FaLock, FaLaptopCode } from 'react-icons/fa';
-import { useLanguage } from '@justsplit/ui-components';
+import { useLanguage } from '@cybereco/ui-components';
 import styles from './Features.module.css';
 
 const featuresData = [

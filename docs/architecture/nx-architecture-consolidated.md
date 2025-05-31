@@ -109,9 +109,9 @@ CyberEco/
 - Platform-wide notifications
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ### JustSplit App (`apps/justsplit`)
 
@@ -140,9 +140,9 @@ CyberEco/
 - Timeline and dashboard views
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ## Upcoming Priority Applications
 
@@ -165,9 +165,9 @@ CyberEco/
 - Community connections
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ### Demos App (`apps/demos`)
 
@@ -188,9 +188,9 @@ CyberEco/
 - Community management
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ### Plantopia App (`apps/plantopia`)
 
@@ -211,9 +211,9 @@ CyberEco/
 - Sustainability metrics
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ## Shared Libraries
 
@@ -230,7 +230,7 @@ CyberEco/
 
 **Usage**:
 ```typescript
-import { AuthUser, HubUser, App } from '@justsplit/shared-types';
+import { AuthUser, HubUser, App } from '@cybereco/shared-types';
 ```
 
 **Benefits**:
@@ -251,7 +251,7 @@ import { AuthUser, HubUser, App } from '@justsplit/shared-types';
 
 **Usage**:
 ```typescript
-import { auth, db, app, getAppDb } from '@justsplit/firebase-config';
+import { auth, db, app, getAppDb } from '@cybereco/firebase-config';
 ```
 
 **Benefits**:
@@ -272,7 +272,7 @@ import { auth, db, app, getAppDb } from '@justsplit/firebase-config';
 
 **Usage**:
 ```typescript
-import { Button, Card, Modal } from '@justsplit/ui-components';
+import { Button, Card, Modal } from '@cybereco/ui-components';
 ```
 
 **Benefits**:
@@ -288,7 +288,7 @@ import { Button, Card, Modal } from '@justsplit/ui-components';
 ```json
 {
   "version": 3,
-  "npmScope": "justsplit",
+  "npmScope": "cybereco",
   "tasksRunnerOptions": {
     "default": {
       "runner": "nx/tasks-runners/default",

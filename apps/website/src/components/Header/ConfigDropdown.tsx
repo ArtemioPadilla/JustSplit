@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { FaCog, FaSun, FaMoon, FaGlobe, FaCheck } from 'react-icons/fa';
-import { ThemeToggle, LanguageSelector, useTheme, useLanguage } from '@justsplit/ui-components';
+import { ThemeToggle, LanguageSelector, useTheme, useLanguage } from '@cybereco/ui-components';
 import styles from './ConfigDropdown.module.css';
 
 interface ConfigDropdownProps {

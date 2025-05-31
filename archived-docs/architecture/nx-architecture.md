@@ -157,9 +157,9 @@ Configured in `tsconfig.base.json`:
 {
   "compilerOptions": {
     "paths": {
-      "@justsplit/shared-types": ["libs/shared-types/src/index.ts"],
-      "@justsplit/firebase-config": ["libs/firebase-config/src/index.ts"],
-      "@justsplit/ui-components": ["libs/ui-components/src/index.ts"]
+      "@cybereco/shared-types": ["libs/shared-types/src/index.ts"],
+      "@cybereco/firebase-config": ["libs/firebase-config/src/index.ts"],
+      "@cybereco/ui-components": ["libs/ui-components/src/index.ts"]
     }
   }
 }
@@ -167,8 +167,8 @@ Configured in `tsconfig.base.json`:
 
 Usage in applications:
 ```typescript
-import { User } from '@justsplit/shared-types';
-import { Button } from '@justsplit/ui-components';
+import { User } from '@cybereco/shared-types';
+import { Button } from '@cybereco/ui-components';
 ```
 
 ## Best Practices

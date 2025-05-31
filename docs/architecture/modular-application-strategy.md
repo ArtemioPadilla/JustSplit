@@ -51,7 +51,7 @@ cybereco-monorepo/
 
 ### Core Library Architecture
 
-#### **1. shared-types (@justsplit/shared-types)**
+#### **1. shared-types (@cybereco/shared-types)**
 
 **Purpose**: Central repository for TypeScript interfaces, types, and data models ensuring type safety across all applications.
 
@@ -79,7 +79,7 @@ export interface AppPermission {
 }
 ```
 
-#### **2. firebase-config (@justsplit/firebase-config)**
+#### **2. firebase-config (@cybereco/firebase-config)**
 
 **Purpose**: Abstracted Firebase operations and multi-project configuration management for consistent data interaction and security.
 
@@ -105,7 +105,7 @@ export const firebaseProjects = {
 };
 ```
 
-#### **3. ui-components (@justsplit/ui-components)**
+#### **3. ui-components (@cybereco/ui-components)**
 
 **Purpose**: Comprehensive design system and reusable React component library ensuring visual consistency and development velocity.
 
@@ -124,7 +124,7 @@ export const firebaseProjects = {
 - **Dark/Light Mode**: Automatic theme switching capabilities
 - **Internationalization**: RTL support and language-specific styling
 
-#### **4. shared-assets (@justsplit/shared-assets)**
+#### **4. shared-assets (@cybereco/shared-assets)**
 
 **Purpose**: Centralized brand assets, icons, and visual resources with optimized delivery and consistent usage.
 

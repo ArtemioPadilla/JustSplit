@@ -1,5 +1,5 @@
 {
-  "name": "@justsplit/firebase-config",
+  "name": "@cybereco/firebase-config",
   "version": "0.0.1",
   "license": "SEE LICENSE IN ../../LICENSE",
   "main": "./src/index.ts",
@@ -11,7 +11,7 @@
     "firebase": "^11.7.3"
   },
   "devDependencies": {
-    "@justsplit/shared-types": "file:../shared-types",
+    "@cybereco/shared-types": "file:../shared-types",
     "typescript": "^5"
   }
 }

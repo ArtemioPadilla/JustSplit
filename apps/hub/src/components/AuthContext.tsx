@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { initializeFirebase, onAuthChange, signIn as firebaseSignIn, signOut as firebaseSignOut } from '@justsplit/firebase-config';
-import type { AuthUser } from '@justsplit/shared-types';
+import { initializeFirebase, onAuthChange, signIn as firebaseSignIn, signOut as firebaseSignOut } from '@cybereco/firebase-config';
+import type { AuthUser } from '@cybereco/shared-types';
 
 interface AuthContextType {
   user: AuthUser | null;

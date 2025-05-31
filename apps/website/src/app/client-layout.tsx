@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ThemeProvider, LanguageProvider } from '@justsplit/ui-components';
+import { ThemeProvider, LanguageProvider } from '@cybereco/ui-components';
 import Header from '../components/Header/Header';
 import Footer from '../components/Footer/Footer';
 import translations from '../translations';

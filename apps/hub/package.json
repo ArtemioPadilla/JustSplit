@@ -1,5 +1,5 @@
 {
-  "name": "@justsplit/hub",
+  "name": "@cybereco/hub",
   "version": "0.1.0",
   "private": true,
   "license": "SEE LICENSE IN ../../LICENSE",
@@ -12,9 +12,9 @@
     "deploy": "npm run build && firebase deploy --only hosting:hub"
   },
   "dependencies": {
-    "@justsplit/shared-types": "file:../../libs/shared-types",
-    "@justsplit/firebase-config": "file:../../libs/firebase-config",
-    "@justsplit/ui-components": "file:../../libs/ui-components",
+    "@cybereco/shared-types": "file:../../libs/shared-types",
+    "@cybereco/firebase-config": "file:../../libs/firebase-config",
+    "@cybereco/ui-components": "file:../../libs/ui-components",
     "next": "^15.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

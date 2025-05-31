@@ -13100,6 +13100,16 @@
       },
       {
         "source": "ui-components",
+        "target": "npm:@types/react",
+        "type": "static"
+      },
+      {
+        "source": "ui-components",
+        "target": "npm:@types/react-dom",
+        "type": "static"
+      },
+      {
+        "source": "ui-components",
         "target": "npm:typescript",
         "type": "static"
       }
@@ -13206,7 +13216,22 @@
       },
       {
         "source": "website",
+        "target": "npm:@types/react",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:@types/react-dom",
+        "type": "static"
+      },
+      {
+        "source": "website",
         "target": "npm:eslint",
+        "type": "static"
+      },
+      {
+        "source": "website",
+        "target": "npm:eslint-config-next",
         "type": "static"
       },
       {
@@ -13243,7 +13268,22 @@
       },
       {
         "source": "hub",
+        "target": "npm:@types/react",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:@types/react-dom",
+        "type": "static"
+      },
+      {
+        "source": "hub",
         "target": "npm:eslint",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:eslint-config-next",
         "type": "static"
       },
       {
@@ -13279,6 +13319,11 @@
       {
         "source": "hub",
         "target": "npm:react-dom",
+        "type": "static"
+      },
+      {
+        "source": "hub",
+        "target": "npm:firebase",
         "type": "static"
       }
     ],

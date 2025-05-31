@@ -172,7 +172,7 @@ const HelpPage = () => {
             <div className={styles.contactBox}>
               <h3>Need more help?</h3>
               <p>Our support team is ready to assist you with any questions.</p>
-              <a href="mailto:support@justsplit.com" className={styles.contactLink}>
+              <a href="mailto:support@cybere.co" className={styles.contactLink}>
                 Contact Support
               </a>
             </div>
@@ -299,7 +299,7 @@ const HelpPage = () => {
                 <Link href="/about" className={styles.footerLink}>
                   About Us
                 </Link>
-                <a href="mailto:support@justsplit.com" className={styles.footerLink}>
+                <a href="mailto:support@cybere.co" className={styles.footerLink}>
                   Contact Support
                 </a>
               </div>

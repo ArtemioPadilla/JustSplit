@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FaLifeRing, FaExclamationCircle, FaLightbulb, FaComment, FaPaperPlane } from 'react-icons/fa';
-import { useLanguage } from '@justsplit/ui-components';
+import { useLanguage } from '@cybereco/ui-components';
 import styles from './page.module.css';
 
 interface FormData {

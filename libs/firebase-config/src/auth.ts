@@ -10,7 +10,7 @@ import {
   Auth
 } from 'firebase/auth';
 import { getHubApp } from './config';
-import type { AuthUser } from '@justsplit/shared-types';
+import type { AuthUser } from '@cybereco/shared-types';
 
 export function getHubAuth(): Auth {
   return getAuth(getHubApp());

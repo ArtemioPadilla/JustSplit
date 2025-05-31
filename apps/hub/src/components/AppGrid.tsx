@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@justsplit/ui-components';
-import { getHubFirestore, queryDocuments } from '@justsplit/firebase-config';
+import { Card } from '@cybereco/ui-components';
+import { getHubFirestore, queryDocuments } from '@cybereco/firebase-config';
 import { where } from 'firebase/firestore';
-import type { App } from '@justsplit/shared-types';
+import type { App } from '@cybereco/shared-types';
 import { useAuth } from './AuthContext';
 import styles from './AppGrid.module.css';
 

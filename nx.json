@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "npmScope": "justsplit",
+  "npmScope": "cybereco",
   "tasksRunnerOptions": {
     "default": {
       "runner": "nx/tasks-runners/default",

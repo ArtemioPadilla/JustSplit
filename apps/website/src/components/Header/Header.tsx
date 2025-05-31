@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaBars, FaTimes, FaRocket, FaExternalLinkAlt } from 'react-icons/fa';
-import { Logo, useLanguage } from '@justsplit/ui-components';
+import { Logo, useLanguage } from '@cybereco/ui-components';
 import ConfigDropdown from './ConfigDropdown';
 import styles from './Header.module.css';
 

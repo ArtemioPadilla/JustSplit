@@ -1,7 +1,7 @@
 // Server Component
 import React from 'react';
 import Script from 'next/script';
-import { createThemeScript, themeTransitionCSS } from '@justsplit/ui-components';
+import { createThemeScript, themeTransitionCSS } from '@cybereco/ui-components';
 import './globals.css';
 import '../styles/theme-variables.css';
 import ClientLayout from './client-layout';

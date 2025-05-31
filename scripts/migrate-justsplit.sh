@@ -20,7 +20,7 @@ cp jest.setup.js apps/justsplit/
 echo "Creating JustSplit package.json..."
 cat > apps/justsplit/package.json << 'EOF'
 {
-  "name": "@justsplit/app",
+  "name": "@cybereco/app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -35,9 +35,9 @@ cat > apps/justsplit/package.json << 'EOF'
     "deploy": "npm run build && firebase deploy --only hosting:justsplit"
   },
   "dependencies": {
-    "@justsplit/shared-types": "workspace:*",
-    "@justsplit/firebase-config": "workspace:*",
-    "@justsplit/ui-components": "workspace:*",
+    "@cybereco/shared-types": "workspace:*",
+    "@cybereco/firebase-config": "workspace:*",
+    "@cybereco/ui-components": "workspace:*",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.1.0",
@@ -92,9 +92,9 @@ cat > apps/justsplit/tsconfig.json << 'EOF'
       "@/utils/*": ["./src/utils/*"],
       "@/services/*": ["./src/services/*"],
       "@/types/*": ["./src/types/*"],
-      "@justsplit/shared-types": ["../../packages/shared-types/src"],
-      "@justsplit/firebase-config": ["../../packages/firebase-config/src"],
-      "@justsplit/ui-components": ["../../packages/ui-components/src"]
+      "@cybereco/shared-types": ["../../packages/shared-types/src"],
+      "@cybereco/firebase-config": ["../../packages/firebase-config/src"],
+      "@cybereco/ui-components": ["../../packages/ui-components/src"]
     }
   },
   "include": [
@@ -116,9 +116,9 @@ cat > apps/justsplit/next.config.js << 'EOF'
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: [
-    '@justsplit/shared-types',
-    '@justsplit/firebase-config',
-    '@justsplit/ui-components'
+    '@cybereco/shared-types',
+    '@cybereco/firebase-config',
+    '@cybereco/ui-components'
   ],
   images: {
     unoptimized: true,

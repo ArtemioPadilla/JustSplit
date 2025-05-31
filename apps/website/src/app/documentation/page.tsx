@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaBook, FaSearch, FaChevronRight } from 'react-icons/fa';
-import { useLanguage } from '@justsplit/ui-components';
+import { useLanguage } from '@cybereco/ui-components';
 import styles from './page.module.css';
 
 interface DocContent {

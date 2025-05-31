@@ -1,5 +1,5 @@
 {
-  "name": "@justsplit/app",
+  "name": "@cybereco/app",
   "version": "0.1.0",
   "private": true,
   "license": "SEE LICENSE IN ../../LICENSE",
@@ -18,9 +18,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@justsplit/firebase-config": "file:../../libs/firebase-config",
-    "@justsplit/shared-types": "file:../../libs/shared-types",
-    "@justsplit/ui-components": "file:../../libs/ui-components",
+    "@cybereco/firebase-config": "file:../../libs/firebase-config",
+    "@cybereco/shared-types": "file:../../libs/shared-types",
+    "@cybereco/ui-components": "file:../../libs/ui-components",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
     "@mui/x-date-pickers": "^8.3.0",

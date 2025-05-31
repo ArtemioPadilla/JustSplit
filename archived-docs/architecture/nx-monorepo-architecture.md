@@ -94,9 +94,9 @@ JustSplit/
 - Platform-wide notifications
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ### JustSplit App (`apps/justsplit`)
 
@@ -125,9 +125,9 @@ JustSplit/
 - Timeline and dashboard views
 
 **Dependencies**:
-- `@justsplit/shared-types`
-- `@justsplit/firebase-config`
-- `@justsplit/ui-components`
+- `@cybereco/shared-types`
+- `@cybereco/firebase-config`
+- `@cybereco/ui-components`
 
 ## Shared Libraries
 
@@ -143,7 +143,7 @@ JustSplit/
 
 **Usage**:
 ```typescript
-import { AuthUser, HubUser, App } from '@justsplit/shared-types';
+import { AuthUser, HubUser, App } from '@cybereco/shared-types';
 ```
 
 **Benefits**:
@@ -163,7 +163,7 @@ import { AuthUser, HubUser, App } from '@justsplit/shared-types';
 
 **Usage**:
 ```typescript
-import { auth, db, app } from '@justsplit/firebase-config';
+import { auth, db, app } from '@cybereco/firebase-config';
 ```
 
 **Benefits**:
@@ -183,7 +183,7 @@ import { auth, db, app } from '@justsplit/firebase-config';
 
 **Usage**:
 ```typescript
-import { Button, Card, Modal } from '@justsplit/ui-components';
+import { Button, Card, Modal } from '@cybereco/ui-components';
 ```
 
 **Benefits**:

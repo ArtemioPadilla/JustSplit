@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useLanguage } from '@justsplit/ui-components';
+import { useLanguage } from '@cybereco/ui-components';
 import styles from './MissionSection.module.css';
 
 export default function MissionSection() {
