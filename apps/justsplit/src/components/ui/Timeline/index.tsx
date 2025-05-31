@@ -62,7 +62,7 @@ const Timeline: React.FC<TimelineProps> = ({
     description: e.title || '',
     amount: e.amount,
     currency: e.currency,
-    date: e.date instanceof Date ? e.date.toISOString() : e.date,
+    date: e.date,
     paidBy: e.paidBy,
     participants: e.participants,
     eventId: e.eventId,
@@ -102,7 +102,7 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [activeGroup, closeHoverCard]);
 
   // Handle keyboard navigation on expense marker
-  const handleExpenseKeyPress = (e: React.KeyboardEvent, expenses: Expense[]) => {
+  const handleExpenseKeyPress = (e: React.KeyboardEvent, expenses: TimelineExpense[]) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       e.stopPropagation();
@@ -110,25 +110,8 @@ const Timeline: React.FC<TimelineProps> = ({
       const targetElement = e.currentTarget as HTMLElement;
       const targetRect = targetElement.getBoundingClientRect();
       
-      // Convert Expense[] to TimelineExpense[]
-      const timelineExpenses: TimelineExpense[] = expenses.map((exp) => ({
-        id: exp.id,
-        type: 'expense',
-        date: new Date(exp.date),
-        title: exp.description,
-        amount: exp.amount,
-        currency: exp.currency,
-        category: exp.category || '',
-        eventName: event?.name || 'Event',
-        eventId: exp.eventId,
-        settled: exp.settled,
-        paidBy: exp.paidBy,
-        participants: exp.participants,
-        userNames: Object.fromEntries((exp.participants || []).map((pid: string) => {
-          const user = state.users.find((u: User) => u.id === pid);
-          return [pid, user ? user.name : 'Unknown'];
-        })),
-      }));
+      // expenses are already TimelineExpense[]
+      const timelineExpenses = expenses;
       
       setActiveGroup({
         position: { 
@@ -142,7 +125,7 @@ const Timeline: React.FC<TimelineProps> = ({
   };
 
   // Handle click on expense marker
-  const handleExpenseClick = (e: React.MouseEvent, expenses: Expense[]) => {
+  const handleExpenseClick = (e: React.MouseEvent, expenses: TimelineExpense[]) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent event bubbling
     
@@ -158,25 +141,8 @@ const Timeline: React.FC<TimelineProps> = ({
       return;
     }
     
-    // Convert Expense[] to TimelineExpense[]
-    const timelineExpenses: TimelineExpense[] = expenses.map((exp) => ({
-      id: exp.id,
-      type: 'expense',
-      date: new Date(exp.date),
-      title: exp.description,
-      amount: exp.amount,
-      currency: exp.currency,
-      category: exp.category || '',
-      eventName: event?.name || 'Event',
-      eventId: exp.eventId,
-      settled: exp.settled,
-      paidBy: exp.paidBy,
-      participants: exp.participants,
-      userNames: Object.fromEntries((exp.participants || []).map((pid: string) => {
-        const user = state.users.find((u: User) => u.id === pid);
-        return [pid, user ? user.name : 'Unknown'];
-      })),
-    }));
+    // expenses are already TimelineExpense[]
+    const timelineExpenses = expenses;
     
     // Call the optional onExpenseClick callback if provided
     if (onExpenseClick && timelineExpenses.length > 0) {
@@ -264,11 +230,21 @@ const Timeline: React.FC<TimelineProps> = ({
                 transform: `translate(${isPreEvent ? '-50%' : position > 100 ? '50%' : '-50%'}, -50%) ${group.expenses.length > 1 ? 'scale(1.2)' : ''}`
               }}
               title={tooltipContent}
-              onClick={(e) => handleExpenseClick(e, group.expenses)}
+              onClick={(e) => {
+                const timelineExpensesForGroup = group.expenses.map(exp => 
+                  expenses.find(te => te.id === exp.id)!
+                );
+                handleExpenseClick(e, timelineExpensesForGroup);
+              }}
               tabIndex={0}
               role="button"
               aria-label={tooltipContent}
-              onKeyPress={(e) => handleExpenseKeyPress(e, group.expenses)}
+              onKeyPress={(e) => {
+                const timelineExpensesForGroup = group.expenses.map(exp => 
+                  expenses.find(te => te.id === exp.id)!
+                );
+                handleExpenseKeyPress(e, timelineExpensesForGroup);
+              }}
             />
           );
         })}
@@ -312,7 +288,7 @@ const Timeline: React.FC<TimelineProps> = ({
             </div>
           )}
           {/* Pre-event expenses */}
-          {expenses.some(exp => calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), startDate, endDate) < 0) && (
+          {expenses.some(exp => calculatePositionPercentage(exp.date, startDate, endDate) < 0) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.preEventExpense}`}></div>
               <span>Pre-event</span>
@@ -320,7 +296,7 @@ const Timeline: React.FC<TimelineProps> = ({
           )}
           {/* Post-event expenses */}
           {expenses.some(exp => 
-            endDate && calculatePositionPercentage((exp.date instanceof Date ? exp.date.toISOString() : exp.date), startDate, endDate) > 100
+            endDate && calculatePositionPercentage(exp.date, startDate, endDate) > 100
           ) && (
             <div className={styles.legendItem}>
               <div className={`${styles.legendColor} ${styles.postEventExpense}`}></div>

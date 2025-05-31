@@ -15,7 +15,7 @@ export default function ExpenseList() {
   const [targetCurrency, setTargetCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [convertedExpenses, setConvertedExpenses] = useState<Record<string, number>>({});
   const [isConverting, setIsConverting] = useState<boolean>(false);
-  // const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [updatingExpenses, setUpdatingExpenses] = useState<Record<string, boolean>>({});
 
   // Get unique list of events that have expenses - use optional chaining for safety
@@ -43,7 +43,13 @@ export default function ExpenseList() {
 
   // Handle refreshing rates
   const handleRefreshRates = async () => {
-    // ...existing code...
+    setIsRefreshing(true);
+    try {
+      // Force re-conversion with fresh rates
+      await performConversion();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   // Function to perform currency conversion

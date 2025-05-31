@@ -2,33 +2,10 @@
 
 This document lists files and directories that should be removed after the CyberEco migration is complete. These items are either redundant, outdated, or have been moved to more appropriate locations in the NX monorepo structure.
 
-## Root Directory Files
-
-### Architecture and Migration Files
-- `/MONOREPO_ARCHITECTURE.md` - Superseded by NX architecture documentation
-- `/MIGRATION_SUMMARY.md` - Historical information no longer relevant
-- `/NX_MIGRATION_COMPLETE.md` - One-time notification no longer needed
-- `/workspace.json.bak` - Backup file no longer needed
-
-### Development Debug Files
-- `/debug-grouping.js` - Debug utility no longer needed
-- `/debug-reducer.js` - Debug utility no longer needed 
-- `/debug-timeline.js` - Debug utility no longer needed
-- `/report.txt` - Legacy report
-- `/tree.txt` - Generated tree structure
-
-## Public Directory
-- `/public/` - Root-level public directory is now redundant as each app has its own public directory
-  - `/public/images/` - All images should be moved to app-specific public directories or shared assets
-
-## Documentation Files
-- `/docs/architecture/nx-architecture.md` - Superseded by consolidated documentation
-- `/docs/architecture/nx-monorepo-architecture.md` - Superseded by consolidated documentation
-- `/docs/planning/to-do.md` - Outdated task list now replaced by comprehensive roadmap
 
 ## Old Directory
 After complete migration of the website:
-- `/old/` - Complete directory can be removed once the website app is fully migrated and tested
+- `/old/` - Complete directory can be removed once the website app is fully migrated and tested. For now we need to check the migration of both the app and test to the new app folder.
 
 ## Temporary Files
 - `.firebase/` - Temporary Firebase directories

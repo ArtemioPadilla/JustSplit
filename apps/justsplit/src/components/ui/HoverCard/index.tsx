@@ -354,7 +354,7 @@ const HoverCard: React.FC<HoverCardProps> = ({
                       )}
                     </div>
                     <div className={styles.expenseDate}>
-                      {formatTimelineDate(expense.date instanceof Date ? expense.date.toISOString() : String(expense.date))}
+                      {formatTimelineDate(expense.date)}
                     </div>
                     <div className={styles.expensePaidBy}>
                       Paid by: {state.users.find(user => user.id === expense.paidBy)?.name ?? 'Unknown'}

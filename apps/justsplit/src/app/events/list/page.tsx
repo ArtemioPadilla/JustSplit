@@ -292,7 +292,7 @@ export default function EventList() {
                     }}
                     expenses={eventExpenses.map(exp => ({
                       ...exp,
-                      date: new Date(exp.date),
+                      date: exp.date,
                       type: 'expense',
                       title: exp.description,
                       eventName: event.name,

@@ -40,9 +40,6 @@
       "trailingSlash": true
     }
   ],
-  "frameworks": {
-    "nextjs": {}
-  },
   "emulators": {
     "auth": {
       "port": 9099,

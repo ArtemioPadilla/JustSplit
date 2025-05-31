@@ -116,7 +116,7 @@ const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({
       return {
         id: expense.id,
         type: 'expense', // Default type, adjust if settlements are also handled
-        date: new Date(expense.date), // Convert string date to Date object
+        date: expense.date, // Keep as string
         title: expense.description, // Use description as title
         amount: expense.amount,
         currency: expense.currency,

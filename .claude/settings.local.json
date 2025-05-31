@@ -48,7 +48,14 @@
       "Bash(true)",
       "Bash(./deploy-website.sh:*)",
       "Bash(npx next dev:*)",
-      "Bash(npx next lint:*)"
+      "Bash(npx next lint:*)",
+      "Bash(./scripts/deploy-justsplit.sh:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase use:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(FIREBASE_FRAMEWORKS_SKIP_BUILD=true firebase deploy --only hosting:justsplit-app --project justsplit-eef51)",
+      "Bash(firebase hosting:channel:deploy:*)",
+      "Bash(firebase target:list:*)"
     ],
     "deny": []
   },

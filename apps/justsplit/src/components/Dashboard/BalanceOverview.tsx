@@ -227,7 +227,7 @@ const BalanceOverview = ({ }: BalanceOverviewProps) => {
     return {
       id: expense.id,
       type: 'expense', // Or determine dynamically if needed
-      date: new Date(expense.date), // Convert string date to Date object
+      date: expense.date, // Keep as string
       title: expense.description,
       amount: expense.amount,
       currency: expense.currency,

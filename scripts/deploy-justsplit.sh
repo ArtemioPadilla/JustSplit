@@ -2,13 +2,12 @@
 
 echo "Deploying JustSplit App..."
 
-# Build the JustSplit app using NX
+# Build the JustSplit app using npm directly
 echo "Building JustSplit app..."
-nx build justsplit-app --configuration=production
+cd apps/justsplit && npm run build && cd ../..
 
 # Deploy to Firebase
 echo "Deploying to Firebase..."
-cd firebase/justsplit
-firebase deploy --only hosting:justsplit-app,firestore
+firebase deploy --only hosting:justsplit-app,firestore --project justsplit-eef51
 
 echo "JustSplit deployment complete!"

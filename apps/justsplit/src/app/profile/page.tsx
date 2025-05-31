@@ -101,8 +101,10 @@ export default function ProfilePage() {
       if (phoneNumber.trim()) {
         profileData.phoneNumber = phoneNumber.trim();
       }
-      // Handle the avatarUrl explicitly, allowing null values but not undefined
-      profileData.avatarUrl = avatarUrl;
+      // Handle the avatarUrl explicitly, converting null to undefined
+      if (avatarUrl !== null) {
+        profileData.avatarUrl = avatarUrl;
+      }
 
       await updateProfile(profileData);
       

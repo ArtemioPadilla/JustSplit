@@ -115,11 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUserProfile(sanitizedUserData);
           } else {
             // Create a new user profile - build object with only defined values
-            const newUserData: Record<string, unknown> = {
+            const newUserData: User = {
               id: user.uid,
               name: user.displayName || 'User',
               balance: 0,
-              preferredCurrency: 'USD'
+              preferredCurrency: 'USD',
+              friends: [],
+              friendRequestsSent: [],
+              friendRequestsReceived: []
             };
             
             // Only add optional fields if they have actual values
@@ -130,17 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               newUserData.avatarUrl = user.photoURL;
             }
             
-            // Explicitly set to null or omit fields that should not be undefined
-            // Friends related fields - initialize as empty arrays
-            newUserData.friends = [];
-            newUserData.friendRequestsSent = [];
-            newUserData.friendRequestsReceived = [];
-            
             console.log('Creating new user profile with data:', newUserData);
             
             await setDoc(userDocRef, newUserData);
             console.log('Created new user profile in Firestore:', user.uid);
-            setUserProfile(newUserData as User);
+            setUserProfile(newUserData);
           }
         } catch (error) {
           console.error('Error handling user profile:', error);

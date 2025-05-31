@@ -1,16 +1,13 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import Providers from '../context/Providers'; // Ensure path is correct
 import Header from '../components/Header';     // Ensure path is correct
 import ProtectedRoute from '../components/Auth/ProtectedRoute'; // Ensure path is correct
 import DatabaseErrorRecovery from '../components/ui/DatabaseErrorRecovery'; // Import the recovery component
 
-export default function ClientLayoutWrapper({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
   const isAuthRoute = pathname.startsWith('/auth/');
 
@@ -28,13 +25,30 @@ export default function ClientLayoutWrapper({
         <ProtectedRoute>
           {/* Header is a child of ProtectedRoute.
               If ProtectedRoute redirects or returns null (because user is not logged in),
-              Header will not be rendered. */}
+              then Header also won't render */}
           <Header />
-          <main className="main-content">
-            {children}
-          </main>
+          {children}
         </ProtectedRoute>
       )}
     </Providers>
   );
+}
+
+export default function ClientLayoutWrapper({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // During SSR/SSG, just return children without providers
+  if (!isClient) {
+    return <>{children}</>;
+  }
+
+  return <ClientLayout>{children}</ClientLayout>;
 }

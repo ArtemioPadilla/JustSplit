@@ -75,7 +75,8 @@ export default function NewExpense() {
         notes,
         images,
         splitMethod,
-        participantShares
+        participantShares,
+        createdAt: new Date().toISOString()
       };
       
       // Add to Firestore
