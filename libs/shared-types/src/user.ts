@@ -1,3 +1,5 @@
+import { AppPermission } from './auth';
+
 export interface HubUser {
   uid: string;
   email: string;
@@ -12,10 +14,4 @@ export interface HubUser {
   permissions: {
     [appId: string]: AppPermission;
   };
-}
-
-export interface AppPermission {
-  role: 'user' | 'admin' | 'owner';
-  grantedAt: string;
-  grantedBy: string;
 }

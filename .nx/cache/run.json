@@ -1,18 +1,18 @@
 {
   "run": {
-    "command": "nx run justsplit-app:deploy",
-    "startTime": "2025-05-31T04:24:41.513Z",
-    "endTime": "2025-05-31T04:24:57.562Z",
+    "command": "nx test justsplit-app --passWithNoTests",
+    "startTime": "2025-05-31T05:46:02.939Z",
+    "endTime": "2025-05-31T05:46:09.656Z",
     "inner": false
   },
   "tasks": [
     {
-      "taskId": "justsplit-app:deploy",
-      "target": "deploy",
+      "taskId": "justsplit-app:test",
+      "target": "test",
       "projectName": "justsplit-app",
-      "hash": "14375032129273576400",
-      "startTime": "2025-05-31T04:24:41.528Z",
-      "endTime": "2025-05-31T04:24:57.562Z",
+      "hash": "18051513041626853749",
+      "startTime": "2025-05-31T05:46:02.942Z",
+      "endTime": "2025-05-31T05:46:09.656Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 1

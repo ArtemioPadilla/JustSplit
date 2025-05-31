@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this CyberEco NX monorepo.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this CyberEco NX monorepo. 
+
+**📋 RECENT CLEANUP STATUS:** All legacy files have been cleaned from the repository as of May 30, 2025. The structure is now optimized for NX monorepo best practices.
 
 ## Project Overview
 
@@ -8,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## NX Monorepo Structure
 
-This is an NX 19.8.14 monorepo with the following structure:
+This is an NX 19.8.14 monorepo with the following **cleaned and optimized** structure:
 - `apps/hub` - Central authentication hub application (Next.js, port 3000)
 - `apps/justsplit` - Expense splitting application (Next.js, port 4000)
 - `apps/website` - Main CyberEco marketing website (Next.js, port 5000)
@@ -16,14 +18,16 @@ This is an NX 19.8.14 monorepo with the following structure:
 - `apps/demos` - Community governance application (planned, Next.js)
 - `apps/plantopia` - Smart gardening application (planned, Next.js)
 - `libs/shared-types` - Shared TypeScript types and interfaces
-- `libs/firebase-config` - Firebase configuration utilities and helpers
-- `libs/ui-components` - Shared React UI components library
+- `libs/firebase-config` - Firebase configuration utilities and multi-project helpers
+- `libs/ui-components` - Shared React UI components library with theming
 - `libs/shared-assets` - Shared assets including logos and brand materials
 - `firebase/hub/` - Hub Firebase deployment configuration
 - `firebase/justsplit/` - JustSplit Firebase deployment configuration
 - `firebase/website/` - Website Firebase deployment configuration
-- `firebase/future-apps/` - Templates for future app Firebase configurations
+- `archived/` - Legacy code archives (old website moved here)
 - `nx.json` - NX workspace configuration with caching and task runners
+
+**⚠️ IMPORTANT:** Root-level `src/`, `public/`, and legacy config files have been removed. Each app manages its own configuration.
 
 ## Development Commands
 
@@ -42,9 +46,9 @@ This is an NX 19.8.14 monorepo with the following structure:
 - `npm run dev` - Start Hub (port 3000), JustSplit (port 4000), and Website (port 5000) in parallel
 - `npm run dev:website` - Start only the website app in development mode
 - `npm run build` - Build all applications (Hub, JustSplit, Website)
-- `npm run build:website` - Build only the website app for production
+- `npm run build:website` - Build only the website app for production (uses working npm build)
 - `npm run test` - Run all tests across all projects
-- `npm run lint` - Run ESLint across all projects
+- `npm run lint` - Run ESLint across all projects using NX workspace config
 - `npm run clean` - Reset NX cache (equivalent to `nx reset`)
 
 ### Firebase Emulator Commands
@@ -114,6 +118,11 @@ nx affected:test
 - `nx run website:deploy` - Deploy Website to Firebase hosting
 - `./scripts/deploy-all.sh` - Deploy all applications
 - `./scripts/deploy-website.sh` - Deploy only the website (uses working npm build)
+
+**🧹 CLEANUP NOTES:**
+- Root-level `jest.config.js`, `next.config.js` have been removed (app-specific configs remain)
+- Root-level `src/` and `public/` directories removed (were outdated duplicates)
+- All build artifacts and backup files cleaned (see TO_CLEANSE.md for details)
 
 ## Architecture Overview
 

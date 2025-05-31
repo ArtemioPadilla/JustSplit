@@ -29,6 +29,7 @@ npm run dev
 # 3. Open in browser
 # Hub: http://localhost:3000
 # JustSplit: http://localhost:4000
+# Website: http://localhost:5000
 ```
 
 That's it! 🎉 You're now running the CyberEco platform locally.
@@ -51,9 +52,10 @@ We believe your digital presence should empower you, not exploit you. Your ident
 
 ### Current Applications
 
-- **🏠 Hub** - Central authentication and app launcher
-- **💰 JustSplit** - Expense splitting and financial management
-- **🚀 Future Apps** - TaskFlow, HealthTrack, LearnPath, TimeSync, DataVault
+- **🏠 Hub** - Central authentication and app launcher (port 3000)
+- **💰 JustSplit** - Expense splitting and financial management (port 4000)  
+- **🌐 Website** - Marketing site and documentation (port 5000)
+- **🚀 Future Apps** - Somos, Demos, Plantopia, and more
 
 At the center is the **CyberEco Hub** — your identity, your dashboard, your digital home.
 
@@ -63,13 +65,19 @@ At the center is the **CyberEco Hub** — your identity, your dashboard, your di
 cybereco-monorepo/
 ├── apps/
 │   ├── hub/                 # 🏠 Authentication hub (port 3000)
-│   └── justsplit/           # 💰 Expense splitting app (port 4000)
+│   ├── justsplit/           # 💰 Expense splitting app (port 4000)
+│   └── website/             # 🌐 Marketing website (port 5000)
 ├── libs/
-│   ├── shared-types/        # 📝 Common TypeScript types
-│   ├── firebase-config/     # 🔥 Firebase utilities
-│   └── ui-components/       # 🎨 Shared UI components
-├── firebase/                # 🔥 Firebase configurations
-└── docs/                    # 📚 Documentation
+│   ├── shared-types/        # 📝 Common TypeScript interfaces
+│   ├── firebase-config/     # 🔥 Firebase utilities & multi-project config
+│   ├── ui-components/       # 🎨 Shared React components & theming
+│   └── shared-assets/       # 🖼️ Logos, icons, and brand assets
+├── firebase/
+│   ├── hub/                 # 🔥 Hub Firebase project config
+│   ├── justsplit/           # 🔥 JustSplit Firebase project config
+│   └── website/             # 🔥 Website Firebase project config
+├── docs/                    # 📚 Architecture & development docs
+└── archived/                # 📦 Legacy code archives
 ```
 
 ## 🚀 Development Commands
@@ -84,10 +92,12 @@ npm run lint             # Check code quality
 
 ### App-Specific Commands
 ```bash
-nx serve hub             # Start Hub only
-nx serve justsplit-app   # Start JustSplit only
+nx serve hub             # Start Hub only (port 3000)
+nx serve justsplit-app   # Start JustSplit only (port 4000)
+nx serve website         # Start Website only (port 5000)
 nx test hub              # Test Hub only
 nx test justsplit-app    # Test JustSplit only
+nx test website          # Test Website only
 ```
 
 ### Firebase Development
@@ -95,6 +105,7 @@ nx test justsplit-app    # Test JustSplit only
 npm run emulators        # Start Firebase emulators
 npm run hosting:justsplit # Test JustSplit with hosting emulator
 npm run hosting:hub      # Test Hub with hosting emulator
+npm run hosting:website  # Test Website with hosting emulator
 ```
 
 ## 🛠️ Tech Stack
@@ -111,11 +122,13 @@ npm run hosting:hub      # Test Hub with hosting emulator
 ## 🎯 Current Status & Next Steps
 
 ### ✅ Completed
-- [x] NX monorepo setup with proper configuration
-- [x] Basic Hub and JustSplit applications structure
-- [x] Shared libraries (types, Firebase config, UI components)
+- [x] NX monorepo setup with proper configuration and cleanup
+- [x] Hub, JustSplit, and Website applications structure
+- [x] Shared libraries (types, Firebase config, UI components, assets)
+- [x] Multi-project Firebase setup (hub/justsplit/website)
 - [x] Firebase emulator integration
-- [x] Development workflow and documentation
+- [x] Development workflow and comprehensive documentation
+- [x] Codebase cleanup and legacy file removal
 
 ### 🔄 In Progress
 - [ ] Fix JustSplit runtime errors and stabilize

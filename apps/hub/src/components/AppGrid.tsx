@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@cybereco/ui-components';
-import { getHubFirestore, queryDocuments } from '@cybereco/firebase-config';
+import { getHubFirestore, queryDocuments, getCurrentUser } from '@cybereco/firebase-config';
 import { where } from 'firebase/firestore';
 import type { App } from '@cybereco/shared-types';
 import { useAuth } from './AuthContext';
@@ -81,8 +81,9 @@ function AppCard({ app }: { app: App }) {
   const handleLaunch = async () => {
     if (!user) return;
 
-    // Create a token for the app to verify
-    const token = await user.getIdToken?.() || '';
+    // Get Firebase user and create a token for the app to verify
+    const firebaseUser = await getCurrentUser();
+    const token = firebaseUser ? await firebaseUser.getIdToken() : '';
     
     // Redirect to app with token
     const url = new URL(app.url);

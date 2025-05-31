@@ -16,6 +16,11 @@ export function getHubAuth(): Auth {
   return getAuth(getHubApp());
 }
 
+export function getCurrentUser(): User | null {
+  const auth = getHubAuth();
+  return auth.currentUser;
+}
+
 export async function signIn(email: string, password: string) {
   const auth = getHubAuth();
   return signInWithEmailAndPassword(auth, email, password);

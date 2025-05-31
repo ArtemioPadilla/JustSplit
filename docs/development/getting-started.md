@@ -1,6 +1,6 @@
-# Getting Started with JustSplit
+# Getting Started with CyberEco Platform
 
-This guide will help you set up your development environment and start working with the JustSplit monorepo.
+This guide will help you set up your development environment and start working with the CyberEco NX monorepo.
 
 ## Prerequisites
 
@@ -14,8 +14,8 @@ This guide will help you set up your development environment and start working w
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/justsplit.git
-cd justsplit
+git clone https://github.com/your-org/cybereco.git
+cd cybereco
 ```
 
 ### 2. Install NX CLI (Recommended)
@@ -64,6 +64,10 @@ NEXT_PUBLIC_JUSTSPLIT_PROJECT_ID=your-app-project-id
 
 ### Start All Applications
 ```bash
+# Recommended: Start all apps in parallel
+npm run dev
+
+# Alternative: Start all via NX
 nx run-many --target=serve --all
 ```
 
@@ -74,6 +78,9 @@ nx serve hub
 
 # Start JustSplit (http://localhost:4000)
 nx serve justsplit-app
+
+# Start Website (http://localhost:5000)
+nx serve website
 ```
 
 ### Start with Firebase Emulators
