@@ -1,0 +1,21 @@
+{
+  "run": {
+    "command": "nx test justsplit-app --passWithNoTests",
+    "startTime": "2025-05-31T05:46:02.939Z",
+    "endTime": "2025-05-31T05:46:09.656Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "justsplit-app:test",
+      "target": "test",
+      "projectName": "justsplit-app",
+      "hash": "18051513041626853749",
+      "startTime": "2025-05-31T05:46:02.942Z",
+      "endTime": "2025-05-31T05:46:09.656Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    }
+  ]
+}

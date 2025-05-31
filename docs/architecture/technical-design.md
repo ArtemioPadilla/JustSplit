@@ -1,6 +1,10 @@
-# Technical Design Document for JustSplit
+# CyberEco Platform Technical Design
 
-This document outlines the technical architecture and design decisions for the JustSplit application.
+> **🌿 CyberEco Context**: This document outlines the technical architecture and design decisions for applications within the CyberEco human-centered digital ecosystem, with JustSplit as the foundational implementation.
+
+## 🎯 Platform Philosophy
+
+CyberEco applications are designed with **Digital Sovereignty**, **Wellbeing by Design**, and **Community Connection** at their core. Every technical decision supports user autonomy, conscious technology use, and meaningful social interaction.
 
 ## Technology Stack
 

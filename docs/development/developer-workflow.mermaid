@@ -1,0 +1,153 @@
+sequenceDiagram
+    participant D as Developer
+    participant NX as NX CLI
+    participant APP as Application
+    participant LIBS as Shared Libraries
+    participant FB as Firebase
+    participant GHA as GitHub Actions
+    participant DEPLOY as Deployment
+    
+    %% New Application Creation
+    rect rgb(240, 248, 255)
+    note over D,APP: Creating New Application
+    D->>NX: nx g @nx/next:app new-app
+    NX->>APP: Generate app structure
+    NX->>APP: Configure tsconfig & project.json
+    NX->>APP: Set up Firebase config
+    APP->>LIBS: Import shared dependencies
+    NX->>D: Application ready for development
+    end
+    
+    %% Daily Development Workflow
+    rect rgb(248, 255, 248)
+    note over D,FB: Daily Development Process
+    D->>NX: nx serve app-name
+    NX->>APP: Start development server
+    APP->>LIBS: Load shared components
+    APP->>FB: Connect to Firebase emulators
+    FB->>APP: Auth & data responses
+    D->>APP: Make code changes
+    APP->>APP: Hot reload updates
+    end
+    
+    %% Shared Library Development
+    rect rgb(255, 248, 240)
+    note over D,LIBS: Shared Library Updates
+    D->>LIBS: Update ui-components/shared-types
+    D->>NX: nx test lib-name
+    NX->>LIBS: Run library tests
+    D->>NX: nx affected:test
+    NX->>APP: Test affected applications
+    NX->>D: All tests passing
+    end
+    
+    %% Multi-Application Development
+    rect rgb(248, 240, 255)
+    note over D,APP: Working with Multiple Apps
+    D->>NX: npm run dev
+    NX->>APP: Start Hub (port 3000)
+    NX->>APP: Start JustSplit (port 4000)
+    NX->>APP: Start Website (port 5000)
+    APP->>FB: All connect to emulators
+    D->>APP: Cross-app testing & development
+    end
+    
+    %% Firebase Integration
+    rect rgb(240, 255, 240)
+    note over APP,FB: Firebase Integration Process
+    APP->>LIBS: Use firebase-config
+    LIBS->>FB: Initialize multi-project setup
+    FB->>FB: Hub handles authentication
+    FB->>FB: Apps handle specific data
+    FB->>LIBS: Cross-project token verification
+    LIBS->>APP: Authenticated user context
+    end
+    
+    %% Testing & Quality Assurance
+    rect rgb(255, 245, 238)
+    note over D,NX: Testing Strategy
+    D->>NX: nx run-many --target=test --all
+    NX->>LIBS: Run shared library tests
+    NX->>APP: Run application tests
+    NX->>NX: Generate coverage reports
+    D->>NX: nx run-many --target=lint --all
+    NX->>D: Code quality validation
+    end
+    
+    %% Build & Deployment Process
+    rect rgb(250, 240, 230)
+    note over D,DEPLOY: Production Deployment
+    D->>GHA: Push to main branch
+    GHA->>NX: nx affected:build --base=HEAD~1
+    NX->>APP: Build affected applications
+    NX->>LIBS: Build affected libraries
+    GHA->>FB: Deploy Hub to Firebase
+    GHA->>FB: Deploy JustSplit to Firebase
+    GHA->>FB: Deploy Website to Firebase
+    FB->>DEPLOY: Multi-project deployment complete
+    end
+    
+    %% Component Creation
+    rect rgb(245, 245, 255)
+    note over D,LIBS: Creating Shared Components
+    D->>NX: nx g @nx/react:component Button --project=ui-components
+    NX->>LIBS: Generate component files
+    NX->>LIBS: Add to index.ts exports
+    D->>LIBS: Implement component logic
+    D->>APP: Import and use component
+    APP->>LIBS: TypeScript validation
+    end
+    
+    %% Authentication Flow Detail
+    rect rgb(240, 240, 255)
+    note over APP,FB: Authentication Implementation
+    APP->>LIBS: Use AuthProvider from shared context
+    LIBS->>FB: Firebase signInWithEmailAndPassword()
+    FB->>LIBS: Return JWT token & user data
+    LIBS->>APP: Update authentication context
+    APP->>APP: Render authenticated UI
+    APP->>FB: Cross-project token verification
+    end
+    
+    %% Data Operations Detail
+    rect rgb(240, 255, 240)
+    note over APP,FB: Data Operations Flow
+    APP->>LIBS: Use custom hooks (useFirestore)
+    LIBS->>FB: Query specific project database
+    FB->>LIBS: Return collection/document data
+    LIBS->>APP: Update local state & cache
+    APP->>APP: Render data components
+    APP->>FB: Real-time subscription updates
+    end
+    
+    %% Error Handling & Recovery
+    rect rgb(255, 240, 240)
+    note over APP,LIBS: Error Handling Strategy
+    APP->>LIBS: Trigger data operation
+    LIBS->>FB: API call with error handling
+    FB->>LIBS: Error response
+    LIBS->>APP: Structured error object
+    APP->>APP: Show user-friendly error UI
+    APP->>LIBS: Log error for monitoring
+    end
+    
+    %% Performance Optimization
+    rect rgb(248, 248, 255)
+    note over NX,APP: Performance Features
+    NX->>NX: Build cache optimization
+    NX->>APP: Incremental builds
+    APP->>LIBS: Tree shaking unused imports
+    APP->>APP: Code splitting by routes
+    FB->>APP: Firebase SDK optimization
+    end
+    
+    %% Development Tools Integration
+    rect rgb(255, 248, 248)
+    note over D,NX: Development Tools
+    D->>NX: nx dep-graph
+    NX->>D: Visual dependency graph
+    D->>NX: nx affected --target=build
+    NX->>D: Show affected projects
+    D->>NX: nx reset
+    NX->>NX: Clear computation cache
+    end

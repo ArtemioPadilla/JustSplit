@@ -1,0 +1,278 @@
+.header {
+  height: var(--header-height, 70px);
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: var(--background);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.container {
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.navLink {
+  margin: 0 var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--text-primary);
+  font-weight: 400;
+  position: relative;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.navLink:hover {
+  color: var(--primary);
+}
+
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary);
+  transform: scaleX(0);
+  transform-origin: bottom right;
+  transition: transform 0.3s ease-in-out;
+}
+
+.navLink:hover::after {
+  transform: scaleX(1);
+  transform-origin: bottom left;
+}
+
+.navLink.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.navLink.active::after {
+  transform: scaleX(1);
+}
+
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Beautiful Hub Button Styles */
+.hubButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #006241, #004D32, #006241);
+  background-size: 200% 200%;
+  color: white;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 
+    0 4px 15px rgba(0, 98, 65, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  border: 2px solid transparent;
+  backdrop-filter: blur(10px);
+}
+
+.hubButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s ease;
+}
+
+.hubButton:hover {
+  transform: translateY(-3px) scale(1.05);
+  background-position: 100% 0;
+  box-shadow: 
+    0 8px 25px rgba(0, 98, 65, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.hubButton:hover::before {
+  left: 100%;
+}
+
+.hubButton:active {
+  transform: translateY(-1px) scale(1.02);
+  transition: all 0.1s ease;
+}
+
+.hubButtonContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.hubButtonGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 98, 65, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.4s ease;
+  pointer-events: none;
+}
+
+.hubButton:hover .hubButtonGlow {
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+.hubButtonText {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.hubButton:hover .hubButtonText {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hubButtonIcon {
+  font-size: 1rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.hubButton:hover .hubButtonIcon {
+  transform: translateY(-2px) rotate(10deg);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.hubButtonExternal {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.hubButton:hover .hubButtonExternal {
+  transform: translate(2px, -2px);
+  opacity: 1;
+}
+
+.menuToggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  margin-left: var(--spacing-sm);
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .menuToggle {
+    display: block;
+  }
+
+  .navLinks {
+    position: fixed;
+    top: var(--header-height, 70px);
+    right: -100%;
+    width: 70%;
+    height: calc(100vh - var(--header-height, 70px));
+    background-color: var(--surface);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+    transition: right 0.3s ease-in-out;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .navLinks.navOpen {
+    right: 0;
+  }
+
+  .navLink {
+    width: 100%;
+    margin: var(--spacing-sm) 0;
+  }
+
+  .hubButton {
+    padding: 8px 12px;
+    border-radius: 20px;
+  }
+
+  .hubButtonContent {
+    gap: 6px;
+  }
+
+  .hubButtonText {
+    font-size: 0.8rem;
+  }
+
+  .hubButtonIcon {
+    font-size: 0.9rem;
+  }
+
+  .hubButtonExternal {
+    font-size: 0.6rem;
+  }
+
+  .toggleContainer {
+    gap: var(--spacing-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .hubButton {
+    padding: 6px 10px;
+    border-radius: 18px;
+  }
+
+  .hubButtonText {
+    display: none;
+  }
+
+  .hubButtonExternal {
+    display: none;
+  }
+
+  .hubButtonIcon {
+    font-size: 1rem;
+  }
+}

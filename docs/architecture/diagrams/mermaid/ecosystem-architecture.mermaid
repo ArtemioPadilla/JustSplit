@@ -1,0 +1,179 @@
+flowchart TB
+    subgraph "CyberEco NX Monorepo"
+        direction TB
+        
+        subgraph "Applications"
+            direction LR
+            HUB[Hub<br/>Central Auth]
+            JS[JustSplit<br/>Expense Splitting]
+            WEB[Website<br/>Marketing]
+            SOB[Somos<br/>Family Roots]
+            DM[Demos<br/>Community Governance]
+            PT[Plantopia<br/>Smart Gardening]
+            FU[Future Apps...]
+        end
+        
+        subgraph "Shared Libraries (@cybereco/*)"
+            direction LR
+            subgraph "Core Infrastructure"
+                ST[shared-types<br/>TypeScript Types]
+                FC[firebase-config<br/>Auth & DB Config]
+                UC[ui-components<br/>React Components]
+                SA[shared-assets<br/>Logos & Brand]
+            end
+        end
+        
+        subgraph "NX Workspace Tools"
+            direction LR
+            AG[App Generators]
+            CT[Component Tools]
+            TD[Test & Deploy]
+            DC[Dependency Cache]
+            PM[Parallel Execution]
+        end
+    end
+    
+    subgraph "Firebase Multi-Project Backend"
+        direction TB
+        subgraph "Hub Project"
+            HAuth[Authentication]
+            HUsers[User Management]
+            HApps[App Registry]
+        end
+        
+        subgraph "JustSplit Project"
+            JSData[Expense Data]
+            JSGroups[Group Management]
+            JSEvents[Event Tracking]
+        end
+        
+        subgraph "Website Project"
+            WStatic[Static Hosting]
+            WAnalytics[Analytics]
+        end
+        
+        subgraph "Future Projects"
+            SData[Somos Data]
+            DData[Demos Data]
+            PData[Plantopia Data]
+        end
+    end
+    
+    subgraph "Development Infrastructure"
+        direction TB
+        subgraph "Local Development"
+            EMU[Firebase Emulators]
+            DEV[Hot Reload Servers]
+            TST[Jest Testing]
+        end
+        
+        subgraph "CI/CD Pipeline"
+            GHA[GitHub Actions]
+            BUILD[NX Build Cache]
+            DEPLOY[Firebase Deploy]
+        end
+    end
+    
+    subgraph "User Experience"
+        direction TB
+        SSO[Single Sign-On]
+        PWA[Progressive Web Apps]
+        MOBILE[Mobile Responsive]
+        OFFLINE[Offline Support]
+    end
+    
+    %% Application Dependencies
+    HUB --> ST & FC & UC & SA
+    JS --> ST & FC & UC & SA
+    WEB --> ST & SA & UC
+    SOB --> ST & FC & UC & SA
+    DM --> ST & FC & UC & SA
+    PT --> ST & FC & UC & SA
+    
+    %% Library Dependencies
+    UC --> ST
+    FC --> ST
+    SA --> ST
+    
+    %% NX Tool Integration
+    AG --> HUB & JS & WEB & SOB & DM & PT & FU
+    CT --> UC
+    TD --> ALL_APPS[All Apps]
+    DC --> ALL_APPS
+    PM --> ALL_APPS
+    
+    %% Firebase Project Connections
+    HUB --> HAuth & HUsers & HApps
+    JS --> JSData & JSGroups & JSEvents
+    WEB --> WStatic & WAnalytics
+    SOB --> SData
+    DM --> DData
+    PT --> PData
+    
+    %% Cross-Project Authentication
+    HAuth <--> JSData
+    HAuth <--> SData
+    HAuth <--> DData
+    HAuth <--> PData
+    
+    %% Development Flow
+    EMU --> HUB & JS & WEB
+    DEV --> HUB & JS & WEB
+    TST --> ST & FC & UC
+    
+    %% CI/CD Flow
+    GHA --> BUILD --> DEPLOY
+    BUILD --> HUB & JS & WEB
+    DEPLOY --> HAuth & JSData & WStatic
+    
+    %% User Experience Flow
+    SSO --> HAuth
+    PWA --> HUB & JS & WEB
+    MOBILE --> UC
+    OFFLINE --> JSData
+    
+    %% Request Flow Example
+    subgraph "Data Flow Pattern"
+        direction LR
+        USER[User Action] --> COMP[React Component]
+        COMP --> HOOK[Custom Hook]
+        HOOK --> SERVICE[Firebase Service]
+        SERVICE --> BACKEND[Firebase Backend]
+        BACKEND --> RESPONSE[Response]
+        RESPONSE --> UPDATE[UI Update]
+    end
+    
+    %% Development Workflow
+    subgraph "Development Workflow"
+        direction LR
+        NEW[nx g app] --> TEMPLATE[App Template]
+        TEMPLATE --> CUSTOM[Customize Features]
+        CUSTOM --> CONNECT[Connect Firebase]
+        CONNECT --> TEST[Test & Deploy]
+    end
+    
+    %% Package Update Flow
+    subgraph "Shared Library Updates"
+        direction LR
+        LIB_UPDATE[Library Change] --> VERSION[Semantic Version]
+        VERSION --> AFFECTED[nx affected]
+        AFFECTED --> REBUILD[Rebuild Apps]
+        REBUILD --> REDEPLOY[Redeploy]
+    end
+    
+    %% Styling
+    classDef appNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef libNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef toolNode fill:#fff8e1,stroke:#f57f17,stroke-width:2px;
+    classDef firebaseNode fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px;
+    classDef devNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px;
+    classDef userNode fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
+    classDef flowNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    
+    class HUB,JS,WEB,SOB,DM,PT,FU appNode;
+    class ST,FC,UC,SA libNode;
+    class AG,CT,TD,DC,PM toolNode;
+    class HAuth,HUsers,HApps,JSData,JSGroups,JSEvents,WStatic,WAnalytics,SData,DData,PData firebaseNode;
+    class EMU,DEV,TST,GHA,BUILD,DEPLOY devNode;
+    class SSO,PWA,MOBILE,OFFLINE userNode;
+    class "Data Flow Pattern","Development Workflow","Shared Library Updates" flowNode;

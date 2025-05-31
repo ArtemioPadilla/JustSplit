@@ -1,0 +1,24 @@
+   [1m[38;2;173;127;168m▲ Next.js 15.3.2[39m[22m
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1m✓[22m[39m Compiled successfully in 3.0s
+ [37m[1m [22m[39m Linting and checking validity of types ...
+ [31m[1m⨯[22m[39m ESLint: Failed to load config "next/core-web-vitals" to extend from. Referenced from: /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/.eslintrc.json
+ [37m[1m [22m[39m Collecting page data ...
+ [37m[1m [22m[39m Generating static pages (0/18) ...
+[Error: Objects are not valid as a React child (found: object with keys {$$typeof, type, key, ref, props, _owner}). If you meant to render a collection of children, use an array instead.]
+Error occurred prerendering page "/404". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: Objects are not valid as a React child (found: object with keys {$$typeof, type, key, ref, props, _owner}). If you meant to render a collection of children, use an array instead.
+    at retryNode (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:5068:13)
+    at renderNodeDestructive (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4835:7)
+    at renderElement (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4417:7)
+    at retryNode (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:5022:16)
+    at renderNodeDestructive (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4835:7)
+    at finishFunctionComponent (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4323:9)
+    at renderElement (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4422:7)
+    at retryNode (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:5022:16)
+    at renderNodeDestructive (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:4835:7)
+    at renderNode (/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/react-dom/cjs/react-dom-server.edge.production.js:5280:14)
+Export encountered an error on /_error: /404, exiting the build.
+ [31m[1m⨯[22m[39m Next.js build worker exited with code: 1 and signal: null
+[1m[31mBuild process exited due to code 1  [39m[22m

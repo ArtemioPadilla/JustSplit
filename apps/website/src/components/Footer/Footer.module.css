@@ -1,0 +1,115 @@
+.footer {
+  background-color: var(--color-card);
+  padding: var(--spacing-lg) 0;
+  min-height: var(--footer-height);
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+}
+
+.footerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-md);
+}
+
+@media (min-width: 576px) {
+  .footerContent {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .footerContent {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  }
+}
+
+.footerSection {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-md);
+}
+
+@media (min-width: 992px) {
+  .footerSection {
+    margin-bottom: 0;
+  }
+}
+
+.tagline {
+  color: var(--color-muted);
+  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.socialIcons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.socialIcon {
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  transition: color 0.2s;
+}
+
+.socialIcon:hover {
+  color: var(--color-primary);
+}
+
+.footerHeading {
+  font-size: 1.1rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.footerLinks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.footerLinks a {
+  color: var(--color-muted);
+  transition: color 0.2s;
+  font-size: 0.95rem;
+}
+
+.footerLinks a:hover {
+  color: var(--color-primary);
+}
+
+.contactInfo {
+  color: var(--color-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.contactInfo p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.footerBottom {
+  text-align: center;
+  padding-top: var(--spacing-md);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-lg);
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+}
+
+.copyright {
+  color: var(--color-muted);
+}

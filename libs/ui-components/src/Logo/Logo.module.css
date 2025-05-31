@@ -1,0 +1,46 @@
+.logo {
+  display: block;
+}
+
+.logo-size-small {
+  height: 24px;
+  width: auto;
+}
+
+.logo-size-medium {
+  height: 40px;
+  width: auto;
+}
+
+.logo-size-large {
+  height: 64px;
+  width: auto;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+}
+
+.container-with-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text {
+  font-weight: 600;
+  color: inherit;
+}
+
+.text-small {
+  font-size: 14px;
+}
+
+.text-medium {
+  font-size: 18px;
+}
+
+.text-large {
+  font-size: 24px;
+}

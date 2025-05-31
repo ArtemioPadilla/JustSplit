@@ -1,0 +1,31 @@
+{
+  "name": "@cybereco/hub",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "deploy": "npm run build && firebase deploy --only hosting:hub"
+  },
+  "dependencies": {
+    "@cybereco/shared-types": "file:../../libs/shared-types",
+    "@cybereco/firebase-config": "file:../../libs/firebase-config",
+    "@cybereco/ui-components": "file:../../libs/ui-components",
+    "next": "^15.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "firebase": "^11.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "eslint": "^8",
+    "eslint-config-next": "^15.3.1",
+    "typescript": "^5"
+  }
+}

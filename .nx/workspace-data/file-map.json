@@ -1,0 +1,2489 @@
+{
+  "version": "6.0",
+  "nxVersion": "19.8.14",
+  "deps": {
+    "firebase": "^11.8.1",
+    "jest": "^29.7.0",
+    "@nx/eslint-plugin": "19.8.14",
+    "@nx/jest": "19.8.14",
+    "@nx/js": "19.8.14",
+    "@nx/linter": "19.8.14",
+    "@nx/next": "19.8.14",
+    "@nx/react": "19.8.14",
+    "@nx/workspace": "19.8.14",
+    "@swc-node/register": "^1.6.7",
+    "@swc/core": ">= 1.4.13",
+    "@swc/helpers": ">=0.5.17",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@types/uuid": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-config-next": "^15.3.3",
+    "nx": "19.8.14",
+    "typescript": "^5"
+  },
+  "pathMappings": {
+    "@cybereco/shared-types": [
+      "libs/shared-types/src/index.ts"
+    ],
+    "@cybereco/firebase-config": [
+      "libs/firebase-config/src/index.ts"
+    ],
+    "@cybereco/ui-components": [
+      "libs/ui-components/src/index.ts"
+    ]
+  },
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "nonProjectFiles": [
+      {
+        "file": ".eslintrc.json",
+        "hash": "14839753491958496737"
+      },
+      {
+        "file": ".firebaserc",
+        "hash": "4003437198390147118"
+      },
+      {
+        "file": ".github/instructions/nx.instructions.md",
+        "hash": "2692291612879745799"
+      },
+      {
+        "file": ".github/workflows/README.md",
+        "hash": "14371088399430693962"
+      },
+      {
+        "file": ".github/workflows/build.yml",
+        "hash": "11402036185117266516"
+      },
+      {
+        "file": ".github/workflows/ci.yml",
+        "hash": "5842225275676383450"
+      },
+      {
+        "file": ".github/workflows/deploy-hub.yml",
+        "hash": "2246583450523178759"
+      },
+      {
+        "file": ".github/workflows/deploy-justsplit.yml",
+        "hash": "13263109098444815897"
+      },
+      {
+        "file": ".github/workflows/deploy-website.yml",
+        "hash": "10928794065673125495"
+      },
+      {
+        "file": ".github/workflows/test.yml",
+        "hash": "4710610660933553808"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "3160380329065813290"
+      },
+      {
+        "file": "CLAUDE.md",
+        "hash": "17453940558218102962"
+      },
+      {
+        "file": "CNAME",
+        "hash": "12670165116359343350"
+      },
+      {
+        "file": "CONTRIBUTOR-AGREEMENT.md",
+        "hash": "352414687446605377"
+      },
+      {
+        "file": "CYBERECO-LICENSE.md",
+        "hash": "17184261828977620282"
+      },
+      {
+        "file": "LICENSE",
+        "hash": "475094082454657105"
+      },
+      {
+        "file": "README.md",
+        "hash": "1408847530090666250"
+      },
+      {
+        "file": "archived-docs/MIGRATION_SUMMARY.md",
+        "hash": "12797397527926008837"
+      },
+      {
+        "file": "archived-docs/MONOREPO_ARCHITECTURE.md",
+        "hash": "578493759782880572"
+      },
+      {
+        "file": "archived-docs/NX_MIGRATION_COMPLETE.md",
+        "hash": "11614504007559306489"
+      },
+      {
+        "file": "archived-docs/architecture/nx-architecture.md",
+        "hash": "13061617322741794032"
+      },
+      {
+        "file": "archived-docs/architecture/nx-monorepo-architecture.md",
+        "hash": "13678995183538161449"
+      },
+      {
+        "file": "archived-docs/planning/to-do.md",
+        "hash": "614306799937716421"
+      },
+      {
+        "file": "docs/ABOUT.md",
+        "hash": "10373037422785146181"
+      },
+      {
+        "file": "docs/GETTING_STARTED.md",
+        "hash": "18117739586287141005"
+      },
+      {
+        "file": "docs/PHILOSOPHY.md",
+        "hash": "1708105725740304485"
+      },
+      {
+        "file": "docs/README.md",
+        "hash": "11208337388142149567"
+      },
+      {
+        "file": "docs/ROADMAP.md",
+        "hash": "11247742156091654861"
+      },
+      {
+        "file": "docs/api/README.md",
+        "hash": "12572550095925916573"
+      },
+      {
+        "file": "docs/api/data-models-comprehensive.md",
+        "hash": "8790058396702789796"
+      },
+      {
+        "file": "docs/api/data-models-nx-comprehensive.md",
+        "hash": "2305906320830654484"
+      },
+      {
+        "file": "docs/api/data-models.md",
+        "hash": "7118840247970817605"
+      },
+      {
+        "file": "docs/api/endpoints.md",
+        "hash": "10339175161763444535"
+      },
+      {
+        "file": "docs/applications/README.md",
+        "hash": "1384152929420135908"
+      },
+      {
+        "file": "docs/applications/priority-apps.md",
+        "hash": "5554359294631199910"
+      },
+      {
+        "file": "docs/architecture/diagrams/README.md",
+        "hash": "559560433297511089"
+      },
+      {
+        "file": "docs/architecture/diagrams/component-diagram.md",
+        "hash": "9964653968450415802"
+      },
+      {
+        "file": "docs/architecture/diagrams/data-flow-diagram.md",
+        "hash": "13498230696896051549"
+      },
+      {
+        "file": "docs/architecture/diagrams/mermaid/ecosystem-architecture.mermaid",
+        "hash": "12920564643651694252"
+      },
+      {
+        "file": "docs/architecture/diagrams/mermaid/technical-stack-diagram.mermaid",
+        "hash": "6343547978829781223"
+      },
+      {
+        "file": "docs/architecture/diagrams/system-architecture.md",
+        "hash": "1119911349734281752"
+      },
+      {
+        "file": "docs/architecture/modular-application-strategy.md",
+        "hash": "8054689787148365018"
+      },
+      {
+        "file": "docs/architecture/nx-architecture-consolidated.md",
+        "hash": "8519408862095703513"
+      },
+      {
+        "file": "docs/architecture/overview.md",
+        "hash": "12318906351880462017"
+      },
+      {
+        "file": "docs/architecture/technical-design.md",
+        "hash": "4779240100550480952"
+      },
+      {
+        "file": "docs/community/README.md",
+        "hash": "12041914134152193241"
+      },
+      {
+        "file": "docs/deployment/firebase-deployment.md",
+        "hash": "1968709991282980391"
+      },
+      {
+        "file": "docs/deployment/low-cost-optimization.md",
+        "hash": "9737116763807544584"
+      },
+      {
+        "file": "docs/deployment/on-premises-deployment.md",
+        "hash": "11759857248411326240"
+      },
+      {
+        "file": "docs/design/style-guide.md",
+        "hash": "7970815222749568876"
+      },
+      {
+        "file": "docs/design/ui-components.md",
+        "hash": "2112972569154542228"
+      },
+      {
+        "file": "docs/design/wireframes.md",
+        "hash": "8290711046325508420"
+      },
+      {
+        "file": "docs/development/code-style.md",
+        "hash": "7599353455910653061"
+      },
+      {
+        "file": "docs/development/contributing.md",
+        "hash": "4004076637206140642"
+      },
+      {
+        "file": "docs/development/developer-workflow.mermaid",
+        "hash": "12504919951911409987"
+      },
+      {
+        "file": "docs/development/development-workflow.md",
+        "hash": "1236499871742380411"
+      },
+      {
+        "file": "docs/development/firebase-deployment.md",
+        "hash": "5314392235327397841"
+      },
+      {
+        "file": "docs/development/getting-started.md",
+        "hash": "17552674549393460999"
+      },
+      {
+        "file": "docs/development/licensing.md",
+        "hash": "16848997591162541555"
+      },
+      {
+        "file": "docs/development/local-development.md",
+        "hash": "8512887853619601945"
+      },
+      {
+        "file": "docs/development/logo-creation.md",
+        "hash": "17885300203393607172"
+      },
+      {
+        "file": "docs/development/testing/testing-strategy.md",
+        "hash": "18297277395256830140"
+      },
+      {
+        "file": "docs/operations/monitoring/performance-metrics.md",
+        "hash": "18277727057631497428"
+      },
+      {
+        "file": "docs/operations/security/compliance-framework.md",
+        "hash": "6335267427515056478"
+      },
+      {
+        "file": "docs/planning/README.md",
+        "hash": "242580851534895757"
+      },
+      {
+        "file": "docs/planning/app-matrix.md",
+        "hash": "10356832507431718864"
+      },
+      {
+        "file": "docs/planning/interactive-roadmap.ipynb",
+        "hash": "13428960491903007608"
+      },
+      {
+        "file": "docs/planning/project-roadmap.md",
+        "hash": "4597156141566748584"
+      },
+      {
+        "file": "docs/planning/release-planning.md",
+        "hash": "9383720433431838468"
+      },
+      {
+        "file": "docs/planning/strategic-solution-matrix.md",
+        "hash": "16620673555655470475"
+      },
+      {
+        "file": "docs/user-guides/README.md",
+        "hash": "14491224823758034795"
+      },
+      {
+        "file": "docs/user-guides/applications/justsplit-user-guide.md",
+        "hash": "8948325351834181984"
+      },
+      {
+        "file": "docs/user-guides/faq.md",
+        "hash": "17499544209911514810"
+      },
+      {
+        "file": "docs/user-guides/getting-started/account-creation.md",
+        "hash": "4431270696425753605"
+      },
+      {
+        "file": "docs/user-guides/troubleshooting/common-issues.md",
+        "hash": "12690351250011128707"
+      },
+      {
+        "file": "docs/vision/README.md",
+        "hash": "4113051274851676917"
+      },
+      {
+        "file": "docs/vision/decentralized-future.md",
+        "hash": "3621239844531721743"
+      },
+      {
+        "file": "emulator-data/auth_export/accounts.json",
+        "hash": "17865942201032937653"
+      },
+      {
+        "file": "emulator-data/auth_export/config.json",
+        "hash": "2577557584963397638"
+      },
+      {
+        "file": "emulator-data/firebase-export-metadata.json",
+        "hash": "7280124457033991806"
+      },
+      {
+        "file": "emulator-data/firestore_export/firestore_export.overall_export_metadata",
+        "hash": "8048186133039560850"
+      },
+      {
+        "file": "firebase.json",
+        "hash": "16268073048329132045"
+      },
+      {
+        "file": "firestore.indexes.json",
+        "hash": "2048261650710551311"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-ico.svg",
+        "hash": "6367968871152200380"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.png",
+        "hash": "15738933302531348868"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.svg",
+        "hash": "4068850462378546880"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo.png",
+        "hash": "8307353577392312031"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo.svg",
+        "hash": "11661841135424751394"
+      },
+      {
+        "file": "nx.json",
+        "hash": "17254286810681708230"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "12847125417071925858"
+      },
+      {
+        "file": "package.json",
+        "hash": "15240412209422585712"
+      },
+      {
+        "file": "scripts/deploy-all.sh",
+        "hash": "14203827832601848623"
+      },
+      {
+        "file": "scripts/deploy-hub.sh",
+        "hash": "12444477468883296986"
+      },
+      {
+        "file": "scripts/deploy-justsplit.sh",
+        "hash": "13221042646516571667"
+      },
+      {
+        "file": "scripts/deploy-website.sh",
+        "hash": "8953027014179350123"
+      },
+      {
+        "file": "scripts/migrate-justsplit.sh",
+        "hash": "7967597911544655931"
+      },
+      {
+        "file": "scripts/verify-firebase-fixes.sh",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "10525485846082189342"
+      },
+      {
+        "file": "tsconfig.json",
+        "hash": "4932956569858600249"
+      }
+    ],
+    "projectFileMap": {
+      "firebase-config": [
+        {
+          "file": "libs/firebase-config/package-lock.json",
+          "hash": "910707128760851759"
+        },
+        {
+          "file": "libs/firebase-config/package.json",
+          "hash": "17459818656195624060",
+          "deps": [
+            "shared-types",
+            "npm:typescript",
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "libs/firebase-config/project.json",
+          "hash": "9548370730743451788"
+        },
+        {
+          "file": "libs/firebase-config/src/auth.ts",
+          "hash": "17820781308799921650",
+          "deps": [
+            "npm:firebase",
+            "shared-types"
+          ]
+        },
+        {
+          "file": "libs/firebase-config/src/config.ts",
+          "hash": "9862515269107144440",
+          "deps": [
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "libs/firebase-config/src/firestore.ts",
+          "hash": "364168872047375261",
+          "deps": [
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "libs/firebase-config/src/index.ts",
+          "hash": "5397203386754092289"
+        },
+        {
+          "file": "libs/firebase-config/tsconfig.json",
+          "hash": "4091212791924510801"
+        }
+      ],
+      "justsplit-app": [
+        {
+          "file": "apps/justsplit/docs/JustSplit Consolidated Feature Matrix and Detailed Roadmap.markdown",
+          "hash": "14119892279420341900"
+        },
+        {
+          "file": "apps/justsplit/docs/README.md",
+          "hash": "5352315565019950614"
+        },
+        {
+          "file": "apps/justsplit/docs/Short-Term Goals (Next 1-2 Weeks).md",
+          "hash": "1855397183581681409"
+        },
+        {
+          "file": "apps/justsplit/docs/assesment-202505.md",
+          "hash": "10439004817134813275"
+        },
+        {
+          "file": "apps/justsplit/docs/known-bugs.md",
+          "hash": "4536796293006583244"
+        },
+        {
+          "file": "apps/justsplit/docs/milestones.md",
+          "hash": "2784917043844839211"
+        },
+        {
+          "file": "apps/justsplit/docs/refactor-plan.md",
+          "hash": "14988122373428222688"
+        },
+        {
+          "file": "apps/justsplit/docs/requirements/functional-requirements.md",
+          "hash": "736671484315890550"
+        },
+        {
+          "file": "apps/justsplit/docs/requirements/non-functional-requirements.md",
+          "hash": "18217683366874756943"
+        },
+        {
+          "file": "apps/justsplit/docs/requirements/user-stories.md",
+          "hash": "10036165627342279826"
+        },
+        {
+          "file": "apps/justsplit/jest.config.js",
+          "hash": "8462842095913692943",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/jest.setup.js",
+          "hash": "11649681104090590204"
+        },
+        {
+          "file": "apps/justsplit/next.config.js",
+          "hash": "16316455231160105901"
+        },
+        {
+          "file": "apps/justsplit/package-lock.json",
+          "hash": "10736423507777477652"
+        },
+        {
+          "file": "apps/justsplit/package.json",
+          "hash": "10985002471559191614",
+          "deps": [
+            "npm:@types/node",
+            "npm:@types/react",
+            "npm:@types/react-dom",
+            "npm:eslint",
+            "npm:eslint-config-next",
+            "npm:jest",
+            "npm:typescript",
+            "firebase-config",
+            "shared-types",
+            "ui-components",
+            "npm:@types/uuid",
+            "npm:firebase",
+            "npm:next",
+            "npm:react",
+            "npm:react-dom",
+            "npm:uuid"
+          ]
+        },
+        {
+          "file": "apps/justsplit/project.json",
+          "hash": "5543473651142465170"
+        },
+        {
+          "file": "apps/justsplit/public/images/favicon.ico",
+          "hash": "17851128216583331379"
+        },
+        {
+          "file": "apps/justsplit/public/images/favicon.xcf",
+          "hash": "8640323294574686936"
+        },
+        {
+          "file": "apps/justsplit/public/images/justsplit-logo.png",
+          "hash": "14642510108795447006"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo-ico.ai",
+          "hash": "15989550874253672698"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo-ico.png",
+          "hash": "6767985640361270959"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo-square.ai",
+          "hash": "4485435657714055927"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo-square.png",
+          "hash": "7518962060427561028"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo-white.ai",
+          "hash": "11821677504841959118"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo.ai",
+          "hash": "12297371206118583459"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo.png",
+          "hash": "10121345660719554501"
+        },
+        {
+          "file": "apps/justsplit/public/images/logo.xcf",
+          "hash": "252626238791764474"
+        },
+        {
+          "file": "apps/justsplit/public/images/old-justsplit-logo.png",
+          "hash": "6646454001633406036"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/authContext.test.tsx",
+          "hash": "10385170281499734203"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/debug-grouping.test.tsx",
+          "hash": "10725527162839969802"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/expenseGroups.test.tsx",
+          "hash": "15874879196623770982"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/hoverCard.test.tsx",
+          "hash": "13014806558298523340",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/postEventExpenses.test.tsx",
+          "hash": "7967880886946473268"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/progressBar.test.tsx",
+          "hash": "3555107306923498840",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/timeline.test.tsx",
+          "hash": "16872274039776192836",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/timelineCalculations.test.tsx",
+          "hash": "504902582238244452"
+        },
+        {
+          "file": "apps/justsplit/src/__tests__/timelineEvents.test.tsx",
+          "hash": "11512092485738014150",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/__tests__/exampleTest.tsx",
+          "hash": "488338948004308572",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/__tests__/page.test.tsx",
+          "hash": "593943420572897572",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/about/about.module.css",
+          "hash": "10908805417356207629"
+        },
+        {
+          "file": "apps/justsplit/src/app/about/page.tsx",
+          "hash": "5521217341805135055",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/auth/page.module.css",
+          "hash": "15627190187256041564"
+        },
+        {
+          "file": "apps/justsplit/src/app/auth/signin/page.tsx",
+          "hash": "3494767591798973301",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/auth/signup/page.tsx",
+          "hash": "669720043491927407",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/client-layout-wrapper.test.tsx",
+          "hash": "5017349195844249181",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/client-layout-wrapper.tsx",
+          "hash": "4923835387627358911",
+          "deps": [
+            "npm:next",
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/components/EventList.tsx",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/app/error.tsx",
+          "hash": "12619473654501318972"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/EventDetail.tsx",
+          "hash": "1577566084676478024"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/[id]/page.module.css",
+          "hash": "7560119981426441238"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/[id]/page.tsx",
+          "hash": "8756871524097633274",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/__tests__/EventDetail.test.tsx",
+          "hash": "15957028254002309443",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/edit/[id]/page.module.css",
+          "hash": "13820989517387087264"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/edit/[id]/page.tsx",
+          "hash": "1365357745697936220",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/list/page.module.css",
+          "hash": "11080117714816853953"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/list/page.tsx",
+          "hash": "8162566150160663207",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/new/page-fixed.tsx",
+          "hash": "16977138639443136824",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/new/page.module.css",
+          "hash": "7025989797683316320"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/new/page.tsx",
+          "hash": "5214559755529434863",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/events/page.module.css",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/app/events/page.tsx",
+          "hash": "5118471508273818554"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/ExpenseDetail.tsx",
+          "hash": "5454086049512419241"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/[id]/page.module.css",
+          "hash": "6035623851093240656"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/[id]/page.tsx",
+          "hash": "524474256264995493",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/__tests__/ExpenseDetail.test.tsx",
+          "hash": "17402086236459797709",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/edit/[id]/page.module.css",
+          "hash": "4944601711238547665"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/edit/[id]/page.tsx",
+          "hash": "7824477664238620070",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/list/page.module.css",
+          "hash": "5242826446068615735"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/list/page.tsx",
+          "hash": "2888332712588370719",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/new/page.module.css",
+          "hash": "10999109022124884747"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/new/page.tsx",
+          "hash": "6373168264974414960",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/page.module.css",
+          "hash": "3974311272393902031"
+        },
+        {
+          "file": "apps/justsplit/src/app/expenses/page.tsx",
+          "hash": "6317599059855084413",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/[id]/page.module.css",
+          "hash": "10648789197694072631"
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/[id]/page.tsx",
+          "hash": "11348398067610551012",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/add/page.module.css",
+          "hash": "5944235634812686105"
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/add/page.tsx",
+          "hash": "7222293700986547417",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/page.module.css",
+          "hash": "11954212589481953392"
+        },
+        {
+          "file": "apps/justsplit/src/app/friends/page.tsx",
+          "hash": "12968095049942240653",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/global-error.tsx",
+          "hash": "3233353379345115477"
+        },
+        {
+          "file": "apps/justsplit/src/app/globals.css",
+          "hash": "11431437583383931932"
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/[id]/page.module.css",
+          "hash": "8127175074076037297"
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/[id]/page.tsx",
+          "hash": "2046706619230064262",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/list/page.module.css",
+          "hash": "34710485025936816"
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/list/page.tsx",
+          "hash": "1317226043782058758",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/new/page.module.css",
+          "hash": "10778728952872799435"
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/new/page.tsx",
+          "hash": "5058682899814633644",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/groups/page.tsx",
+          "hash": "148399400747670980",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/help/help.module.css",
+          "hash": "16021032255736942716"
+        },
+        {
+          "file": "apps/justsplit/src/app/help/page.tsx",
+          "hash": "11502416107834916902",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/landing.module.css",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/app/landing/landing.module.css",
+          "hash": "2216060904382189983"
+        },
+        {
+          "file": "apps/justsplit/src/app/landing/page.tsx",
+          "hash": "12264369777957799276",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/layout.tsx",
+          "hash": "829638489218029320",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/not-found.tsx",
+          "hash": "412579344471432772"
+        },
+        {
+          "file": "apps/justsplit/src/app/page.module.css",
+          "hash": "18145703436964097024"
+        },
+        {
+          "file": "apps/justsplit/src/app/page.tsx",
+          "hash": "12869062368960014190",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/profile/page.module.css",
+          "hash": "1236480173823829344"
+        },
+        {
+          "file": "apps/justsplit/src/app/profile/page.tsx",
+          "hash": "17381052620214825485",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/settlements/page.module.css",
+          "hash": "12472064766656690851"
+        },
+        {
+          "file": "apps/justsplit/src/app/settlements/page.tsx",
+          "hash": "3733006652877156791",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/app/test-notification/page.tsx",
+          "hash": "1822737500992389098"
+        },
+        {
+          "file": "apps/justsplit/src/components/Auth/ProtectedRoute.tsx",
+          "hash": "10286021754421955037",
+          "deps": [
+            "npm:next",
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/AvatarUploader/index.tsx",
+          "hash": "6521219042673009786",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/AvatarUploader/styles.module.css",
+          "hash": "17767637255944446697"
+        },
+        {
+          "file": "apps/justsplit/src/components/Button/index.tsx",
+          "hash": "8604410498664869420",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/CurrencyExchangeTicker/index.tsx",
+          "hash": "7085056754182641282",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/CurrencyExchangeTicker/styles.module.css",
+          "hash": "8166462660790309904"
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/BalanceLine.tsx",
+          "hash": "3542227931518120130",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/BalanceOverview.tsx",
+          "hash": "11705894762182481633",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/DashboardHeader.tsx",
+          "hash": "10546102287794295399",
+          "deps": [
+            "npm:next",
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/ExpenseDistribution.tsx",
+          "hash": "6870971202262531840",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/FinancialSummary.module.css",
+          "hash": "6174506528560259849"
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/FinancialSummary.tsx",
+          "hash": "17146296664285964178",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/MonthlyTrendsChart.tsx",
+          "hash": "12202924443355239915",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/RecentExpenses.tsx",
+          "hash": "17273297251427529127",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/RecentSettlements.tsx",
+          "hash": "15795181569205308866",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/UpcomingEvents.tsx",
+          "hash": "4913033431395648882",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/UserSummary.tsx",
+          "hash": "480167652728514103",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/WelcomeScreen.tsx",
+          "hash": "2422186152266837599",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/BalanceOverview.test.tsx",
+          "hash": "1417580118776627011",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/DashboardHeader.test.tsx",
+          "hash": "6005504235104300323"
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/ExpenseDistribution.test.tsx",
+          "hash": "2799277136789429443",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/FinancialSummary.test.tsx",
+          "hash": "16683720139647886420",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/MonthlyTrendsChart.test.tsx",
+          "hash": "17660959070379717454",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/RecentExpenses.test.tsx",
+          "hash": "900729487665592331",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/RecentSettlements.test.tsx",
+          "hash": "1911432802402037948",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/UpcomingEvents.test.tsx",
+          "hash": "15930997749909947089",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/UserSummary.test.tsx",
+          "hash": "3029324777993541860",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Dashboard/__tests__/WelcomeScreen.test.tsx",
+          "hash": "13644977267817413682"
+        },
+        {
+          "file": "apps/justsplit/src/components/ExpenseSplitter/index.tsx",
+          "hash": "2417265577966377108",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Header/__tests__/Header.test.tsx",
+          "hash": "4107486718113308483",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Header/index.tsx",
+          "hash": "9527555912760330411",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/Header/styles.module.css",
+          "hash": "1457313833929826598"
+        },
+        {
+          "file": "apps/justsplit/src/components/ImageUploader/__tests__/ImageUploader.test.tsx",
+          "hash": "3504495836089562901",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ImageUploader/index.tsx",
+          "hash": "8523001190667856413",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ImageUploader/styles.module.css",
+          "hash": "4362194966899092981"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Button.module.css",
+          "hash": "6193414495590315518"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Button.tsx",
+          "hash": "6897201359693722727",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/CurrencySelector.module.css",
+          "hash": "6208571376204452201"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/CurrencySelector.tsx",
+          "hash": "12792410269172541729",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/DatabaseErrorRecovery.tsx",
+          "hash": "10274667536771384435",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/DatabaseRecovery.tsx",
+          "hash": "15733213663743782202",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/EditableText.module.css",
+          "hash": "8665424013710129462"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/EditableText.tsx",
+          "hash": "16433364691521304169",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/EntityList/index.tsx",
+          "hash": "13347964838246182438",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/EntityList/styles.module.css",
+          "hash": "10309928718628205683"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/HoverCard/index.tsx",
+          "hash": "17716241999925179431",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "npm:react-dom"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/HoverCard/styles.module.css",
+          "hash": "7494610670068460635"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/IconButton.module.css",
+          "hash": "9023964348915947400"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/IconButton.tsx",
+          "hash": "10114469174467125288",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Notification/index.tsx",
+          "hash": "3995554166009605481",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Notification/styles.module.css",
+          "hash": "13830769819420438766"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/PageRedirect/index.tsx",
+          "hash": "14606361719459333899",
+          "deps": [
+            "npm:react",
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/PageRedirect/styles.module.css",
+          "hash": "938511256362342080"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/ProgressBar.module.css",
+          "hash": "15998072709597278643"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/ProgressBar.tsx",
+          "hash": "356381512628639512",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/ProgressBar/index.tsx",
+          "hash": "17208752406854821153",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/ProgressBar/styles.module.css",
+          "hash": "15345157746216104186"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Timeline/index.tsx",
+          "hash": "1166449049568122758",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/Timeline/styles.module.css",
+          "hash": "12660532460451059026"
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/__mocks__/Button.tsx",
+          "hash": "1563929730383219903",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/__tests__/CurrencySelector.test.tsx",
+          "hash": "14962661240726275507",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/components/ui/__tests__/EditableText.test.tsx",
+          "hash": "1957289107743776329",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/AppContext.tsx",
+          "hash": "16674713917935283717",
+          "deps": [
+            "npm:react",
+            "npm:uuid",
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/AuthContext.tsx",
+          "hash": "17642228393775559718",
+          "deps": [
+            "npm:react",
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/NotificationContext.tsx",
+          "hash": "6474228776354756200",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/Providers.tsx",
+          "hash": "15215295634033274071",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/__tests__/AppContext.test.tsx",
+          "hash": "5153440768492784942",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/context/__tests__/SettlementCurrency.test.tsx",
+          "hash": "4701494350422846218",
+          "deps": [
+            "npm:react",
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/docs/design-system.md",
+          "hash": "11502012541449085567"
+        },
+        {
+          "file": "apps/justsplit/src/lib/__tests__/expenseCalculator.test.ts",
+          "hash": "7539341355688760594"
+        },
+        {
+          "file": "apps/justsplit/src/lib/expenseCalculator.ts",
+          "hash": "8242071468660111905"
+        },
+        {
+          "file": "apps/justsplit/src/reducers/friendsReducer.ts",
+          "hash": "137627956401644936"
+        },
+        {
+          "file": "apps/justsplit/src/services/firebaseService.ts",
+          "hash": "16063111239427519666",
+          "deps": [
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/styles/theme.css",
+          "hash": "16969421834739300508"
+        },
+        {
+          "file": "apps/justsplit/src/test-utils.tsx",
+          "hash": "7417933509556867382",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/test-utils/withAppContext.tsx",
+          "hash": "6486087694071177176",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/types/index.ts",
+          "hash": "12011856275520633971"
+        },
+        {
+          "file": "apps/justsplit/src/utils/__tests__/csvExport.test.ts",
+          "hash": "13353963254172525385"
+        },
+        {
+          "file": "apps/justsplit/src/utils/__tests__/currencyExchange.test.ts",
+          "hash": "13570473548140716924"
+        },
+        {
+          "file": "apps/justsplit/src/utils/__tests__/expenseCalculator.test.ts",
+          "hash": "282328112556546761"
+        },
+        {
+          "file": "apps/justsplit/src/utils/__tests__/timelineCalculations.test.ts",
+          "hash": "11340293204601674489"
+        },
+        {
+          "file": "apps/justsplit/src/utils/authEmulatorFix.ts",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/utils/csvExport.ts",
+          "hash": "5169721907021774746"
+        },
+        {
+          "file": "apps/justsplit/src/utils/currencyExchange.ts",
+          "hash": "14085714282500064789",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/utils/emulator-setup.js",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/utils/expenseCalculator.ts",
+          "hash": "631578524985884343"
+        },
+        {
+          "file": "apps/justsplit/src/utils/fileUtils.ts",
+          "hash": "17149719204828043755"
+        },
+        {
+          "file": "apps/justsplit/src/utils/firebase-test.js",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/utils/firebase-test.ts",
+          "hash": "1489823342386489802",
+          "deps": [
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/justsplit/src/utils/formatters.ts",
+          "hash": "11310258987300788292"
+        },
+        {
+          "file": "apps/justsplit/src/utils/indexedDBReset.ts",
+          "hash": "3336378411971118871"
+        },
+        {
+          "file": "apps/justsplit/src/utils/testUtils.tsx",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/justsplit/src/utils/timelineUtils.ts",
+          "hash": "1168074218312920893"
+        },
+        {
+          "file": "apps/justsplit/src/utils/timelineUtils/index.ts",
+          "hash": "16579923885767923489"
+        },
+        {
+          "file": "apps/justsplit/tsconfig.json",
+          "hash": "17604127875513678571"
+        }
+      ],
+      "shared-types": [
+        {
+          "file": "libs/shared-types/package-lock.json",
+          "hash": "7257160812268499138"
+        },
+        {
+          "file": "libs/shared-types/package.json",
+          "hash": "12947706205228473956",
+          "deps": [
+            "npm:typescript"
+          ]
+        },
+        {
+          "file": "libs/shared-types/project.json",
+          "hash": "8327634047568948625"
+        },
+        {
+          "file": "libs/shared-types/src/app.ts",
+          "hash": "3102610791310278345"
+        },
+        {
+          "file": "libs/shared-types/src/auth.ts",
+          "hash": "17166089705622870600"
+        },
+        {
+          "file": "libs/shared-types/src/index.ts",
+          "hash": "13780029357891185864"
+        },
+        {
+          "file": "libs/shared-types/src/user.ts",
+          "hash": "11188017565499040010"
+        },
+        {
+          "file": "libs/shared-types/tsconfig.json",
+          "hash": "5648793326199737160"
+        }
+      ],
+      "hub": [
+        {
+          "file": "apps/hub/.env.local.example",
+          "hash": "1108149858695936589"
+        },
+        {
+          "file": "apps/hub/next.config.js",
+          "hash": "4249919988722407926"
+        },
+        {
+          "file": "apps/hub/package-lock.json",
+          "hash": "7361644242236015805"
+        },
+        {
+          "file": "apps/hub/package.json",
+          "hash": "16014724934222098855",
+          "deps": [
+            "npm:@types/node",
+            "npm:@types/react",
+            "npm:@types/react-dom",
+            "npm:eslint",
+            "npm:eslint-config-next",
+            "npm:typescript",
+            "shared-types",
+            "firebase-config",
+            "ui-components",
+            "npm:next",
+            "npm:react",
+            "npm:react-dom",
+            "npm:firebase"
+          ]
+        },
+        {
+          "file": "apps/hub/project.json",
+          "hash": "17263888961609186037"
+        },
+        {
+          "file": "apps/hub/public/images/favicon.svg",
+          "hash": "6367968871152200380"
+        },
+        {
+          "file": "apps/hub/public/images/logo-rectangle.svg",
+          "hash": "4068850462378546880"
+        },
+        {
+          "file": "apps/hub/public/images/logo.svg",
+          "hash": "11661841135424751394"
+        },
+        {
+          "file": "apps/hub/src/app/globals.css",
+          "hash": "11690845539260937488"
+        },
+        {
+          "file": "apps/hub/src/app/layout.tsx",
+          "hash": "13894340879358287004",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/hub/src/app/page.module.css",
+          "hash": "15986243177791909751"
+        },
+        {
+          "file": "apps/hub/src/app/page.tsx",
+          "hash": "12620203007400425237"
+        },
+        {
+          "file": "apps/hub/src/components/AppGrid.module.css",
+          "hash": "18101217682028118789"
+        },
+        {
+          "file": "apps/hub/src/components/AppGrid.tsx",
+          "hash": "11499567095102252956",
+          "deps": [
+            "npm:react",
+            "ui-components",
+            "firebase-config",
+            "npm:firebase",
+            "shared-types"
+          ]
+        },
+        {
+          "file": "apps/hub/src/components/AuthContext.tsx",
+          "hash": "8415958084716768613",
+          "deps": [
+            "npm:react",
+            "firebase-config",
+            "shared-types"
+          ]
+        },
+        {
+          "file": "apps/hub/src/components/LoginForm.module.css",
+          "hash": "14313812330358546626"
+        },
+        {
+          "file": "apps/hub/src/components/LoginForm.tsx",
+          "hash": "15692096836642576789",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/hub/src/components/Providers.tsx",
+          "hash": "8718530211256096253"
+        },
+        {
+          "file": "apps/hub/tsconfig.json",
+          "hash": "6715287112973622889"
+        }
+      ],
+      "website": [
+        {
+          "file": "apps/website/.eslintrc.json",
+          "hash": "7583976905835971808"
+        },
+        {
+          "file": "apps/website/jest.config.js",
+          "hash": "17075017854939206433",
+          "deps": [
+            "npm:@nx/next"
+          ]
+        },
+        {
+          "file": "apps/website/jest.setup.js",
+          "hash": "2215221996424664514"
+        },
+        {
+          "file": "apps/website/next.config.js",
+          "hash": "3752049744296459851"
+        },
+        {
+          "file": "apps/website/package-lock.json",
+          "hash": "8900320504376716086"
+        },
+        {
+          "file": "apps/website/package.json",
+          "hash": "7073432346711742126",
+          "deps": [
+            "npm:@types/node",
+            "npm:@types/react",
+            "npm:@types/react-dom",
+            "npm:eslint",
+            "npm:eslint-config-next",
+            "npm:typescript",
+            "npm:next",
+            "npm:react",
+            "npm:react-dom"
+          ]
+        },
+        {
+          "file": "apps/website/project.json",
+          "hash": "7175184600982282008"
+        },
+        {
+          "file": "apps/website/public/.gitkeep",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "apps/website/public/hero-image.png",
+          "hash": "8316524099824295173"
+        },
+        {
+          "file": "apps/website/public/images/to_remove/favicon.ico",
+          "hash": "17851128216583331379"
+        },
+        {
+          "file": "apps/website/public/images/to_remove/justsplit-logo.png",
+          "hash": "14642510108795447006"
+        },
+        {
+          "file": "apps/website/public/images/to_remove/logo-ico.png",
+          "hash": "6767985640361270959"
+        },
+        {
+          "file": "apps/website/public/images/to_remove/logo-square.png",
+          "hash": "7518962060427561028"
+        },
+        {
+          "file": "apps/website/public/images/to_remove/old-justsplit-logo.png",
+          "hash": "6646454001633406036"
+        },
+        {
+          "file": "apps/website/public/logo copy.svg",
+          "hash": "11661841135424751394"
+        },
+        {
+          "file": "apps/website/public/logo-ico-v2.ai",
+          "hash": "9781269579413239943"
+        },
+        {
+          "file": "apps/website/public/logo-ico.ai",
+          "hash": "9781269579413239943"
+        },
+        {
+          "file": "apps/website/public/logo-ico.svg",
+          "hash": "6367968871152200380"
+        },
+        {
+          "file": "apps/website/public/logo-rectangle.ai",
+          "hash": "11239810915846194684"
+        },
+        {
+          "file": "apps/website/public/logo-rectangle.png",
+          "hash": "15738933302531348868"
+        },
+        {
+          "file": "apps/website/public/logo-rectangle.svg",
+          "hash": "4068850462378546880"
+        },
+        {
+          "file": "apps/website/public/logo.ai",
+          "hash": "4960321340392511368"
+        },
+        {
+          "file": "apps/website/public/logo.png",
+          "hash": "8307353577392312031"
+        },
+        {
+          "file": "apps/website/public/logo.svg",
+          "hash": "11661841135424751394"
+        },
+        {
+          "file": "apps/website/public/mission-image.png",
+          "hash": "6148371581555980488"
+        },
+        {
+          "file": "apps/website/public/portfolio/justsplit.png",
+          "hash": "3364646831274920048"
+        },
+        {
+          "file": "apps/website/public/portfolio/logo-justsplit.png",
+          "hash": "10121345660719554501"
+        },
+        {
+          "file": "apps/website/public/preview.html",
+          "hash": "2621198031706206779"
+        },
+        {
+          "file": "apps/website/public/test-local-website.html",
+          "hash": "14540572456336950632"
+        },
+        {
+          "file": "apps/website/src/app/about/page.module.css",
+          "hash": "12623414214598563711"
+        },
+        {
+          "file": "apps/website/src/app/about/page.tsx",
+          "hash": "5640343400939054242",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/client-layout.module.css",
+          "hash": "14089673012769271877"
+        },
+        {
+          "file": "apps/website/src/app/client-layout.tsx",
+          "hash": "5313453930066297610",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/contact/page.module.css",
+          "hash": "8904694376428967352"
+        },
+        {
+          "file": "apps/website/src/app/contact/page.tsx",
+          "hash": "12567162317197415466",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/documentation/page.module.css",
+          "hash": "14806998963204411456"
+        },
+        {
+          "file": "apps/website/src/app/documentation/page.tsx",
+          "hash": "145318038293647085",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/error.tsx",
+          "hash": "2172443045536537703",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/faq/page.module.css",
+          "hash": "11425613078201154078"
+        },
+        {
+          "file": "apps/website/src/app/faq/page.tsx",
+          "hash": "17438824718559063502",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/global-error.tsx",
+          "hash": "11442134822384689654"
+        },
+        {
+          "file": "apps/website/src/app/globals.css",
+          "hash": "4058574548444919118"
+        },
+        {
+          "file": "apps/website/src/app/guides/account-setup/page.module.css",
+          "hash": "13799868117438737946"
+        },
+        {
+          "file": "apps/website/src/app/guides/account-setup/page.tsx",
+          "hash": "17982818862255386088",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/guides/data-export/page.module.css",
+          "hash": "6175229987914541224"
+        },
+        {
+          "file": "apps/website/src/app/guides/data-export/page.tsx",
+          "hash": "17449680339870269796",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/guides/group-management/page.module.css",
+          "hash": "3223337207418238479"
+        },
+        {
+          "file": "apps/website/src/app/guides/group-management/page.tsx",
+          "hash": "10986871542896993293",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/guides/justsplit/page.module.css",
+          "hash": "3581281549427972390"
+        },
+        {
+          "file": "apps/website/src/app/guides/justsplit/page.tsx",
+          "hash": "5994867182048446099",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/guides/mobile-app/page.module.css",
+          "hash": "5995821084909327638"
+        },
+        {
+          "file": "apps/website/src/app/guides/mobile-app/page.tsx",
+          "hash": "1853735837591598510",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/guides/privacy-settings/page.module.css",
+          "hash": "3173327191078263782"
+        },
+        {
+          "file": "apps/website/src/app/guides/privacy-settings/page.tsx",
+          "hash": "2260909155022374310",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/help/page.module.css",
+          "hash": "6336905140050703009"
+        },
+        {
+          "file": "apps/website/src/app/help/page.tsx",
+          "hash": "1970893597141142585",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/layout.tsx",
+          "hash": "12908290298294565300",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/business-user/page.module.css",
+          "hash": "7600341459562552387"
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/business-user/page.tsx",
+          "hash": "8440685399701731564",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/community-leader/page.module.css",
+          "hash": "4494659915937256403"
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/community-leader/page.tsx",
+          "hash": "4612446383094621597",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/developer/page.module.css",
+          "hash": "1252073968643560311"
+        },
+        {
+          "file": "apps/website/src/app/learning-paths/developer/page.tsx",
+          "hash": "6216951751084215804",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/metadata.ts",
+          "hash": "1587193594518264735",
+          "deps": [
+            "npm:next"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/not-found.tsx",
+          "hash": "14079681734304167343"
+        },
+        {
+          "file": "apps/website/src/app/page.module.css",
+          "hash": "15875071972550020001"
+        },
+        {
+          "file": "apps/website/src/app/page.tsx",
+          "hash": "253095881180558976"
+        },
+        {
+          "file": "apps/website/src/app/philosophy/page.module.css",
+          "hash": "11434381973729319017"
+        },
+        {
+          "file": "apps/website/src/app/philosophy/page.tsx",
+          "hash": "2645759186932912174",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/portfolio/page.module.css",
+          "hash": "15634587054098741421"
+        },
+        {
+          "file": "apps/website/src/app/portfolio/page.tsx",
+          "hash": "10530952513325643805",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/privacy/page.module.css",
+          "hash": "11097359436354356083"
+        },
+        {
+          "file": "apps/website/src/app/privacy/page.tsx",
+          "hash": "2168590173035151909",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/roadmap/page.module.css",
+          "hash": "15696635869094512910"
+        },
+        {
+          "file": "apps/website/src/app/roadmap/page.tsx",
+          "hash": "10023189063939145801",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/status/page.module.css",
+          "hash": "7248429081238694368"
+        },
+        {
+          "file": "apps/website/src/app/status/page.tsx",
+          "hash": "8422911651807255106",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/support/page.module.css",
+          "hash": "18183411916826677580"
+        },
+        {
+          "file": "apps/website/src/app/support/page.tsx",
+          "hash": "4609727271314398104",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/terms/page.module.css",
+          "hash": "11097359436354356083"
+        },
+        {
+          "file": "apps/website/src/app/terms/page.tsx",
+          "hash": "10426471986436698742",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/app/vision/page.module.css",
+          "hash": "13695017474312720126"
+        },
+        {
+          "file": "apps/website/src/app/vision/page.tsx",
+          "hash": "18060146509269495437",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Footer/Footer.module.css",
+          "hash": "17039969401640526129"
+        },
+        {
+          "file": "apps/website/src/components/Footer/Footer.tsx",
+          "hash": "17481839844497207659",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Header/ConfigDropdown.module.css",
+          "hash": "1734077924023305961"
+        },
+        {
+          "file": "apps/website/src/components/Header/ConfigDropdown.tsx",
+          "hash": "1206917332144666724",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Header/Header.module.css",
+          "hash": "5686443562029952644"
+        },
+        {
+          "file": "apps/website/src/components/Header/Header.tsx",
+          "hash": "4312212996489539702",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Hero/Hero.module.css",
+          "hash": "17620834306336676864"
+        },
+        {
+          "file": "apps/website/src/components/Hero/Hero.tsx",
+          "hash": "17046093657852647302",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Home/CallToAction.module.css",
+          "hash": "15743323976293470542"
+        },
+        {
+          "file": "apps/website/src/components/Home/CallToAction.tsx",
+          "hash": "11598630649542763429",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Home/Features.module.css",
+          "hash": "2195840891659408883"
+        },
+        {
+          "file": "apps/website/src/components/Home/Features.tsx",
+          "hash": "8103988626508406747",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Home/Hero.module.css",
+          "hash": "2509281860588659458"
+        },
+        {
+          "file": "apps/website/src/components/Home/Hero.tsx",
+          "hash": "6957317412681967474",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Home/MissionSection.module.css",
+          "hash": "10299924031274391796"
+        },
+        {
+          "file": "apps/website/src/components/Home/MissionSection.tsx",
+          "hash": "7822288073685161600",
+          "deps": [
+            "npm:react",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/components/Home/SolutionsPreview.module.css",
+          "hash": "16115674285442439148"
+        },
+        {
+          "file": "apps/website/src/components/Home/SolutionsPreview.tsx",
+          "hash": "5531398888586137495",
+          "deps": [
+            "npm:react",
+            "npm:next",
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/src/styles/theme-variables.css",
+          "hash": "8918645256900338982"
+        },
+        {
+          "file": "apps/website/src/translations/index.ts",
+          "hash": "8744673255044505722",
+          "deps": [
+            "ui-components"
+          ]
+        },
+        {
+          "file": "apps/website/tsconfig.json",
+          "hash": "12515776320116858104"
+        }
+      ],
+      "ui-components": [
+        {
+          "file": "libs/ui-components/package-lock.json",
+          "hash": "16736916148931451114"
+        },
+        {
+          "file": "libs/ui-components/package.json",
+          "hash": "1042170297391326918",
+          "deps": [
+            "npm:react",
+            "npm:react-dom",
+            "npm:@types/react",
+            "npm:@types/react-dom",
+            "npm:typescript"
+          ]
+        },
+        {
+          "file": "libs/ui-components/project.json",
+          "hash": "17409476732575988085"
+        },
+        {
+          "file": "libs/ui-components/src/Alert.module.css",
+          "hash": "8054760098782663923"
+        },
+        {
+          "file": "libs/ui-components/src/Alert.tsx",
+          "hash": "2584792080102148144",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/Button.module.css",
+          "hash": "15585625411290286602"
+        },
+        {
+          "file": "libs/ui-components/src/Button.tsx",
+          "hash": "17173267709979210854",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/Card.module.css",
+          "hash": "6511404454541312268"
+        },
+        {
+          "file": "libs/ui-components/src/Card.tsx",
+          "hash": "12488791903442810794",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/GlobalProvider.tsx",
+          "hash": "468683435648303523",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/LoadingSpinner.module.css",
+          "hash": "13105417377319172226"
+        },
+        {
+          "file": "libs/ui-components/src/LoadingSpinner.tsx",
+          "hash": "7674702132067809357",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/Logo/Logo.module.css",
+          "hash": "4516045458528999109"
+        },
+        {
+          "file": "libs/ui-components/src/Logo/Logo.tsx",
+          "hash": "15153918452442860770",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/hooks/useIsomorphicLayoutEffect.ts",
+          "hash": "4037019567652515813",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/i18n/LanguageContext.tsx",
+          "hash": "8333923793449230121",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/i18n/LanguageSelector.module.css",
+          "hash": "16293421290763494965"
+        },
+        {
+          "file": "libs/ui-components/src/i18n/LanguageSelector.tsx",
+          "hash": "12982914698279193295",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/i18n/index.ts",
+          "hash": "6867625491540861380"
+        },
+        {
+          "file": "libs/ui-components/src/index.ts",
+          "hash": "1943688935807867576"
+        },
+        {
+          "file": "libs/ui-components/src/theme/ThemeContext.tsx",
+          "hash": "1150184785231056122",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/theme/ThemeToggle.module.css",
+          "hash": "9099419152172519936"
+        },
+        {
+          "file": "libs/ui-components/src/theme/ThemeToggle.tsx",
+          "hash": "13879706236609664384",
+          "deps": [
+            "npm:react"
+          ]
+        },
+        {
+          "file": "libs/ui-components/src/theme/index.ts",
+          "hash": "10474849574436275676"
+        },
+        {
+          "file": "libs/ui-components/src/theme/theme.css",
+          "hash": "18076913475314348397"
+        },
+        {
+          "file": "libs/ui-components/src/theme/themeScript.ts",
+          "hash": "8672518290568364484"
+        },
+        {
+          "file": "libs/ui-components/src/theme/themes.ts",
+          "hash": "6550816549652599213"
+        },
+        {
+          "file": "libs/ui-components/tsconfig.json",
+          "hash": "14900272499162481519"
+        }
+      ]
+    }
+  }
+}

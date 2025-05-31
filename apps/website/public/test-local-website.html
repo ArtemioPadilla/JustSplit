@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberEco - Local Website Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .steps {
+      background: #f7f7f7;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    pre {
+      background: #333;
+      color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .note {
+      background: #fff8e1;
+      padding: 10px;
+      border-left: 4px solid #ffc107;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>CyberEco Website - Local Testing</h1>
+  <p>This file helps you test the exported static website locally before deployment.</p>
+  
+  <div class="steps">
+    <h2>Option 1: Use a Simple HTTP Server</h2>
+    <p>Run the following command from the <code>apps/website/out</code> directory:</p>
+    <pre>npx http-server -p 8000</pre>
+    <p>Then open <a href="http://localhost:8000" target="_blank">http://localhost:8000</a></p>
+  </div>
+
+  <div class="steps">
+    <h2>Option 2: Use the Firebase Emulator</h2>
+    <p>Run the following command from the root project directory:</p>
+    <pre>npm run hosting:website</pre>
+    <p>Then open <a href="http://localhost:5000" target="_blank">http://localhost:5000</a></p>
+  </div>
+
+  <div class="note">
+    <p><strong>Note:</strong> Opening the HTML files directly in your browser may not work correctly due to path issues. Using a web server is recommended.</p>
+  </div>
+
+  <p>When tested with a server, the site should display correctly with all styles and JavaScript functionality working.</p>
+</body>
+</html>

@@ -1,0 +1,19 @@
+
+[31m✘[39m next.js v15.3.2 is [31mnot yet supported[39m in the Community edition of [33mConsole Ninja[39m.
+We are working hard on it for you [36mhttps://tinyurl.com/3h9mtwra[39m.
+
+Estimated release dates:
+  - Community users: [36maround 5th July, 2025 [1m(subject to team availability)[22m[39m
+[33m  - PRO users[39m:       [1m[32mpriority access is available now[39m[22m
+
+ [31m[1m⨯[22m[39m Failed to start server
+Error: listen EADDRINUSE: address already in use :::5000
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::5000)
+    at new Promise (<anonymous>) {
+  code: [32m'EADDRINUSE'[39m,
+  errno: [33m-48[39m,
+  syscall: [32m'listen'[39m,
+  address: [32m'::'[39m,
+  port: [33m5000[39m
+}
+[?25h
