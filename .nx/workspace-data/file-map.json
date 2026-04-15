@@ -38,312 +38,272 @@
   "fileMap": {
     "nonProjectFiles": [
       {
-        "file": ".eslintrc.json",
-        "hash": "14839753491958496737"
-      },
-      {
-        "file": ".firebaserc",
-        "hash": "4003437198390147118"
-      },
-      {
-        "file": ".github/instructions/nx.instructions.md",
-        "hash": "2692291612879745799"
-      },
-      {
-        "file": ".github/workflows/README.md",
-        "hash": "14371088399430693962"
-      },
-      {
-        "file": ".github/workflows/build.yml",
-        "hash": "11402036185117266516"
-      },
-      {
-        "file": ".github/workflows/ci.yml",
-        "hash": "5842225275676383450"
-      },
-      {
-        "file": ".github/workflows/deploy-hub.yml",
-        "hash": "2246583450523178759"
-      },
-      {
-        "file": ".github/workflows/deploy-justsplit.yml",
-        "hash": "13263109098444815897"
-      },
-      {
-        "file": ".github/workflows/deploy-website.yml",
-        "hash": "10928794065673125495"
-      },
-      {
-        "file": ".github/workflows/test.yml",
-        "hash": "4710610660933553808"
-      },
-      {
-        "file": ".gitignore",
-        "hash": "3160380329065813290"
-      },
-      {
-        "file": "CLAUDE.md",
-        "hash": "17453940558218102962"
-      },
-      {
-        "file": "CNAME",
-        "hash": "12670165116359343350"
-      },
-      {
-        "file": "CONTRIBUTOR-AGREEMENT.md",
-        "hash": "352414687446605377"
-      },
-      {
-        "file": "CYBERECO-LICENSE.md",
-        "hash": "17184261828977620282"
-      },
-      {
-        "file": "LICENSE",
-        "hash": "475094082454657105"
-      },
-      {
-        "file": "README.md",
-        "hash": "1408847530090666250"
-      },
-      {
-        "file": "archived-docs/MIGRATION_SUMMARY.md",
-        "hash": "12797397527926008837"
-      },
-      {
-        "file": "archived-docs/MONOREPO_ARCHITECTURE.md",
-        "hash": "578493759782880572"
-      },
-      {
-        "file": "archived-docs/NX_MIGRATION_COMPLETE.md",
-        "hash": "11614504007559306489"
-      },
-      {
-        "file": "archived-docs/architecture/nx-architecture.md",
-        "hash": "13061617322741794032"
-      },
-      {
-        "file": "archived-docs/architecture/nx-monorepo-architecture.md",
-        "hash": "13678995183538161449"
-      },
-      {
         "file": "archived-docs/planning/to-do.md",
         "hash": "614306799937716421"
-      },
-      {
-        "file": "docs/ABOUT.md",
-        "hash": "10373037422785146181"
-      },
-      {
-        "file": "docs/GETTING_STARTED.md",
-        "hash": "18117739586287141005"
-      },
-      {
-        "file": "docs/PHILOSOPHY.md",
-        "hash": "1708105725740304485"
-      },
-      {
-        "file": "docs/README.md",
-        "hash": "11208337388142149567"
-      },
-      {
-        "file": "docs/ROADMAP.md",
-        "hash": "11247742156091654861"
-      },
-      {
-        "file": "docs/api/README.md",
-        "hash": "12572550095925916573"
-      },
-      {
-        "file": "docs/api/data-models-comprehensive.md",
-        "hash": "8790058396702789796"
-      },
-      {
-        "file": "docs/api/data-models-nx-comprehensive.md",
-        "hash": "2305906320830654484"
-      },
-      {
-        "file": "docs/api/data-models.md",
-        "hash": "7118840247970817605"
-      },
-      {
-        "file": "docs/api/endpoints.md",
-        "hash": "10339175161763444535"
-      },
-      {
-        "file": "docs/applications/README.md",
-        "hash": "1384152929420135908"
-      },
-      {
-        "file": "docs/applications/priority-apps.md",
-        "hash": "5554359294631199910"
-      },
-      {
-        "file": "docs/architecture/diagrams/README.md",
-        "hash": "559560433297511089"
-      },
-      {
-        "file": "docs/architecture/diagrams/component-diagram.md",
-        "hash": "9964653968450415802"
-      },
-      {
-        "file": "docs/architecture/diagrams/data-flow-diagram.md",
-        "hash": "13498230696896051549"
-      },
-      {
-        "file": "docs/architecture/diagrams/mermaid/ecosystem-architecture.mermaid",
-        "hash": "12920564643651694252"
-      },
-      {
-        "file": "docs/architecture/diagrams/mermaid/technical-stack-diagram.mermaid",
-        "hash": "6343547978829781223"
-      },
-      {
-        "file": "docs/architecture/diagrams/system-architecture.md",
-        "hash": "1119911349734281752"
-      },
-      {
-        "file": "docs/architecture/modular-application-strategy.md",
-        "hash": "8054689787148365018"
-      },
-      {
-        "file": "docs/architecture/nx-architecture-consolidated.md",
-        "hash": "8519408862095703513"
-      },
-      {
-        "file": "docs/architecture/overview.md",
-        "hash": "12318906351880462017"
-      },
-      {
-        "file": "docs/architecture/technical-design.md",
-        "hash": "4779240100550480952"
-      },
-      {
-        "file": "docs/community/README.md",
-        "hash": "12041914134152193241"
-      },
-      {
-        "file": "docs/deployment/firebase-deployment.md",
-        "hash": "1968709991282980391"
-      },
-      {
-        "file": "docs/deployment/low-cost-optimization.md",
-        "hash": "9737116763807544584"
-      },
-      {
-        "file": "docs/deployment/on-premises-deployment.md",
-        "hash": "11759857248411326240"
-      },
-      {
-        "file": "docs/design/style-guide.md",
-        "hash": "7970815222749568876"
-      },
-      {
-        "file": "docs/design/ui-components.md",
-        "hash": "2112972569154542228"
-      },
-      {
-        "file": "docs/design/wireframes.md",
-        "hash": "8290711046325508420"
-      },
-      {
-        "file": "docs/development/code-style.md",
-        "hash": "7599353455910653061"
-      },
-      {
-        "file": "docs/development/contributing.md",
-        "hash": "4004076637206140642"
-      },
-      {
-        "file": "docs/development/developer-workflow.mermaid",
-        "hash": "12504919951911409987"
-      },
-      {
-        "file": "docs/development/development-workflow.md",
-        "hash": "1236499871742380411"
-      },
-      {
-        "file": "docs/development/firebase-deployment.md",
-        "hash": "5314392235327397841"
-      },
-      {
-        "file": "docs/development/getting-started.md",
-        "hash": "17552674549393460999"
-      },
-      {
-        "file": "docs/development/licensing.md",
-        "hash": "16848997591162541555"
-      },
-      {
-        "file": "docs/development/local-development.md",
-        "hash": "8512887853619601945"
-      },
-      {
-        "file": "docs/development/logo-creation.md",
-        "hash": "17885300203393607172"
-      },
-      {
-        "file": "docs/development/testing/testing-strategy.md",
-        "hash": "18297277395256830140"
-      },
-      {
-        "file": "docs/operations/monitoring/performance-metrics.md",
-        "hash": "18277727057631497428"
-      },
-      {
-        "file": "docs/operations/security/compliance-framework.md",
-        "hash": "6335267427515056478"
-      },
-      {
-        "file": "docs/planning/README.md",
-        "hash": "242580851534895757"
-      },
-      {
-        "file": "docs/planning/app-matrix.md",
-        "hash": "10356832507431718864"
-      },
-      {
-        "file": "docs/planning/interactive-roadmap.ipynb",
-        "hash": "13428960491903007608"
-      },
-      {
-        "file": "docs/planning/project-roadmap.md",
-        "hash": "4597156141566748584"
-      },
-      {
-        "file": "docs/planning/release-planning.md",
-        "hash": "9383720433431838468"
-      },
-      {
-        "file": "docs/planning/strategic-solution-matrix.md",
-        "hash": "16620673555655470475"
       },
       {
         "file": "docs/user-guides/README.md",
         "hash": "14491224823758034795"
       },
       {
+        "file": "docs/user-guides/troubleshooting/common-issues.md",
+        "hash": "12690351250011128707"
+      },
+      {
+        "file": ".github/workflows/deploy-hub.yml",
+        "hash": "2246583450523178759"
+      },
+      {
+        "file": "docs/ROADMAP.md",
+        "hash": "11247742156091654861"
+      },
+      {
+        "file": "docs/development/local-development.md",
+        "hash": "8512887853619601945"
+      },
+      {
+        "file": "docs/design/style-guide.md",
+        "hash": "7970815222749568876"
+      },
+      {
+        "file": "docs/planning/release-planning.md",
+        "hash": "9383720433431838468"
+      },
+      {
+        "file": ".github/workflows/deploy-website.yml",
+        "hash": "10928794065673125495"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo.svg",
+        "hash": "11661841135424751394"
+      },
+      {
+        "file": "docs/architecture/diagrams/system-architecture.md",
+        "hash": "1119911349734281752"
+      },
+      {
+        "file": "docs/development/contributing.md",
+        "hash": "4004076637206140642"
+      },
+      {
+        "file": "scripts/deploy-website.sh",
+        "hash": "8953027014179350123"
+      },
+      {
+        "file": "docs/api/data-models-nx-comprehensive.md",
+        "hash": "2305906320830654484"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "10525485846082189342"
+      },
+      {
+        "file": "docs/architecture/nx-architecture-consolidated.md",
+        "hash": "8519408862095703513"
+      },
+      {
+        "file": "docs/development/code-style.md",
+        "hash": "7599353455910653061"
+      },
+      {
+        "file": "docs/operations/monitoring/performance-metrics.md",
+        "hash": "18277727057631497428"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.svg",
+        "hash": "4068850462378546880"
+      },
+      {
+        "file": "docs/vision/decentralized-future.md",
+        "hash": "3621239844531721743"
+      },
+      {
+        "file": "docs/development/development-workflow.md",
+        "hash": "1236499871742380411"
+      },
+      {
+        "file": "docs/planning/interactive-roadmap.ipynb",
+        "hash": "13428960491903007608"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.png",
+        "hash": "15738933302531348868"
+      },
+      {
+        "file": "nx.json",
+        "hash": "17254286810681708230"
+      },
+      {
+        "file": "archived-docs/architecture/nx-monorepo-architecture.md",
+        "hash": "13678995183538161449"
+      },
+      {
+        "file": "docs/deployment/low-cost-optimization.md",
+        "hash": "9737116763807544584"
+      },
+      {
+        "file": "README.md",
+        "hash": "1408847530090666250"
+      },
+      {
+        "file": ".eslintrc.json",
+        "hash": "14839753491958496737"
+      },
+      {
+        "file": "scripts/verify-firebase-fixes.sh",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": "docs/architecture/diagrams/component-diagram.md",
+        "hash": "9964653968450415802"
+      },
+      {
+        "file": "archived-docs/MIGRATION_SUMMARY.md",
+        "hash": "12797397527926008837"
+      },
+      {
         "file": "docs/user-guides/applications/justsplit-user-guide.md",
         "hash": "8948325351834181984"
       },
       {
-        "file": "docs/user-guides/faq.md",
-        "hash": "17499544209911514810"
+        "file": "docs/architecture/diagrams/mermaid/technical-stack-diagram.mermaid",
+        "hash": "6343547978829781223"
+      },
+      {
+        "file": "scripts/deploy-hub.sh",
+        "hash": "12444477468883296986"
+      },
+      {
+        "file": "docs/api/data-models.md",
+        "hash": "7118840247970817605"
+      },
+      {
+        "file": "docs/applications/README.md",
+        "hash": "1384152929420135908"
+      },
+      {
+        "file": "docs/development/getting-started.md",
+        "hash": "17552674549393460999"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "12847125417071925858"
+      },
+      {
+        "file": "docs/ABOUT.md",
+        "hash": "10373037422785146181"
+      },
+      {
+        "file": "docs/deployment/firebase-deployment.md",
+        "hash": "1968709991282980391"
+      },
+      {
+        "file": "docs/applications/priority-apps.md",
+        "hash": "5554359294631199910"
+      },
+      {
+        "file": "docs/GETTING_STARTED.md",
+        "hash": "18117739586287141005"
+      },
+      {
+        "file": "docs/architecture/diagrams/data-flow-diagram.md",
+        "hash": "13498230696896051549"
+      },
+      {
+        "file": "docs/development/licensing.md",
+        "hash": "16848997591162541555"
+      },
+      {
+        "file": "firebase.json",
+        "hash": "16268073048329132045"
+      },
+      {
+        "file": "docs/architecture/modular-application-strategy.md",
+        "hash": "8054689787148365018"
+      },
+      {
+        "file": "docs/planning/README.md",
+        "hash": "242580851534895757"
+      },
+      {
+        "file": "CNAME",
+        "hash": "12670165116359343350"
+      },
+      {
+        "file": "libs/shared-assets/src/assets/brand/logo.png",
+        "hash": "8307353577392312031"
+      },
+      {
+        "file": "scripts/migrate-justsplit.sh",
+        "hash": "7967597911544655931"
+      },
+      {
+        "file": "archived-docs/MONOREPO_ARCHITECTURE.md",
+        "hash": "578493759782880572"
+      },
+      {
+        "file": ".firebaserc",
+        "hash": "4003437198390147118"
+      },
+      {
+        "file": ".github/workflows/deploy-justsplit.yml",
+        "hash": "13263109098444815897"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "3160380329065813290"
+      },
+      {
+        "file": "docs/architecture/technical-design.md",
+        "hash": "4779240100550480952"
+      },
+      {
+        "file": "docs/development/firebase-deployment.md",
+        "hash": "5314392235327397841"
+      },
+      {
+        "file": "LICENSE",
+        "hash": "475094082454657105"
+      },
+      {
+        "file": ".github/workflows/ci.yml",
+        "hash": "5842225275676383450"
+      },
+      {
+        "file": "docs/design/wireframes.md",
+        "hash": "8290711046325508420"
+      },
+      {
+        "file": "docs/development/testing/testing-strategy.md",
+        "hash": "18297277395256830140"
+      },
+      {
+        "file": "docs/operations/security/compliance-framework.md",
+        "hash": "6335267427515056478"
+      },
+      {
+        "file": "docs/planning/app-matrix.md",
+        "hash": "10356832507431718864"
+      },
+      {
+        "file": "docs/architecture/diagrams/mermaid/ecosystem-architecture.mermaid",
+        "hash": "12920564643651694252"
+      },
+      {
+        "file": "docs/planning/project-roadmap.md",
+        "hash": "4597156141566748584"
       },
       {
         "file": "docs/user-guides/getting-started/account-creation.md",
         "hash": "4431270696425753605"
       },
       {
-        "file": "docs/user-guides/troubleshooting/common-issues.md",
-        "hash": "12690351250011128707"
-      },
-      {
         "file": "docs/vision/README.md",
         "hash": "4113051274851676917"
       },
       {
-        "file": "docs/vision/decentralized-future.md",
-        "hash": "3621239844531721743"
+        "file": "docs/planning/strategic-solution-matrix.md",
+        "hash": "16620673555655470475"
       },
       {
         "file": "emulator-data/auth_export/accounts.json",
@@ -354,84 +314,124 @@
         "hash": "2577557584963397638"
       },
       {
-        "file": "emulator-data/firebase-export-metadata.json",
-        "hash": "7280124457033991806"
-      },
-      {
-        "file": "emulator-data/firestore_export/firestore_export.overall_export_metadata",
-        "hash": "8048186133039560850"
-      },
-      {
-        "file": "firebase.json",
-        "hash": "16268073048329132045"
-      },
-      {
         "file": "firestore.indexes.json",
         "hash": "2048261650710551311"
+      },
+      {
+        "file": "docs/README.md",
+        "hash": "11208337388142149567"
       },
       {
         "file": "libs/shared-assets/src/assets/brand/logo-ico.svg",
         "hash": "6367968871152200380"
       },
       {
-        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.png",
-        "hash": "15738933302531348868"
+        "file": ".github/workflows/test.yml",
+        "hash": "4710610660933553808"
       },
       {
-        "file": "libs/shared-assets/src/assets/brand/logo-rectangle.svg",
-        "hash": "4068850462378546880"
+        "file": "docs/api/data-models-comprehensive.md",
+        "hash": "8790058396702789796"
       },
       {
-        "file": "libs/shared-assets/src/assets/brand/logo.png",
-        "hash": "8307353577392312031"
+        "file": "docs/deployment/on-premises-deployment.md",
+        "hash": "11759857248411326240"
       },
       {
-        "file": "libs/shared-assets/src/assets/brand/logo.svg",
-        "hash": "11661841135424751394"
+        "file": "docs/api/README.md",
+        "hash": "12572550095925916573"
       },
       {
-        "file": "nx.json",
-        "hash": "17254286810681708230"
+        "file": "CONTRIBUTOR-AGREEMENT.md",
+        "hash": "352414687446605377"
       },
       {
-        "file": "package-lock.json",
-        "hash": "12847125417071925858"
+        "file": "emulator-data/firebase-export-metadata.json",
+        "hash": "7280124457033991806"
       },
       {
-        "file": "package.json",
-        "hash": "15240412209422585712"
+        "file": "tsconfig.json",
+        "hash": "4932956569858600249"
+      },
+      {
+        "file": "docs/user-guides/faq.md",
+        "hash": "17499544209911514810"
       },
       {
         "file": "scripts/deploy-all.sh",
         "hash": "14203827832601848623"
       },
       {
-        "file": "scripts/deploy-hub.sh",
-        "hash": "12444477468883296986"
+        "file": ".github/workflows/README.md",
+        "hash": "14371088399430693962"
+      },
+      {
+        "file": "docs/api/endpoints.md",
+        "hash": "10339175161763444535"
+      },
+      {
+        "file": "docs/design/ui-components.md",
+        "hash": "2112972569154542228"
+      },
+      {
+        "file": ".github/instructions/nx.instructions.md",
+        "hash": "2692291612879745799"
+      },
+      {
+        "file": "docs/architecture/overview.md",
+        "hash": "12318906351880462017"
       },
       {
         "file": "scripts/deploy-justsplit.sh",
         "hash": "13221042646516571667"
       },
       {
-        "file": "scripts/deploy-website.sh",
-        "hash": "8953027014179350123"
+        "file": "docs/development/developer-workflow.mermaid",
+        "hash": "12504919951911409987"
       },
       {
-        "file": "scripts/migrate-justsplit.sh",
-        "hash": "7967597911544655931"
+        "file": "emulator-data/firestore_export/firestore_export.overall_export_metadata",
+        "hash": "8048186133039560850"
       },
       {
-        "file": "scripts/verify-firebase-fixes.sh",
-        "hash": "3244421341483603138"
+        "file": "package.json",
+        "hash": "15240412209422585712"
       },
       {
-        "file": "tsconfig.base.json",
-        "hash": "10525485846082189342"
+        "file": "CYBERECO-LICENSE.md",
+        "hash": "17184261828977620282"
       },
       {
-        "file": "tsconfig.json",
-        "hash": "4932956569858600249"
+        "file": "docs/development/logo-creation.md",
+        "hash": "17885300203393607172"
+      },
+      {
+        "file": "docs/PHILOSOPHY.md",
+        "hash": "1708105725740304485"
+      },
+      {
+        "file": "CLAUDE.md",
+        "hash": "17453940558218102962"
+      },
+      {
+        "file": "docs/architecture/diagrams/README.md",
+        "hash": "559560433297511089"
+      },
+      {
+        "file": "docs/community/README.md",
+        "hash": "12041914134152193241"
+      },
+      {
+        "file": ".github/workflows/build.yml",
+        "hash": "11402036185117266516"
+      },
+      {
+        "file": "archived-docs/NX_MIGRATION_COMPLETE.md",
+        "hash": "11614504007559306489"
+      },
+      {
+        "file": "archived-docs/architecture/nx-architecture.md",
+        "hash": "13061617322741794032"
       }
     ],
     "projectFileMap": {
