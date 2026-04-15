@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for NX affected commands
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Lint affected projects
+        run: npx nx affected --target=lint --base=origin/main --head=HEAD --parallel=3
+      
+      - name: Test affected projects
+        run: npx nx affected --target=test --base=origin/main --head=HEAD --code-coverage --parallel=3
+        env:
+          NODE_ENV: test
+          NEXT_PUBLIC_FIREBASE_API_KEY: test-key
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: test.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: test-project
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: test.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789'
+          NEXT_PUBLIC_FIREBASE_APP_ID: test-app-id
+          # Hub-specific test environment variables
+          NEXT_PUBLIC_HUB_API_KEY: test-hub-key
+          NEXT_PUBLIC_HUB_AUTH_DOMAIN: test-hub.firebaseapp.com
+          NEXT_PUBLIC_HUB_PROJECT_ID: test-hub-project
+          NEXT_PUBLIC_HUB_STORAGE_BUCKET: test-hub.appspot.com
+          NEXT_PUBLIC_HUB_MESSAGING_SENDER_ID: '987654321'
+          NEXT_PUBLIC_HUB_APP_ID: test-hub-app-id
+      
+      - name: Build affected projects
+        run: npx nx affected --target=build --base=origin/main --head=HEAD --parallel=3
+        env:
+          # JustSplit environment variables
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.JUSTSPLIT_FIREBASE_API_KEY || 'test-key' }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.JUSTSPLIT_FIREBASE_AUTH_DOMAIN || 'test.firebaseapp.com' }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.JUSTSPLIT_FIREBASE_PROJECT_ID || 'test-project' }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.JUSTSPLIT_FIREBASE_STORAGE_BUCKET || 'test.appspot.com' }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.JUSTSPLIT_FIREBASE_MESSAGING_SENDER_ID || '123456789' }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.JUSTSPLIT_FIREBASE_APP_ID || 'test-app-id' }}
+          # Hub environment variables
+          NEXT_PUBLIC_HUB_API_KEY: ${{ secrets.HUB_FIREBASE_API_KEY || 'test-hub-key' }}
+          NEXT_PUBLIC_HUB_AUTH_DOMAIN: ${{ secrets.HUB_FIREBASE_AUTH_DOMAIN || 'test-hub.firebaseapp.com' }}
+          NEXT_PUBLIC_HUB_PROJECT_ID: ${{ secrets.HUB_FIREBASE_PROJECT_ID || 'test-hub-project' }}
+          NEXT_PUBLIC_HUB_STORAGE_BUCKET: ${{ secrets.HUB_FIREBASE_STORAGE_BUCKET || 'test-hub.appspot.com' }}
+          NEXT_PUBLIC_HUB_MESSAGING_SENDER_ID: ${{ secrets.HUB_FIREBASE_MESSAGING_SENDER_ID || '987654321' }}
+          NEXT_PUBLIC_HUB_APP_ID: ${{ secrets.HUB_FIREBASE_APP_ID || 'test-hub-app-id' }}
+      
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
+
+  type-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Type check JustSplit
+        run: cd apps/justsplit && npx tsc --noEmit
+      
+      - name: Type check Hub
+        run: cd apps/hub && npx tsc --noEmit

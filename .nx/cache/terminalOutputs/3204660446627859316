@@ -1,0 +1,25 @@
+node:events:485
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: spawn /opt/homebrew/Cellar/node/23.7.0/bin/node ENOENT
+[90m    at ChildProcess._handle.onexit (node:internal/child_process:286:19)[39m
+[90m    at onErrorNT (node:internal/child_process:484:16)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)[39m
+Emitted 'error' event on ChildProcess instance at:
+[90m    at ChildProcess._handle.onexit (node:internal/child_process:292:12)[39m
+[90m    at onErrorNT (node:internal/child_process:484:16)[39m
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)[39m {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'spawn /opt/homebrew/Cellar/node/23.7.0/bin/node'[39m,
+  path: [32m'/opt/homebrew/Cellar/node/23.7.0/bin/node'[39m,
+  spawnargs: [
+    [32m'/Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/node_modules/next/dist/bin/next'[39m,
+    [32m'dev'[39m,
+    [32m'--port=5001'[39m,
+    [32m''[39m
+  ]
+}
+
+Node.js v23.7.0

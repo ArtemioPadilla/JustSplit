@@ -1,8 +1,25 @@
 # Data Models
 
-This document outlines the data models used in the JustSplit application, detailing the structure, relationships, and attributes of the data entities involved in expense tracking and management.
+> **📋 Note**: This document provides a high-level overview of data models. For comprehensive documentation including NX monorepo architecture, shared types, and detailed relationships, see:
+> - [**NX Monorepo Data Models Documentation**](./data-models-nx-comprehensive.md) - Complete platform documentation
+> - [**Legacy Comprehensive Documentation**](./data-models-comprehensive.md) - Previous detailed documentation
 
-## Expense
+This document outlines the core data models used in the JustSplit application, detailing the structure, relationships, and attributes of the data entities involved in expense tracking and management.
+
+## Overview
+
+The JustSplit platform uses several interconnected data models to manage users, expenses, events, and settlements across multiple applications in an NX monorepo architecture:
+
+- **Hub App** (`apps/hub`): Central authentication and application management
+- **JustSplit App** (`apps/justsplit`): Core expense splitting functionality  
+- **Shared Types** (`libs/shared-types`): Platform-wide authentication and app models
+- **App-Specific Types** (`apps/justsplit/src/types`): JustSplit domain models
+- **Firebase Config** (`libs/firebase-config`): Shared Firebase configuration
+- **UI Components** (`libs/ui-components`): Shared component library
+
+## Core Models
+
+### Expense
 
 Represents a shared expense incurred by one or more users.
 

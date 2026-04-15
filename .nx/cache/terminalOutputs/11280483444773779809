@@ -1,0 +1,20 @@
+   [1m[38;2;173;127;168m▲ Next.js 15.3.2[39m[22m
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1m✓[22m[39m Compiled successfully in 3.0s
+ [37m[1m [22m[39m Linting and checking validity of types ...
+ [31m[1m⨯[22m[39m ESLint: Failed to load config "next/core-web-vitals" to extend from. Referenced from: /Users/artemiopadilla/Documents/repos/GitHub/personal/JustSplit/.eslintrc.json
+[31mFailed to compile.
+[39m
+[36m./src/app/documentation/page.tsx[39m:[33m11[39m:[33m12[39m
+[31m[1mType error[22m[39m: Cannot find namespace 'JSX'.
+
+[0m [90m  9 |[39m [36minterface[39m [33mDocContent[39m {[0m
+[0m [90m 10 |[39m   title[33m:[39m string[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 11 |[39m   content[33m:[39m [33mJSX[39m[33m.[39m[33mElement[39m[33m;[39m[0m
+[0m [90m    |[39m            [31m[1m^[22m[39m[0m
+[0m [90m 12 |[39m }[0m
+[0m [90m 13 |[39m[0m
+[0m [90m 14 |[39m [36minterface[39m [33mDocSections[39m {[0m
+Next.js build worker exited with code: 1 and signal: null
+[1m[31mBuild process exited due to code 1  [39m[22m

@@ -1,0 +1,31 @@
+.themeToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--color-card);
+  transform: scale(1.05);
+}
+
+.themeToggle:active {
+  transform: scale(0.95);
+}
+
+/* Animation for icon transition */
+.themeToggle svg {
+  transition: transform 0.3s ease;
+}
+
+.themeToggle:hover svg {
+  transform: rotate(15deg);
+}

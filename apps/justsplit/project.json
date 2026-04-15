@@ -1,0 +1,104 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "justsplit-app",
+  "sourceRoot": "apps/justsplit/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/next:build",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "root": "apps/justsplit",
+        "outputPath": "dist/apps/justsplit"
+      },
+      "configurations": {
+        "production": {
+          "outputPath": "apps/justsplit/.next"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "options": {
+        "buildTarget": "justsplit-app:build",
+        "dev": true,
+        "port": 4000
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "justsplit-app:build:production",
+          "dev": false
+        }
+      }
+    },
+    "dev": {
+      "executor": "@nx/next:server",
+      "options": {
+        "buildTarget": "justsplit-app:build",
+        "dev": true,
+        "port": 4000
+      }
+    },
+    "export": {
+      "executor": "@nx/next:export",
+      "options": {
+        "buildTarget": "justsplit-app:build:production"
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/justsplit/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/justsplit/jest.config.js",
+        "passWithNoTests": true
+      }
+    },
+    "emulators": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "firebase emulators:start --import=./emulator-data --export-on-exit=./emulator-data"
+        ],
+        "cwd": "apps/justsplit"
+      }
+    },
+    "hosting:emulator": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx build justsplit-app",
+          "firebase emulators:start --only hosting"
+        ],
+        "cwd": "firebase/justsplit",
+        "parallel": false
+      }
+    },
+    "hosting:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx serve justsplit-app & firebase emulators:start --only hosting"
+        ],
+        "cwd": "firebase/justsplit"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx build justsplit-app --configuration=production",
+          "cd firebase/justsplit && firebase deploy --only hosting:justsplit-app,firestore"
+        ],
+        "parallel": false
+      }
+    }
+  },
+  "tags": []
+}

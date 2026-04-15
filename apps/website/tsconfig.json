@@ -1,0 +1,52 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/styles/*": [
+        "./src/styles/*"
+      ],
+      "@cybereco/shared-types": [
+        "../../libs/shared-types/src/index.ts"
+      ],
+      "@cybereco/firebase-config": [
+        "../../libs/firebase-config/src/index.ts"
+      ],
+      "@cybereco/ui-components": [
+        "../../libs/ui-components/src/index.ts"
+      ],
+      "@cybereco/shared-assets": [
+        "../../libs/shared-assets/src/index.ts"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "src",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

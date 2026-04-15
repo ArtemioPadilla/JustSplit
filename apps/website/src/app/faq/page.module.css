@@ -1,0 +1,102 @@
+.pageContainer {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+}
+
+.pageHeader {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.title {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.faqSection {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-md);
+}
+
+.faqQuestion {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--spacing-sm) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.faqAnswer {
+  padding: var(--spacing-md) 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+.chevronIcon {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.faqCategory {
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 2px solid var(--primary);
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.contactSection {
+  margin-top: var(--spacing-xl);
+  text-align: center;
+}
+
+.contactText {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.contactButton {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--primary);
+  color: white;
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.contactButton:hover {
+  background-color: var(--primary-dark, var(--primary));
+  color: white;
+}

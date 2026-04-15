@@ -1,0 +1,98 @@
+/* Base theme variables - matching original website exactly */
+:root {
+  /* Light theme (default) - from original globalStyles.ts */
+  --primary: #006241;
+  --primary-light: rgba(0, 98, 65, 0.05);
+  --secondary: #6BBF59;
+  --background: #FFFFFF;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --surface: #F7F7F7;
+  --border: #DDDDDD;
+  --shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+  
+  /* Legacy color names for backward compatibility */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-text: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-card: var(--surface);
+  --color-border: var(--border);
+  --color-error: #e74c3c;
+  --color-success: #28a745;
+  --color-warning: #f39c12;
+  
+  /* Typography */
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-xxl: 1.5rem;
+  
+  /* Spacing - exactly from original globalStyles.ts */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 2rem;
+  --spacing-lg: 3rem;
+  --spacing-xl: 5rem;
+  
+  /* Border radius - from original */
+  --border-radius: 8px;
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 1rem;
+  
+  /* Layout constants - from original */
+  --max-width: 1200px;
+  --header-height: 70px;
+  --footer-height: 200px;
+  --section-padding: 3rem;
+  
+  /* Animation - from original */
+  --transition-speed: 0.3s;
+  
+  /* Website-specific colors */
+  --hero-gradient-light: linear-gradient(135deg, var(--primary), var(--secondary));
+  --hero-gradient-dark: linear-gradient(135deg, var(--primary), #1a1a2e);
+  --hero-gradient: var(--hero-gradient-light);
+  
+  /* Legacy shadow names for backward compatibility */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+/* Dark theme - matching original globalStyles.ts exactly */
+[data-theme="dark"] {
+  /* Dark theme colors - from original */
+  --primary: #00A36C;
+  --primary-light: rgba(0, 40, 30, 0.3);
+  --secondary: #8CD867;
+  --background: #121212;
+  --text-primary: #E0E0E0;
+  --text-secondary: #B0B0B0;
+  --surface: #1E1E1E;
+  --border: #333333;
+  --shadow: 0 4px 6px rgba(255,255,255,0.03), 0 1px 3px rgba(255,255,255,0.04);
+  
+  /* Legacy color names for backward compatibility */
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-text: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-card: var(--surface);
+  --color-border: var(--border);
+  --color-error: #c0392b;
+  --color-success: #28a745;
+  --color-warning: #d35400;
+  
+  /* Shadow overrides for dark theme */
+  --shadow-sm: 0 1px 3px rgba(255,255,255,0.05), 0 1px 2px rgba(255,255,255,0.1);
+  --shadow-md: 0 4px 6px rgba(255,255,255,0.03), 0 1px 3px rgba(255,255,255,0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(255,255,255,0.03), 0 4px 6px -2px rgba(255,255,255,0.02);
+  
+  /* Website-specific overrides */
+  --hero-gradient: var(--hero-gradient-dark);
+}

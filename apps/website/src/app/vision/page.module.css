@@ -1,0 +1,503 @@
+.container {
+  min-height: 100vh;
+  padding-top: var(--header-height, 70px);
+}
+
+.heroSection {
+  padding: 4rem 2rem 3rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: white;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>');
+  opacity: 0.3;
+}
+
+.heroContent {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(45deg, #ffffff, #64b5f6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  font-weight: 300;
+  margin: 0;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.currentSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.sectionContent {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.currentCard {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.sectionTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1.5rem;
+}
+
+.sectionText {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 2rem;
+}
+
+.currentApps {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.appItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  min-width: 120px;
+}
+
+.appIcon {
+  font-size: 2rem;
+}
+
+.futureSection {
+  padding: 4rem 2rem;
+  background: var(--surface);
+}
+
+.visionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.visionCard {
+  background: var(--background);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.visionCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #64b5f6, #42a5f5);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.visionCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.visionCard:hover::before {
+  transform: scaleX(1);
+}
+
+.visionIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.visionTitle {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.visionText {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.visionDetails {
+  text-align: left;
+  margin-top: 1.5rem;
+}
+
+.visionDetails ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.visionDetails li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.visionDetails li::before {
+  content: '✓';
+  color: #64b5f6;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.architectureSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.architectureDiagram {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.architectureLayer {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.architectureLayer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.architectureLayer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.architectureLayer:hover::before {
+  transform: scaleX(1);
+}
+
+.architectureLayer h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.architectureLayer p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.layerComponents {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.layerComponents span {
+  background: var(--background);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+
+.timelineSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.timeline {
+  margin-top: 3rem;
+  position: relative;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 2rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--primary), var(--primary-dark, #005235));
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.timelineMarker {
+  width: 4rem;
+  height: 4rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 98, 65, 0.3);
+  position: relative;
+  z-index: 2;
+}
+
+.timelineContent {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  flex: 1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.timelineContent h3 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.timelineContent p {
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ctaSection {
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #005235) 100%);
+  color: white;
+  text-align: center;
+}
+
+.ctaContent {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ctaTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ctaText {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  margin: 0 0 2rem;
+  opacity: 0.95;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: white;
+  color: var(--primary);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ctaButtonSecondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: transparent;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 2px solid white;
+  transition: all 0.3s ease;
+}
+
+.ctaButtonSecondary:hover {
+  background: white;
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.25rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+  }
+
+  .currentCard {
+    padding: 2rem;
+  }
+
+  .currentApps {
+    gap: 1rem;
+  }
+
+  .visionGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .visionCard {
+    padding: 1.5rem;
+  }
+
+  .timeline::before {
+    left: 1rem;
+  }
+
+  .timelineItem {
+    gap: 1rem;
+  }
+
+  .timelineMarker {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+
+  .timelineContent {
+    padding: 1.5rem;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ctaButton,
+  .ctaButtonSecondary {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroSection {
+    padding: 3rem 1rem 2rem;
+  }
+
+  .currentSection,
+  .futureSection,
+  .architectureSection,
+  .timelineSection,
+  .ctaSection {
+    padding: 3rem 1rem;
+  }
+
+  .currentCard {
+    padding: 1.5rem;
+  }
+
+  .timelineContent {
+    padding: 1rem;
+  }
+
+  .architectureLayer {
+    padding: 1.5rem;
+  }
+
+  .layerComponents {
+    gap: 0.5rem;
+  }
+
+  .layerComponents span {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+}

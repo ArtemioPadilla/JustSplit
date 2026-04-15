@@ -1,0 +1,661 @@
+.container {
+  min-height: 100vh;
+  padding-top: var(--header-height, 70px);
+}
+
+.heroSection {
+  padding: 4rem 2rem 3rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #005235) 100%);
+  color: white;
+  text-align: center;
+}
+
+.heroContent {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  font-weight: 300;
+  margin: 0;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.roadmapSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.sectionContent {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.phasesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.phaseCard {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.phaseCard.currentPhase {
+  border-color: var(--primary);
+  box-shadow: 0 8px 32px rgba(0, 98, 65, 0.15);
+}
+
+.phaseCard.currentPhase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark, #005235));
+}
+
+.phaseCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.phaseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.phaseNumber {
+  width: 3rem;
+  height: 3rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.phaseStatus {
+  background: var(--primary-light, rgba(0, 98, 65, 0.1));
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.currentPhase .phaseStatus {
+  background: var(--primary);
+  color: white;
+}
+
+.phaseTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.phaseText {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1.5rem;
+}
+
+.phaseApps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.appTag {
+  background: var(--background);
+  color: var(--text-primary);
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark, #005235));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressText {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.phaseDetails {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.phaseDetails h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 1rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.phaseDetails ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.phaseDetails li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0.375rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.phaseDetails li::before {
+  content: '•';
+  color: var(--primary);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.currentFocusSection {
+  padding: 4rem 2rem;
+  background: var(--surface);
+}
+
+.focusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.focusCard {
+  background: var(--background);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.focusCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.focusIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.focusTitle {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.focusDetails {
+  text-align: left;
+  margin-top: 1.5rem;
+}
+
+.focusDetails h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem;
+}
+
+.focusDetails ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.focusDetails li {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.focusDetails li::before {
+  content: '→';
+  color: var(--primary);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.focusStatus {
+  background: var(--primary-light, rgba(0, 98, 65, 0.1));
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+.technicalSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.evolutionTimeline {
+  margin-top: 3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.evolutionPhase {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.evolutionPhase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark, #005235));
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.evolutionPhase:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.evolutionPhase:hover::before {
+  transform: scaleX(1);
+}
+
+.evolutionPhase h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.evolutionPhase p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+}
+
+.techStack {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.techStack span {
+  background: var(--background);
+  color: var(--text-primary);
+  padding: 0.375rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+
+.milestonesSection {
+  padding: 4rem 2rem;
+  background: var(--surface);
+}
+
+.sectionTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 3rem;
+}
+
+.milestonesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.milestoneCard {
+  background: var(--background);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.milestoneCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.milestoneIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.milestoneTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.milestoneText {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.milestoneStatus {
+  background: var(--primary-light, rgba(0, 98, 65, 0.1));
+  color: var(--primary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.timelineSection {
+  padding: 4rem 2rem;
+  background: var(--background);
+}
+
+.timelineVisualization {
+  position: relative;
+  max-width: 800px;
+  margin: 3rem auto 0;
+  padding: 2rem 0;
+}
+
+.timelineLine {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark, #005235));
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+
+.timelinePoint {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 25%;
+  float: left;
+}
+
+.timelineMarker {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--primary);
+  border: 4px solid var(--background);
+  border-radius: 50%;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.timelineLabel {
+  text-align: center;
+  margin-top: 1rem;
+  background: var(--surface);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.timelineLabel strong {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.timelineLabel span {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.ctaSection {
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
+  text-align: center;
+}
+
+.ctaContent {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ctaTitle {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+}
+
+.ctaText {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 98, 65, 0.3);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 98, 65, 0.4);
+  background: var(--primary-dark, #005235);
+}
+
+.ctaButtonSecondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: transparent;
+  color: var(--primary);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 2px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.ctaButtonSecondary:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.25rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+  }
+
+  .phasesContainer {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .phaseCard {
+    padding: 1.5rem;
+  }
+
+  .milestonesGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .milestoneCard {
+    padding: 1.5rem;
+  }
+
+  .timelinePoint {
+    width: 50%;
+    margin-bottom: 2rem;
+  }
+
+  .timelinePoint:nth-child(odd) {
+    clear: left;
+  }
+
+  .timelineLine {
+    display: none;
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ctaButton,
+  .ctaButtonSecondary {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroSection {
+    padding: 3rem 1rem 2rem;
+  }
+
+  .roadmapSection,
+  .currentFocusSection,
+  .technicalSection,
+  .milestonesSection,
+  .timelineSection,
+  .ctaSection {
+    padding: 3rem 1rem;
+  }
+
+  .phaseCard {
+    padding: 1rem;
+  }
+
+  .focusCard {
+    padding: 1.5rem;
+  }
+
+  .evolutionPhase {
+    padding: 1.5rem;
+  }
+
+  .focusGrid,
+  .evolutionTimeline {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .techStack {
+    gap: 0.375rem;
+  }
+
+  .techStack span {
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .milestoneCard {
+    padding: 1rem;
+  }
+
+  .timelinePoint {
+    width: 100%;
+  }
+}

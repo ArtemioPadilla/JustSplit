@@ -1,0 +1,298 @@
+graph TD
+    %% Frontend Applications
+    subgraph "Frontend Applications"
+        direction TB
+        subgraph "Hub Application"
+            HUB_NEXT[Next.js 15 App]
+            HUB_AUTH[Auth Management]
+            HUB_USERS[User Registry]
+            HUB_APPS[App Directory]
+            
+            HUB_NEXT --> HUB_AUTH
+            HUB_NEXT --> HUB_USERS
+            HUB_NEXT --> HUB_APPS
+        end
+        
+        subgraph "JustSplit Application"
+            JS_NEXT[Next.js 15 App]
+            JS_EXPENSE[Expense Management]
+            JS_GROUPS[Group Management]
+            JS_EVENTS[Event Tracking]
+            JS_TIMELINE[Timeline & Analytics]
+            
+            JS_NEXT --> JS_EXPENSE
+            JS_NEXT --> JS_GROUPS
+            JS_NEXT --> JS_EVENTS
+            JS_NEXT --> JS_TIMELINE
+        end
+        
+        subgraph "Website Application"
+            WEB_NEXT[Next.js 15 Static]
+            WEB_MARKETING[Marketing Pages]
+            WEB_GUIDES[User Guides]
+            WEB_DOCS[Documentation]
+            
+            WEB_NEXT --> WEB_MARKETING
+            WEB_NEXT --> WEB_GUIDES
+            WEB_NEXT --> WEB_DOCS
+        end
+        
+        subgraph "Future Applications"
+            SOMOS[Somos - Family Roots]
+            DEMOS[Demos - Governance]
+            PLANTOPIA[Plantopia - Gardening]
+            
+            SOMOS -.-> JS_NEXT
+            DEMOS -.-> JS_NEXT
+            PLANTOPIA -.-> JS_NEXT
+        end
+    end
+    
+    %% Shared Libraries (@cybereco/*)
+    subgraph "Shared Libraries (@cybereco/*)"
+        direction TB
+        subgraph "shared-types"
+            ST_USER[User Types]
+            ST_APP[App Types]
+            ST_EXPENSE[Expense Types]
+            ST_EVENT[Event Types]
+            
+            ST_USER --> ST_APP
+            ST_APP --> ST_EXPENSE
+            ST_EXPENSE --> ST_EVENT
+        end
+        
+        subgraph "firebase-config"
+            FC_AUTH[Auth Configuration]
+            FC_MULTI[Multi-Project Setup]
+            FC_RULES[Security Rules]
+            FC_UTILS[Firebase Utilities]
+            
+            FC_AUTH --> FC_MULTI
+            FC_MULTI --> FC_RULES
+            FC_RULES --> FC_UTILS
+        end
+        
+        subgraph "ui-components"
+            UC_BASE[Base Components]
+            UC_FORMS[Form Components]
+            UC_LAYOUT[Layout Components]
+            UC_THEME[Theme System]
+            UC_I18N[Internationalization]
+            
+            UC_BASE --> UC_THEME
+            UC_FORMS --> UC_THEME
+            UC_LAYOUT --> UC_THEME
+            UC_I18N --> UC_THEME
+        end
+        
+        subgraph "shared-assets"
+            SA_LOGOS[Brand Logos]
+            SA_ICONS[Icon Library]
+            SA_IMAGES[Marketing Images]
+            
+            SA_LOGOS --> SA_ICONS
+            SA_ICONS --> SA_IMAGES
+        end
+    end
+    
+    %% Firebase Multi-Project Backend
+    subgraph "Firebase Multi-Project Backend"
+        direction TB
+        subgraph "Hub Firebase Project"
+            HUB_AUTH[Authentication Service]
+            HUB_USERS[User Database]
+            HUB_APPS[App Registry]
+            HUB_TOKENS[Token Management]
+            
+            HUB_AUTH --> HUB_USERS
+            HUB_AUTH --> HUB_APPS
+            HUB_AUTH --> HUB_TOKENS
+        end
+        
+        subgraph "JustSplit Firebase Project"
+            JS_FIRESTORE[Expense Database]
+            JS_STORAGE[File Storage]
+            JS_FUNCTIONS[Cloud Functions]
+            JS_RULES[Security Rules]
+            
+            JS_FIRESTORE --> JS_STORAGE
+            JS_FIRESTORE --> JS_FUNCTIONS
+            JS_RULES --> JS_FIRESTORE
+            JS_RULES --> JS_STORAGE
+        end
+        
+        subgraph "Website Firebase Project"
+            WEB_HOSTING[Static Hosting]
+            WEB_ANALYTICS[Analytics]
+            WEB_FORMS[Contact Forms]
+            
+            WEB_HOSTING --> WEB_ANALYTICS
+            WEB_HOSTING --> WEB_FORMS
+        end
+    end
+    
+    %% NX Development Infrastructure
+    subgraph "NX Development Infrastructure"
+        direction TB
+        NX_CORE[NX Workspace Core]
+        NX_CACHE[Build Cache]
+        NX_AFFECTED[Affected Commands]
+        NX_PARALLEL[Parallel Execution]
+        NX_GENERATORS[Code Generators]
+        
+        NX_CORE --> NX_CACHE
+        NX_CORE --> NX_AFFECTED
+        NX_CORE --> NX_PARALLEL
+        NX_CORE --> NX_GENERATORS
+    end
+    
+    %% CI/CD Pipeline
+    subgraph "CI/CD Pipeline"
+        direction TB
+        GHA[GitHub Actions]
+        BUILD[NX Build System]
+        TEST[Jest Testing]
+        LINT[ESLint & Prettier]
+        DEPLOY[Firebase Deploy]
+        
+        GHA --> BUILD
+        BUILD --> TEST
+        BUILD --> LINT
+        BUILD --> DEPLOY
+    end
+    
+    %% Technology Stack
+    subgraph "Technology Stack"
+        direction TB
+        NEXT[Next.js 15 + App Router]
+        REACT[React 18 + TypeScript]
+        CSS[CSS Modules]
+        FIREBASE[Firebase SDK v9+]
+        NODE[Node.js 18+]
+        
+        NEXT --> REACT
+        REACT --> CSS
+        REACT --> FIREBASE
+        NEXT --> NODE
+    end
+    
+    %% Application Dependencies
+    HUB_NEXT -.-> shared-types
+    HUB_NEXT -.-> firebase-config
+    HUB_NEXT -.-> ui-components
+    HUB_NEXT -.-> shared-assets
+    
+    JS_NEXT -.-> shared-types
+    JS_NEXT -.-> firebase-config
+    JS_NEXT -.-> ui-components
+    JS_NEXT -.-> shared-assets
+    
+    WEB_NEXT -.-> shared-types
+    WEB_NEXT -.-> ui-components
+    WEB_NEXT -.-> shared-assets
+    
+    %% Library Dependencies
+    ui-components -.-> shared-types
+    firebase-config -.-> shared-types
+    shared-assets -.-> shared-types
+    
+    %% Firebase Connections
+    firebase-config -.-> "Hub Firebase Project"
+    firebase-config -.-> "JustSplit Firebase Project"
+    firebase-config -.-> "Website Firebase Project"
+    
+    %% Cross-Project Authentication
+    HUB_AUTH <-.-> JS_FIRESTORE
+    HUB_TOKENS <-.-> JS_RULES
+    
+    %% NX Tool Integration
+    NX_GENERATORS -.-> HUB_NEXT
+    NX_GENERATORS -.-> JS_NEXT
+    NX_GENERATORS -.-> WEB_NEXT
+    NX_CACHE -.-> BUILD
+    NX_AFFECTED -.-> TEST
+    
+    %% Data Flow Patterns
+    subgraph "Authentication Flow"
+        direction LR
+        AUTH1[User Login] --> AUTH2[Hub Auth]
+        AUTH2 --> AUTH3[Token Generation]
+        AUTH3 --> AUTH4[Cross-Project Access]
+        AUTH4 --> AUTH5[App-Specific Data]
+    end
+    
+    subgraph "Development Workflow"
+        direction LR
+        DEV1[nx serve app] --> DEV2[Hot Reload]
+        DEV2 --> DEV3[Type Checking]
+        DEV3 --> DEV4[Firebase Emulators]
+        DEV4 --> DEV5[Testing]
+    end
+    
+    subgraph "Build & Deploy Flow"
+        direction LR
+        DEPLOY1[Code Push] --> DEPLOY2[GitHub Actions]
+        DEPLOY2 --> DEPLOY3[NX Affected Build]
+        DEPLOY3 --> DEPLOY4[Firebase Deploy]
+        DEPLOY4 --> DEPLOY5[Multi-Project Update]
+    end
+    
+    subgraph "Library Update Flow"
+        direction LR
+        LIB1[Shared Library Change] --> LIB2[Semantic Versioning]
+        LIB2 --> LIB3[NX Dependency Graph]
+        LIB3 --> LIB4[Affected App Rebuilds]
+        LIB4 --> LIB5[Coordinated Deployment]
+    end
+    
+    %% Performance & Optimization
+    subgraph "Performance Features"
+        direction TB
+        PERF1[NX Computation Cache]
+        PERF2[Incremental Builds]
+        PERF3[Tree Shaking]
+        PERF4[Code Splitting]
+        PERF5[Firebase Emulator Cache]
+        
+        PERF1 --> PERF2
+        PERF2 --> PERF3
+        PERF3 --> PERF4
+        PERF4 --> PERF5
+    end
+    
+    %% Security & Compliance
+    subgraph "Security Architecture"
+        direction TB
+        SEC1[Multi-Project Isolation]
+        SEC2[Token-Based Auth]
+        SEC3[Firestore Security Rules]
+        SEC4[Type-Safe API Calls]
+        SEC5[Environment Isolation]
+        
+        SEC1 --> SEC2
+        SEC2 --> SEC3
+        SEC3 --> SEC4
+        SEC4 --> SEC5
+    end
+    
+    %% Style Classes
+    classDef appNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px;
+    classDef libNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef firebaseNode fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px;
+    classDef nxNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef cicdNode fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
+    classDef techNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    classDef flowNode fill:#fff8e1,stroke:#f9a825,stroke-width:2px;
+    classDef perfNode fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px;
+    classDef secNode fill:#ffebee,stroke:#d32f2f,stroke-width:2px;
+    
+    class "Hub Application","JustSplit Application","Website Application","Future Applications" appNode;
+    class "shared-types","firebase-config","ui-components","shared-assets" libNode;
+    class "Hub Firebase Project","JustSplit Firebase Project","Website Firebase Project" firebaseNode;
+    class "NX Development Infrastructure" nxNode;
+    class "CI/CD Pipeline" cicdNode;
+    class "Technology Stack" techNode;
+    class "Authentication Flow","Development Workflow","Build & Deploy Flow","Library Update Flow" flowNode;
+    class "Performance Features" perfNode;
+    class "Security Architecture" secNode;
