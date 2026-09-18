@@ -19,9 +19,13 @@ independent and ship in that order:
 |---|---|---|
 | **A. Workflow adoption** | `CLAUDE.md`, `.claude/agents` + checklists + commands, `ci.yml`, `claude.yml` triage, issue/PR templates, labels + milestones, repo hygiene | seven small PRs to `main` (A1–A6, with A3 split into A3a/A3b), no app code changes |
 | **B. Stack migration** | Re-platform the app on the Inceptor scaffold (Astro + islands + Tailwind + shadcn), keep Firebase as the backend | a series of issue-driven PRs on an integration branch, then one cutover PR |
+| **C. Upstream to Inceptor** | `docs/recipes/auth-firebase.md`, `docs/recipes/adopt-existing-app.md`, `init.mjs --into` | 3 issues in the `inceptor` repo, independent of the cutover |
+| **D. Relationship kinds, categories and conceptos** (post-cutover, D9) | `groups.kind` / `events.kind`, a global category taxonomy, group-owned conceptos, one optional budget — additive optional fields only, no rules change | issue-driven PRs to `main` after B22 (plan Track D); not a cutover gate |
 
 After B lands, the only thing we maintain is Inceptor; JustSplit becomes a
-downstream consumer of it (Track C upstreams the reusable pieces back).
+downstream consumer of it (Track C upstreams the reusable pieces back). Track
+D is the first post-cutover feature epic and runs through the same loop; the
+migration only prepares for it (D9).
 
 ## 2. Current-state inventory (what must be preserved)
 
@@ -297,6 +301,219 @@ env passed, rules deployed explicitly); `firebase-hosting-pull-request.yml`
 stays for previews and gets the build env; `deploy-staging.yml` deploys
 `inceptor` to the `staging` channel. All `uses:` refs SHA-pinned.
 
+### D9. Relationship kinds, categories and conceptos (post-cutover Track D).
+JustSplit will support different **relationship kinds** — couple, household
+(roommates), friends, trip and project — plus an **expense category
+taxonomy** and **conceptos**. None of it is part of the migration: it lands
+after B22 as Track D (plan), and the only pre-cutover work is declaring a
+handful of optional, opaque read fields in the B3 schemas so that an older
+build never strips or rejects a document written by a newer one.
+
+A kind is **configuration on the containers that already exist**, not a new
+entity: couple / household / friends / project / other are `groups.kind`; a
+trip is the existing `Event` (the collection was literally called Trip and
+already carries `startDate`/`endDate`/`location`/`members`/`preferredCurrency`
+and the `?event=` settlement scope), flagged `events.kind = 'trip'` — never a
+Group with a date range. A kind only does three things: pre-fill defaults
+(currency, split, participants, category ordering, preset conceptos), pick
+the hero widget of the detail page, and hide tabs the kind does not need.
+Kinds are presentation, never ownership or rules.
+
+**Model.** Every change is an additive, optional field on an existing
+document. No field is renamed or re-typed, no field becomes required, no new
+collection, subcollection, query or index. The gating fields the rules read
+(`members`, `participants`, `paidBy`, `fromUser`/`toUser`, `users`) are
+untouched.
+
+| Collection | New optional fields | Read default when absent / unknown |
+|---|---|---|
+| `groups` | `kind: string` (`couple` \| `household` \| `friends` \| `project` \| `other`); `settings: { defaultSplitMethod?: 'equal' \| 'custom' \| 'percentage', defaultShares?: Record<uid, number>, defaultCurrency?: string, budget?: { amount, currency, period: 'monthly' \| 'total' } }`; `concepts: Concept[]` (inline, ≤ 50, ~150 B each) | `kind` → `'friends'` via `parseKind()` (today's behaviour); `settings` → the kind's defaults from `src/domain/kinds.ts`; `concepts` → `[]` |
+| `events` | `kind: string` (`trip` \| `event`); `settings: { budget?: { amount, currency } }` (period is always the whole event) | `kind` → `'event'` via `parseEventKind()`; no budget UI |
+| `expenses` | `groupId: string`; `conceptId: string`; `category` (already exists; stays a free string) | group membership resolved through `group.expenseIds` (union selector, below); a dangling `conceptId` is ignored; `''`/unknown `category` → the *uncategorized* bucket (distinct from `other`), raw value shown verbatim |
+| `settlements` | `groupId: string` | derived from the settlement's `expenseIds` when a group filter needs it |
+| `users`, `friendships` | unchanged | — |
+
+`Concept = { id: string (client-generated), name: string, category: string
+(taxonomy key), defaultAmount?: number, currency?: string, split?: { method,
+shares?: Record<uid, number> }, recurrence?: { freq: 'weekly' | 'monthly' |
+'yearly', dayOfMonth?: 1..28, interval?: number }, archived?: boolean }`.
+
+Invariants that make this migration-free and rollback-safe:
+
+- Stored strings are **never Zod enums**: `kind`, `category` and
+  `splitMethod` parse as `z.string()`, and `parseKind()` /
+  `normalizeCategory()` in `src/domain/` fall back instead of throwing, so an
+  older deployed build (previews share production Firestore) reading a newer
+  document never breaks. Schemas carry no `.default()` for these fields:
+  derived defaults are selectors, so stored and derived shapes never mix.
+- Every read schema is `.passthrough()` and `repo.*.update` writes partial
+  `updateDoc` patches (never a full-document `setDoc` built from a parsed
+  read), so no client strips a field it does not know.
+- `expensesForGroup(group, $expenses)` = `e.groupId === group.id` ∪
+  `group.expenseIds.includes(e.id)`, kept forever. Track D dual-writes
+  `expense.groupId` **and** `arrayUnion(group.expenseIds)` in one
+  `writeBatch` (each write is rules-checked on its own; both pass for a member
+  creating a group expense); a rejected batch is surfaced, never silently
+  dropped.
+- No backfill of any kind: a member viewing a group is not necessarily a
+  participant of every group expense, so a client-side backfill of `groupId`
+  would be denied by the rules for some documents and leave data
+  half-migrated (an owner-run backfill needs the Admin SDK and is not
+  scheduled). Legacy groups render as `friends` and show a dismissible
+  "¿Qué tipo de grupo es?" nudge that writes `kind` (one member update).
+- Only Track D code writes these fields. Rolling Track D back (`git revert`)
+  leaves inert optional fields that the pre-D app ignores.
+
+**Kinds and per-kind defaults** (`src/domain/kinds.ts`, one code table;
+labels are `{ en, es }`):
+
+| Kind | Container | Members | Default participants / split / currency | Category order (shown first) | Hero widget on the detail page |
+|---|---|---|---|---|---|
+| `couple` (Pareja) | Group | exactly 2, enforced by the form only (me + one accepted friend) | both / `equal`, optional remembered ratio in `settings.defaultShares` / creator's preferred | rent, groceries, utilities, internet, food, health, subscriptions, gifts | `BalanceCard`: one sentence "Ana le debe a Luis $1,240" + one **Liquidar** button (a single transfer; no minimal-transactions table). Degrades to `TotalByCategory` when `members.length !== 2`. Events tab hidden until a trip exists |
+| `household` (Casa / roomies) | Group | N | all / `equal`, `percentage` allowed / creator's preferred | rent, utilities, internet, groceries, services, shopping, food | `TotalByCategory` in the MVP; `DueBillsList` (conceptos due this period) above the balances once plan D11 lands |
+| `friends` (Amigos) — **read default for every legacy group** | Group | N | all, editable subset / `equal` / none | food, entertainment, transportation, shopping, gifts, activities | Today's group page + `TotalByCategory` + balances; Events tab always visible with a "Nuevo viaje" button |
+| `trip` (Viaje) | **Event** (`events.kind = 'trip'`), optional `groupId` | `event.members` | members / `equal` / `preferredCurrency` prompted (settlement currency) | accommodation, transportation, food, activities, shopping, fees | `TripSummary`: total in the trip currency, per person, category donut, "Liquidar viaje" → `/settlements?event=<id>`; "Trip ended — settle up" callout after `endDate`; computed (never stored) "Liquidado" badge |
+| `project` (Proyecto) | Group | N | pick / `percentage` with `settings.defaultShares` asked at creation (`equal` fallback) / creator's preferred | services, shopping, subscriptions, fees, transportation, food | `TotalByCategory` in the MVP; `BudgetBar` "Gastado $940 de $1,500" once plan D10 lands. Events tab hidden until a trip exists |
+| `other` (Otro) | Group | N | as friends; full taxonomy in canonical order | — | as friends; also what `parseKind()` returns for an unknown string |
+
+The create flow (`/groups/new`) opens with a kind picker (Pareja, Casa,
+Amigos, Viaje, Proyecto, Otro); **Viaje routes to `/events/new?kind=trip`**
+(with `&group=<id>` when started from a group page). Any member can change a
+group's kind later; it is a hint, not a lock.
+
+**Categories.** One global, fixed, code-owned taxonomy in
+`src/domain/categories.ts`; documents store only the key in the existing
+`expenses.category` string. Keys are immutable once shipped (renaming a key
+is a data migration; labels are free to change) and a Vitest snapshot of the
+key list is add-only. The five keys the Next app writes today (`food`,
+`transportation`, `accommodation`, `entertainment`, `other`) are kept
+byte-for-byte, so B10 writes exactly those five from a
+`src/domain/categories.ts` stub and no alias map is ever needed.
+
+| Key | es / en | lucide icon |
+|---|---|---|
+| `food` (legacy) | Comida y bebida / Food & drink | `Utensils` |
+| `groceries` | Súper / Groceries | `ShoppingCart` |
+| `rent` | Renta / Rent | `House` |
+| `utilities` | Servicios (luz, agua, gas) / Utilities | `Zap` |
+| `internet` | Internet y teléfono / Internet & phone | `Wifi` |
+| `transportation` (legacy) | Transporte / Transport | `Car` |
+| `accommodation` (legacy) | Alojamiento / Accommodation | `BedDouble` |
+| `activities` | Actividades y tours / Activities | `Tent` |
+| `entertainment` (legacy) | Ocio / Entertainment | `Ticket` |
+| `shopping` | Compras / Shopping | `ShoppingBag` |
+| `health` | Salud y farmacia / Health | `HeartPulse` |
+| `services` | Servicios profesionales / Services | `Wrench` |
+| `subscriptions` | Suscripciones / Subscriptions | `Tv` |
+| `gifts` | Regalos / Gifts | `Gift` |
+| `fees` | Comisiones e impuestos / Fees & taxes | `Receipt` |
+| `other` (legacy) | Otros / Other | `Tag` |
+
+Per-kind behaviour is only **ordering**: `categoriesForKind(kind)` puts the
+kind's subset first and the rest under "Más categorías", so every category
+is reachable from every kind. `normalizeCategory(raw)` maps a known key to
+itself and `''`/`undefined`/unknown to the *uncategorized* bucket for
+aggregation only (the raw value is never rewritten). Icons are resolved
+through a static import map in a component (`CategoryIcon.tsx`); `src/domain`
+never imports `lucide-react`, so the chunk stays tree-shaken. Colours are the
+dataviz categorical palette indexed by taxonomy order, shared by
+`ExpenseDistribution`, list badges and chips in light and dark. Labels are
+the app's first and only i18n surface: `useLocale()` on
+`useClientPreference` (`navigator.language` → `es`/`en`, server default
+`en`) selects the label; no i18n framework, no `users.locale` field. CSV
+export writes the key **and** the label in two columns. **Not** per-group
+custom categories: the per-group nuance ("Renta", "Luz", "Hosting") is
+expressed by conceptos carrying a taxonomy key, which keeps every chart, CSV
+and filter comparable across groups; revisit only if users ask.
+
+**Conceptos.** "Concepto" is read in the Spanish accounting sense — the
+named line item (rubro) between the category and free text: *Renta* under
+`rent`, *Súper* under `groceries`, *Hotel* under `accommodation`. It ships in
+two steps on one object:
+
+1. **Vocabulary (zero schema cost, plan D4):** in Spanish the existing
+   `expense.description` field is labelled **Concepto**, `category`
+   **Categoría** and `notes` **Notas**; the form order is Categoría →
+   Concepto → Importe. No subcategory level and no free tags are added.
+2. **Reusable templates (plan D9):** a concepto is a group-owned template in
+   `groups.concepts[]` (see `Concept` above) plus `expenses.conceptId`.
+   Picking one in the expense form fills description, category, default
+   amount, currency and an optional split override; typing a new name offers
+   "Guardar como concepto". Per-kind presets (couple: Renta, Súper, Luz,
+   Internet; household: those plus Agua, Gas, Limpieza; project: Hosting,
+   Dominio) are offered as pre-checked rows at group creation and become
+   ordinary editable rows in the group's Settings tab. Writes go through a
+   `runTransaction` on the group document (members already have update
+   rights; no rules change). Aggregations use `conceptId`, never string
+   matching; a deleted concepto leaves its expenses intact. Trips have no
+   conceptos (trip spend is not repetitive).
+
+The product-feature reading of "conceptos" (budgets, recurring expenses,
+period close) is scoped to two items that ride on the same object:
+
+- **Budget:** one optional `settings.budget` per Group (`monthly` or
+  `total`) and per Event (whole event), rendered as an informational
+  `BudgetBar` — no per-category budgets, no alerts, no shaming states
+  (`.claude/checklists/ethics.md`, copied by plan A2). Multi-currency progress uses the B16 rate cache with an
+  "as of" caption and shows "sin conversión" when a rate is unavailable.
+- **Recurring:** a concepto with a `recurrence` is surfaced as a
+  client-computed "Cuentas por agregar" checklist (`src/domain/recurrence.ts`:
+  `nextDueDate`, `dueConcepts(group, expenses, today)`) derived from the live
+  `$expenses` store: due when the next date ≤ today and no expense with that
+  `conceptId` exists in the period. One tap pre-fills the expense form;
+  **nothing is ever auto-created** — the app is static Hosting with no Cloud
+  Functions, page-mount writes would break the read-only preview discipline
+  (D5), and generated instances would be phantom financial records.
+- **Period close is not built:** "Cerrar mes" / "Liquidar viaje" is the
+  existing settle-up island (B14) pre-filtered by date range or
+  `?group=`/`?event=`, writing ordinary `Settlement` documents; a period is
+  closed when its expenses are `settled: true`. No `closedAt`, no lock, no
+  reopen flow — a lock the rules cannot enforce would be a UI fiction.
+
+**Firestore rules impact: none.** Every new field lives on a document whose
+`allow` expressions reference only `members` / `participants` / `paidBy` /
+`fromUser` / `toUser`, and Track D adds **no new query** — every
+group/kind/category selector is a client-side filter over the stores B5a
+already subscribes with `array-contains` on `participants`/`members`, so
+`firestore.indexes.json` stays empty. Guards, all tests rather than rules
+changes (plan B2b/B3/B5a): (1) ADR 0002 records that the rules use no key
+allowlists (`keys().hasOnly`) — if a later rules PR adds one, Track D opens
+with a conditional plan D0 rules issue through the same emulator-tested
+`risk:high` path; (2) the B2b rules suite has one case per collection
+asserting that a document carrying the fields above is allowed for a
+member/participant and denied for a non-member; (3) a Vitest (plan B5a) greps
+`src/stores/firestore.ts` and `src/lib/firebase/repo.ts` for
+`where('groupId'`, because `where('groupId','==',…)` combined with
+`array-contains` needs a composite index. Two accepted consequences, recorded
+in ADR 0010: visibility is per participant, not per member (a group total
+sums only the expenses the viewer participates in — mitigated by
+`defaultParticipants: all` for couple/household and a "solo ves los gastos
+en los que participas" hint, **not** by `get(group).members` in rules, which
+would bill a read per document and make the collection query non-provable);
+and a couple's "exactly 2 members" is form-enforced only (the widget
+degrades instead of a `members.size() == 2` rule that would block
+re-kinding).
+
+**Precondition for non-equal defaults.** `calculateSettlements` in
+`utils/expenseCalculator.ts` (lines 36 and 136) divides `amount` by
+`participants.length` and ignores `splitMethod`/`participantShares`, so
+custom and percentage splits already produce wrong balances today. The
+migration moves the file verbatim (D7: no behaviour change); Track D issue
+D2 (plan) fixes it as an explicit, tested, behaviour-changing change and is
+sequenced right after D1, before D3 — the first issue that writes a default
+split.
+
+**Explicitly not built** (pasted into the `v0.7` milestone description so it
+is not re-derived): a trip as a Group kind (two overlapping time-boxed
+containers) or an Event folded into Group; per-group custom categories; a
+subcategory level or free tags; per-category budgets, alerts or push nudges;
+auto-generated recurring expenses (client- or server-side); a period-close
+entity, `closedAt` or locking; a `users.locale` field or an i18n framework;
+a `categories`/`concepts` collection or subcollection; itemised receipts,
+multiple payers, OCR/AI suggestions; a client-side `groupId` backfill.
+Track D is not part of the cutover gate (§6) nor of the migration's
+definition of done.
+
 ## 4. Target architecture
 
 ```
@@ -314,10 +531,12 @@ src/
     ui/                       shadcn (owned)  · ui/charts/ Recharts wrappers
     common/                   Header.astro FeedbackFAB.astro ThemeToggle.astro SiteFooter.astro
     features/                 domain widgets shared by islands (ExpenseSplitter, BalanceOverview, events/EventTimeline…)
+                              Track D: groups/{KindPicker,BalanceCard,TotalByCategory,ConceptCombobox,BudgetBar,DueBillsList} events/TripSummary expenses/{CategorySelect,CategoryIcon}
   stores/                     auth.ts firestore.ts preferences.ts notifications.ts theme.ts install.ts online.ts
   lib/                        firebase/{client,repo,storage,recovery}.ts route-guard.tsx disposer.ts utils.ts href.ts site-meta.ts …
-  schemas/                    zod: user.ts expense.ts event.ts group.ts settlement.ts friendship.ts (from live fixtures)
+  schemas/                    zod: user.ts expense.ts event.ts group.ts settlement.ts friendship.ts (from live fixtures; read .passthrough(); D9 fields optional + opaque until Track D)
   domain/                     expenseCalculator.ts currency.ts formatters.ts csvExport.ts fileUtils.ts timeline/*
+                              categories.ts (five-key stub in B3; full taxonomy in Track D) · Track D: kinds.ts groupSelectors.ts recurrence.ts
   styles/global.css
 firebase.json                 hosting.public = dist, trailingSlash false, ordered rewrites + redirects, storage block; rules reconciled in B2b
 firestore.rules               deployed ruleset captured in B2b (repo root)
@@ -338,6 +557,7 @@ storage.rules                 new (B5b)
 | Two deploy workflows racing on `main` | Collapse to one (D8) in Track A, before any Track B work |
 | Stores must unsubscribe on last-listener unmount (StrictMode/tests) | Nano Stores `onMount` + `createDisposer()`; Vitest asserts `onMount` teardown calls each `onSnapshot` unsubscribe and that `$user` transitions leave exactly one live listener |
 | Full-page navigations re-fetch collections | Firestore persistent local cache (D3); plan B18 measures time-to-data on a warm navigation ≤ 300 ms on the staging channel |
+| Track D fields (`kind`, `settings`, `concepts`, `groupId`, `conceptId`) are read by builds that predate them (previews share production Firestore), or a non-equal default split exposes the pre-existing share bug in `calculateSettlements` | B3 declares them as opaque optional `z.string()` / `z.record` / `z.array(z.unknown())` fields (never enums, no `.default()`), every read schema is `.passthrough()`, `repo.update` is a partial `updateDoc`, and a write-input key-set test pins the migration's write shape to the B2b fixtures; the share bug is fixed as a flagged behaviour change in Track D issue D2, sequenced before D3 writes the first default split (D9) |
 
 ## 6. Feature-parity checklist (cutover gate)
 
@@ -363,4 +583,8 @@ Supabase; payment integrations; E2E encryption (README claim, never built);
 Tauri desktop/mobile packaging (available later via Inceptor's
 `add-tauri*.mjs`); redesign beyond what the shadcn mapping implies;
 migrating legacy base64 images to Storage; Astro View Transitions /
-`ClientRouter`.
+`ClientRouter`. For Track D (D9): per-group custom categories, a subcategory
+level or tags, per-category budgets or alerts, auto-generated recurring
+expenses, a period-close entity or lock, a `users.locale` field / i18n
+framework, new collections, indexes or rules for kinds, and any client-side
+backfill of `groupId`.
