@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://artemiopadilla.github.io/JustSplit/sitemap-index.xml

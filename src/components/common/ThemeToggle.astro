@@ -1,0 +1,99 @@
+---
+/**
+ * Dark mode toggle. The actual theme application happens via an
+ * inline script in BaseLayout's <head> (zero-flash). This button
+ * only handles user interaction at click time.
+ */
+---
+
+<button
+  type="button"
+  id="theme-toggle"
+  class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+  aria-label="Toggle dark mode"
+  aria-pressed="false"
+>
+  <!-- Sun icon: shown when dark mode is active (click to go light) -->
+  <svg
+    class="hidden dark:block h-4 w-4"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4"></circle>
+    <path d="M12 2v2"></path>
+    <path d="M12 20v2"></path>
+    <path d="m4.93 4.93 1.41 1.41"></path>
+    <path d="m17.66 17.66 1.41 1.41"></path>
+    <path d="M2 12h2"></path>
+    <path d="M20 12h2"></path>
+    <path d="m6.34 17.66-1.41 1.41"></path>
+    <path d="m19.07 4.93-1.41 1.41"></path>
+  </svg>
+  <!-- Moon icon: shown when light mode is active (click to go dark) -->
+  <svg
+    class="block dark:hidden h-4 w-4"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+  </svg>
+</button>
+
+<script>
+  // The classList and localStorage side-effects now live in the store
+  // (src/stores/theme.ts). This script only wires the button to the store.
+  import { $theme, toggleTheme } from '@/stores/theme';
+
+  function initToggle() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+
+    /**
+     * Sync aria-pressed and aria-label to the current theme value.
+     * - aria-pressed: true when dark mode is active (the button is "on").
+     * - aria-label: describes the action the button will perform (next state),
+     *   not the current state, so screen-reader users hear what will happen.
+     */
+    const sync = (t: 'light' | 'dark') => {
+      const isDark = t === 'dark';
+      btn.setAttribute('aria-pressed', String(isDark));
+      btn.setAttribute(
+        'aria-label',
+        isDark ? 'Switch to light theme' : 'Switch to dark theme',
+      );
+    };
+
+    // Initial sync — the store's onMount may not have fired yet, so read
+    // the atom directly (it falls back to the class the inline script set).
+    sync($theme.get());
+
+    // Keep aria-pressed + aria-label in sync with any future store changes
+    // (e.g. cross-tab sync, programmatic theme changes).
+    const unsub = $theme.subscribe(sync);
+
+    btn.addEventListener('click', () => toggleTheme());
+
+    // Astro View Transitions re-run inline scripts but the old DOM element is
+    // swapped out. Unsubscribe before the swap to avoid ghost subscriptions
+    // accumulating across navigations (memory leak + stale closures).
+    document.addEventListener('astro:before-swap', () => unsub(), { once: true });
+  }
+
+  // Run on initial load.
+  initToggle();
+
+  // Re-run after each View Transition navigation so the new button gets wired.
+  document.addEventListener('astro:after-swap', initToggle);
+</script>

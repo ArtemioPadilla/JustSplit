@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '../lib/href';
+
+// Astro emits this as dist/404.html, which GitHub Pages serves for any unknown
+// path. Plan B2c turns it into the app shell for client-only dynamic routes
+// (/expenses/<id> …); until then it is a plain not-found page.
+---
+
+<BaseLayout title="Page not found" description="That page doesn't exist.">
+  <main id="main-content" class="mx-auto flex max-w-3xl flex-col px-4 py-24">
+    <p class="font-mono text-sm uppercase tracking-widest text-primary">404</p>
+    <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight text-foreground">Page not found</h1>
+    <p class="mt-4 max-w-prose text-muted-foreground">
+      The URL doesn't match any built page. If a link on this site brought you here, that's a bug
+      worth filing with the chat bubble in the corner.
+    </p>
+    <a href={withBase('/')} class="mt-8 inline-flex w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Back home</a>
+  </main>
+</BaseLayout>

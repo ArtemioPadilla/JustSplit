@@ -1,9 +1,52 @@
 version: 2
+registries:
+  # @cyber-eco/* lives on GitHub Packages (private, cyber-eco org). Dependabot needs
+  # the same read:packages token CI uses; without it these bumps are skipped, not broken.
+  github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{ secrets.GH_PACKAGES_TOKEN }}
 updates:
-  # GitHub Actions only during Track A. The npm block (with Inceptor's ignore
-  # and group rules, plus the @cyber-eco registry entry) is added in plan B1
-  # together with the new package.json — a weekly npm sweep of the Next tree
-  # would propose bumps for packages B1 deletes.
+  - package-ecosystem: npm
+    directory: "/"
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    ignore:
+      # Astro 6 is peer-capped out by @vite-pwa/astro (astro ^1–^5). Ignore the
+      # astro/@astrojs/* majors until the PWA plugin supports Astro 6 (Inceptor ADR 0004).
+      - dependency-name: "astro"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@astrojs/*"
+        update-types: ["version-update:semver-major"]
+      # typescript@7 is peer-capped out by @astrojs/check's language server (peer ^5||^6).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # eslint@10 is peer-capped out by eslint-plugin-jsx-a11y (peer ^3..^9).
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # @tanstack/react-table@9 renames APIs data-table.tsx depends on; a deliberate migration, not a bump.
+      - dependency-name: "@tanstack/react-table"
+        update-types: ["version-update:semver-major"]
+      # @cyber-eco/* is 0.x: minors are explicit bumps (plan B22 moves the three together).
+      - dependency-name: "@cyber-eco/*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+    groups:
+      astro:
+        patterns: ["astro", "@astrojs/*"]
+      tanstack:
+        patterns: ["@tanstack/*"]
+      supabase:
+        patterns: ["@supabase/*", "@cyber-eco/*"]
+      tooling:
+        patterns: ["@testing-library/*", "vitest", "typescript", "prettier", "eslint*", "@typescript-eslint/*"]
+    commit-message:
+      prefix: chore
+      include: scope
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

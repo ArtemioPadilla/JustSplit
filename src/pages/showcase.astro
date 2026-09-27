@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+// /showcase — every reusable widget JustSplit ships must appear here
+// (CLAUDE.md quality bar). Track B islands add their widgets as they land.
+const widgets: { name: string; issue: string }[] = [];
+---
+
+<BaseLayout title="Showcase — JustSplit" description="Every reusable widget, rendered live in light and dark.">
+  <main class="mx-auto max-w-5xl px-5 py-16">
+    <h1 class="font-display text-3xl font-semibold tracking-tight">Showcase</h1>
+    <p class="mt-2 text-muted-foreground">Reusable widgets, one section each. Empty until the first Track B island lands.</p>
+    <ul class="mt-8 space-y-4">
+      {widgets.map((w) => <li><strong>{w.name}</strong> <span class="text-muted-foreground">({w.issue})</span></li>)}
+    </ul>
+  </main>
+</BaseLayout>

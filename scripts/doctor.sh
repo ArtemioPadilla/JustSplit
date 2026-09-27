@@ -70,20 +70,25 @@ else
   fail "node_modules missing — run \`npm install\`"
 fi
 
-# Framework config. TODO(track-b): drop the Next branch once B1 replaces the tree.
+# Astro config + env.d.ts (the Next tree is gone since B1)
 if [ -f astro.config.mjs ]; then
   ok "astro.config.mjs present"
-  # src/env.d.ts — easy to forget on a selective port; its absence makes
-  # `import.meta.env` fail type-check with a cryptic ts(2339) error.
-  if [ -f src/env.d.ts ]; then
-    ok "src/env.d.ts present"
-  else
-    fail "src/env.d.ts missing — add '/// <reference types=\"astro/client\" />'"
-  fi
-elif [ -f next.config.js ]; then
-  ok "next.config.js present (Next tree — Track B replaces it with Astro)"
 else
-  fail "no framework config found (expected astro.config.mjs or next.config.js)"
+  fail "astro.config.mjs missing"
+fi
+# src/env.d.ts — its absence makes `import.meta.env` fail type-check with a cryptic ts(2339).
+if [ -f src/env.d.ts ]; then
+  ok "src/env.d.ts present"
+else
+  fail "src/env.d.ts missing — add '/// <reference types=\"astro/client\" />'"
+fi
+
+# GitHub Packages token for @cyber-eco/* (SETUP.md §2). Not needed until B2a adds the
+# packages; warned early so the first `npm ci` that needs it does not surprise anyone.
+if [ -n "$(npm config get //npm.pkg.github.com/:_authToken 2>/dev/null | grep -v '^undefined$' | grep -v '^null$')" ]; then
+  ok "GitHub Packages token configured in npm (read:packages)"
+else
+  warn "no //npm.pkg.github.com/:_authToken in ~/.npmrc — needed once @cyber-eco/* is a dependency (SETUP.md §2)"
 fi
 
 # ANTHROPIC_API_KEY (optional but helpful for the Claude triage workflow)
@@ -107,12 +112,12 @@ if [ -f package.json ] && command -v node >/dev/null 2>&1; then
   PKG_NAME="$(node -e "try{process.stdout.write(require('./package.json').name||'')}catch(e){}")"
 fi
 
-if [ "$PKG_NAME" = "inceptor" ] || [ "$PKG_NAME" = "" ] || [ -f next.config.js ]; then
-  ok "skipping re-brand check (template repo, or the Astro tree is not grafted yet)"
+if [ "$PKG_NAME" = "inceptor" ] || [ "$PKG_NAME" = "" ]; then
+  ok "package name is '$PKG_NAME' — skipping re-brand check (running in template repo)"
 else
   # Derived project: flag leftover template defaults in key files
   PLACEHOLDER_FILES="src/lib/site-meta.ts site.config.mjs public/robots.txt"
-  TEMPLATE_ORIGINS="artemiop.com ArtemioPadilla"
+  TEMPLATE_ORIGINS="artemiop.com ArtemioPadilla/inceptor"
   found_placeholder=0
   for f in $PLACEHOLDER_FILES; do
     if [ -f "$f" ]; then

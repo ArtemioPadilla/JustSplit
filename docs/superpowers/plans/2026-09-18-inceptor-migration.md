@@ -305,10 +305,10 @@ backend decision; ADR numbers are allocation order, not merge order).
 ### Phase 1 — Foundation
 
 ### B1. Scaffold with `create-inceptor-app` and graft
-- [ ] In the Inceptor checkout: `node scripts/init.mjs --name JustSplit --archetype static
+- [x] In the Inceptor checkout: `node scripts/init.mjs --name JustSplit --archetype static
       --repo ArtemioPadilla/JustSplit --out ../justsplit-astro` (record the Inceptor commit SHA
       in the PR)
-- [ ] `cd ../justsplit-astro && npm install && npm run check` BEFORE grafting. Known gap:
+- [x] `cd ../justsplit-astro && npm install && npm run check` BEFORE grafting. Known gap:
       init.mjs copies `src/components/ui/data-table.tsx` (and `use-data-table-url-state.ts`)
       without its import closure. Copy from the Inceptor checkout:
       `src/components/ui/{action-bar,checkbox,download-trigger,empty-state,error-state}.tsx`,
@@ -316,9 +316,9 @@ backend decision; ADR numbers are allocation order, not merge order).
       (+ their `*.test.*`), and add `react-day-picker` to dependencies (`field-type.ts` has a
       type import from it, which `tsc` still resolves). Alternatively delete `data-table.tsx` +
       `use-data-table-url-state.ts` from the graft and re-add the full closure in B9
-- [ ] If `tsc` reports TS5103 on `ignoreDeprecations: '6.0'`, set `typescript` to `^6.0.3` (what
+- [x] If `tsc` reports TS5103 on `ignoreDeprecations: '6.0'`, set `typescript` to `^6.0.3` (what
       Inceptor itself uses) in the merged `package.json` rather than dropping the flag
-- [ ] On branch `inceptor` (from `main` after Track A): remove `src/`, `next.config.js`,
+- [x] On branch `inceptor` (from `main` after Track A): remove `src/`, `next.config.js`,
       `jest.config.js`, `jest.setup.js`, `.eslintrc.json`; `package.json` deps merged: keep
       `date-fns`, `uuid`; add `@supabase/supabase-js` and `@cyber-eco/{types,auth,supabase}@^0.2.1`
       (caret on 0.x = patch-only, so the H2 minor is an explicit bump in B22, moving the three
@@ -332,7 +332,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       `actions/setup-node` + `NODE_AUTH_TOKEN` (A3b). `doctor.sh` warns when `npm config get
       //npm.pkg.github.com/:_authToken` is empty. First CI run verifies `GH_PACKAGES_TOKEN`
       installs the packages; record the outcome in ADR 0011 (B2a)
-- [ ] Graft — copy from the generated tree ONLY: `src/` (includes `site-meta.ts`, `llms.txt.ts`,
+- [x] Graft — copy from the generated tree ONLY: `src/` (includes `site-meta.ts`, `llms.txt.ts`,
       `env.d.ts`), `astro.config.mjs`, `tsconfig.json`, `vitest.config.ts`, `vitest.setup.ts`,
       `.env.example`, `docs/decisions/TEMPLATE.md` (if A2 did not already add it), and from the
       generated `.github/workflows/` ONLY `deploy.yml` — Inceptor's GitHub Pages workflow, which
@@ -342,7 +342,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       to `/` for a custom domain), add the `npm ci` registry/`NODE_AUTH_TOKEN` step from A3b and
       the `PUBLIC_SUPABASE_*` build env (B2a), SHA-pin it. Do **not** copy the generated `ci.yml`
       (`server-node`/`server-flask` jobs fail here — keep A3b's) or its `CLAUDE.md`
-- [ ] Graft manifest — copied from the Inceptor checkout (same commit), verbatim, with their
+- [x] Graft manifest — copied from the Inceptor checkout (same commit), verbatim, with their
       `*.test.*`, because `init.mjs` does not emit them and this plan depends on them:
       `src/components/ui/{hover-card,combobox,calendar,date-picker,popover,progress-bar,file-upload,editable,avatar,tabs,sheet,radio-group,switch,password-input}.tsx`
       (`skeleton`, `checkbox` come from the core set / data-table closure), `src/components/ui/charts/**`,
@@ -359,37 +359,42 @@ backend decision; ADR numbers are allocation order, not merge order).
       `@astrojs/sitemap`, `react-day-picker`, `@zag-js/editable`, `@zag-js/react`, `@lhci/cli`,
       `prettier-plugin-astro` (restore the `.prettierrc.json` `plugins` entry + `*.astro`
       override); `npm i @nanostores/persistent` (explicit new dependency, spec D3)
-- [ ] Test: `src/tests/scaffold-manifest.test.ts` asserts every file in that manifest exists (so
+- [x] Test: `src/tests/scaffold-manifest.test.ts` asserts every file in that manifest exists (so
       a future re-graft cannot silently drop one)
-- [ ] Replace the generated `astro.config.mjs` with Inceptor's minus `i18n`, `mdx`, `redirects`,
+- [x] Replace the generated `astro.config.mjs` with Inceptor's minus `i18n`, `mdx`, `redirects`,
       with `site: SITE_ORIGIN` from `site.config.mjs` (= the custom domain, or
       `https://artemiopadilla.github.io` with `base` `/JustSplit` as the fallback — spec D2),
       `base: process.env.ASTRO_BASE ?? '/'`, `trailingSlash: 'ignore'`, PWA/sitemap integrations
       retained, and `vite.define` for `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_HUB_URL`
       (the `@cyber-eco/auth` static-build requirement, `cybereco-hub/examples/static-app/README.md`)
-- [ ] Resolve `TODO(agent)` in `src/lib/site-meta.ts`, `src/pages/llms.txt.ts`,
+- [x] Resolve `TODO(agent)` in `src/lib/site-meta.ts`, `src/pages/llms.txt.ts`,
       `public/robots.txt`, `PUBLIC_REPO_SLUG`; ADD `site:` (the generated config has none) via
       `site.config.mjs` `SITE_ORIGIN` + `src/lib/site-meta.ts` `SITE_ORIGIN`, asserted equal by
       the copied `src/tests/site-meta.test.ts`
-- [ ] `package.json` `check` = `npm-run-all --parallel check:astro type-check test lint
+- [x] `package.json` `check` = `npm-run-all --parallel check:astro type-check test lint
       check:pragmas --serial build` (same script name as A2, so `ship.sh`, `centinela` and
       `ci.yml` are unchanged)
-- [ ] Delete `package-lock.json`, run `npm install`, commit the regenerated lockfile (forja must
+- [x] Delete `package-lock.json`, run `npm install`, commit the regenerated lockfile (forja must
       not hand-edit it; `npm ci` fails on a stale lock)
-- [ ] `CLAUDE.md` stack table switched to the Astro stack; `forbidden-imports.json`: restore the
+- [x] `CLAUDE.md` stack table switched to the Astro stack; `forbidden-imports.json`: restore the
       `framer-motion` ban, add `@mui/` (reason "replaced by Base UI/shadcn in B10") and
       `firebase` (reason "backend retired, spec D1"); restore centinela's `framer-motion` grep
       line and whole-tree scan (the copied `src/tests/forbidden-imports.test.ts` reads the JSON);
       `dependabot.yml`: add Inceptor's npm block (+ a `registries` entry for `npm.pkg.github.com`
       using `GH_PACKAGES_TOKEN` so `@cyber-eco/*` bumps resolve)
-- [ ] Test: `src/tests/with-base.test.ts` greps `src/` for `href="/` and `src="/` outside a
+- [x] Test: `src/tests/with-base.test.ts` greps `src/` for `href="/` and `src="/` outside a
       `withBase(` call (the subpath fallback and the staging site are real, spec D2); a build
       test asserts `dist/` links carry the configured base; a Vitest asserts `deploy.yml` is the
       only workflow that runs `actions/deploy-pages` against the `github-pages` environment on
       push to `main` (`ci.yml` and `db-migrate.yml` also run on push to `main` by design;
       `deploy-staging.yml` deploys the same environment from `inceptor` only)
-- [ ] Acceptance: `npm run check` green with the scaffold's landing page; `@cyber-eco/*` install
-      green in CI with `GH_PACKAGES_TOKEN`; `scaffold-manifest.test.ts` green
+- [x] Acceptance: `npm run check` green with the scaffold's landing page (37 test files / 389 tests,
+      3 pages built); `scaffold-manifest.test.ts` green. **Deviation:** `@cyber-eco/*` is NOT yet a
+      dependency — the packages are private on GitHub Packages and `GH_PACKAGES_TOKEN` is an owner
+      action still pending; B1 landed `.npmrc` (scope only), the CI/deploy registry steps and the
+      Dependabot registry, and B2a adds the three packages when the token exists (or vendors them
+      via `npm pack` from the hub checkout, the ADR 0011 fallback). Also recorded: npm 10.9.x needs
+      `--legacy-peer-deps` (or npm ≥ 11) to regenerate the lockfile (`SETUP.md` §1); `npm ci` is fine
 
 ### B2a. Supabase project (owner actions), guarded client, `adapter.ts`, env, staging deploy, ADR 0011 (`risk:high`)
 - [ ] Owner actions (documented in `SETUP.md`, not scripted): create Supabase project `justsplit`
