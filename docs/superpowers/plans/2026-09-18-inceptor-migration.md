@@ -183,23 +183,25 @@ backend decision; ADR numbers are allocation order, not merge order).
       run a11y' .claude` is empty; `npm run check` exiting 0 is A3a's acceptance, not A2's
 
 ### A3a. Make the existing gate runnable (pre-CI)
-- [ ] Add `.eslintrc.json` = `{ "extends": "next/core-web-vitals" }` (eslint ^8 +
+- [x] Add `.eslintrc.json` = `{ "extends": "next/core-web-vitals" }` (eslint ^8 +
       eslint-config-next 15.3.1 are already devDeps); run `npm run lint`; fix what fires, or
       disable a rule only in the config with a one-line reason (Track A is run by the main
       session, so forja's "never disable a rule" clause is not yet in force); goal: `next lint`
       exits 0 non-interactively
-- [ ] `jest.config.js`: set `collectCoverage: false` and delete `coverageThreshold` (coverage is
+- [x] `jest.config.js`: set `collectCoverage: false` and delete `coverageThreshold` (coverage is
       re-baselined under Vitest in Track B; a 70 % gate on a 19.78 % codebase blocks every PR)
-- [ ] Fix or `test.skip` (with `TODO(track-b)` + issue ref) the 7 failing suites
+- [x] Fix or `test.skip` (with `TODO(track-b)` + issue ref) the 7 failing suites
       (`timeline`, `timelineCalculations` ×2, `page`, `ExpenseDistribution`, `RecentSettlements`,
       `UpcomingEvents`; baseline measured 2026-09-27 on `main`: 7 failed / 25 passed, 23 failing
       tests) so `npx jest --ci` exits 0; list them in the PR body
-- [ ] `type-check` must exit 0: either exclude `**/__tests__/**` and `**/*.test.*` from the
+- [x] `type-check` must exit 0: either exclude `**/__tests__/**` and `**/*.test.*` from the
       type-check (`tsconfig.typecheck.json` extending `tsconfig.json`; Jest transpiles tests
       without type-checking anyway) or fix the 157 test-file type errors — prefer the exclusion
       with a `TODO(track-b)` note, since every Jest suite is rewritten under Vitest in Track B
-- [ ] Remove `build:firebase --no-lint`
-- [ ] Acceptance: `npm ci && npm run lint && npx tsc --noEmit && npx jest --ci && npm run build`
+- [x] Remove `build:firebase --no-lint`; add `scripts/build-check.sh` (`npm run build:check`): the
+      Next tree initialises Firebase at module load, so the build gate exports syntactically valid
+      `NEXT_PUBLIC_FIREBASE_*` placeholders when unset — never a deploy; deleted with the tree in B1
+- [x] Acceptance: `npm ci && npm run lint && npx tsc --noEmit && npx jest --ci && npm run build`
       exits 0 locally on Node 22 (i.e. `npm run check` from A2 is green)
 
 ### A3b. CI quality gate (depends on A3a)
