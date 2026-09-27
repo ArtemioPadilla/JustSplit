@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # GitHub Actions only during Track A. The npm block (with Inceptor's ignore
+  # and group rules, plus the @cyber-eco registry entry) is added in plan B1
+  # together with the new package.json — a weekly npm sweep of the Next tree
+  # would propose bumps for packages B1 deletes.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci

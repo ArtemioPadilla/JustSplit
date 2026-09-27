@@ -77,3 +77,6 @@ plan's acceptance lines stay verifiable.
 - Plan: `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
 - Agent guardrails: `CLAUDE.md`, `.claude/agents/`, `.claude/checklists/`
 - Decisions: `docs/decisions/`
+- Issue bootstrap: `bash scripts/create-issues.sh` (dry run) / `--apply`; `--repo ArtemioPadilla/inceptor`
+  for Track C, `--repo cyber-eco/cybereco-hub` for Track C', `--track d` after B22. It parses the plan,
+  so re-running after a plan edit files only what is missing.
