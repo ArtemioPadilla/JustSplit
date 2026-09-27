@@ -1,0 +1,170 @@
+# Apply Supabase (Postgres) migrations with dbmate.
+# Ported from cyber-eco/cybereco-hub (.github/workflows/db-migrate.yml) in plan A3b;
+# JustSplit's migrations live under db/migrations/ (created in plan B2). Inert until
+# the SUPABASE_DB_URL secret exists (the guard step warns and skips).
+#
+# Model: versioned up + down migrations under db/migrations, applied by CI.
+#   * push to main touching a migration → auto `dbmate migrate` (forward only).
+#   * teardown (`rollback` = last migration, `rollback-all` = everything) is
+#     NEVER automatic — it only runs via manual workflow_dispatch AND requires
+#     typing confirm=TEARDOWN, so a destructive rollback against the live
+#     database can't happen by accident.
+#
+# Requires repo secret SUPABASE_DB_URL — the Postgres connection URI. Use the
+# SESSION POOLER, not "Direct connection": db.<ref>.supabase.co is IPv6-only
+# and GitHub Actions runners are IPv4-only, so a direct connection cannot be
+# reached from CI. Shape (port 5432 = session mode; user is postgres.<ref>):
+#   postgresql://postgres.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+# (Supabase dashboard → Project Settings → Database → Connection string →
+#  Session pooler → URI; append ?sslmode=require.)
+# Until that secret exists the job warns and skips, like the other deploys.
+#
+# dbmate tracks applied migrations in public.schema_migrations (separate from
+# the Supabase CLI's own supabase_migrations schema — the two don't collide).
+
+name: DB Migrate (Supabase)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'db/migrations/**'
+      - '.github/workflows/db-migrate.yml'
+  workflow_dispatch:
+    inputs:
+      command:
+        # `migrate` (not `up`): dbmate's `up` = "create the database if absent,
+        # then migrate". The Supabase `postgres` database always exists and the
+        # connection role may lack CREATEDB, so `migrate` is the correct verb —
+        # it only applies pending migrations.
+        # `rollback` reverts ONLY the most recent migration (dbmate's `down` is
+        # a plain alias for it). Full teardown is not a dbmate command, so
+        # `rollback-all` below loops rollback until nothing is left applied.
+        description: 'What to run'
+        type: choice
+        options:
+          - migrate       # apply pending migrations (safe, forward-only)
+          - status        # list applied / pending, change nothing
+          - rollback      # revert ONLY the most recent migration
+          - rollback-all  # revert EVERY migration — full teardown, drops tables
+        default: migrate
+      confirm:
+        description: 'Type TEARDOWN to allow rollback / rollback-all (destructive: drops tables and their data)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate-supabase
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Guard: no DB URL → warn + skip. Also resolves which command runs and
+      # enforces the TEARDOWN confirmation for destructive commands.
+      - name: Check secret and resolve command
+        id: guard
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          EVENT: ${{ github.event_name }}
+          INPUT_CMD: ${{ github.event.inputs.command }}
+          CONFIRM: ${{ github.event.inputs.confirm }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::warning::SUPABASE_DB_URL not configured — skipping DB migrate."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Auto path (push): forward-only, never destructive.
+          if [ "$EVENT" = "push" ]; then
+            echo "cmd=migrate" >> "$GITHUB_OUTPUT"
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Manual path: honor the chosen command, gate the destructive ones.
+          cmd="${INPUT_CMD:-migrate}"
+          case "$cmd" in
+            rollback|rollback-all)
+              if [ "$CONFIRM" != "TEARDOWN" ]; then
+                echo "::error::Command '$cmd' is destructive (drops tables and their data) — re-run with confirm=TEARDOWN."
+                exit 1
+              fi
+              echo "::warning::Running destructive '$cmd' (confirmed) against the database." ;;
+            migrate|status) : ;;
+            *) echo "::error::Unknown command '$cmd'."; exit 1 ;;
+          esac
+          echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        if: steps.guard.outputs.run == 'true'
+
+      # dbmate as a container: no local install, pinned image. Migrations are
+      # mounted at /db/migrations and addressed with an absolute --migrations-dir
+      # so the container workdir is irrelevant. Global flags must precede the
+      # subcommand (dbmate [global options] command). --no-dump-schema avoids
+      # needing pg_dump just to write a schema.sql artifact we don't consume.
+      - name: dbmate ${{ steps.guard.outputs.cmd }}
+        if: steps.guard.outputs.run == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          CMD: ${{ steps.guard.outputs.cmd }}
+        run: |
+          # Preflight: dbmate reports a bare "invalid url" for both an EMPTY
+          # DATABASE_URL and one missing its scheme, which is impossible to tell
+          # apart from the logs. Diagnose it here instead, printing only
+          # non-secret parts (scheme/user/host) — never the URL or password.
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::SUPABASE_DB_URL resolved to an EMPTY value. Re-add the secret at Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgres://*|postgresql://*) ;;
+            *)
+              # NEVER echo any part of the value. GitHub masks only exact
+              # matches of the secret, so printing a prefix/substring leaks it
+              # into the log in clear text. Length alone is enough to tell a
+              # bare password apart from a full URI.
+              echo "::error::SUPABASE_DB_URL must start with postgresql:// (got ${#DATABASE_URL} chars with no scheme). Paste the FULL connection URI, not just the password or host."
+              exit 1 ;;
+          esac
+          _rest=${DATABASE_URL#*://}
+          case "$_rest" in
+            *@*) _host=${_rest#*@}; _user=${_rest%%@*}; _user=${_user%%:*} ;;
+            *)   _host=$_rest;      _user='(none)' ;;
+          esac
+          echo "URL OK → scheme=${DATABASE_URL%%://*} user=${_user} host=${_host%%/*}"
+
+          dbmate() {
+            docker run --rm \
+              -e DATABASE_URL \
+              -v "$PWD/db:/db" \
+              ghcr.io/amacneil/dbmate:2 \
+              --no-dump-schema \
+              --migrations-dir /db/migrations \
+              "$@"
+          }
+
+          if [ "$CMD" = "rollback-all" ]; then
+            # dbmate has no "revert everything" command — `rollback` (and its
+            # alias `down`) undo only the most recent migration. Loop until the
+            # rollback fails, which is how dbmate reports "nothing left to undo".
+            # Bounded so a misbehaving container can't spin forever.
+            n=0
+            while [ "$n" -lt 100 ]; do
+              if ! dbmate rollback; then
+                echo "No further migrations to roll back (after $n)."
+                break
+              fi
+              n=$((n + 1))
+            done
+            echo "Rolled back $n migration(s)."
+            dbmate status || true
+          else
+            dbmate "$CMD"
+          fi

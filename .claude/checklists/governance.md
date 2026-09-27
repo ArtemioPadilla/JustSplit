@@ -15,7 +15,8 @@ humans use it during repo setup. Mirrors Inceptor's `docs/PRINCIPLES.md` §6.
 
 ## Branch protection on `main` (configure once per repo)
 
-Configured in A3b (`gh api -X PUT repos/ArtemioPadilla/JustSplit/branches/main/protection`).
+Configured after the first green run of `ci.yml` (A3b): Settings → Branches →
+`main` (and `inceptor` for the life of Track B).
 
 - [ ] Require a PR before merging (no direct pushes)
 - [ ] Required status checks: `Build & Check` (the `ci.yml` job name; B2b adds
