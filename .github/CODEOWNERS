@@ -1,0 +1,15 @@
+# GitHub CODEOWNERS — auto-request reviews when files change.
+# The last matching pattern wins; put more-specific rules at the bottom.
+
+# Default owner of everything not matched by a more specific rule.
+*                                       @ArtemioPadilla
+
+# AI guardrails and the migration documents.
+CLAUDE.md                               @ArtemioPadilla
+/.claude/                               @ArtemioPadilla
+/docs/superpowers/                      @ArtemioPadilla
+/docs/decisions/                        @ArtemioPadilla
+
+# Anything that can grant or deny data access (from B2): schema, RLS, workflows.
+/db/migrations/                         @ArtemioPadilla
+/.github/workflows/                     @ArtemioPadilla

@@ -264,23 +264,25 @@ backend decision; ADR numbers are allocation order, not merge order).
       package yet)
 
 ### A5. Issue-driven loop
-- [ ] Copy `.github/ISSUE_TEMPLATE/{bug_report,feature_request,question,story,config}.yml`,
+- [x] Copy `.github/ISSUE_TEMPLATE/{bug_report,feature_request,question,story,config}.yml`,
       `CODEOWNERS`; `PULL_REQUEST_TEMPLATE.md` with Mechanical checks → only `npm run check`
-- [ ] `dependabot.yml`: copy only the `github-actions` ecosystem block in Track A; the npm block
+- [x] `dependabot.yml`: copy only the `github-actions` ecosystem block in Track A; the npm block
       (with Inceptor's ignore/group rules) is added in B1 together with the new `package.json`
-- [ ] Copy `claude.yml` (AI triage) **with the three security layers intact**: `ai-approved`
+- [x] Copy `claude.yml` (AI triage) **with the three security layers intact**: `ai-approved`
       gate for non-collaborators, `contents: read`, untrusted-data framing
-- [ ] Adapt `scripts/create-issues.sh`: labels as in "Milestones and labels"; milestones
-      `v0.2`–`v0.5` only; issues A1–A6 (skipped if already present) + B1–B22 with the splits
-      (A3a/A3b, B2a/B2/B2c, B2b, B5a/b, B8a/b, B11a/b, B17a/b) = 36 in this repo; issue body links
+- [x] `scripts/create-issues.sh` → thin wrapper over `scripts/plan-issues.mjs`, which **parses this
+      plan** (every `### <id>. <title>` section = one issue, body = the section, labels from the
+      heading tags + track/phase, milestone from the table above) instead of duplicating 36 bodies
+      by hand; labels as in "Milestones and labels"; milestones `v0.2`–`v0.5` here; A1–A6 + B1–B22
+      with the splits = 36 in this repo (verified by `--json`); issue body links
       `docs/superpowers/plans/2026-09-18-inceptor-migration.md#<anchor>` and says "Ask Claude
-      Code: Land <id> from the migration plan" instead of `/goal` (idempotent, dry-run by default)
-- [ ] Add `--repo ArtemioPadilla/inceptor` mode (overrides the `gh repo view` default) that
+      Code: Land <id> from the migration plan" (idempotent, dry-run by default)
+- [x] Add `--repo ArtemioPadilla/inceptor` mode (overrides the `gh repo view` default) that
       creates C1–C3 + milestone `v0.6 - Upstream to Inceptor` there, and
       `--repo cyber-eco/cybereco-hub` (the hub lives in the `cyber-eco` org, not under
       `ArtemioPadilla`) that creates H1–H3 + milestone `v0.6 - JustSplit consumer` there (hub
       labels only; no `phase-*`/`track:*` labels are created in the hub)
-- [ ] Add repo secret `ANTHROPIC_API_KEY` (needed by claude.yml) — documented, not scripted
+- [x] Add repo secret `ANTHROPIC_API_KEY` (needed by claude.yml) — documented in `SETUP.md` §2/§4 (owner action pending)
 - [ ] Acceptance: `bash scripts/create-issues.sh --apply` → 36 issues + 4 milestones + 17 labels
       here; `--repo ArtemioPadilla/inceptor --apply` → 3 issues + 1 milestone there;
       `--repo cyber-eco/cybereco-hub --apply` → 3 issues + 1 milestone there;

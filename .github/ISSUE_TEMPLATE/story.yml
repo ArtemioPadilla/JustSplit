@@ -1,0 +1,67 @@
+name: User story (guía de implementación)
+description: Una historia de usuario rota en criterios + tareas pequeñas que el loop prometeo → forja → centinela puede ejecutar
+labels: ["enhancement"]
+body:
+  - type: input
+    id: story
+    attributes:
+      label: Historia de usuario
+      description: "Como <rol>, quiero <objetivo> para <beneficio>."
+      placeholder: Como usuario, quiero … para …
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Lista verificable (checkboxes). Lo que debe cumplirse para considerarla hecha.
+      value: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Enfoque técnico
+      placeholder: Cómo se implementará (stack, patrones, decisiones).
+    validations:
+      required: false
+  - type: textarea
+    id: files
+    attributes:
+      label: Archivos a crear / modificar
+      placeholder: "src/…, server/…, etc."
+    validations:
+      required: false
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tareas (desglose en piezas pequeñas)
+      description: Cada casilla ≈ un commit. Lo que forja ejecuta paso a paso.
+      value: |
+        - [ ] …
+        - [ ] …
+        - [ ] `npm run check` verde + PR con `Closes #<n>`
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definición de hecho
+      value: |
+        - [ ] Criterios de aceptación cumplidos
+        - [ ] Tests verdes (`npm run check`)
+        - [ ] PR con `Closes #<n>`
+    validations:
+      required: false
+  - type: dropdown
+    id: tdd
+    attributes:
+      label: TDD tier
+      options:
+        - "tdd-tier:strict (default para feat/fix con comportamiento)"
+        - "tdd-tier:smoke (variantes de una línea, CSS)"
+        - "tdd-tier:exempt (docs, copy, dep bumps)"
+    validations:
+      required: false
