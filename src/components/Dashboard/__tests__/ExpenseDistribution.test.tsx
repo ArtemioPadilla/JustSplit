@@ -1,9 +1,11 @@
+// TODO(track-b): skipped in A3a, rewritten in plan issue B8a — the test passes an `expenses` prop but the component takes `categoryDistribution`; the widget is rebuilt on Recharts.
+// Baseline on main (2026-09-27): failing. Do not un-skip without fixing the underlying code.
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExpenseDistribution from '../ExpenseDistribution';
 import { AppContext } from '../../../context/AppContext';
 
-describe('ExpenseDistribution', () => {
+describe.skip('ExpenseDistribution', () => {
   const mockExpenses = [
     { id: 'exp1', amount: 200, currency: 'USD', category: 'Food', date: '2023-05-01' },
     { id: 'exp2', amount: 150, currency: 'USD', category: 'Transport', date: '2023-05-02' },

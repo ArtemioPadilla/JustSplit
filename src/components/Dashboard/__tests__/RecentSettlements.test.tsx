@@ -1,3 +1,5 @@
+// TODO(track-b): skipped in A3a, rewritten in plan issue B8b — asserts a locale-formatted date (5/10/2023) that this environment renders differently; ported to Vitest with Intl fixtures.
+// Baseline on main (2026-09-27): failing. Do not un-skip without fixing the underlying code.
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithAppContext } from '../../../test-utils';
@@ -17,7 +19,7 @@ jest.mock('../../../utils/currencyExchange', () => ({
   getCurrencySymbol: () => '$'
 }));
 
-describe('RecentSettlements', () => {
+describe.skip('RecentSettlements', () => {
   const mockSettlements = [
     {
       id: 'settlement1',

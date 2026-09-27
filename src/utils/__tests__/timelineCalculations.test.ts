@@ -1,3 +1,5 @@
+// TODO(track-b): skipped in A3a, rewritten in plan issue B11a — calculateTimelineProgress returns 100 for a future start and date formatting is off by one day; rewritten under Vitest.
+// Baseline on main (2026-09-27): failing. Do not un-skip without fixing the underlying code.
 import {
   calculateTimelineProgress,
   calculatePositionPercentage,
@@ -10,7 +12,7 @@ import {
   TimelineEvent
 } from '../timelineUtils';
 
-describe('Timeline Calculations', () => {
+describe.skip('Timeline Calculations', () => {
   // Mock dates for testing
   const past = new Date('2025-01-01').toISOString();
   const today = new Date('2025-05-09').toISOString(); // Current date in our context

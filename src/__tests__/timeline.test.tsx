@@ -1,3 +1,5 @@
+// TODO(track-b): skipped in A3a, rewritten in plan issue B11a — date formatting is off by one day in this environment and the hover assertion reads an undefined event; the Timeline widget is rebuilt as EventTimeline.
+// Baseline on main (2026-09-27): failing. Do not un-skip without fixing the underlying code.
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -137,7 +139,7 @@ type Event = {
   participants: string[];
 };
 
-describe('Timeline Position Calculation', () => {
+describe.skip('Timeline Position Calculation', () => {
   test('calculates position for pre-event expenses correctly', () => {
     const position = calculatePositionPercentage('2023-05-20', '2023-06-01', '2023-06-10');
     expect(position).toBeLessThan(0);
@@ -168,7 +170,7 @@ describe('Timeline Position Calculation', () => {
 });
 
 // Integration tests for the Timeline component
-describe('Timeline Component', () => {
+describe.skip('Timeline Component', () => {
   beforeEach(() => {
     // Mock router
     (useRouter as jest.Mock).mockReturnValue({

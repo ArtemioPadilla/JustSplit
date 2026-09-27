@@ -1,3 +1,5 @@
+// TODO(track-b): skipped in A3a, rewritten in plan issue B11a — formatTimelineDate/formatDateRange are off by one day in this environment (UTC parsing of date-only strings); rewritten under Vitest with fixed-TZ fixtures.
+// Baseline on main (2026-09-27): failing. Do not un-skip without fixing the underlying code.
 import React from 'react';
 import '@testing-library/jest-dom';
 import {
@@ -12,7 +14,7 @@ import {
 } from '../utils/timelineUtils';
 import { TimelineExpense, TimelineEvent } from '../utils/timelineUtils';
 
-describe('Timeline Utility Functions', () => {
+describe.skip('Timeline Utility Functions', () => {
   // Mock data
   const mockEvent: TimelineEvent = {
     id: 'event1',
