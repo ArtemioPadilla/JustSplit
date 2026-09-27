@@ -94,7 +94,7 @@ state). Custom ui kit:
 contexts; Jest's default `testMatch` also picks up
 `src/app/__tests__/exampleTest.tsx`). Jest config uses jsdom + CSS-module
 mocks, `collectCoverage: true` with a 70 % threshold against ~20 % actual
-coverage; 5 suites fail today. 30 of 32 files use `jest.mock`/`jest.fn`/`jest.spyOn`.
+coverage; 7 suites (23 tests) fail today and `tsc --noEmit` reports 157 errors, all in test files. 30 of 32 files use `jest.mock`/`jest.fn`/`jest.spyOn`.
 
 **Hosting/CI** — Firebase Hosting with `frameworksBackend` (Next SSR via
 `webframeworks` experiment) on project `justsplit-eef51` (single project, no

@@ -84,8 +84,9 @@ ADR numbering (`docs/decisions/`): `0001-adopt-inceptor-workflow` (A2), `0002-ca
 - [ ] Delete: `git-diff.txt`, `report.txt`, `tree.txt`, the `'` directory, `reports/`,
       `src/utils/debug-firebase.js`, `src/pages/_app.tsx`, `src/app/events/new/page-fixed.tsx`,
       `src/app/**/page.tsx.{new,bak}`, `src/app/components/EventList.tsx`,
-      `src/app/landing.module.css`, `src/components/ui/ProgressBar.tsx` (keep
-      `ProgressBar/index.tsx`), `src/components/Button/`, `src/utils/testUtils.tsx` +
+      `src/app/landing.module.css`, `src/components/ui/ProgressBar/` (the directory is the unused
+      copy: `@/components/ui/ProgressBar` resolves to `ProgressBar.tsx`, whose `showPercentage`
+      default the pages and `progressBar.test.tsx` rely on — keep that file), `src/components/Button/`, `src/utils/testUtils.tsx` +
       `src/test-utils/withAppContext.tsx` (keep `src/test-utils.tsx`, imported by 10 tests),
       `src/docs/`, `apphosting*.yaml` (after the B20 backend check has been run once — see B20's
       first bullet; if a backend is connected, delete the files only after disconnecting it)
@@ -96,8 +97,10 @@ ADR numbering (`docs/decisions/`): `0001-adopt-inceptor-workflow` (A2), `0002-ca
       is already ignored); keep `.firebaserc` tracked (non-secret; `npm run deploy` and
       `deploy:rules` rely on it) and remove its line from `.gitignore`
 - [ ] Acceptance: `git ls-files | grep -E '\.(txt|new|bak)$|^reports/|^src/pages/|page-fixed'` is
-      empty && `npx tsc --noEmit` passes (`tsconfig` includes every `*.tsx`, so the shadow files
-      must go before A3)
+      empty && `npx tsc --noEmit` reports errors only in `__tests__`/`*.test.*` files (157
+      pre-existing errors on `main`, all in test files; app code is clean) && `npx jest --ci`
+      matches the `main` baseline (7 failed / 25 passed suites) — the shadow files must go before
+      A3 because `tsconfig` includes every `*.tsx`
 
 ### A2. `CLAUDE.md` + `.claude/` for JustSplit
 - [ ] Generate `CLAUDE.md` from Inceptor's template (`scripts/init.mjs` output), re-branded:
@@ -146,8 +149,14 @@ ADR numbering (`docs/decisions/`): `0001-adopt-inceptor-workflow` (A2), `0002-ca
       exits 0 non-interactively
 - [ ] `jest.config.js`: set `collectCoverage: false` and delete `coverageThreshold` (coverage is
       re-baselined under Vitest in Track B; a 70 % gate on a 19.78 % codebase blocks every PR)
-- [ ] Fix or `test.skip` (with `TODO(track-b)` + issue ref) the 5 failing suites so
-      `npx jest --ci` exits 0; list them in the PR body
+- [ ] Fix or `test.skip` (with `TODO(track-b)` + issue ref) the 7 failing suites
+      (`timeline`, `timelineCalculations` ×2, `page`, `ExpenseDistribution`, `RecentSettlements`,
+      `UpcomingEvents`; baseline measured 2026-09-27 on `main`: 7 failed / 25 passed, 23 failing
+      tests) so `npx jest --ci` exits 0; list them in the PR body
+- [ ] `type-check` must exit 0: either exclude `**/__tests__/**` and `**/*.test.*` from the
+      type-check (`tsconfig.typecheck.json` extending `tsconfig.json`; Jest transpiles tests
+      without type-checking anyway) or fix the 157 test-file type errors — prefer the exclusion
+      with a `TODO(track-b)` note, since every Jest suite is rewritten under Vitest in Track B
 - [ ] Remove `build:firebase --no-lint`
 - [ ] Acceptance: `npm ci && npm run lint && npx tsc --noEmit && npx jest --ci && npm run build`
       exits 0 locally on Node 22 (i.e. `npm run check` from A2 is green)

@@ -37,6 +37,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+reports/
 htmlcov/
 .tox/
 .nox/
@@ -202,5 +203,4 @@ firebase-debug.log
 firebase-debug.*.log
 firestore-debug.log
 ui-debug.log
-.firebaserc
 .runtimeconfig.json
