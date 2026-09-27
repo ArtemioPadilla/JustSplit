@@ -122,7 +122,7 @@ backend decision; ADR numbers are allocation order, not merge order).
 ## Track A — Adopt the Inceptor workflow (no app code changes)
 
 ### A1. Repo hygiene
-- [ ] Delete: `git-diff.txt`, `report.txt`, `tree.txt`, the `'` directory, `reports/`,
+- [x] Delete: `git-diff.txt`, `report.txt`, `tree.txt`, the `'` directory, `reports/`,
       `src/utils/debug-firebase.js`, `src/pages/_app.tsx`, `src/app/events/new/page-fixed.tsx`,
       `src/app/**/page.tsx.{new,bak}`, `src/app/components/EventList.tsx`,
       `src/app/landing.module.css`, `src/components/ui/ProgressBar/` (the directory is the unused
@@ -131,27 +131,27 @@ backend decision; ADR numbers are allocation order, not merge order).
       `src/test-utils/withAppContext.tsx` (keep `src/test-utils.tsx`, imported by 10 tests),
       `src/docs/`, `apphosting*.yaml` (after the B20 backend check has been run once — see B20's
       first bullet; if a backend is connected, delete the files only after disconnecting it)
-- [ ] Add `.nvmrc` (`22`), `.editorconfig`, `.prettierignore` from Inceptor; add `.prettierrc.json`
+- [x] Add `.nvmrc` (`22`), `.editorconfig`, `.prettierignore` from Inceptor; add `.prettierrc.json`
       WITHOUT the `plugins` entry and the `*.astro` override (re-added in B1 with
       `prettier-plugin-astro`); `npm i -D prettier@^3` + `"format": "prettier --write ."`
-- [ ] `git rm --cached reports/test-report.html` and add `reports/` to `.gitignore` (`.firebase/`
+- [x] `git rm --cached reports/test-report.html` and add `reports/` to `.gitignore` (`.firebase/`
       is already ignored); leave `.firebaserc`, `firebase.json`, `firestore.*` untouched — B20
       deletes them with the project
-- [ ] Acceptance: `git ls-files | grep -E '\.(txt|new|bak)$|^reports/|^src/pages/|page-fixed'` is
+- [x] Acceptance: `git ls-files | grep -E '\.(txt|new|bak)$|^reports/|^src/pages/|page-fixed'` is
       empty && `npx tsc --noEmit` reports errors only in `__tests__`/`*.test.*` files (157
       pre-existing errors on `main`, all in test files; app code is clean) && `npx jest --ci`
       matches the `main` baseline (7 failed / 25 passed suites) — the shadow files must go before
       A3 because `tsconfig` includes every `*.tsx`
 
 ### A2. `CLAUDE.md` + `.claude/` for JustSplit
-- [ ] Generate `CLAUDE.md` from Inceptor's template (`scripts/init.mjs` output), re-branded:
+- [x] Generate `CLAUDE.md` from Inceptor's template (`scripts/init.mjs` output), re-branded:
       purpose, current stack (Next.js **until Track B lands**, then Astro), file organization,
       commands, conventions, critical warnings, auth-gating rules, link to this plan
-- [ ] `prometeo.md`: `INTEGRATION-PLAN.md` → `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
+- [x] `prometeo.md`: `INTEGRATION-PLAN.md` → `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
       (4 places: description, §1, §4, Rules); example issue ids `#001–#003` → `A1–A3`
-- [ ] `forja.md`: same path swap (3 places: description, Inputs, §1); delete the
+- [x] `forja.md`: same path swap (3 places: description, Inputs, §1); delete the
       `src/content/gallery.ts` rule, replace with "add reusable widgets to `src/pages/showcase.astro`"
-- [ ] Copy `.claude/agents/centinela.md` and edit: (a) §1 anchors on this plan instead of
+- [x] Copy `.claude/agents/centinela.md` and edit: (a) §1 anchors on this plan instead of
       `INTEGRATION-PLAN.md`; (b) step 3 runs `npm run check` only (= `npm run lint && npm run
       type-check && npm run test -- --ci && npm run build`); delete the `ux:check`/`a11y`
       paragraphs (re-add in B6 if those scripts are ported); (c) step 4 scans ONLY changed files:
@@ -164,21 +164,21 @@ backend decision; ADR numbers are allocation order, not merge order).
       "replaced by Base UI/shadcn in B10") and restores `framer-motion` in both places; (f) §4
       exception text → "issue B1 (the only PR that replaces the Next tree)"; (g) §5 → check
       `src/pages/showcase.astro` instead of `gallery.ts`/`demos/`
-- [ ] Copy `.claude/checklists/{ethics,governance,forbidden-imports}.*`; `governance.md`: required
+- [x] Copy `.claude/checklists/{ethics,governance,forbidden-imports}.*`; `governance.md`: required
       status check → `Build & Check` (ci.yml job name; B2b adds `RLS & contract (supabase start)`)
-- [ ] Copy `.claude/commands/{doctor,monday,ship}.md` + `scripts/{doctor,monday,ship}.sh`; add to
+- [x] Copy `.claude/commands/{doctor,monday,ship}.md` + `scripts/{doctor,monday,ship}.sh`; add to
       `package.json` scripts: `"doctor": "bash scripts/doctor.sh"`, `"monday": "bash scripts/monday.sh"`,
       `"ship": "bash scripts/ship.sh"`, `"type-check": "tsc --noEmit"` (moved here from A3 so the
       umbrella resolves) and `"check": "npm run lint && npm run type-check && npm run test -- --ci
       && npm run build"` (the Next-era umbrella; B1 replaces its body with the Astro one so
       `ship.sh`/`centinela` never change)
-- [ ] `doctor.sh`: guard the Astro-only checks — `if [ -f astro.config.mjs ] || [ -f next.config.js ];
+- [x] `doctor.sh`: guard the Astro-only checks — `if [ -f astro.config.mjs ] || [ -f next.config.js ];
       then ok …` and skip the `src/env.d.ts` check when `next.config.js` exists (both with a
       `TODO(track-b): drop the Next branch` comment); downgrade the `http://localhost` placeholder
       hit in `src/firebase/config.ts` to a warning
-- [ ] Create `docs/decisions/` with Inceptor's `TEMPLATE.md` + `0001-adopt-inceptor-workflow.md`
+- [x] Create `docs/decisions/` with Inceptor's `TEMPLATE.md` + `0001-adopt-inceptor-workflow.md`
       (records Track A)
-- [ ] Acceptance: after `npm ci`, `npm run doctor` exits 0 on a clean checkout of `main` (doctor
+- [x] Acceptance: after `npm ci`, `npm run doctor` exits 0 on a clean checkout of `main` (doctor
       also fails on a missing `node_modules`); `grep -rn 'INTEGRATION-PLAN\|gallery.ts\|ux:check\|npm
       run a11y' .claude` is empty; `npm run check` exiting 0 is A3a's acceptance, not A2's
 
