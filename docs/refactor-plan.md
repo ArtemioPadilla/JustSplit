@@ -1,3 +1,7 @@
+> **Superseded (2026-09-27).** This Next-era refactoring plan is replaced by the migration spec
+> (`docs/superpowers/specs/2026-09-18-inceptor-migration-design.md`) and plan
+> (`docs/superpowers/plans/2026-09-18-inceptor-migration.md`). Kept for history; do not execute.
+
 ## Comprehensive Refactoring Plan
 
 ### 1. Component Architecture Restructuring

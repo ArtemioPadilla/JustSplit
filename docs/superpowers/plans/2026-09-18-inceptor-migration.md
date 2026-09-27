@@ -289,12 +289,13 @@ backend decision; ADR numbers are allocation order, not merge order).
       `grep -rn 'ux:check\|npm run a11y' .github` is empty
 
 ### A6. Docs realignment
-- [ ] `docs/INDEX.md` pointing to spec/plan; move `docs/known-bugs.md` items into issues;
+- [x] `docs/INDEX.md` pointing to spec/plan; move `docs/known-bugs.md` items into issues (#8–#11);
       mark `docs/refactor-plan.md` and `docs/development/assesment-202505.md` as superseded
-- [ ] README: replace "Development" section with the Inceptor loop summary
-- [ ] Create `ROADMAP.md` (points to this plan's tracks; Inceptor's `ROADMAP.md` as the shape) and
+- [x] README: replace "Development" section with the Inceptor loop summary
+- [x] Create `ROADMAP.md` (points to this plan's tracks; Inceptor's `ROADMAP.md` as the shape) and
       `CHANGELOG.md` (Keep a Changelog, `Unreleased` section; Inceptor has none — start fresh);
       neither exists in the repo today, so B20/B22/D2/D12 only append to them
+- [x] Also `SECURITY.md` + `CODE_OF_CONDUCT.md` (governance checklist rows); `LICENSE` is an owner decision (the README says open source but no license file exists; the hub uses open-core) — recorded in `SETUP.md` §4
 - [ ] Acceptance: no doc references Jest/Next as *future* work once Track B starts
 
 ---

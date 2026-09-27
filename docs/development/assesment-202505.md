@@ -1,3 +1,7 @@
+> **Superseded (2026-09-27).** Assessment of the Next.js tree as of May 2025. The current-state
+> inventory that drives the migration is spec §2 in
+> `docs/superpowers/specs/2026-09-18-inceptor-migration-design.md`. Kept for history.
+
 # JustSplit Project Assessment
 
 ## Overview

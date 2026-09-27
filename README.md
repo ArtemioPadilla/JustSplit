@@ -40,17 +40,19 @@ To get a deepdive on features and our roadmap check the [JustSplit Consolidated 
 
 ## Development
 
-
-### Getting Started
-
-To set up your local development environment, check out our detailed [Local Development Guide](docs/development/local-development.md).
-
-### Testing
-
-JustSplit has comprehensive test coverage. To run the tests:
+JustSplit is built with **Issue-Driven Development** on the [Inceptor](https://github.com/ArtemioPadilla/inceptor)
+scaffold: every change is a GitHub issue → Claude triages → a PR through the
+prometeo → forja → centinela loop → merge → deploy. The repo is currently
+migrating from Next.js + Firebase to Astro + the CyberEco data layer (Supabase);
+see [`CLAUDE.md`](./CLAUDE.md) for the two trees and the rules, [`SETUP.md`](./SETUP.md)
+for a working checkout, and [`docs/INDEX.md`](./docs/INDEX.md) for everything else.
 
 ```bash
-npm run test
+npm ci
+npm run doctor   # preflight
+npm run check    # lint → type-check → test → build (the CI gate)
 ```
 
-For more details on our testing approach and strategies, see our [Local Development Guide](docs/development/local-development.md#testing).
+To work on an issue: "Land B5a from the migration plan" in Claude Code, or open
+one with the **User story** template and let the triage workflow plan it.
+Product roadmap: [`ROADMAP.md`](./ROADMAP.md) · changes: [`CHANGELOG.md`](./CHANGELOG.md).

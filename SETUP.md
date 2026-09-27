@@ -70,6 +70,7 @@ plan's acceptance lines stay verifiable.
 | B2a | Create the JustSplit Supabase project; store `SUPABASE_DB_URL` | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
 | B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
+| A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |
 
 ## 5. Where things are
 
