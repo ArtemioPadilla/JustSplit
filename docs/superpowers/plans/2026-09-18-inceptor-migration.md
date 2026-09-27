@@ -242,10 +242,10 @@ backend decision; ADR numbers are allocation order, not merge order).
       `0ba4348`): nothing deploys `main` any more and `.github/` did not exist until A3b. The live
       Next site stays on Firebase Hosting exactly as last deployed until B20 retires the project.
       Here: delete the now-unused `FIREBASE_SERVICE_ACCOUNT*` repository secrets (owner action)
-- [ ] Create `SETUP.md` (skeleton from Inceptor's `SETUP.md`: prerequisites, tokens, owner-actions
+- [x] Create `SETUP.md` (skeleton from Inceptor's `SETUP.md`: prerequisites, tokens, owner-actions
       log) — B1/B2a/B2/B4 append to it; the file does not exist in this repo and
       `create-inceptor-app` does not emit it
-- [ ] Owner actions, documented in `SETUP.md` (not scripted): the `@cyber-eco/*` packages belong to
+- [x] Owner actions, documented in `SETUP.md` (owner-actions log §4; the actions themselves are pending) (not scripted): the `@cyber-eco/*` packages belong to
       the `cyber-eco` org (`cyber-eco/cybereco-hub`, private repo ⇒ private packages), so create a
       **classic** PAT with `read:packages` as a member of the `cyber-eco` org with read access to
       `cyber-eco/cybereco-hub` (GitHub Packages' npm registry does not accept fine-grained PATs;
