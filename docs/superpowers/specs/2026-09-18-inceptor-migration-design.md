@@ -579,6 +579,13 @@ storage.rules                 new (B5b)
 
 ## 7. Out of scope
 
+**Canonical source is `ArtemioPadilla/JustSplit` `main`** (decided 2026-09-27).
+The open PR #1 `feat/nx-refactor` (CyberEco Nx monorepo: `apps/hub`,
+`apps/justsplit`, `apps/website`) and the `cyber-eco/*` repositories are not
+inputs to this migration; the 97-file drift in its `apps/justsplit/src` is not
+ported. PR #1 should be closed or re-scoped so it does not compete with the
+`inceptor` integration branch.
+
 Supabase; payment integrations; E2E encryption (README claim, never built);
 Tauri desktop/mobile packaging (available later via Inceptor's
 `add-tauri*.mjs`); redesign beyond what the shadcn mapping implies;
