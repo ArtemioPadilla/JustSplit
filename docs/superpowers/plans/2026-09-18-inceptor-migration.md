@@ -43,8 +43,11 @@ part of the migration's definition of done).
 - **Every PR**: `npm run check` green (the umbrella script; Track A adds the gate, B1 swaps its
   body for the Astro one so `ship.sh`/`centinela` never change).
 - **No secrets in the repo**; Firebase config comes from `PUBLIC_FIREBASE_*` env vars
-  (build-time, browser-safe by Firebase's design) already present as GitHub secrets under the
-  `NEXT_PUBLIC_*` names until B20.
+  (build-time, browser-safe by Firebase's design), read from GitHub secrets under the
+  `NEXT_PUBLIC_*` names until B20. **Those secrets do not exist yet** (verified 2026-09-27: the
+  preview build logs every value as empty, so every PR preview has failed since the workflow was
+  added). Creating the seven `NEXT_PUBLIC_FIREBASE_*` repository secrets is an owner action and
+  the first blocker of Track A; nothing in CI is green until it is done.
 - **Never set `ASTRO_BASE`** (site is served at `/`).
 
 ## Milestones and labels
@@ -194,7 +197,8 @@ ADR numbering (`docs/decisions/`): `0001-adopt-inceptor-workflow` (A2), `0002-ca
       `deploy.yml` run, delete the now-unused `FIREBASE_SERVICE_ACCOUNT` secret
 - [ ] Keep `firebase-hosting-pull-request.yml` (previews), SHA-pinned, `if:` same-repo guard kept
 - [ ] Acceptance: exactly one deploy run per push to `main`; the preview build step has all seven
-      `NEXT_PUBLIC_FIREBASE_*` vars
+      `NEXT_PUBLIC_FIREBASE_*` vars (env block already ported to the preview workflow in PR #2)
+      and the secrets exist, so the preview build is green
 
 ### A5. Issue-driven loop
 - [ ] Copy `.github/ISSUE_TEMPLATE/{bug_report,feature_request,question,story,config}.yml`,
