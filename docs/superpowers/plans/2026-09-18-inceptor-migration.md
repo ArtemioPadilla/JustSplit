@@ -205,11 +205,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       exits 0 locally on Node 22 (i.e. `npm run check` from A2 is green)
 
 ### A3b. CI quality gate (depends on A3a)
-- [ ] Add `.github/workflows/ci.yml` from Inceptor keeping only the `build` and `actionlint` jobs
+- [x] Add `.github/workflows/ci.yml` from Inceptor keeping only the `build` and `actionlint` jobs
       (delete `server-node` and `server-flask`); `build` runs `npm ci` + `npm run check` (= `lint
       && type-check && test -- --ci && build`, from A2/A3a). Keep the `push.branches` globs and
       the concurrency group
-- [ ] In `ci.yml`: `on.push.branches: [main, inceptor, 'phase-*/**', 'feat/**', 'fix/**',
+- [x] In `ci.yml`: `on.push.branches: [main, inceptor, 'phase-*/**', 'feat/**', 'fix/**',
       'docs/**', 'chore/**']` and `on.pull_request.branches: [main, inceptor]`; change the
       actionlint job condition to `if: github.event_name == 'pull_request' || github.ref ==
       'refs/heads/main' || github.ref == 'refs/heads/inceptor'`
@@ -219,11 +219,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       still list `build`/`test`/`type-check`/`visual`, which match no job; update both when
       copying); B2b adds `RLS & contract (supabase start)` to the same list, and both move to
       `main` at cutover
-- [ ] In `ci.yml`'s `build` job: `actions/setup-node` with `registry-url: https://npm.pkg.github.com`
+- [x] In `ci.yml`'s `build` job: `actions/setup-node` with `registry-url: https://npm.pkg.github.com`
       and `scope: '@cyber-eco'`, and `NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}` on the
       `npm ci` step — inert until B1 adds the packages (the secret arrives in A4); written here so
       `ci.yml` is authored once
-- [ ] Also land `.github/workflows/db-migrate.yml` on `main` now, copied from
+- [x] Also land `.github/workflows/db-migrate.yml` on `main` now, copied from
       `cybereco-hub/.github/workflows/db-migrate.yml` with `paths: ['db/migrations/**',
       '.github/workflows/db-migrate.yml']`, the docker mount `-v "$PWD/db:/db"`
       (`--migrations-dir /db/migrations`), the `command`/`confirm=TEARDOWN` gating kept,
@@ -231,7 +231,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       guard step warns and skips). GitHub registers `workflow_dispatch` only for files on the
       default branch, so this is what lets B2 run `gh workflow run db-migrate.yml --ref inceptor
       -f command=migrate` (the run checks out and uses the workflow + migrations from `inceptor`)
-- [ ] Node 22 everywhere; SHA-pin `actions/checkout`, `actions/setup-node`
+- [x] Node 22 everywhere; SHA-pin `actions/checkout`, `actions/setup-node`
 - [ ] Acceptance: CI green on the PR (the first workflow run on `main` since the Firebase workflows
       were deleted in #2); a deliberate type error in a throwaway commit turns it red; enable the
       `Build & Check` required status check on `main` after the first green run
