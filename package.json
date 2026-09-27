@@ -12,7 +12,9 @@
     "build:firebase": "next build --no-lint",
     "deploy:rules": "firebase deploy --only firestore:rules",
     "deploy:hosting": "firebase deploy --only hosting",
-    "deploy": "npm run build:firebase && firebase deploy"
+    "deploy": "npm run build:firebase && firebase deploy",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -45,6 +47,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-html-reporter": "^4.1.0",
+    "prettier": "^3.9.9",
     "typescript": "^5"
   },
   "overrides": {
