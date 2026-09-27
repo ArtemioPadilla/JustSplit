@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    # Branch conventions this repo uses (CLAUDE.md): phase-N/…, the long-lived
+    # `inceptor` integration branch (Track B), Conventional-Commit-style
+    # feat/fix/docs/chore branches, and the Claude Code session branches.
+    branches:
+      - main
+      - inceptor
+      - 'phase-*/**'
+      - 'feat/**'
+      - 'fix/**'
+      - 'docs/**'
+      - 'chore/**'
+      - 'claude/**'
+  pull_request:
+    branches: [main, inceptor]
+
+# One run per branch: a new push cancels the in-flight run instead of
+# queueing N parallel runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # The job name is the required status check on `main` (and on `inceptor`
+    # during Track B) — see .claude/checklists/governance.md. Rename both or neither.
+    name: Build & Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          # @cyber-eco/* is published to GitHub Packages (plan B1). setup-node
+          # writes the scoped registry + auth token into .npmrc; inert until the
+          # packages are added and the GH_PACKAGES_TOKEN secret exists (plan A4).
+          registry-url: https://npm.pkg.github.com
+          scope: '@cyber-eco'
+      - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      # `check` is the umbrella gate (lint → type-check → test → build). Its
+      # body changes in B1 (Astro tree); its name never does — CLAUDE.md.
+      - name: Check (lint, type-check, test, build)
+        run: npm run check
+
+  # ---------------------------------------------------------------------------
+  # actionlint — static analysis for all workflow files (ported from Inceptor).
+  # Catches env-var conditions that always evaluate false, mutable
+  # `uses: action@main` refs, unquoted ${{ inputs.* }} interpolations in run:
+  # blocks, invalid event names / step syntax. The binary is downloaded
+  # directly (SHA-pinned version + checksum) so the only third-party code
+  # running here is the pinned actionlint itself.
+  # ---------------------------------------------------------------------------
+  actionlint:
+    name: Lint workflows (actionlint)
+    runs-on: ubuntu-latest
+    # Only on PRs and pushes to the protected branches — a feature-branch push
+    # is covered by its PR run.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/inceptor'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+
+      - name: Download actionlint v1.7.12 (SHA-pinned)
+        # The SHA is the sha256 of actionlint_1.7.12_linux_amd64.tar.gz from the
+        # official checksums file. Update both when bumping the version.
+        run: |
+          ACTIONLINT_VERSION="1.7.12"
+          ACTIONLINT_SHA256="8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+          curl -sSL \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            -o actionlint.tar.gz
+          echo "${ACTIONLINT_SHA256}  actionlint.tar.gz" | sha256sum --check --strict
+          tar -xzf actionlint.tar.gz actionlint
+          chmod +x actionlint
+
+      - name: Run actionlint
+        run: ./actionlint -color .github/workflows/*.yml
+
+      - name: Scan for unpinned third-party action refs (mutable @branch refs)
+        # Flags any third-party `uses:` ref that is NOT pinned to a 40-hex
+        # commit SHA. First-party actions/* and github/*, and local ./ refs,
+        # are exempt. `-rn` so a failure names the workflow and line.
+        run: |
+          UNPINNED=$(grep -rnE "^[[:space:]]*-?[[:space:]]*uses:[[:space:]]+" \
+              .github/workflows/*.yml \
+            | sed -E 's/#.*$//' \
+            | grep -vE "uses:[[:space:]]+(actions/|github/|\\./)" \
+            | grep -vE "@[0-9a-f]{40}[[:space:]]*$" \
+            || true)
+          if [ -n "$UNPINNED" ]; then
+            echo "ERROR: unpinned third-party action refs found:"
+            echo "$UNPINNED"
+            exit 1
+          fi
+          echo "OK: all third-party action refs appear to be SHA-pinned."
