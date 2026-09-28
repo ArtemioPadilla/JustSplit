@@ -118,9 +118,10 @@ export function withAddedMembers(
  * Admin removing a member or leaving (plan B12: "leaving is an admin
  * action in v1"). `adminIds` is recomputed from the resulting `members[]`
  * so a removed admin also disappears from `adminIds` in the same patch —
- * never a stale id. Callers MUST preflight-check
- * `memberRemovalBlockerCount`/`isLastAdmin` before calling this (this
- * function itself does not).
+ * never a stale id. Callers MUST preflight-check `isLastAdmin` before
+ * calling this (this function itself does not). Removing a member needs no
+ * other preflight since B2d (ADR 0013): rows that still name them stay
+ * readable and editable.
  */
 export function withRemovedMember(group: Pick<ExpenseGroup, 'members'>, memberId: string): GroupMembershipPatch {
   const members = group.members.filter((m) => m.userId !== memberId);
