@@ -6,9 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * helper, never `adapter.<method>('profiles', ...)`.
  */
 const rpcMock = vi.fn();
-vi.mock('../client', () => ({ rpc: rpcMock }));
+vi.mock('../client', async (importOriginal) => ({ ...(await importOriginal<typeof import('../client')>()), rpc: rpcMock }));
 
 const profiles = await import('./profiles');
+const { LookupRateLimitedError } = await import('../client');
 
 beforeEach(() => {
   rpcMock.mockClear();
@@ -22,6 +23,12 @@ describe('repos.profiles', () => {
 
     rpcMock.mockResolvedValueOnce([]);
     expect(await profiles.byEmail('nobody@example.com')).toBeNull();
+  });
+
+  it('byEmail lets the typed LookupRateLimitedError through (ADR 0013), and repos re-exports it', async () => {
+    rpcMock.mockRejectedValueOnce(new LookupRateLimitedError());
+    await expect(profiles.byEmail('ada@example.com')).rejects.toBeInstanceOf(profiles.LookupRateLimitedError);
+    expect(profiles.LookupRateLimitedError).toBe(LookupRateLimitedError);
   });
 
   it('byIds calls find_profiles_by_ids and returns every row', async () => {

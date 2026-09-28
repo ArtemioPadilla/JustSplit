@@ -13,6 +13,23 @@ import { parseCalendarDate } from './dates';
  * 'Unknown' for an id with no entry.
  */
 
+// ─── involvingUser ──────────────────────────────────────────────────────────
+
+/**
+ * Rows that name `uid` in their `memberIds` (plan B2d, ADR 0013). Since
+ * visibility follows group and event membership, `useExpenses` /
+ * `useSettlements` also return rows the viewer can see only because they
+ * belong to the row's group or event — other members' spending. Everything
+ * personal (total spent, monthly trends, the recent lists, "shared with a
+ * friend", "attach to a group") is about the rows the viewer is part of, so
+ * those call sites narrow with this; the expense LIST and the group/event
+ * feeds deliberately keep everything visible. UX scoping only — RLS decides
+ * what the viewer may see and write.
+ */
+export function involvingUser<T extends { memberIds: string[] }>(rows: readonly T[], uid: string): T[] {
+  return rows.filter((row) => row.memberIds.includes(uid));
+}
+
 // ─── monthlyTotals ──────────────────────────────────────────────────────────
 
 export interface MonthlyTotal {

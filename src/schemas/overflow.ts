@@ -6,7 +6,7 @@
  * keys have no mapped column and are routed by the adapter into the `extra`
  * jsonb overflow column." `src/schemas/overflow.test.ts` proves this list
  * equals, for every collection, the set of `Create*Input` keys with no
- * column in `db/migrations/20260928000003_justsplit_tables.sql` — the
+ * column in `db/migrations/` (the table DDL plus later `add column`s) — the
  * mechanical "no undeclared key reaches `extra`" guard the plan calls for.
  *
  * This only covers keys that a `Create*Input` schema still declares. The
@@ -23,8 +23,9 @@
  */
 export const OVERFLOW_KEYS = {
   expense_groups: [] as readonly string[],
-  expenses: ['eventId'] as readonly string[],
-  settlements: ['expenseIds', 'eventId'] as readonly string[],
+  // `eventId` left this list in B2d (ADR 0013): it is the `event_id` column.
+  expenses: [] as readonly string[],
+  settlements: ['expenseIds'] as readonly string[],
   events: [] as readonly string[],
   friendships: [] as readonly string[],
 } as const;

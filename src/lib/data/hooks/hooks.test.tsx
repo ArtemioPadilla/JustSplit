@@ -15,7 +15,9 @@ const liveQuerySpy = vi.fn((..._args: unknown[]) => ({ data: undefined }));
 vi.mock('./useLiveQuery', () => ({ useLiveQuery: liveQuerySpy }));
 
 const expensesRepo = {
-  forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]),
+  // ADR 0013: visibility is RLS's job (member_ids OR group OR event), so the
+  // "my expenses" subscription carries NO filter.
+  visibleFilters: vi.fn(() => []),
   forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
   create: vi.fn(async (input: unknown) => ({ id: 'e1', ...(input as object) })),
   get: vi.fn(async (id: string) => ({ id, description: 'Tacos' })),
@@ -68,7 +70,7 @@ const eventsRepo = {
 };
 vi.mock('../repos/events', () => eventsRepo);
 
-const settlementsRepo = { forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]) };
+const settlementsRepo = { visibleFilters: vi.fn(() => []) };
 vi.mock('../repos/settlements', () => settlementsRepo);
 
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
@@ -105,13 +107,14 @@ afterEach(() => {
 });
 
 describe('useExpenses / useGroupExpenses', () => {
-  it("useExpenses(uid) subscribes 'expenses' with the memberIds array-contains filter, persisted", () => {
+  it("useExpenses(uid) subscribes 'expenses' with NO memberIds filter (every visible row, ADR 0013), keyed per user and persisted", () => {
     function Probe() {
       useExpenses('u1');
       return null;
     }
     withClient(<Probe />);
-    expect(liveQuerySpy).toHaveBeenCalledWith(['expenses', 'u1'], 'expenses', expensesRepo.forUserFilters('u1'), {
+    expect(expensesRepo.visibleFilters).toHaveBeenCalled();
+    expect(liveQuerySpy).toHaveBeenCalledWith(['expenses', 'u1'], 'expenses', [], {
       enabled: true,
       persist: true,
     });
@@ -155,13 +158,14 @@ describe('useGroupEvents', () => {
 });
 
 describe('useSettlements (plan B8b — same pattern as useExpenses/useEvents)', () => {
-  it("subscribes 'settlements' with the memberIds array-contains filter, persisted", () => {
+  it("subscribes 'settlements' with NO memberIds filter (every visible row, ADR 0013), keyed per user and persisted", () => {
     function Probe() {
       useSettlements('u1');
       return null;
     }
     withClient(<Probe />);
-    expect(liveQuerySpy).toHaveBeenCalledWith(['settlements', 'u1'], 'settlements', settlementsRepo.forUserFilters('u1'), {
+    expect(settlementsRepo.visibleFilters).toHaveBeenCalled();
+    expect(liveQuerySpy).toHaveBeenCalledWith(['settlements', 'u1'], 'settlements', [], {
       enabled: true,
       persist: true,
     });

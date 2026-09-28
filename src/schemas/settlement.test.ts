@@ -19,6 +19,10 @@ describe('SettlementSchema (plan B3)', () => {
     expect(() => SettlementSchema.parse(validSettlement)).not.toThrow();
   });
 
+  it('accepts a null eventId: event_id is a nullable column since B2d (ADR 0013)', () => {
+    expect(SettlementSchema.parse({ ...validSettlement, eventId: null }).eventId).toBeNull();
+  });
+
   it('accepts the JustSplit-only overflow fields expenseIds/eventId', () => {
     const parsed = SettlementSchema.parse({
       ...validSettlement,

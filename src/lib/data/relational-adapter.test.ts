@@ -30,16 +30,19 @@ interface MockBuilder {
   then: (onFulfilled: (v: { data: unknown; error: { message: string } | null }) => unknown) => Promise<unknown>;
   result: { data: unknown; error: { message: string } | null };
   singleResults: Array<{ data: unknown; error: { message: string } | null }>;
+  /** Consumed one per awaited query (a paged read awaits several); falls back to `result` once empty. */
+  pages: Array<{ data: unknown; error: { message: string } | null }>;
 }
 
 function createMockBuilder(): MockBuilder {
   const builder = {} as MockBuilder;
   builder.result = { data: [], error: null };
   builder.singleResults = [];
+  builder.pages = [];
   const chainMethods = ['select', 'eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'in', 'contains', 'order', 'limit', 'range', 'upsert', 'update', 'delete'] as const;
   for (const method of chainMethods) builder[method] = vi.fn(() => builder);
   builder.maybeSingle = vi.fn(() => Promise.resolve(builder.singleResults.shift() ?? builder.result));
-  builder.then = (onFulfilled) => Promise.resolve(builder.result).then(onFulfilled);
+  builder.then = (onFulfilled) => Promise.resolve(builder.pages.length > 0 ? builder.pages.shift()! : builder.result).then(onFulfilled);
   return builder;
 }
 
@@ -96,7 +99,8 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
           amount: 100,
           member_ids: ['a', 'b'],
           paid_by: 'a',
-          extra: { eventId: 'trip-1' },
+          event_id: 'trip-1',
+          extra: { conceptId: 'k1' },
         },
         error: null,
       });
@@ -106,7 +110,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       expect(client.from).toHaveBeenCalledWith('expenses');
       expect(builder.select).toHaveBeenCalledWith('*');
       expect(builder.eq).toHaveBeenCalledWith('id', 'e1');
-      expect(doc).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, memberIds: ['a', 'b'], paidBy: 'a', eventId: 'trip-1' });
+      expect(doc).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, memberIds: ['a', 'b'], paidBy: 'a', eventId: 'trip-1', conceptId: 'k1' });
     });
 
     it('returns null when no row matches', async () => {
@@ -122,7 +126,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         amount: 100,
         memberIds: ['a'],
         paidBy: 'a',
-        eventId: 'trip-1',
+        conceptId: 'k1',
       });
 
       expect(result).toEqual({ id: 'e1', success: true });
@@ -132,12 +136,21 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       expect(args.ops).toHaveLength(1);
       expect(args.ops[0]).toMatchObject({ type: 'set', collection: 'expenses', id: 'e1', merge: false });
       expect(args.ops[0]!.data).toMatchObject({ description: 'Tacos', amount: 100, member_ids: ['a'], paid_by: 'a' });
-      expect((args.ops[0]!.data as Record<string, unknown>).extra).toEqual({ eventId: 'trip-1' });
+      expect((args.ops[0]!.data as Record<string, unknown>).extra).toEqual({ conceptId: 'k1' });
       // No client-side upsert: an INSERT … ON CONFLICT is checked against the
       // INSERT policy even when the row exists, which denies a non-creator
       // member's replace (ADR 0002).
       expect(builder.upsert).not.toHaveBeenCalled();
       expect(builder.maybeSingle).not.toHaveBeenCalled();
+    });
+
+    it('eventId is written as the event_id column, not folded into extra (ADR 0013)', async () => {
+      await adapter.setDocument('expenses', 'e1', { description: 'Tacos', eventId: 'trip-1' });
+      await adapter.updateDocument('settlements', 's1', { eventId: null });
+
+      const calls = (client.rpc as Mock).mock.calls as unknown as Array<[string, { ops: Array<{ data: Record<string, unknown> }> }]>;
+      expect(calls[0]![1].ops[0]!.data).toEqual({ description: 'Tacos', event_id: 'trip-1', extra: {} });
+      expect(calls[1]![1].ops[0]!.data).toEqual({ event_id: null, extra: {} });
     });
 
     it('merge: true is passed to the server; extra is never read and merged client-side', async () => {
@@ -197,11 +210,100 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
     it('resolves a real-column filter directly and an overflow filter to extra->>field', async () => {
       await adapter.query('expenses', [
         { field: 'groupId', operator: '==', value: 'g1' },
-        { field: 'eventId', operator: '==', value: 'trip-1' },
+        { field: 'conceptId', operator: '==', value: 'k1' },
       ]);
 
       expect(builder.eq).toHaveBeenCalledWith('group_id', 'g1');
-      expect(builder.eq).toHaveBeenCalledWith('extra->>eventId', 'trip-1');
+      expect(builder.eq).toHaveBeenCalledWith('extra->>conceptId', 'k1');
+    });
+
+    it('eventId is a real column (ADR 0013): the filter hits event_id, never extra->>eventId, on expenses and settlements', async () => {
+      await adapter.query('expenses', [{ field: 'eventId', operator: '==', value: 'trip-1' }]);
+      await adapter.query('settlements', [{ field: 'eventId', operator: '==', value: 'trip-2' }]);
+
+      expect(builder.eq).toHaveBeenCalledWith('event_id', 'trip-1');
+      expect(builder.eq).toHaveBeenCalledWith('event_id', 'trip-2');
+      expect(builder.eq).not.toHaveBeenCalledWith('extra->>eventId', expect.anything());
+    });
+
+    describe('without an explicit limit (ADR 0013: PostgREST caps a response at max_rows = 1000)', () => {
+      const rowsOf = (n: number, from = 0) => Array.from({ length: n }, (_, i) => ({ id: `e${from + i}`, description: 'x', member_ids: ['a'], extra: {} }));
+
+      it('pages with .range() in pages of 1000 until a short page: 2 full pages + a short one are all returned', async () => {
+        builder.pages.push(
+          { data: rowsOf(1000, 0), error: null },
+          { data: rowsOf(1000, 1000), error: null },
+          { data: rowsOf(5, 2000), error: null },
+        );
+
+        const result = await adapter.query<{ id: string }>('expenses', [{ field: 'groupId', operator: '==', value: 'g1' }]);
+
+        expect(result.data).toHaveLength(2005);
+        expect(result.data[0]!.id).toBe('e0');
+        expect(result.data[2004]!.id).toBe('e2004');
+        expect(result.hasMore).toBe(false);
+        expect(builder.range.mock.calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]]);
+        // A fresh query is built per page (a reused builder would stack filters/params).
+        expect(client.from).toHaveBeenCalledTimes(3);
+        expect(builder.eq).toHaveBeenCalledTimes(3);
+        expect(builder.limit).not.toHaveBeenCalled();
+      });
+
+      it('keeps the caller\'s sort and adds the id as the final tie-breaker on every page, so pages neither overlap nor skip', async () => {
+        builder.pages.push({ data: rowsOf(1000), error: null }, { data: rowsOf(1, 1000), error: null });
+
+        await adapter.query('expenses', [], { sort: [{ field: 'date', direction: 'desc' }] });
+
+        // Per page: the caller's order first, then id ascending — twice, once per page.
+        expect(builder.order.mock.calls).toEqual([
+          ['date', { ascending: false }],
+          ['id', { ascending: true }],
+          ['date', { ascending: false }],
+          ['id', { ascending: true }],
+        ]);
+      });
+
+      it('orders by id alone when the caller gave no sort, and does not repeat an id sort the caller already asked for', async () => {
+        await adapter.query('expenses', []);
+        expect(builder.order.mock.calls).toEqual([['id', { ascending: true }]]);
+
+        builder.order.mockClear();
+        await adapter.query('expenses', [], { sort: [{ field: 'id', direction: 'desc' }] });
+        expect(builder.order.mock.calls).toEqual([['id', { ascending: false }]]);
+      });
+
+      it('stops after a full page followed by an empty one (an exact multiple of 1000 rows)', async () => {
+        builder.pages.push({ data: rowsOf(1000), error: null }, { data: [], error: null });
+        const result = await adapter.query('expenses', []);
+        expect(result.data).toHaveLength(1000);
+        expect(builder.range.mock.calls).toEqual([[0, 999], [1000, 1999]]);
+      });
+
+      it('a failure on any page rejects instead of returning a silently short list', async () => {
+        builder.pages.push({ data: rowsOf(1000), error: null }, { data: null, error: { message: 'boom' } });
+        await expect(adapter.query('expenses', [])).rejects.toThrow(/boom/);
+      });
+
+      it('an explicit limit or offset keeps the single-request behaviour: no paging, no id tie-breaker', async () => {
+        await adapter.query('expenses', [], { limit: 50 });
+        expect(builder.limit).toHaveBeenCalledWith(50);
+        expect(builder.range).not.toHaveBeenCalled();
+        expect(builder.order).not.toHaveBeenCalled();
+
+        await adapter.query('expenses', [], { offset: 100, limit: 20 });
+        expect(builder.range).toHaveBeenCalledTimes(1);
+        expect(builder.range).toHaveBeenCalledWith(100, 119);
+        expect(client.from).toHaveBeenCalledTimes(2);
+      });
+
+      it('fetch-then-listen reuses the same paged fetch: the first emission carries every page', async () => {
+        builder.pages.push({ data: rowsOf(1000), error: null }, { data: rowsOf(3, 1000), error: null });
+        const cb = vi.fn();
+        adapter.subscribeToQuery('expenses', [], cb);
+        await flush();
+        expect(cb).toHaveBeenCalledTimes(1);
+        expect((cb.mock.calls[0]![0] as unknown[]).length).toBe(1003);
+      });
     });
 
     it('translates array-contains on a real column to .contains', async () => {
@@ -217,11 +319,11 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
 
     it('rehydrates every result row flat (real columns + extra spread)', async () => {
       builder.result = {
-        data: [{ id: 'e1', description: 'Tacos', member_ids: ['a'], extra: { eventId: 'trip-1' } }],
+        data: [{ id: 'e1', description: 'Tacos', member_ids: ['a'], extra: { conceptId: 'k1' } }],
         error: null,
       };
       const result = await adapter.query<Record<string, unknown>>('expenses', []);
-      expect(result.data).toEqual([{ id: 'e1', description: 'Tacos', memberIds: ['a'], eventId: 'trip-1' }]);
+      expect(result.data).toEqual([{ id: 'e1', description: 'Tacos', memberIds: ['a'], conceptId: 'k1' }]);
     });
   });
 
@@ -230,14 +332,14 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       (client.rpc as Mock).mockResolvedValueOnce({ data: 2, error: null });
 
       const result = await adapter.batchWrite([
-        { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', eventId: 'trip-1' } },
+        { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', conceptId: 'k1' } },
         { type: 'delete', collection: 'expenses', id: 'e2' },
       ]);
 
       expect(result).toEqual({ success: true, count: 2 });
       expect(client.rpc).toHaveBeenCalledWith('batch_write', {
         ops: [
-          { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', extra: { eventId: 'trip-1' } }, merge: false },
+          { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', extra: { conceptId: 'k1' } }, merge: false },
           { type: 'delete', collection: 'expenses', id: 'e2' },
         ],
       });

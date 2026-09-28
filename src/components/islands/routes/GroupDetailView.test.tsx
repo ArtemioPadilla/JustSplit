@@ -159,6 +159,31 @@ describe('GroupDetailView', () => {
     );
   });
 
+  it('never offers an ungrouped row that only names someone else (visible through an event): moving it into a group needs the actor on it (ADR 0013)', () => {
+    useGroup.mockReturnValue({ data: makeGroup({ memberIds: ['u1', 'u2'] }), isLoading: false, isError: false, refetch: vi.fn() });
+    useExpenses.mockReturnValue({
+      data: [
+        { id: 'e1', groupId: null, description: 'Mine', amount: 10, currency: 'USD', paidBy: 'u1', splitType: 'equal', splits: [{ userId: 'u1', amount: 10 }], date: '2026-09-28', memberIds: ['u1'], createdBy: 'u1', createdAt: NOW },
+        { id: 'e3', groupId: null, description: 'Only names u2', amount: 10, currency: 'USD', paidBy: 'u2', splitType: 'equal', splits: [{ userId: 'u2', amount: 10 }], date: '2026-09-28', memberIds: ['u2'], createdBy: 'u2', createdAt: NOW, eventId: 'ev1' },
+      ],
+    });
+    render(<GroupDetailView id="g1" />);
+
+    expect(AttachRowsPanel).toHaveBeenCalledWith(
+      expect.objectContaining({ attachableExpenses: [{ id: 'e1', description: 'Mine' }] }),
+      undefined,
+    );
+  });
+
+  it('gives MembersSection no rows: removing a member no longer needs a "still on N expenses" preflight (ADR 0013)', () => {
+    useGroup.mockReturnValue({ data: makeGroup({ memberIds: ['u1', 'u2'] }), isLoading: false, isError: false, refetch: vi.fn() });
+    render(<GroupDetailView id="g1" />);
+
+    const props = (MembersSection.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(props).not.toHaveProperty('groupExpenses');
+    expect(props).not.toHaveProperty('groupEvents');
+  });
+
   it('passes accepted friends who are NOT already members as MembersSection candidates', () => {
     useGroup.mockReturnValue({ data: makeGroup({ memberIds: ['u1', 'u2'] }), isLoading: false, isError: false, refetch: vi.fn() });
     useFriends.mockReturnValue({

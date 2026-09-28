@@ -362,6 +362,8 @@ every policy it relies on (`receipts_expenses_insert`/`_update`/`_delete`,
 
 ### Addendum (2026-09-28, plan B10 coordinator review): event participant resolution, the edit gap, and a known limitation
 
+> **Superseded by [ADR 0013](./0013-membership-lifecycle.md)** (plan B2d): `event_id` is a column, event members see and edit event expenses, `?event=` offers every event member and the edit block is gone. Kept below as the historical record.
+
 #### Context
 
 `eventId` is a JustSplit-only overflow key with no column (spec D9) — the

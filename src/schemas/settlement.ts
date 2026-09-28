@@ -7,8 +7,9 @@ import type { Settlement as UniversalSettlement } from '@cyber-eco/types';
  * settlement can be scoped to a group, an event, or neither — a plain
  * friend-to-friend settle-up) and `memberIds` is required (D10: the RLS
  * membership mirror reads it on every row), the opposite of the universal
- * type's optionality for both fields. `expenseIds` / `eventId` are JustSplit-only
- * top-level fields with no mapped column (overflow keys); both are written
+ * type's optionality for both fields. `expenseIds` is a JustSplit-only
+ * top-level field with no mapped column (an overflow key) and `eventId` is
+ * the `event_id` column (B2d, ADR 0013); both are written
  * at create time by the settle-up flow (plan B14), so — unlike `expense.ts`'s
  * `conceptId`/`settledAt` — neither is a spec-D9 forward-compatible field and
  * neither is omitted from the write-input schema.
@@ -30,9 +31,10 @@ const SettlementShapeSchema = z.object({
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
-  // JustSplit-only top-level fields (overflow keys, no mapped column).
+  // A real, nullable column since B2d (ADR 0013): an unlinked row reads back `null`.
+  eventId: z.string().nullish(),
+  // JustSplit-only top-level field (overflow key, no mapped column).
   expenseIds: z.array(z.string()).optional(),
-  eventId: z.string().optional(),
 });
 
 export const SettlementSchema = SettlementShapeSchema.loose();

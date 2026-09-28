@@ -122,6 +122,7 @@ plan's acceptance lines stay verifiable.
 | B2a | Settings → Environments → `github-pages`: allow the `inceptor` branch (staging deploy) | ☐ |
 | B2 | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` once `SUPABASE_DB_URL` exists; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B2b | Add `RLS & contract (supabase start)` to the required checks on `inceptor` | ☐ |
+| B2d | After B2d merges, run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` again (migrations `…010`–`…014`: `event_id` columns, foreign keys, membership visibility, edit guards, email-lookup rate limit; ADR 0013), before or together with the app build that reads `event_id`; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
 | B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
 | A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |

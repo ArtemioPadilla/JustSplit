@@ -180,6 +180,31 @@ describe('FriendDetailView', () => {
     expect(screen.getAllByText(/100\.00/).length).toBeGreaterThan(0);
   });
 
+  it('shared expenses and the balance ignore rows the viewer only sees through a group (the friend is on them, the viewer is not — ADR 0013)', async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useExpenses.mockReturnValue({
+      data: [
+        makeExpense({ id: 'e1', description: 'Tacos', amount: 100, paidBy: 'u1', date: '2026-05-01', memberIds: ['u1', 'u2'], splits: [{ userId: 'u2', amount: 100 }] }),
+        makeExpense({ id: 'e9', description: 'Group lunch without me', amount: 50, paidBy: 'u2', date: '2026-05-03', memberIds: ['u2', 'u3'], groupId: 'g1', splits: [{ userId: 'u3', amount: 50 }] }),
+      ],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Beto', avatarUrl: null }] });
+
+    render(<FriendDetailView id="u2" />);
+    emit(USER);
+
+    expect(await screen.findByText('Tacos')).toBeInTheDocument();
+    expect(screen.queryByText('Group lunch without me')).not.toBeInTheDocument();
+  });
+
   it("renders the friend's avatar through the shared UserAvatar resolver", async () => {
     useFriends.mockReturnValue({
       data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],

@@ -123,4 +123,152 @@ describe('createMemoryAdapter (plan B5a)', () => {
     const b = adapter.generateId('expenses');
     expect(a).not.toEqual(b);
   });
+
+  describe('foreign keys ON DELETE SET NULL (ADR 0013: mirrors migration B, so the contract suites do not lie)', () => {
+    it('deleting a group sets groupId to null on its expenses, events and settlements, and leaves other rows alone', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('expense_groups', 'g1', { name: 'Trip' });
+      await adapter.setDocument('expenses', 'e1', { groupId: 'g1', description: 'A' });
+      await adapter.setDocument('expenses', 'e2', { groupId: 'g2', description: 'B' });
+      await adapter.setDocument('events', 'ev1', { groupId: 'g1', name: 'Dinner' });
+      await adapter.setDocument('settlements', 's1', { groupId: 'g1', amount: 5 });
+
+      await adapter.deleteDocument('expense_groups', 'g1');
+
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', groupId: null, description: 'A' });
+      expect(await adapter.getDocument('expenses', 'e2')).toEqual({ id: 'e2', groupId: 'g2', description: 'B' });
+      expect(await adapter.getDocument('events', 'ev1')).toEqual({ id: 'ev1', groupId: null, name: 'Dinner' });
+      expect(await adapter.getDocument('settlements', 's1')).toEqual({ id: 's1', groupId: null, amount: 5 });
+    });
+
+    it('deleting an event sets eventId to null on its expenses and settlements', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('events', 'ev1', { name: 'Dinner' });
+      await adapter.setDocument('expenses', 'e1', { eventId: 'ev1' });
+      await adapter.setDocument('settlements', 's1', { eventId: 'ev1' });
+      await adapter.setDocument('expenses', 'e2', { eventId: 'ev2' });
+
+      await adapter.deleteDocument('events', 'ev1');
+
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', eventId: null });
+      expect(await adapter.getDocument('settlements', 's1')).toEqual({ id: 's1', eventId: null });
+      expect(await adapter.getDocument('expenses', 'e2')).toEqual({ id: 'e2', eventId: 'ev2' });
+    });
+
+    it('a batchWrite delete does the same, atomically with the rest of the batch, and notifies the touched collections', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('expense_groups', 'g1', { name: 'Trip' });
+      await adapter.setDocument('expenses', 'e1', { groupId: 'g1' });
+      const cb = vi.fn();
+      const unsubscribe = adapter.subscribeToQuery('expenses', [], cb);
+      cb.mockClear();
+
+      const result = await adapter.batchWrite([{ type: 'delete', collection: 'expense_groups', id: 'g1' }]);
+
+      expect(result.success).toBe(true);
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', groupId: null });
+      expect(cb).toHaveBeenCalledWith([{ id: 'e1', groupId: null }]);
+      unsubscribe();
+    });
+  });
+
+  describe('viewer visibility (ADR 0013: emulates the select policies, so hooks and contract suites do not lie)', () => {
+    async function seeded(viewerRef: { uid: string | null }) {
+      const adapter = createMemoryAdapter(undefined, { viewer: () => viewerRef.uid });
+      // The seed writes go through the same adapter, so the viewer must be able to
+      // write; reads are what is filtered.
+      await adapter.setDocument('expense_groups', 'g1', { name: 'Trip', memberIds: ['u1', 'u3'], adminIds: ['u1'] });
+      await adapter.setDocument('events', 'ev1', { name: 'Dinner', memberIds: ['u1', 'u4'] });
+      await adapter.setDocument('expenses', 'own', { description: 'own', memberIds: ['u1', 'u2'] });
+      await adapter.setDocument('expenses', 'grp', { description: 'grp', memberIds: ['u1'], groupId: 'g1' });
+      await adapter.setDocument('expenses', 'evt', { description: 'evt', memberIds: ['u1'], eventId: 'ev1' });
+      await adapter.setDocument('expenses', 'priv', { description: 'priv', memberIds: ['u1'] });
+      await adapter.setDocument('settlements', 'sgrp', { memberIds: ['u1', 'u2'], groupId: 'g1' });
+      await adapter.setDocument('friendships', 'f1', { users: ['u1', 'u2'], status: 'accepted' });
+      return adapter;
+    }
+    const ids = async (adapter: ReturnType<typeof createMemoryAdapter>, collection: string) =>
+      (await adapter.query<{ id: string }>(collection, [])).data.map((d) => d.id).sort();
+
+    it('without a viewer option nothing is filtered (the legacy behaviour every repo test relies on)', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('expenses', 'a', { memberIds: ['u1'] });
+      expect(await ids(adapter, 'expenses')).toEqual(['a']);
+    });
+
+    it('a row is visible to its memberIds, to members of its group and to members of its event', async () => {
+      const viewer = { uid: 'u1' as string | null };
+      const adapter = await seeded(viewer);
+      expect(await ids(adapter, 'expenses')).toEqual(['evt', 'grp', 'own', 'priv']);
+
+      viewer.uid = 'u2';
+      expect(await ids(adapter, 'expenses')).toEqual(['own']);
+      viewer.uid = 'u3'; // group member, in no memberIds
+      expect(await ids(adapter, 'expenses')).toEqual(['grp']);
+      expect(await ids(adapter, 'settlements')).toEqual(['sgrp']);
+      viewer.uid = 'u4'; // event member
+      expect(await ids(adapter, 'expenses')).toEqual(['evt']);
+      viewer.uid = 'u9'; // stranger
+      expect(await ids(adapter, 'expenses')).toEqual([]);
+    });
+
+    it('groups, events and friendships stay member-only (their membership IS memberIds/users)', async () => {
+      const viewer = { uid: 'u3' as string | null };
+      const adapter = await seeded(viewer);
+      expect(await ids(adapter, 'expense_groups')).toEqual(['g1']);
+      expect(await ids(adapter, 'events')).toEqual([]);
+      expect(await ids(adapter, 'friendships')).toEqual([]);
+    });
+
+    it('signed out (viewer returns null) sees nothing, and the viewer is re-read on every call', async () => {
+      const viewer = { uid: 'u1' as string | null };
+      const adapter = await seeded(viewer);
+      expect((await ids(adapter, 'expenses')).length).toBe(4);
+      viewer.uid = null;
+      expect(await ids(adapter, 'expenses')).toEqual([]);
+      expect(await adapter.getDocument('expenses', 'own')).toBeNull();
+    });
+
+    it('a member removed from the group keeps rows that name them and loses the rest of the group feed', async () => {
+      const viewer = { uid: 'u1' as string | null };
+      const adapter = await seeded(viewer);
+      await adapter.setDocument('expenses', 'named', { memberIds: ['u1', 'u3'], groupId: 'g1' });
+      viewer.uid = 'u3';
+      expect(await ids(adapter, 'expenses')).toEqual(['grp', 'named']);
+
+      viewer.uid = 'u1';
+      await adapter.updateDocument('expense_groups', 'g1', { memberIds: ['u1'] });
+      viewer.uid = 'u3';
+      expect(await ids(adapter, 'expenses')).toEqual(['named']);
+    });
+
+    it('getDocument, subscribe and subscribeToQuery all apply the same visibility', async () => {
+      const viewer = { uid: 'u2' as string | null };
+      const adapter = await seeded(viewer);
+      expect(await adapter.getDocument('expenses', 'priv')).toBeNull();
+      expect(await adapter.getDocument('expenses', 'own')).not.toBeNull();
+
+      const single = vi.fn();
+      const stopSingle = adapter.subscribe('expenses', 'priv', single);
+      expect(single).toHaveBeenLastCalledWith(null);
+      stopSingle();
+
+      const list = vi.fn();
+      const stopList = adapter.subscribeToQuery('expenses', [], list);
+      expect((list.mock.calls[0]![0] as { id: string }[]).map((d) => d.id)).toEqual(['own']);
+      const last = () => (list.mock.calls.at(-1)![0] as { id: string }[]).map((d) => d.id).sort();
+      await adapter.setDocument('expenses', 'mine2', { memberIds: ['u2'] });
+      expect(last()).toEqual(['mine2', 'own']);
+      await adapter.setDocument('expenses', 'hidden', { memberIds: ['u1'] });
+      expect(last()).toEqual(['mine2', 'own']);
+      stopList();
+    });
+
+    it('updateDocument on a row the viewer cannot see reports success: false (batch_write raises no_data_found)', async () => {
+      const viewer = { uid: 'u2' as string | null };
+      const adapter = await seeded(viewer);
+      expect(await adapter.updateDocument('expenses', 'priv', { description: 'x' })).toEqual({ id: 'priv', success: false });
+      expect(await adapter.updateDocument('expenses', 'own', { description: 'x' })).toEqual({ id: 'own', success: true });
+    });
+  });
 });

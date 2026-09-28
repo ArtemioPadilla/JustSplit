@@ -7,11 +7,11 @@ import userEvent from '@testing-library/user-event';
 
 /**
  * `DeleteGroupDialog` (plan B12, risk:high) — the group detail island's
- * two-step delete confirm. `repos.groups.remove`'s own preflights run
- * underneath (admin-only, the no-group friendship-invariant check, honest
- * post-write verification — ADR 0002 amendment); this component maps each
- * typed error to an honest, specific message rather than one generic
- * "something went wrong" for every case.
+ * two-step delete confirm. `repos.groups.remove`'s own checks run
+ * underneath (admin-only, honest post-delete verification; the friendship
+ * preflight is gone since B2d, ADR 0013 — the foreign key ungroups the rows);
+ * this component maps each typed error to an honest, specific message rather
+ * than one generic "something went wrong" for every case.
  */
 function stubLocationAssign() {
   const real = window.location;
@@ -26,7 +26,7 @@ vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
 const { useDeleteGroup } = vi.hoisted(() => ({ useDeleteGroup: vi.fn() }));
 vi.mock('@/lib/data/hooks/useDeleteGroup', () => ({ useDeleteGroup }));
 
-const { GroupDeleteBlockedByFriendshipError, GroupDeleteVerificationFailedError } = await import('@/lib/data/repos/groups');
+const { GroupDeleteVerificationFailedError } = await import('@/lib/data/repos/groups');
 const { DeleteGroupDialog } = await import('./DeleteGroupDialog');
 
 let deleteMutateAsync: ReturnType<typeof vi.fn>;
@@ -60,23 +60,14 @@ describe('DeleteGroupDialog', () => {
     expect(notifySuccess).toHaveBeenCalledWith('Group deleted', expect.objectContaining({ afterNavigation: true }));
   });
 
-  it('shows the friendship-block message honestly, without redirecting', async () => {
-    deleteMutateAsync.mockRejectedValueOnce(new GroupDeleteBlockedByFriendshipError('g1'));
-    render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
-    await openAndConfirm();
-
-    await waitFor(() =>
-      expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/aren.t friends with/i)),
-    );
-    expect(location.assign).not.toHaveBeenCalled();
-  });
-
   it('shows the honest post-write verification-failure message, without redirecting', async () => {
     deleteMutateAsync.mockRejectedValueOnce(new GroupDeleteVerificationFailedError('g1'));
     render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
     await openAndConfirm();
 
-    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/ungrouped/i)));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/could not be deleted/i)));
+    // The group's rows were NOT touched (the foreign key only acts when the row goes), so the message must not claim they were.
+    expect(notifyError).not.toHaveBeenCalledWith(expect.stringMatching(/ungrouped/i));
     expect(location.assign).not.toHaveBeenCalled();
   });
 

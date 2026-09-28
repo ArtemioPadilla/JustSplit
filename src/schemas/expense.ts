@@ -8,10 +8,11 @@ import type { Expense as UniversalExpense, ExpenseSplit as UniversalExpenseSplit
  * type: `groupId` is nullable (event and friend-to-friend expenses exist)
  * and `memberIds` is required (JustSplit always denormalises it for RLS,
  * spec D10), which is the opposite of the universal type's optionality for
- * both fields. `eventId` / `conceptId` / `settledAt` are JustSplit-only
- * top-level fields with no mapped column (`db/migrations/20260928000003_justsplit_tables.sql`)
+ * both fields. `conceptId` / `settledAt` are JustSplit-only top-level
+ * fields with no mapped column (`db/migrations/20260928000003_justsplit_tables.sql`)
  * — the SchemaMap (B5a) stores them in the `extra` overflow column and
- * rehydrates them flat; the app never spells `extra` (spec D9/D10). `category`
+ * rehydrates them flat; the app never spells `extra` (spec D9/D10).
+ * `eventId` is the `event_id` column since B2d (ADR 0013). `category`
  * is a real column and stays a plain string, never a Zod enum (spec D9): an
  * older deployed build must never choke on a category value a newer build
  * introduced.
@@ -55,8 +56,9 @@ const ExpenseShapeSchema = z.object({
   createdBy: z.string(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
+  // A real, nullable column since B2d (ADR 0013): an unlinked row reads back `null`.
+  eventId: z.string().nullish(),
   // JustSplit-only top-level fields (overflow keys, no mapped column).
-  eventId: z.string().optional(),
   conceptId: z.string().optional(),
   settledAt: z.string().nullable().optional(),
 });

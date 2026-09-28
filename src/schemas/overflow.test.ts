@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { OVERFLOW_KEYS } from './overflow';
@@ -9,7 +7,7 @@ import { CreateSettlementInputSchema } from './settlement';
 import { CreateEventInputSchema } from './event';
 import { CreateFriendshipInputSchema } from './friendship';
 import { schemaMap } from '@/lib/data/schema-map';
-import { camelToSnake, parseMigrationColumns } from '@/tests/migration-columns';
+import { camelToSnake, readMigrationColumns } from '@/tests/migration-columns';
 
 /**
  * Plan B3 test 1 (the overflow-key-set test): the set of write-input keys
@@ -21,8 +19,6 @@ import { camelToSnake, parseMigrationColumns } from '@/tests/migration-columns';
  * is shared with `src/lib/data/schema-map.test.ts` (`src/tests/migration-columns.ts`)
  * so the two tests can never read the migration two different ways.
  */
-
-const MIGRATION_PATH = resolve(__dirname, '../../db/migrations/20260928000003_justsplit_tables.sql');
 
 /** The set of top-level keys of a `Create*Input` Zod object schema. */
 function inputKeys(schema: z.ZodObject<z.ZodRawShape>): string[] {
@@ -36,8 +32,7 @@ function overflowKeysOf(keys: string[], columns: string[]): string[] {
 }
 
 describe('write-input overflow key set (plan B3, spec D9/D10)', () => {
-  const migrationSql = readFileSync(MIGRATION_PATH, 'utf-8');
-  const columnsByTable = parseMigrationColumns(migrationSql);
+  const columnsByTable = readMigrationColumns();
 
   it('parses columns for exactly the SchemaMap\'s collections from the migration', () => {
     expect(Object.keys(columnsByTable).sort()).toEqual(Object.keys(schemaMap).sort());
@@ -45,6 +40,12 @@ describe('write-input overflow key set (plan B3, spec D9/D10)', () => {
     expect(columnsByTable.expenses).toEqual(
       expect.arrayContaining(['id', 'group_id', 'paid_by', 'split_type', 'member_ids', 'created_by', 'extra']),
     );
+  });
+
+  it('eventId is no longer an overflow key: it is the event_id column (ADR 0013)', () => {
+    expect(OVERFLOW_KEYS.expenses).not.toContain('eventId');
+    expect(OVERFLOW_KEYS.settlements).not.toContain('eventId');
+    expect(OVERFLOW_KEYS.settlements).toContain('expenseIds');
   });
 
   it('OVERFLOW_KEYS declares exactly the SchemaMap\'s collections', () => {

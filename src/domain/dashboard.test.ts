@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
-import { balancesWithUser, categoryDistribution, monthlyTotals, totalSpent, unsettledCount, upcomingEvents } from './dashboard';
+import { balancesWithUser, categoryDistribution, involvingUser, monthlyTotals, totalSpent, unsettledCount, upcomingEvents } from './dashboard';
 
 /** New suite (plan B8a): pure dashboard selectors had no equivalent in the legacy tree (the
  * hand-rolled Dashboard components read `AppContext` and computed inline). */
@@ -33,6 +33,30 @@ function makeEvent(overrides: Partial<Event> & Pick<Event, 'id' | 'name'>): Even
     ...overrides,
   };
 }
+
+describe('involvingUser (ADR 0013: rows the viewer can see because of a group or event are not "theirs")', () => {
+  const mine = makeExpense({ id: 'mine', amount: 10, paidBy: 'u1', date: '2026-05-01', memberIds: ['u1', 'u2'] });
+  const groupFeed = makeExpense({ id: 'feed', amount: 999, paidBy: 'u2', date: '2026-05-01', memberIds: ['u2', 'u3'], groupId: 'g1' });
+  const eventFeed = makeExpense({ id: 'evt', amount: 999, paidBy: 'u3', date: '2026-05-01', memberIds: ['u3'], eventId: 'ev1' });
+
+  it('keeps only the rows whose memberIds name the user', () => {
+    expect(involvingUser([mine, groupFeed, eventFeed], 'u1').map((e) => e.id)).toEqual(['mine']);
+    expect(involvingUser([mine, groupFeed, eventFeed], 'u3').map((e) => e.id)).toEqual(['feed', 'evt']);
+  });
+
+  it('works for any row with memberIds (settlements too), keeps the input untouched and returns [] when nothing names the user', () => {
+    const rows = [{ id: 's1', memberIds: ['u1', 'u2'] }, { id: 's2', memberIds: ['u2', 'u3'] }];
+    expect(involvingUser(rows, 'u1')).toEqual([{ id: 's1', memberIds: ['u1', 'u2'] }]);
+    expect(rows).toHaveLength(2);
+    expect(involvingUser(rows, 'nobody')).toEqual([]);
+  });
+
+  it('makes the dashboard totals personal: a group row the user is not in does not inflate totalSpent', () => {
+    const all = [mine, groupFeed, eventFeed];
+    expect(totalSpent(all, identity)).toBe(2008);
+    expect(totalSpent(involvingUser(all, 'u1'), identity)).toBe(10);
+  });
+});
 
 describe('monthlyTotals', () => {
   it('returns the last 6 months oldest-first, including zero months, when there are no expenses', () => {

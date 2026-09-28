@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  LookupRateLimitedError,
   SupabaseDisabledError,
   onPasswordRecovery,
   requireSupabase,
@@ -59,6 +60,21 @@ describe('rpc()', () => {
   it('returns an empty list when PostgREST returns null data', async () => {
     const { client } = fakeClient({ data: null, error: null });
     await expect(rpc('find_profile_by_email', { p_email: 'a@b.c' }, client)).resolves.toEqual([]);
+  });
+
+  it('maps the find_profile_by_email rate limit (SQLSTATE P0429, message rate_limited) to a typed LookupRateLimitedError', async () => {
+    const { client } = fakeClient({ data: null, error: { code: 'P0429', message: 'rate_limited' } });
+    const failure = await rpc('find_profile_by_email', { p_email: 'a@b.c' }, client).catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(LookupRateLimitedError);
+    expect((failure as Error).name).toBe('LookupRateLimitedError');
+    // No raw database text leaks through the typed error.
+    expect((failure as Error).message).not.toMatch(/rate_limited|P0429/);
+  });
+
+  it('only that error is mapped: any other failure is still thrown as the PostgREST error', async () => {
+    const other = { message: 'boom', code: 'XX000' };
+    const { client } = fakeClient({ data: null, error: other });
+    await expect(rpc('find_profile_by_email', { p_email: 'a@b.c' }, client)).rejects.toBe(other);
   });
 
   it('throws the PostgREST error instead of returning it', async () => {

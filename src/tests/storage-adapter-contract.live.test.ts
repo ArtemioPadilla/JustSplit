@@ -52,11 +52,31 @@ function liveHarness(): ContractHarness {
       // must simulate it with `adapter.serverTimestamp()`.
       ...overrides,
     }),
+    makeGroup: (overrides = {}) => ({
+      name: 'Group',
+      type: 'friends',
+      currency: 'MXN',
+      members: [],
+      totalExpenses: 0,
+      memberIds: [actor.id],
+      adminIds: [actor.id],
+      createdBy: actor.id,
+      ...overrides,
+    }),
+    makeEvent: (overrides = {}) => ({
+      name: 'Trip',
+      kind: 'event',
+      memberIds: [actor.id],
+      createdBy: actor.id,
+      ...overrides,
+    }),
     // Every case's row is `created_by = actor.id` — the service-role client
     // can delete them all in one shot after each case (mirrors
     // src/tests/rls/fixtures.ts's own cleanup-by-filter pattern).
     cleanup: async () => {
       await admin.from('expenses').delete().eq('created_by', actor.id);
+      await admin.from('events').delete().eq('created_by', actor.id);
+      await admin.from('expense_groups').delete().eq('created_by', actor.id);
     },
   };
 }

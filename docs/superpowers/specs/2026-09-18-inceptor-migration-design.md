@@ -741,7 +741,7 @@ overflow or in a column that exists since plan B2; the policies and guard
 triggers read only `member_ids` / `admin_ids` / `created_by` / `paid_by` /
 `from_user_id` / `to_user_id` / `users` / `requested_by` / `status` (D10).
 Track D reuses the B11b/B12 queries (`groupId == id`, `eventId == id`), both
-on indexed, RLS-filtered columns (`group_id`, `extra->>'eventId'`); it adds no
+on indexed, RLS-filtered columns (`group_id`, `event_id` since B2d, ADR 0013); it adds no
 new query shape — Postgres has no composite-index constraint on combining
 them with `array-contains`. Guards,
 all tests rather than schema changes (plan B2b/B3/B5a): (1) ADR 0002 records
@@ -797,8 +797,8 @@ policy list agree.
 | Collection | Table | Row type | Notes |
 |---|---|---|---|
 | `expense_groups` | `public.expense_groups` | universal `ExpenseGroup` (`@cyber-eco/types`, `packages/types/src/expense.ts`) | `type` = the universal enum; `members[]` entries are the universal `ExpenseGroupMember` (`userId`, `displayName`, `role: AppRole`, `joinedAt`, `invitedBy?`) and `adminIds` is derived from `role` with `hasMinimumRole`; the JustSplit-only `kind`, extended `settings` and `concepts[]` are top-level fields with no column (overflow keys, stored in `extra`, D9) |
-| `expenses` | `public.expenses` | universal `Expense` | `split_type` + `splits jsonb`; **`group_id` nullable** in JustSplit (event and friend-to-friend expenses exist; the universal type says `groupId: string`, so JustSplit's row type is `Omit<Expense, 'groupId'> & { groupId: string \| null; memberIds: string[] }` — making `groupId` optional and `memberIds` required upstream is a tiny PR gated on C1, like the `type` widening); `eventId`, `conceptId`, `settledAt` are JustSplit-only top-level fields with no column (overflow keys, stored in `extra`) |
-| `settlements` | `public.settlements` | universal `Settlement` | `group_id` nullable as above; `expenseIds`, `eventId` are overflow keys; `createdAt`/`updatedAt` come from `metadata.strategy: 'server'` and are omitted from the write literal |
+| `expenses` | `public.expenses` | universal `Expense` | `split_type` + `splits jsonb`; **`group_id` nullable** in JustSplit (event and friend-to-friend expenses exist; the universal type says `groupId: string`, so JustSplit's row type is `Omit<Expense, 'groupId'> & { groupId: string \| null; memberIds: string[] }` — making `groupId` optional and `memberIds` required upstream is a tiny PR gated on C1, like the `type` widening); `conceptId`, `settledAt` are JustSplit-only top-level fields with no column (overflow keys, stored in `extra`); **`eventId` is the `event_id` column with a foreign key since B2d ([ADR 0013](../../decisions/0013-membership-lifecycle.md))** |
+| `settlements` | `public.settlements` | universal `Settlement` | `group_id` nullable as above; `expenseIds` is an overflow key and `eventId` is the `event_id` column since B2d ([ADR 0013](../../decisions/0013-membership-lifecycle.md)); `createdAt`/`updatedAt` come from `metadata.strategy: 'server'` and are omitted from the write literal |
 | `events` | `public.events` | JustSplit-local (`src/schemas/event.ts`; the hub's legacy `JustSplit.Event` namespace in `packages/types/src/justsplit/types.ts` is a reference, not a dependency) | `group_id?`, `member_ids`, `date`, `start_date`, `end_date`, `location`, `preferred_currency`, `kind` (`trip` \| `event`); `settings` (budget) is an overflow key |
 | `friendships` | `public.friendships` | universal `Friendship` (`packages/types/src/friendship.ts`) | `users text[]` (exactly 2), `status`, `requested_by` |
 | `profiles` | `public.profiles` | the hub's `profiles` (`packages/supabase/db/migrations/20260715000001_profiles.sql`, copied verbatim) | **not a `SchemaMap` collection**: its columns are quoted camelCase `text` (`"avatarUrl"`, `"createdAt"`, …) written flat by `SupabaseProfileStore`, it has no `extra` column and the default camelCase → snake_case rule would address non-existent columns. Own-row RLS (never widened); `preferences` jsonb holds `preferredCurrency` and `phoneNumber`; reached only through `SupabaseProfileStore` (own row), `find_profile_by_email` and `find_profiles_by_ids` (below). `profiles.email` is display-only, never a lookup key |
@@ -1001,8 +1001,8 @@ key is writable by any member of the row and is never protected by RLS;
 `settledAt` and `settlements` rows are attestations by `created_by`, not
 verified payments — the UI says "marcado como pagado por <name>" (names via
 `find_profiles_by_ids`), never "paid". `expenseIds` on a settlement →
-`expenseIds` (overflow); `eventId` → `eventId` (overflow) on expenses and
-settlements, `group_id` on `events`.
+`expenseIds` (overflow); `eventId` → `event_id` (a column since B2d, ADR 0013)
+on expenses and settlements, `group_id` on `events`.
 
 ## 4. Target architecture
 

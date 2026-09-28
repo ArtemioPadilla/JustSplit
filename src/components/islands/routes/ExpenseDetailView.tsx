@@ -101,7 +101,7 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
   const preferredCurrency = useStore($preferredCurrency);
   const uid = user?.uid;
 
-  const eventQuery = useEvent(expense.eventId);
+  const eventQuery = useEvent(expense.eventId ?? undefined);
 
   const participantIds = React.useMemo(() => {
     const ids = new Set<string>([expense.paidBy]);

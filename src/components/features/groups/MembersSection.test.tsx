@@ -10,11 +10,11 @@ import type { ExpenseGroup } from '@/schemas/group';
  * `MembersSection` (plan B12, risk:high) — the group detail island's
  * member list + admin-only management: role badges for everyone; for an
  * admin viewer, "Add members" (accepted friends not already in the group)
- * and a per-member "Remove" that preflight-blocks (a) a member still on
- * any group expense/event (`memberRemovalBlockerCount`) and (b) the sole
- * remaining admin (`isLastAdmin`) — both UX-only, `guard_expense_groups`
- * is the actual authority. A non-admin viewer sees no management controls
- * at all.
+ * and a per-member "Remove" that preflight-blocks the sole remaining admin
+ * (`isLastAdmin`) — UX-only, `guard_expense_groups` is the actual authority. A
+ * non-admin viewer sees no management controls at all. Since B2d (ADR 0013)
+ * removing a member no longer locks the rows that still name them, so there is
+ * no "still part of N expenses" block and the component takes no rows.
  */
 const { notifySuccess, notifyError } = vi.hoisted(() => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
@@ -62,8 +62,6 @@ describe('MembersSection', () => {
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[]}
-        groupEvents={[]}
         uid="u1"
         friendCandidates={[]}
       />,
@@ -79,8 +77,6 @@ describe('MembersSection', () => {
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[]}
-        groupEvents={[]}
         uid="u2"
         friendCandidates={[]}
       />,
@@ -94,8 +90,6 @@ describe('MembersSection', () => {
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[]}
-        groupEvents={[]}
         uid="u1"
         friendCandidates={[]}
       />,
@@ -112,19 +106,17 @@ describe('MembersSection', () => {
     expect(notifySuccess).toHaveBeenCalled();
   });
 
-  it('preflight-blocks removing a member still on a group expense, with an honest inline message', () => {
+  it('offers Remove for a member who is still named on group rows: removal no longer locks them (ADR 0013)', () => {
     render(
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[{ id: 'e1', memberIds: ['u1', 'u2'] } as never]}
-        groupEvents={[]}
         uid="u1"
         friendCandidates={[]}
       />,
     );
-    expect(screen.getByText(/beto is still part of 1 expense/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /remove beto/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remove beto/i })).toBeInTheDocument();
+    expect(screen.queryByText(/still part of/i)).not.toBeInTheDocument();
   });
 
   it('never lets the sole admin remove themselves', () => {
@@ -132,8 +124,6 @@ describe('MembersSection', () => {
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[]}
-        groupEvents={[]}
         uid="u1"
         friendCandidates={[]}
       />,
@@ -147,8 +137,6 @@ describe('MembersSection', () => {
       <MembersSection
         group={group()}
         names={{ u1: 'Ana', u2: 'Beto' }}
-        groupExpenses={[]}
-        groupEvents={[]}
         uid="u1"
         friendCandidates={[{ id: 'u3', name: 'Caro' }]}
       />,

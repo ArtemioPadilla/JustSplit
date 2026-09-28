@@ -8,9 +8,16 @@ import { removeReceipts, removeReceiptObject, uploadReceipt } from '../storage';
  * (literal collection names, StorageAdapter-only, Zod-validated).
  */
 
-/** ADR 0002 canonical query: a user's expenses. */
-export function forUserFilters(uid: string): QueryFilter[] {
-  return [{ field: 'memberIds', operator: 'array-contains', value: uid }];
+/**
+ * Every expense the signed-in user may see: NO filter. Since B2d (ADR 0013)
+ * an expense is visible to whoever is in its `memberIds` OR is a member of its
+ * group OR of its event, and only RLS knows that — a client-side
+ * `memberIds array-contains uid` filter would hide the group and event rows the
+ * user is allowed to see. (Superseded ADR 0002's canonical `memberIds` query
+ * for this collection; groups, events and friendships keep theirs.)
+ */
+export function visibleFilters(): QueryFilter[] {
+  return [];
 }
 
 /** A group's expenses (`group_id = id`, real column). */
@@ -18,7 +25,7 @@ export function forGroupFilters(groupId: string): QueryFilter[] {
   return [{ field: 'groupId', operator: '==', value: groupId }];
 }
 
-/** An event's expenses (`eventId` has no column; the adapter resolves it to `extra->>'eventId'`). */
+/** An event's expenses (`eventId` is the `event_id` column since B2d, ADR 0013). */
 export function forEventFilters(eventId: string): QueryFilter[] {
   return [{ field: 'eventId', operator: '==', value: eventId }];
 }
@@ -28,8 +35,9 @@ export async function get(id: string): Promise<Expense | null> {
   return doc ? ExpenseSchema.parse(doc) : null;
 }
 
-export async function listForUser(uid: string): Promise<Expense[]> {
-  const { data } = await requireStorageAdapter().query('expenses', forUserFilters(uid));
+/** Every expense the signed-in user can see (see `visibleFilters`). */
+export async function listVisible(): Promise<Expense[]> {
+  const { data } = await requireStorageAdapter().query('expenses', visibleFilters());
   return data.map((doc) => ExpenseSchema.parse(doc));
 }
 
@@ -56,7 +64,8 @@ export function generateId(): string {
 /**
  * Writers always set `memberIds` (group context -> the group's memberIds;
  * otherwise the split participants union payer, every one an accepted
- * friend or a co-member — the RLS membership mirror rejects anything else)
+ * friend, or an event member for an event expense — the RLS membership mirror
+ * rejects anything else)
  * and `createdBy = uid` (plan B5a). Callers (B10) are responsible for that
  * invariant; this repo validates shape, not membership.
  */
@@ -195,7 +204,8 @@ export async function addReceipts(id: string, files: Blob[]): Promise<ReceiptWri
  * Removes one receipt (plan B10, ADR 0005 amendment): **patches `images` to
  * drop `path` BEFORE deleting the storage object**, the opposite order from
  * `remove()`'s whole-expense delete. Reasoning is the mirror image of that
- * one: `receipts_expenses_delete` is member-wide, so the object delete
+ * one: `receipts_expenses_delete` follows the expense's visibility (member_ids,
+ * group or event — ADR 0013), so the object delete
  * itself can't fail on authorization the way the ROW delete can — the risk
  * here is a network/storage failure mid-operation, and patching first means
  * a failure after the patch leaves only an UNREFERENCED object in storage
@@ -220,11 +230,13 @@ export async function removeReceipt(id: string, path: string): Promise<Expense |
  * than orphan the objects unreachable.
  *
  * Preflight (plan B9, risk:high, ADR 0005 amendment): the storage
- * `receipts_expenses_delete` policy is member-wide by design (B10 relies on
- * it so any member can edit/replace receipt images) — deliberately WIDER
- * than the row's own `expenses_delete` policy, which allows only the
- * creator or payer. Without this check, a member who is neither could call
- * `removeReceipts(id)` successfully (member-wide), then have the row
+ * `receipts_expenses_delete` policy follows the expense's VISIBILITY by design
+ * (anyone who can see the expense — member_ids, group or event, ADR 0013 — can
+ * edit/replace its receipt images; B10 relies on it) — deliberately WIDER
+ * than the row's own `expenses_delete` policy, which allows only the creator
+ * or payer (unchanged by B2d, so this preflight stays exactly as needed).
+ * Without this check, a member who is neither could call
+ * `removeReceipts(id)` successfully (visibility-wide), then have the row
  * delete silently denied by RLS (0 rows affected) — every receipt gone,
  * the row still there, unrecoverable. Fetching the fresh row and refusing
  * BEFORE touching storage closes that window client-side; it changes

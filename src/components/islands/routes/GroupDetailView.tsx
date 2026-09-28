@@ -10,6 +10,7 @@ import { AttachRowsPanel } from '@/components/features/groups/AttachRowsPanel';
 import { DeleteGroupDialog } from '@/components/features/groups/DeleteGroupDialog';
 import { MembersSection } from '@/components/features/groups/MembersSection';
 import { acceptedFriendIds } from '@/domain/friends';
+import { involvingUser } from '@/domain/dashboard';
 import { filterAttachableEvents, filterAttachableExpenses } from '@/domain/groups';
 import { parseCalendarDate } from '@/domain/dates';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
@@ -118,8 +119,10 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
   );
 
   const attachableExpenses = React.useMemo(
-    () => filterAttachableExpenses(expensesQuery.data ?? [], group).map((e) => ({ id: e.id, description: e.description })),
-    [expensesQuery.data, group],
+    // ADR 0013: moving a row into a group needs the actor on it (guard_expenses),
+    // and the query also returns rows visible only through an event or group.
+    () => filterAttachableExpenses(involvingUser(expensesQuery.data ?? [], uid), group).map((e) => ({ id: e.id, description: e.description })),
+    [expensesQuery.data, group, uid],
   );
   const attachableEvents = React.useMemo(
     () => filterAttachableEvents(eventsQuery.data ?? [], group).map((e) => ({ id: e.id, name: e.name })),
@@ -180,8 +183,6 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
       <MembersSection
         group={group}
         names={names}
-        groupExpenses={groupExpenses}
-        groupEvents={groupEvents}
         uid={uid}
         friendCandidates={friendCandidates}
       />

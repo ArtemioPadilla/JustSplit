@@ -1,6 +1,9 @@
 import type { PublicProfileRow } from '../client';
 import { rpc } from '../client';
 
+/** Re-exported so islands import every profile-lookup error from the repo, never from `client.ts`. */
+export { LookupRateLimitedError } from '../client';
+
 /**
  * `profiles` repo (plan B5a). `profiles` is NOT a `SchemaMap` collection
  * (spec D10): own-row access goes through `SupabaseProfileStore`
@@ -14,7 +17,8 @@ import { rpc } from '../client';
 /**
  * Friend search by exact, CONFIRMED email (`auth.users`, never the
  * user-writable `profiles.email` — spec D10). `null` for no match or an
- * invalid address.
+ * invalid address. Rejects with `LookupRateLimitedError` past the per-caller
+ * hourly limit (plan B2d, ADR 0013).
  */
 export async function byEmail(email: string): Promise<PublicProfileRow | null> {
   const rows = await rpc('find_profile_by_email', { p_email: email });

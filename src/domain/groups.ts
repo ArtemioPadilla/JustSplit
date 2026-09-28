@@ -118,34 +118,14 @@ export function withAddedMembers(
  * Admin removing a member or leaving (plan B12: "leaving is an admin
  * action in v1"). `adminIds` is recomputed from the resulting `members[]`
  * so a removed admin also disappears from `adminIds` in the same patch —
- * never a stale id. Callers MUST preflight-check
- * `memberRemovalBlockerCount`/`isLastAdmin` before calling this (this
- * function itself does not).
+ * never a stale id. Callers MUST preflight-check `isLastAdmin` before
+ * calling this (this function itself does not). Removing a member needs no
+ * other preflight since B2d (ADR 0013): rows that still name them stay
+ * readable and editable.
  */
 export function withRemovedMember(group: Pick<ExpenseGroup, 'members'>, memberId: string): GroupMembershipPatch {
   const members = group.members.filter((m) => m.userId !== memberId);
   return { members, memberIds: members.map((m) => m.userId), adminIds: computeAdminIds(members) };
-}
-
-/**
- * How many of the group's own expenses/events still carry `memberId` in
- * their `memberIds` (plan B12). Removing that member would make those rows
- * UNEDITABLE FOREVER: `expenses_update`/`events_update`'s WITH CHECK both
- * require `member_ids ⊆ group.member_ids`, so a row with a member the
- * group no longer has can never pass a future update. A nonzero count
- * means the UI must preflight-block the removal with an honest inline
- * message (e.g. "Alex is still part of 3 expenses in this group, so they
- * can't be removed yet.") — this is a client-side safety check, not
- * authorization.
- */
-export function memberRemovalBlockerCount(
-  memberId: string,
-  groupExpenses: Pick<Expense, 'memberIds'>[],
-  groupEvents: Pick<Event, 'memberIds'>[],
-): number {
-  const inExpenses = groupExpenses.filter((e) => e.memberIds.includes(memberId)).length;
-  const inEvents = groupEvents.filter((e) => e.memberIds.includes(memberId)).length;
-  return inExpenses + inEvents;
 }
 
 /** UX guard (plan B12): never let the last admin remove or demote themselves — a group with no admin can never be managed or deleted again. */

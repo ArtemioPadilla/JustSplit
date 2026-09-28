@@ -1,12 +1,9 @@
 import type { BatchOperation, QueryFilter } from '@cyber-eco/types';
 import { isEventAttachable, isExpenseAttachable } from '@/domain/groups';
-import { acceptedFriendIds } from '@/domain/friends';
-import { violatesNoGroupInvariant } from '@/domain/expenseParticipants';
 import { CreateExpenseGroupInputSchema, ExpenseGroupSchema, type CreateExpenseGroupInput, type ExpenseGroup } from '@/schemas/group';
 import { requireStorageAdapter, requireUid } from '../require-adapter';
 import * as expensesRepo from './expenses';
 import * as eventsRepo from './events';
-import * as friendshipsRepo from './friendships';
 
 /**
  * `expense_groups` repo (plan B5a). Plain async functions over the
@@ -66,11 +63,10 @@ export class GroupNotFoundError extends Error {
 }
 
 /**
- * Thrown by `remove()`'s preflight (plan B12, ADR 0002 amendment "group
- * membership lifecycle") when the caller is not a fresh-read admin of the
- * group. Client-side safety preflight against a destructive PARTIAL
- * operation, never authorization: `expense_groups_delete`'s RLS policy
- * denies the row delete on its own regardless (CLAUDE.md rule 8).
+ * Thrown by `remove()`'s preflight (plan B12) when the caller is not a
+ * fresh-read admin of the group. Client-side safety preflight, never
+ * authorization: `expense_groups_delete`'s RLS policy denies the row delete on
+ * its own regardless (CLAUDE.md rule 8).
  */
 export class GroupDeleteNotAllowedError extends Error {
   constructor(id: string) {
@@ -80,46 +76,34 @@ export class GroupDeleteNotAllowedError extends Error {
 }
 
 /**
- * Thrown by `remove()`'s preflight when ungrouping any of the group's
- * expenses/events would leave a row whose other members are not accepted
- * friends of the acting admin — the no-group `expenses_update`/
- * `events_update` WITH CHECK branch would reject that row's update one by
- * one, leaving the group partially ungrouped and permanently undeletable.
- * Checked BEFORE any write with `violatesNoGroupInvariant` (plan B10/B12).
- */
-export class GroupDeleteBlockedByFriendshipError extends Error {
-  constructor(id: string) {
-    super(`repos.groups.remove: group "${id}" has rows whose members are not all accepted friends of the acting admin`);
-    this.name = 'GroupDeleteBlockedByFriendshipError';
-  }
-}
-
-/**
- * Thrown when the batch reports failure, OR when it reports success but a
- * re-read after the batch shows the group is still there — `batch_write`'s
- * DELETE op is a silent no-op when denied or the row is not visible
- * (`db/migrations/20260928000008_batch_write.sql`), so "the RPC didn't
- * error" is never proof the group is actually gone. In the second case the
- * group's rows WERE ungrouped (the batch's update ops did apply) but the
- * group row itself remained — this is reported honestly, never claimed as
- * a full success.
+ * Thrown when a re-read after the delete shows the group is still there.
+ * `expense_groups_delete` denies a non-admin as a silent 0-row delete (and the
+ * delete of a row the caller cannot see is a no-op too), so "the call didn't
+ * error" is never proof the group is actually gone. Nothing else changed in
+ * that case: the foreign key only ungroups rows when the group row itself is
+ * deleted.
  */
 export class GroupDeleteVerificationFailedError extends Error {
   constructor(id: string) {
-    super(`repos.groups.remove: group "${id}"'s rows were ungrouped, but the group itself could not be deleted`);
+    super(`repos.groups.remove: group "${id}" could not be deleted`);
     this.name = 'GroupDeleteVerificationFailedError';
   }
 }
 
 /**
- * Deletes a group (plan B12, risk:high, ADR 0002 amendment): preflights
- * (admin-only; the no-group friendship invariant for every row that would
- * be ungrouped) run BEFORE any write, then one `batchWrite` nulls `groupId`
- * on every group expense/event and deletes the group row, then a re-read
- * verifies the group is actually gone (see `GroupDeleteVerificationFailedError`).
- * Identity comes from `requireUid()` (same convention as
- * `repos.expenses.remove`'s own ADR 0005 amendment) — never a caller-passed
- * argument.
+ * Deletes a group (plan B12, risk:high; simplified by plan B2d, ADR 0013).
+ * A PLAIN delete: `expenses.group_id`, `events.group_id` and
+ * `settlements.group_id` are foreign keys `ON DELETE SET NULL`
+ * (`db/migrations/20260928000011_membership_foreign_keys.sql`), so the database
+ * ungroups every row atomically — including rows this admin cannot see and rows
+ * naming people they are not friends with. The client no longer reads the
+ * group's rows or friendships, ungroups anything, or batches.
+ *
+ * Kept: the fresh-read admin preflight (a client-side safety check, never
+ * authorization — `expense_groups_delete` RLS is the authority) and the
+ * post-delete re-read (see `GroupDeleteVerificationFailedError`). Identity
+ * comes from `requireUid()` (same convention as `repos.expenses.remove`) —
+ * never a caller-passed argument.
  */
 export async function remove(id: string): Promise<void> {
   const uid = requireUid();
@@ -127,25 +111,7 @@ export async function remove(id: string): Promise<void> {
   if (!group) throw new GroupNotFoundError(id);
   if (!group.adminIds.includes(uid)) throw new GroupDeleteNotAllowedError(id);
 
-  const [groupExpenses, groupEvents, friendships] = await Promise.all([
-    expensesRepo.listForGroup(id),
-    eventsRepo.listForGroup(id),
-    friendshipsRepo.listForUser(uid),
-  ]);
-  const friends = acceptedFriendIds(friendships, uid);
-  const wouldViolate = (memberIds: string[]) => violatesNoGroupInvariant(memberIds, friends, uid);
-  if (groupExpenses.some((e) => wouldViolate(e.memberIds)) || groupEvents.some((e) => wouldViolate(e.memberIds))) {
-    throw new GroupDeleteBlockedByFriendshipError(id);
-  }
-
-  const adapter = requireStorageAdapter();
-  const ops: BatchOperation[] = [
-    ...groupExpenses.map((e) => ({ type: 'update' as const, collection: 'expenses', id: e.id, data: { groupId: null } })),
-    ...groupEvents.map((e) => ({ type: 'update' as const, collection: 'events', id: e.id, data: { groupId: null } })),
-    { type: 'delete' as const, collection: 'expense_groups', id },
-  ];
-  const result = await adapter.batchWrite(ops);
-  if (!result.success) throw new GroupDeleteVerificationFailedError(id);
+  await requireStorageAdapter().deleteDocument('expense_groups', id);
 
   const stillExists = await get(id);
   if (stillExists) throw new GroupDeleteVerificationFailedError(id);

@@ -1,7 +1,8 @@
 /**
  * The `SchemaMap` of spec D10 (plan B5a): relational-mode translation from
  * the documental `StorageAdapter` contract onto the five JustSplit tables of
- * `db/migrations/20260928000003_justsplit_tables.sql`.
+ * `db/migrations/20260928000003_justsplit_tables.sql` (plus the `event_id` columns
+ * of `20260928000010_event_id_column.sql`).
  *
  * Types are LOCAL COPIES of the hub's `SchemaMap`/`CollectionMapping` design
  * (`cybereco-hub/docs/design/schema-map-strategy.md` §2.1) — `@cyber-eco/types`
@@ -105,6 +106,8 @@ export const schemaMap: SchemaMap = {
     metadata: SERVER_TIMESTAMPS,
     columns: [
       'group_id',
+      // B2d (ADR 0013): a real column since migration 20260928000010, no longer an `extra` overflow key.
+      'event_id',
       'description',
       'amount',
       'currency',
@@ -129,6 +132,7 @@ export const schemaMap: SchemaMap = {
     metadata: SERVER_TIMESTAMPS,
     columns: [
       'group_id',
+      'event_id',
       'from_user_id',
       'to_user_id',
       'amount',

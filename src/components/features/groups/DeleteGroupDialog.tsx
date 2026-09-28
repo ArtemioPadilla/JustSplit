@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { buttonVariants } from '@/components/ui/button';
 import { useDeleteGroup } from '@/lib/data/hooks/useDeleteGroup';
-import { GroupDeleteBlockedByFriendshipError, GroupDeleteNotAllowedError, GroupDeleteVerificationFailedError } from '@/lib/data/repos/groups';
+import { GroupDeleteNotAllowedError, GroupDeleteVerificationFailedError } from '@/lib/data/repos/groups';
 import { withBase } from '@/lib/href';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { cn } from '@/lib/utils';
@@ -30,11 +30,8 @@ export interface DeleteGroupDialogProps {
  * has two DIFFERENT, user-actionable failure reasons worth naming).
  */
 function messageFor(error: unknown): string {
-  if (error instanceof GroupDeleteBlockedByFriendshipError) {
-    return "This group can't be deleted yet: some of its expenses include people you aren't friends with.";
-  }
   if (error instanceof GroupDeleteVerificationFailedError) {
-    return "This group's expenses and events were ungrouped, but the group itself could not be deleted. Please try again.";
+    return 'This group could not be deleted. Please try again.';
   }
   if (error instanceof GroupDeleteNotAllowedError) {
     return 'Only a group admin can delete this group.';
@@ -45,11 +42,11 @@ function messageFor(error: unknown): string {
 /**
  * The group detail island's delete-with-confirm (plan B12, risk:high). The
  * whole Dialog composition lives here (CLAUDE.md compound-component rule),
- * same shape as `DeleteExpenseDialog`. `repos.groups.remove`'s own
- * preflights (admin-only; the no-group friendship invariant; honest
- * post-write verification) run underneath — this dialog is shown only to
- * admins in the first place (UX only; `expense_groups_delete` RLS +
- * `guard_expense_groups` are the authority).
+ * same shape as `DeleteExpenseDialog`. `repos.groups.remove`'s own checks
+ * (admin-only; honest post-delete verification) run underneath — this dialog is
+ * shown only to admins in the first place (UX only; `expense_groups_delete`
+ * RLS is the authority). The group's rows are ungrouped by the database (ADR
+ * 0013), not by this dialog.
  */
 export function DeleteGroupDialog({ groupId, name }: DeleteGroupDialogProps) {
   const [open, setOpen] = React.useState(false);

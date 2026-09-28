@@ -8,7 +8,6 @@ import {
   isEventAttachable,
   isExpenseAttachable,
   isLastAdmin,
-  memberRemovalBlockerCount,
   withAddedMembers,
   withRemovedMember,
 } from './groups';
@@ -151,19 +150,6 @@ describe('withRemovedMember', () => {
     });
     const patch = withRemovedMember(g, 'u2');
     expect(patch.adminIds).toEqual(['u1']);
-  });
-});
-
-describe('memberRemovalBlockerCount', () => {
-  it('counts group expenses and events that still carry the member in memberIds', () => {
-    const expenses = [expense({ id: 'e1', memberIds: ['u1', 'u2'] }), expense({ id: 'e2', memberIds: ['u1'] })];
-    const events = [event({ id: 'ev1', memberIds: ['u1', 'u2'] })];
-    expect(memberRemovalBlockerCount('u2', expenses, events)).toBe(2);
-  });
-
-  it('returns 0 when the member appears in no group row', () => {
-    const expenses = [expense({ id: 'e1', memberIds: ['u1'] })];
-    expect(memberRemovalBlockerCount('u2', expenses, [])).toBe(0);
   });
 });
 

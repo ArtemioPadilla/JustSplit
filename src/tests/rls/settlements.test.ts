@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { admin, allowed, cast, denied, groupRow, noRows, seed, settlementRow, truth, type Actor } from './fixtures';
+import { admin, allowed, cast, denied, eventRow, groupRow, noRows, seed, settlementRow, truth, type Actor } from './fixtures';
 
 /** Spec D10 policy table, `settlements` row (immutable: no update policy). */
 let A: Actor, B: Actor, C: Actor;
@@ -51,6 +51,19 @@ describe('settlements · insert', () => {
 
   it('mirror: a unilateral settlement with a non-friend is denied', async () => {
     denied(await A.db.from('settlements').insert(settlementRow(A, B, A)), '42501');
+  });
+
+  it('event_id: an event member may record an event settlement; a null event_id is unaffected', async () => {
+    const ev = await seed('events', eventRow(A, [C]));
+    allowed(await A.db.from('settlements').insert(settlementRow(A, A, C, { event_id: ev.id })));
+    allowed(await A.db.from('settlements').insert(settlementRow(A, A, C, { event_id: null })));
+  });
+
+  it('event_id: a user who is not in the event cannot push a settlement into its feed (it would show the amount to every member)', async () => {
+    const strangersEvent = await seed('events', eventRow(B, []));
+    const friendsEvent = await seed('events', eventRow(C, []));
+    denied(await A.db.from('settlements').insert(settlementRow(A, A, C, { event_id: strangersEvent.id })), '42501');
+    denied(await A.db.from('settlements').insert(settlementRow(A, A, C, { event_id: friendsEvent.id })), '42501');
   });
 
   it('mirror: a group settlement with a non-member party is denied', async () => {

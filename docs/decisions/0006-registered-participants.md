@@ -208,6 +208,8 @@ converts.
 
 ## Stakeholder Analysis
 
+> **Rate-limit follow-up superseded by [ADR 0013](./0013-membership-lifecycle.md)** (plan B2d): `find_profile_by_email` now enforces 30 lookups per caller per hour server-side. The "no server-side rate limit" statements below are the historical record.
+
 | Stakeholder | Impact | Mitigation |
 |---|---|---|
 | The requester | Sends a request that either lands as a pending row the recipient sees, or (unregistered email) gets an invite path instead of silence. A duplicate attempt gets a specific, honest message instead of a confusing generic failure — but if that duplicate is because the recipient rejected them, the message is the SAME generic "already have a request or friendship with this person," never "they rejected you." The requester learns only that some row exists for the pair, not its status; if the recipient later hits Undo, the requester gets no notification either — they simply CAN send a fresh request the next time they try, with no explanation of why it started working. | `existsForPair` pre-check + `FriendshipAlreadyExistsError` (the message's own narrow enumeration leak — "a row exists" — is named and accepted above, not hidden); the unregistered branch never claims the request was "sent" — it's explicit that no account exists; nothing on the requester's side ever renders "declined" (`partitionFriendships`: their own view of a rejected row has no bucket at all). |
