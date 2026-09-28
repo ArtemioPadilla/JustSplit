@@ -18,9 +18,10 @@
  *
  * Pages checked (plan B6): `/`, `/404`, `/auth/signin/`, `/showcase`.
  * `/landing`, `/about`, `/help` join this list in plan B7, which is what
- * builds those pages. `/expenses/list` joins in plan B9 (same reasoning as
- * `/`: an authenticated route island, deterministic and accessible in every
- * auth state a CI build without Supabase env vars can reach).
+ * builds those pages. `/expenses/list` joins in plan B9, `/expenses/new` in
+ * plan B10 (same reasoning as `/`: an authenticated route island,
+ * deterministic and accessible in every auth state a CI build without
+ * Supabase env vars can reach).
  */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -35,7 +36,7 @@ const DIST = join(ROOT, 'dist');
 // set) still serves correctly through this same local server.
 const BASE = (process.env.ASTRO_BASE || '/').replace(/\/$/, '');
 
-const PAGES = ['/', '/404', '/auth/signin/', '/showcase', '/landing', '/about', '/help', '/expenses/list'];
+const PAGES = ['/', '/404', '/auth/signin/', '/showcase', '/landing', '/about', '/help', '/expenses/list', '/expenses/new'];
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
