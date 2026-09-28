@@ -173,9 +173,18 @@ const toCents = (amount: number): number => Math.round(amount * 100);
 const fromCents = (cents: number): number => cents / 100;
 
 /**
+ * Who absorbs the remainder cents: the payer when they take a share,
+ * otherwise the first participant (spec D10 lets the payer be a member who
+ * takes no share). Either way the splits sum to exactly `amount`.
+ */
+const remainderHolder = (participantIds: string[], payerId: string): string | undefined =>
+  participantIds.includes(payerId) ? payerId : participantIds[0];
+
+/**
  * The **only** writer of `Expense.splits[].amount` (spec D10; used by plan
  * B10/B14). `equal` divides `amount` evenly among `participantIds` in whole
- * cents, placing any leftover cent on the payer. `percentage` rounds each
+ * cents, placing any leftover cent on the payer (or on the first participant
+ * when the payer takes no share). `percentage` rounds each
  * participant's share to whole cents, placing the rounding remainder on the
  * payer so the splits always sum to exactly `amount`. `exact` takes the
  * literal per-participant amounts as given (the caller is responsible for
@@ -191,10 +200,11 @@ export function materializeSplits(amount: number, input: MaterializeSplitsInput)
 
     const baseCents = Math.floor(totalCents / n);
     const remainderCents = totalCents - baseCents * n;
+    const holder = remainderHolder(participantIds, payerId);
 
     return participantIds.map((userId) => ({
       userId,
-      amount: fromCents(userId === payerId ? baseCents + remainderCents : baseCents),
+      amount: fromCents(userId === holder ? baseCents + remainderCents : baseCents),
     }));
   }
 
@@ -208,10 +218,11 @@ export function materializeSplits(amount: number, input: MaterializeSplitsInput)
   const centsByUser = entries.map(([userId, percentage]) => [userId, Math.round((totalCents * percentage) / 100)] as const);
   const distributedCents = centsByUser.reduce((sum, [, cents]) => sum + cents, 0);
   const remainderCents = totalCents - distributedCents;
+  const holder = remainderHolder(entries.map(([userId]) => userId), payerId);
 
   return centsByUser.map(([userId, cents]) => ({
     userId,
-    amount: fromCents(userId === payerId ? cents + remainderCents : cents),
+    amount: fromCents(userId === holder ? cents + remainderCents : cents),
     percentage: shares[userId],
   }));
 }
