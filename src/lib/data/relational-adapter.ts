@@ -337,7 +337,17 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
    * adapter semantics (`storage-adapter-contract.md` §4,
    * `SupabaseStorageAdapter.subscribeToQuery`).
    */
-  subscribeToQuery<T>(collection: string, filters: QueryFilter[], callback: (data: T[]) => void): Unsubscribe {
+  /**
+   * `callback`'s second, optional `error` parameter is not part of the
+   * `StorageAdapter` interface's own `(data: T[]) => void` shape — it is an
+   * app-owned extension `useLiveQuery` (the only caller in this tree) reads
+   * to distinguish a genuine query failure (RLS denial, network error) from
+   * a legitimately empty result (coordinator review, plan B8b): a plain
+   * `catch(() => callback([]))` made the two indistinguishable, so a failed
+   * dashboard query looked identical to "you have no expenses" forever, with
+   * no error surfaced and no way to retry.
+   */
+  subscribeToQuery<T>(collection: string, filters: QueryFilter[], callback: (data: T[], error?: unknown) => void): Unsubscribe {
     const mapping = this.mappingFor(collection);
     const client = this.ensureClient();
     let active = true;
@@ -347,8 +357,8 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
         .then((result) => {
           if (active) callback(result.data);
         })
-        .catch(() => {
-          if (active) callback([]);
+        .catch((error: unknown) => {
+          if (active) callback([], error);
         });
     };
     fetchAndEmit();
