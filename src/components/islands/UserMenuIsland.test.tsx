@@ -1,0 +1,80 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import * as React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const { signOut } = vi.hoisted(() => ({ signOut: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('@/stores/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/stores/auth')>();
+  return { ...actual, signOut };
+});
+
+import { $authReady, $profile, $user } from '@/stores/auth';
+import UserMenuIsland from './UserMenuIsland';
+
+/**
+ * UserMenuIsland (plan B6, spec D3): a layout island mounted from
+ * SiteHeader.astro on every page. It must read `$user`/`$profile`/
+ * `$authReady` only (never mount `AuthIsland`/`QueryProvider` — see
+ * src/tests/query-provider-boundary.test.ts) and must never crash when
+ * Supabase isn't configured for the build — which is exactly the default,
+ * signed-out state these stores start in (ci.yml builds with no Supabase
+ * config; CLAUDE.md rule 7 / spec D3).
+ */
+describe('UserMenuIsland', () => {
+  beforeEach(() => {
+    $user.set(null);
+    $profile.set(null);
+    $authReady.set(false);
+    signOut.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders a sign-in link and no crash before auth readiness resolves (Supabase-disabled builds included)', () => {
+    render(<UserMenuIsland />);
+    const link = screen.getByRole('link', { name: /sign in/i });
+    expect(link).toHaveAttribute('href', '/auth/signin/');
+  });
+
+  it('still renders the signed-out link once ready with no user', () => {
+    $authReady.set(true);
+    $user.set(null);
+    render(<UserMenuIsland />);
+    expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it('renders the profile name/avatar and a sign-out control for a signed-in user', () => {
+    $authReady.set(true);
+    $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
+    $profile.set({
+      id: 'u1',
+      name: 'Ana',
+      email: 'ana@example.test',
+      avatarUrl: null,
+      apps: [],
+      permissions: [],
+      preferences: { preferredCurrency: 'USD' },
+    });
+    render(<UserMenuIsland />);
+    expect(screen.queryByRole('link', { name: /sign in/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Ana')).toBeInTheDocument();
+  });
+
+  it('calls signOut() from src/stores/auth.ts when the sign-out control is used', async () => {
+    const user = userEvent.setup();
+    $authReady.set(true);
+    $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
+    $profile.set(null);
+    render(<UserMenuIsland />);
+
+    await user.click(screen.getByRole('button', { name: /ana/i }));
+    await user.click(await screen.findByRole('menuitem', { name: /sign out/i }));
+
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+});

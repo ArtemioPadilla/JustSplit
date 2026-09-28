@@ -1,4 +1,3 @@
-import { atom } from 'nanostores';
 import type { AuthUser } from '@cyber-eco/types';
 import type { AuthProfile, JustSplitProfile } from '@/schemas/profile';
 import type { GuardUser } from '@/lib/route-guard';
@@ -14,14 +13,11 @@ import { clearPersistedQueryCache } from '@/lib/queryClient';
  * `useStore(...)` from `@nanostores/react`.
  */
 
-/** The signed-in user, or null. Type from `@cyber-eco/types` (not `@cyber-eco/auth`, which does not export it, and not `HubUser`, the wrong type — plan B4). */
-export const $user = atom<AuthUser | null>(null);
+import { $authReady, $profile, $user } from './session';
 
-/** True once the provider has resolved the initial session (no user, or a user + its profile). */
-export const $authReady = atom<boolean>(false);
-
-/** The `profiles` row for `$user`, or null (signed out, or not loaded yet). */
-export const $profile = atom<JustSplitProfile | null>(null);
+// Re-exported so existing importers keep working; the atoms themselves live in
+// ./session.ts, which has no data-layer dependency (public pages read them).
+export { $authReady, $profile, $user };
 
 /**
  * Actions below call `authAdapter`/`profileStore` (from `src/lib/data/adapter.ts`)

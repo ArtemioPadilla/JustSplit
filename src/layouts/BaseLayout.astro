@@ -3,9 +3,56 @@ import '../styles/global.css';
 import FeedbackFAB from '../components/common/FeedbackFAB.astro';
 import SiteHeader from '../components/common/SiteHeader.astro';
 import SiteFooter from '../components/common/SiteFooter.astro';
+import HydrationCanary from '../components/islands/HydrationCanary';
 import { withBase } from '../lib/href';
-interface Props { title?: string; description?: string; lang?: 'es' | 'en'; noindex?: boolean; }
-const { title = 'JustSplit', description = '', lang = 'en', noindex = false } = Astro.props;
+import { SITE } from '../lib/site-meta';
+import { jsonLd } from '../lib/json-ld';
+
+interface Props {
+  title?: string;
+  description?: string;
+  lang?: 'es' | 'en';
+  noindex?: boolean;
+  /** Extra JSON-LD blocks (schema.org), appended after the default
+   *  WebApplication block every page already gets. Each object is emitted
+   *  as its own <script type="application/ld+json">, escaped via
+   *  src/lib/json-ld.ts's jsonLd() (plain JSON.stringify is an XSS vector
+   *  here — see that file's doc comment). */
+  jsonLd?: Record<string, unknown>[];
+}
+
+const {
+  // Defaults come from src/lib/site-meta.ts (single source, also used by
+  // /llms.txt) — a page that forgets these props must not introduce the
+  // site as the Inceptor scaffold's generic placeholder strings.
+  title = SITE.name,
+  description = SITE.description,
+  lang = 'en',
+  noindex = false,
+  jsonLd: extraJsonLd = [],
+} = Astro.props;
+
+// Canonical URL — Astro.site + the current path (falls back to null in dev
+// without --site or a configured `site`). Feeds the JSON-LD "url" below.
+const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined;
+
+// Every page is a JustSplit is the WebApplication schema.org describes
+// itself as (plan B6) — expense-splitting software, not a document/article.
+// Pages that need additional structured data (e.g. a future blog post's
+// Article block) pass it through the `jsonLd` prop; it's appended, not
+// replaced.
+const jsonLdBlocks: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: SITE.name,
+    description: SITE.description,
+    ...(canonicalUrl ? { url: canonicalUrl } : {}),
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+  },
+  ...extraJsonLd,
+];
 ---
 <!doctype html>
 <html lang={lang}>
@@ -28,12 +75,22 @@ const { title = 'JustSplit', description = '', lang = 'en', noindex = false } = 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
-    <meta name="theme-color" content="#10b981" />
+    {/* JustSplit navy (plan B6) — matches --color-primary-600 in global.css. */}
+    <meta name="theme-color" content="#124d8c" />
+    {jsonLdBlocks.map((block) => (
+      <script type="application/ld+json" set:html={jsonLd(block)} />
+    ))}
   </head>
   <body class="relative min-h-screen bg-background text-foreground antialiased">
     <SiteHeader />
     <slot />
     <SiteFooter />
     <FeedbackFAB lang={lang} />
+    {/* Side-effect-only island (renders null): listens for React hydration-
+        mismatch signatures and stashes a pre-filled GitHub issue URL for
+        FeedbackFAB to offer. Lives in BaseLayout only (CLAUDE.md "Island
+        lifecycle discipline" exemplar) — client:idle like every other
+        always-on-every-page layout island so it never blocks first paint. */}
+    <HydrationCanary client:idle />
   </body>
 </html>
