@@ -76,3 +76,66 @@ export async function rpc<N extends RpcName>(
   if (error) throw error;
   return (data ?? []) as RpcFunctions[N]['returns'];
 }
+
+export interface OAuthRedirectResult {
+  error: Error | null;
+}
+
+/**
+ * The one raw-SDK call `src/stores/auth.ts`'s `signInWithGoogle` needs (plan
+ * B4). `AuthAdapter.signInWithProvider` cannot express a per-call
+ * `redirectTo`, so Google sign-in bypasses it and calls
+ * `client.auth.signInWithOAuth` directly — kept here, not in the store, so
+ * `@supabase/supabase-js` is never imported outside `src/lib/data/`
+ * (CLAUDE.md rule 7, `src/tests/data-boundary.test.ts`). Never throws: the
+ * SDK error is returned, not raised, matching `AuthAdapter`'s own methods.
+ */
+export async function signInWithOAuthRedirect(
+  provider: 'google',
+  redirectTo: string,
+  client: SupabaseClient | null = supabase,
+): Promise<OAuthRedirectResult> {
+  if (!client) return { error: new SupabaseDisabledError() };
+  const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo } });
+  return { error };
+}
+
+/**
+ * `/auth/reset-password.astro` needs to tell apart "the visitor just landed
+ * from the recovery email link" from an ordinary sign-in, to switch from the
+ * request form to the update-password form. `AuthAdapter.onAuthStateChanged`
+ * (`SupabaseAuthAdapter`) discards the Supabase event type and forwards only
+ * the mapped user, so it cannot make that distinction — this calls
+ * `client.auth.onAuthStateChange` directly, filtered to `PASSWORD_RECOVERY`,
+ * kept here for the same `@supabase/supabase-js`-boundary reason as
+ * `signInWithOAuthRedirect` above. A no-op (returns a callable unsubscribe)
+ * without a client.
+ */
+export function onPasswordRecovery(
+  callback: () => void,
+  client: SupabaseClient | null = supabase,
+): () => void {
+  if (!client) return () => {};
+  const { data } = client.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') callback();
+  });
+  return () => data.subscription.unsubscribe();
+}
+
+export interface SessionWaitResult {
+  signedIn: boolean;
+  error: Error | null;
+}
+
+/**
+ * Resolves once supabase-js has finished initializing, including the PKCE
+ * code exchange it starts from the URL on `/auth/callback/`
+ * (`detectSessionInUrl: true`): `getSession()` awaits that initialization.
+ * The callback page must not navigate before this resolves, or the exchange
+ * request is aborted and the sign-in is lost (plan B4).
+ */
+export async function waitForSession(client: SupabaseClient | null = supabase): Promise<SessionWaitResult> {
+  if (!client) return { signedIn: false, error: new SupabaseDisabledError() };
+  const { data, error } = await client.auth.getSession();
+  return { signedIn: Boolean(data.session), error: error ?? null };
+}

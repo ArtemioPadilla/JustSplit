@@ -791,7 +791,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       > green; `src/domain/expenseCalculator.test.ts` (13 tests, incl. `materializeSplits`) green.
 
 ### B4. Auth: `@cyber-eco/auth` `<AuthProvider>` + store bridge + RouteGuard adapter (`risk:high`)
-- [ ] `src/lib/data/adapter.ts` exports `authAdapter = new SupabaseAuthAdapter(client)` and
+- [x] `src/lib/data/adapter.ts` exports `authAdapter = new SupabaseAuthAdapter(client)` and
       `profileStore = new SupabaseProfileStore(client)` (`cybereco-hub/packages/supabase/src/auth/`);
       `src/lib/auth-context.ts` builds the typed context with `createAuthContext<JustSplitProfile>()`
       (exported by `@cyber-eco/auth`) so `useAuth().userProfile` is the B3 `profile.ts` type instead
@@ -812,7 +812,12 @@ backend decision; ADR numbers are allocation order, not merge order).
       `AuthProvider` is React Context, every route island renders `AuthIsland` at its own root
       (`ErrorBoundary > AuthIsland > AuthGate > Content`); layout islands (`UserMenuIsland`) read
       the stores only
-- [ ] `src/stores/auth.ts`: `$user` (`AuthUser | null` — import the type from `@cyber-eco/types`,
+      - Deviation: `createAuthContext<AuthProfile>()`, not literally `<JustSplitProfile>` —
+        `JustSplitProfile` (`.loose()`, nullable `name`) doesn't satisfy `BaseUserConstraint`
+        (`name: string`); `AuthProfile` (`src/schemas/profile.ts`) is `JustSplitProfile` intersected
+        with the five fields narrowed non-null, structurally still assignable to `JustSplitProfile`.
+        See ADR 0003 §1.
+- [x] `src/stores/auth.ts`: `$user` (`AuthUser | null` — import the type from `@cyber-eco/types`,
       which exports it; `@cyber-eco/auth` does not, and `HubUser` is the wrong type), `$authReady`,
       `$profile` (the `profiles` row, `JustSplitProfile`); actions `signIn`, `signUp(email,
       password, displayName)`, `signInWithGoogle(next?)` (**redirect** flow; the page unloads and
@@ -835,7 +840,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       redirect that the subpath deploy masks. `signOut` (the adapter's `signOut()` is Supabase's
       default **global** scope — every session is revoked), `resetPassword(email, { redirectTo:
       withBase('/auth/reset-password/') })`, `updatePassword`, `updateDisplayProfile`
-- [ ] Profile bootstrap is **one writer**: `AuthProvider` runs `profileStore.get(uid)` →
+- [x] Profile bootstrap is **one writer**: `AuthProvider` runs `profileStore.get(uid)` →
       `profileStore.set(uid, createUserProfile(user))` on the first authenticated
       `onAuthStateChanged` (own-row RLS lets the client do it) and flips `isLoading` — hence
       `$authReady` — only afterwards; `AuthBridge` performs no bootstrap of its own.
@@ -843,13 +848,13 @@ backend decision; ADR numbers are allocation order, not merge order).
       `adapter.updateDisplayProfile` and refreshes `$profile`. Test: a first Google sign-in against
       a memory `ProfileStore` records exactly one `set`, carrying `apps: ['justsplit']` and
       `preferences.preferredCurrency` (the RLS suite covers the policy; this test covers the flow)
-- [ ] `toGuardUser(user, profile)` returns `{ id: user.uid, roles: ['user'], flags: {} }`
+- [x] `toGuardUser(user, profile)` returns `{ id: user.uid, roles: ['user'], flags: {} }`
       whenever `user` is non-null — roles come from the session, never from the user-writable
       `profiles` row (`isAdmin`, `permissions` there grant nothing in JustSplit); `profile` only
       feeds display data (name, avatar, preferredCurrency). Test: a user with no profile row still
       passes `<RouteGuard allow={['user']}>`; a profile row with `isAdmin: true` or
       `permissions: ['admin']` grants nothing
-- [ ] `src/components/islands/AuthGate.tsx` — a readiness/navigation wrapper only; every
+- [x] `src/components/islands/AuthGate.tsx` — a readiness/navigation wrapper only; every
       allow/deny decision stays in `RouteGuard` (CLAUDE.md: `route-guard.tsx` is the only gating
       module): renders `Skeleton` while `!$authReady`; when `$authReady && !$user` runs
       `location.replace(withBase('/landing/'))` (parity with `ProtectedRoute.tsx`; PUBLIC_PATHS
@@ -858,10 +863,13 @@ backend decision; ADR numbers are allocation order, not merge order).
       The guard is UX only; RLS is the authorization (`examples/static-app/README.md`)
       - Alternative (lower priority): redirect to `/auth/signin/?next=<path>` instead of `/landing`
         (the `next` value always goes through `safeNext()`); record whichever is chosen in ADR 0003
-- [ ] Redirect rules: unauthenticated on a guarded page → `/landing` (current `ProtectedRoute`
+        — not taken; `/landing` chosen (parity with today), recorded in ADR 0003 §5.
+- [x] Redirect rules: unauthenticated on a guarded page → `/landing` (current `ProtectedRoute`
       behaviour); signed-in on `/auth/*` → decide `/profile` (today) or `/` and record it in ADR
       0003; B8b's `/` follows the same rule
-- [ ] Copy `src/components/islands/LoginForm.tsx` (+ `.test.tsx`),
+      — `/` chosen, recorded in ADR 0003 §5. `/` itself is still the Phase-0 placeholder page
+      (no `AuthGate`) — B8b wires it.
+- [x] Copy `src/components/islands/LoginForm.tsx` (+ `.test.tsx`),
       `src/components/ui/password-input.tsx` (+ `.behavior.test.tsx`), `src/schemas/login.ts`
       (+ `.test.ts`) from Inceptor; replace `handleLogin` with `signIn()` from
       `src/stores/auth.ts`, add a Google button calling `signInWithGoogle()`, and add a sibling
@@ -870,12 +878,14 @@ backend decision; ADR numbers are allocation order, not merge order).
       with a fallback slot on `auth/signin.astro` / `auth/signup.astro` (start from
       `src/pages/login.astro`, swapping its `client:visible`). No Facebook/Twitter buttons, no
       `linkProvider`
-- [ ] `/auth/reset-password.astro` + `ResetPasswordIsland` (request form → `resetPassword`; on
+      - Note: `src/components/ui/password-input.tsx` + `.behavior.test.tsx` were already ported
+        (identical to Inceptor's) by an earlier phase — nothing to copy there.
+- [x] `/auth/reset-password.astro` + `ResetPasswordIsland` (request form → `resetPassword`; on
       return with a recovery session → `updatePassword` form; today's link from signin is dead)
-- [ ] ADR `docs/decisions/0003-cybereco-auth-islands.md` with the Stakeholder Analysis section
+- [x] ADR `docs/decisions/0003-cybereco-auth-islands.md` with the Stakeholder Analysis section
       (centinela §5.1 requires it for `/auth` routes): one `AuthProvider` per island tree + store
       bridge, redirect-only OAuth, roles from the session
-- [ ] Auth-chunk measurement (not deferred to B19): a Vitest over `npm run build` output sums the
+- [x] Auth-chunk measurement (not deferred to B19): a Vitest over `npm run build` output sums the
       gz size of the `dist/_astro/*.js` chunks loaded by `/auth/signin/` and reports the one
       containing `@cyber-eco/auth` + `@supabase/supabase-js` (the package ships one client entry
       with `splitting: false`, no `sideEffects` flag, `jose`, and `zod@^3` next to the app's
@@ -887,12 +897,20 @@ backend decision; ADR numbers are allocation order, not merge order).
       stores are what islands read anyway; file a hub follow-up to add `sideEffects: false` and
       widen the `zod` range. Peer deps need no `--legacy-peer-deps` (`react >=18` optional,
       `@supabase/supabase-js >=2.45`)
-- [ ] Tests: (1) `AuthBridge` mirrors `useAuth()` into `$user`/`$profile`, `$authReady` flips only
+      - Deviation: `scripts/check-auth-bundle.mjs` (chained after `check:dist` in `npm run check`),
+        not a Vitest — it and test (6)'s build half both read `dist/`, which doesn't exist yet when
+        Vitest runs (before `build` in the `check` pipeline). `@cyber-eco/auth` is not present in any
+        built chunk today (see ADR 0003) — nothing shipped mounts `AuthIsland` yet.
+- [x] Tests: (1) `AuthBridge` mirrors `useAuth()` into `$user`/`$profile`, `$authReady` flips only
       after `isLoading` is false, and a memory `ProfileStore` records exactly one `set` on first
       sign-in; (2) `hasFlag` absent-field denies; (3) AuthGate renders Skeleton while not ready and
       does not redirect; (4) redirects to `/landing` once ready with no user; (5) RouteGuard denies
       an unknown role even when `$user` is set; port `src/app/client-layout-wrapper.test.tsx`
-      (guard/redirect behaviour); (6) a build test greps `dist/_astro/*.js` for the two unguarded
+      (guard/redirect behaviour) — `src/components/islands/AuthGate.test.tsx` covers the equivalent
+      Astro-tree behaviour (Skeleton/redirect/deny), not a line-for-line Jest→Vitest port: the Next
+      tree's component (`ClientLayoutWrapper`, route-based Header/`ProtectedRoute` composition) has
+      no direct analog once routing moves to Astro pages + one route island each;
+      (6) a build test greps `dist/_astro/*.js` for the two unguarded
       reads only — regex `process\.env\.(NEXT_PUBLIC_HUB_URL|NODE_ENV)` — and asserts zero hits
       (guarded `typeof process !== 'undefined' && process.env…` reads from `@cyber-eco/auth`'s
       `useHubAuth.ts`/`logger.ts` survive in the bundle by design and are allowed; both `define`
@@ -910,6 +928,18 @@ backend decision; ADR numbers are allocation order, not merge order).
       with that origin and callback registered in the Supabase project's redirect URLs and in
       Google Cloud (B2a; documented in `docs/runbooks/staging.md`). `/` redirects to `/landing`
       when logged out; the auth-chunk numbers are in ADR 0003
+      - [x] auth-chunk numbers are in ADR 0003
+      - [x] manual verification of email+password against the local `supabase start` stack: signUp
+        + signInWithPassword succeed, and an own-row `profiles` upsert (the exact shape
+        `createJustSplitProfile` produces) is accepted under RLS — run ad hoc against
+        `127.0.0.1:54321` in this session (not committed; no files added under `src/tests/rls/`
+        per instruction)
+      - [ ] manual verification of Google sign-in against `supabase start` — needs the local GoTrue
+        provider config (owner action); not run in this session
+      - [ ] staging Google callback + redirect-URL registration — owner action, explicitly out of
+        scope here (needs the real Supabase project + Google Cloud console)
+      - [ ] `/` redirects to `/landing` when logged out — `/` has no `AuthGate` yet (still the
+        Phase-0 placeholder page); this becomes true once B8b wires it
 
 ### B5a. Repos over `StorageAdapter` + `SchemaMap` + Realtime → TanStack Query (`risk:high`)
 - [ ] `src/lib/data/schema-map.ts`: the `SchemaMap` of spec D10 (`expense_groups`, `expenses`,
