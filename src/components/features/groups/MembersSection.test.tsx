@@ -69,9 +69,9 @@ describe('MembersSection', () => {
       />,
     );
     expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getByText(/owner/i)).toBeInTheDocument();
+    expect(screen.getByText('owner')).toBeInTheDocument();
     expect(screen.getByText('Beto')).toBeInTheDocument();
-    expect(screen.getByText(/member/i)).toBeInTheDocument();
+    expect(screen.getByText('member')).toBeInTheDocument();
   });
 
   it('a non-admin viewer sees no "Add members" trigger and no "Remove" buttons', () => {
