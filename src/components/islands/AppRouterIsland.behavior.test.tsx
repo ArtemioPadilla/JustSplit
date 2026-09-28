@@ -4,7 +4,12 @@ import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import AppRouterIsland from './AppRouterIsland';
 
-/** Plan B2c: the 404 shell's router mounts the island matching the URL. */
+/**
+ * Plan B2c: the 404 shell's router mounts the island matching the URL.
+ * `expense-detail` is covered separately, in `AppRouterIsland.expense-detail.test.tsx`
+ * (plan B9) — it renders the real, lazily-loaded `ExpenseDetailView` now,
+ * not `RouteStub`, so it's dropped from this file's stub-route table.
+ */
 afterEach(() => window.history.replaceState(null, '', '/'));
 
 function at(path: string) {
@@ -13,7 +18,6 @@ function at(path: string) {
 
 describe('AppRouterIsland (behavior)', () => {
   it.each([
-    ['/expenses/abc', 'expense-detail', 'abc'],
     ['/expenses/edit/abc', 'expense-edit', 'abc'],
     ['/events/ev1', 'event-detail', 'ev1'],
     ['/events/edit/ev1', 'event-edit', 'ev1'],
