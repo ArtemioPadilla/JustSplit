@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Expense } from '../schemas/expense';
+import type { Settlement } from '../schemas/settlement';
 import { calculateSettlements, calculateSettlementsWithConversion, materializeSplits, type ConvertCurrency } from './expenseCalculator';
 
 /**
@@ -39,22 +40,37 @@ function makeExpense(overrides: Partial<Expense> & Pick<Expense, 'amount' | 'pai
   };
 }
 
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  nextId += 1;
+  return {
+    id: `set${nextId}`,
+    groupId: null,
+    currency: 'USD',
+    date: '2026-09-29',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: '2026-09-29T00:00:00.000Z',
+    eventId: null,
+    ...overrides,
+  };
+}
+
 describe('calculateSettlements (plan B3, spec D10 — consumes splits[])', () => {
   it('returns an empty array for no expenses', () => {
-    expect(calculateSettlements([], [])).toEqual([]);
+    expect(calculateSettlements([], [], [])).toEqual([]);
   });
 
   it('calculates settlements for a simple equal-split expense (equal unchanged on the ported fixture)', () => {
     const expenses = [makeExpense({ amount: 100, paidBy: 'user1', participantIds: ['user1', 'user2'] })];
 
-    const result = calculateSettlements(expenses, ['user1', 'user2']);
+    const result = calculateSettlements(expenses, [], ['user1', 'user2']);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(expect.objectContaining({ fromUser: 'user2', toUser: 'user1', amount: 50, expenseIds: ['exp1'] }));
   });
 
   it('ignores settled expenses (settledAt != null)', () => {
     const expenses = [makeExpense({ amount: 100, paidBy: 'user1', participantIds: ['user1', 'user2'], settledAt: '2026-09-28T00:00:00.000Z' })];
-    expect(calculateSettlements(expenses, ['user1', 'user2'])).toHaveLength(0);
+    expect(calculateSettlements(expenses, [], ['user1', 'user2'])).toHaveLength(0);
   });
 
   it('handles multiple expenses with circular debts (equal unchanged on the ported fixture)', () => {
@@ -64,7 +80,7 @@ describe('calculateSettlements (plan B3, spec D10 — consumes splits[])', () =>
       makeExpense({ amount: 30, paidBy: 'user3', participantIds: ['user1', 'user2', 'user3'] }),
     ];
 
-    const result = calculateSettlements(expenses, ['user1', 'user2', 'user3']);
+    const result = calculateSettlements(expenses, [], ['user1', 'user2', 'user3']);
     const totalSettlementAmount = result.reduce((sum, s) => sum + s.amount, 0);
     // Total 180 / 3 = 60 fair share each; user2 overpaid 30, user3 underpaid 30.
     expect(totalSettlementAmount).toBeCloseTo(30);
@@ -80,15 +96,82 @@ describe('calculateSettlements (plan B3, spec D10 — consumes splits[])', () =>
       makeExpense({ amount: 200, paidBy: 'user1', participantIds: ['user1', 'user2'], eventId: 'event2' }),
     ];
 
-    const resultEvent1 = calculateSettlements(expenses, ['user1', 'user2'], 'event1');
+    const resultEvent1 = calculateSettlements(expenses, [], ['user1', 'user2'], 'event1');
     expect(resultEvent1).toHaveLength(1);
     expect(resultEvent1[0].amount).toBe(50);
     expect(resultEvent1[0].expenseIds).toEqual(['exp1']);
 
-    const resultEvent2 = calculateSettlements(expenses, ['user1', 'user2'], 'event2');
+    const resultEvent2 = calculateSettlements(expenses, [], ['user1', 'user2'], 'event2');
     expect(resultEvent2).toHaveLength(1);
     expect(resultEvent2[0].amount).toBe(100);
     expect(resultEvent2[0].expenseIds).toEqual(['exp2']);
+  });
+
+  describe('ledger model (plan B14a, ADR 0014): suggestions net the scope\'s settlements', () => {
+    const dinner = () => makeExpense({ amount: 90, paidBy: 'ana', participantIds: ['ana', 'beto', 'carla'] });
+
+    it('three-person expense, one pair settles: only the third person\'s debt is still suggested', () => {
+      const result = calculateSettlements([dinner()], [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 30 })], ['ana', 'beto', 'carla']);
+      expect(result).toEqual([expect.objectContaining({ fromUser: 'carla', toUser: 'ana', amount: 30 })]);
+    });
+
+    it('a partial payment leaves exactly the remainder', () => {
+      const result = calculateSettlements([dinner()], [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 12.5 })], ['ana', 'beto', 'carla']);
+      expect(result.find((s) => s.fromUser === 'beto')).toEqual(expect.objectContaining({ toUser: 'ana', amount: 17.5 }));
+      expect(result.find((s) => s.fromUser === 'carla')).toEqual(expect.objectContaining({ toUser: 'ana', amount: 30 }));
+    });
+
+    it('a debt-simplified suggestion A to C, once recorded, zeroes the whole scope', () => {
+      // Ana owes Beto 30 (Beto\'s expense); Beto owes Carla 30 (Carla\'s expense): the minimal pass says Ana pays Carla.
+      const expenses = [
+        makeExpense({ amount: 60, paidBy: 'beto', participantIds: ['ana', 'beto'] }),
+        makeExpense({ amount: 60, paidBy: 'carla', participantIds: ['beto', 'carla'] }),
+      ];
+      const users = ['ana', 'beto', 'carla'];
+      const suggestion = calculateSettlements(expenses, [], users);
+      expect(suggestion).toEqual([expect.objectContaining({ fromUser: 'ana', toUser: 'carla', amount: 30 })]);
+
+      const recorded = makeSettlement({ fromUserId: 'ana', toUserId: 'carla', amount: suggestion[0]!.amount });
+      expect(calculateSettlements(expenses, [recorded], users)).toEqual([]);
+    });
+
+    it('a legacy settled expense (settledAt) is excluded, settlements or not', () => {
+      const legacy = makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'], settledAt: '2026-01-01T00:00:00.000Z' });
+      expect(calculateSettlements([legacy], [], ['ana', 'beto'])).toEqual([]);
+    });
+
+    it('the event scope counts only that event\'s expenses and settlements', () => {
+      const expenses = [
+        makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'], eventId: 'ev1' }),
+        makeExpense({ amount: 200, paidBy: 'ana', participantIds: ['ana', 'beto'], eventId: 'ev2' }),
+      ];
+      const settlements = [
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 20, eventId: 'ev1' }),
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 70, eventId: 'ev2' }),
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 5, eventId: null }),
+      ];
+      const result = calculateSettlements(expenses, settlements, ['ana', 'beto'], 'ev1');
+      // 50 owed in ev1, 20 paid in ev1; the other event's and the unlinked settlement do not count here.
+      expect(result).toEqual([expect.objectContaining({ fromUser: 'beto', toUser: 'ana', amount: 30, eventId: 'ev1' })]);
+    });
+
+    it('the global scope counts every settlement it is given, whatever its eventId', () => {
+      const expenses = [
+        makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'], eventId: 'ev1' }),
+        makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'] }),
+      ];
+      const settlements = [
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 20, eventId: 'ev1' }),
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 10, eventId: null }),
+      ];
+      const result = calculateSettlements(expenses, settlements, ['ana', 'beto']);
+      expect(result).toEqual([expect.objectContaining({ fromUser: 'beto', toUser: 'ana', amount: 70 })]);
+    });
+
+    it('still suggests the reverse when a settlement exceeds what was owed (overpayment)', () => {
+      const result = calculateSettlements([dinner()], [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 40 })], ['ana', 'beto', 'carla']);
+      expect(result.find((s) => s.fromUser === 'ana')).toEqual(expect.objectContaining({ toUser: 'beto', amount: 10 }));
+    });
   });
 });
 
@@ -100,7 +183,7 @@ describe('calculateSettlementsWithConversion', () => {
     ];
 
     const convert: ConvertCurrency = async (amount) => ({ convertedAmount: amount * 1.5, isFallback: false });
-    const result = await calculateSettlementsWithConversion(expenses, ['user1', 'user2'], 'USD', convert);
+    const result = await calculateSettlementsWithConversion(expenses, [], ['user1', 'user2'], 'USD', convert);
 
     // user1 paid USD 100 (fair share 125), user2 paid EUR 100 = USD 150 (fair share 125):
     // user1 underpaid by 25, so user1 owes user2 USD 25.
@@ -110,7 +193,55 @@ describe('calculateSettlementsWithConversion', () => {
 
   it('returns an empty array when there are no unsettled expenses', async () => {
     const convert: ConvertCurrency = async (amount) => ({ convertedAmount: amount, isFallback: false });
-    expect(await calculateSettlementsWithConversion([], [], 'USD', convert)).toEqual([]);
+    expect(await calculateSettlementsWithConversion([], [], [], 'USD', convert)).toEqual([]);
+  });
+
+  describe('ledger model (plan B14a, ADR 0014)', () => {
+    const doubleEur: ConvertCurrency = async (amount, from) => ({ convertedAmount: from === 'EUR' ? amount * 2 : amount, isFallback: false });
+
+    it('converts a settlement in another currency before netting it', async () => {
+      const expenses = [makeExpense({ amount: 90, paidBy: 'ana', participantIds: ['ana', 'beto', 'carla'] })];
+      const settlements = [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 10, currency: 'EUR' })];
+
+      const result = await calculateSettlementsWithConversion(expenses, settlements, ['ana', 'beto', 'carla'], 'USD', doubleEur);
+
+      // 10 EUR = 20 USD of Beto's 30 USD debt.
+      expect(result.find((s) => s.fromUser === 'beto')).toEqual(expect.objectContaining({ toUser: 'ana', amount: 10 }));
+      expect(result.find((s) => s.fromUser === 'carla')).toEqual(expect.objectContaining({ toUser: 'ana', amount: 30 }));
+    });
+
+    it('three-person expense, one pair settles: the third person\'s debt is intact', async () => {
+      const expenses = [makeExpense({ amount: 90, paidBy: 'ana', participantIds: ['ana', 'beto', 'carla'] })];
+      const settlements = [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 30 })];
+      const result = await calculateSettlementsWithConversion(expenses, settlements, ['ana', 'beto', 'carla'], 'USD', doubleEur);
+      expect(result).toEqual([expect.objectContaining({ fromUser: 'carla', toUser: 'ana', amount: 30 })]);
+    });
+
+    it('a recorded debt-simplified suggestion zeroes the scope, in another currency too', async () => {
+      const expenses = [
+        makeExpense({ amount: 60, paidBy: 'beto', participantIds: ['ana', 'beto'], currency: 'EUR' }),
+        makeExpense({ amount: 120, paidBy: 'carla', participantIds: ['beto', 'carla'] }),
+      ];
+      const users = ['ana', 'beto', 'carla'];
+      const suggestion = await calculateSettlementsWithConversion(expenses, [], users, 'USD', doubleEur);
+      expect(suggestion).toEqual([expect.objectContaining({ fromUser: 'ana', toUser: 'carla', amount: 60 })]);
+
+      const recorded = makeSettlement({ fromUserId: 'ana', toUserId: 'carla', amount: suggestion[0]!.amount });
+      expect(await calculateSettlementsWithConversion(expenses, [recorded], users, 'USD', doubleEur)).toEqual([]);
+    });
+
+    it('excludes a legacy settled expense and scopes to the event\'s own settlements', async () => {
+      const expenses = [
+        makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'], eventId: 'ev1' }),
+        makeExpense({ amount: 100, paidBy: 'ana', participantIds: ['ana', 'beto'], eventId: 'ev1', settledAt: '2026-01-01T00:00:00.000Z' }),
+      ];
+      const settlements = [
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 20, eventId: 'ev1' }),
+        makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 20, eventId: 'ev2' }),
+      ];
+      const result = await calculateSettlementsWithConversion(expenses, settlements, ['ana', 'beto'], 'USD', doubleEur, 'ev1');
+      expect(result).toEqual([expect.objectContaining({ fromUser: 'beto', toUser: 'ana', amount: 30, eventId: 'ev1' })]);
+    });
   });
 });
 
