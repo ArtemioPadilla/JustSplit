@@ -34,6 +34,11 @@ describe('notifyError', () => {
       expect.objectContaining({ title: 'Something broke', type: 'error', data: { variant: 'destructive' } }),
     );
   });
+
+  it('is announced assertively (Base UI high priority) and persists until dismissed, not auto-timed out (WCAG 2.2.1, plan B17b)', () => {
+    notifyError('Something broke');
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ priority: 'high', timeout: 0 }));
+  });
 });
 
 describe('notifyInfo', () => {
