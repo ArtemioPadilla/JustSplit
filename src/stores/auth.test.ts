@@ -4,7 +4,7 @@ import type { JustSplitProfile } from '@/schemas/profile';
 
 // `vi.mock` factories are hoisted above imports/top-level statements, so the
 // mocked values must be created through `vi.hoisted` to avoid a TDZ error.
-const { signInWithOAuthRedirect, waitForSession, authAdapter, profileStore } = vi.hoisted(() => ({
+const { signInWithOAuthRedirect, waitForSession, authAdapter, profileStore, clearPersistedQueryCache } = vi.hoisted(() => ({
   signInWithOAuthRedirect: vi.fn(),
   waitForSession: vi.fn(),
   authAdapter: {
@@ -20,6 +20,7 @@ const { signInWithOAuthRedirect, waitForSession, authAdapter, profileStore } = v
     set: vi.fn(),
     update: vi.fn().mockResolvedValue(undefined),
   },
+  clearPersistedQueryCache: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/lib/data/client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/data/client')>()),
@@ -27,6 +28,10 @@ vi.mock('@/lib/data/client', async (importOriginal) => ({
   waitForSession,
 }));
 vi.mock('@/lib/data/adapter', () => ({ authAdapter, profileStore }));
+vi.mock('@/lib/queryClient', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/queryClient')>()),
+  clearPersistedQueryCache,
+}));
 
 import {
   completeOAuthSignIn,
@@ -69,6 +74,11 @@ describe('stores/auth actions (plan B4)', () => {
   it('signOut delegates to authAdapter.signOut', async () => {
     await signOut();
     expect(authAdapter.signOut).toHaveBeenCalled();
+  });
+
+  it('signOut clears the persisted Query cache (ADR 0004: it is a copy of the signed-out user\'s data)', async () => {
+    await signOut();
+    expect(clearPersistedQueryCache).toHaveBeenCalled();
   });
 
   it('resetPassword forwards a redirectTo built from withBase on the current origin', async () => {
