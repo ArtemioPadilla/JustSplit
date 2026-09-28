@@ -176,6 +176,16 @@ describe('ExpenseListIsland', () => {
     expect(await screen.findByText(/no expenses yet/i)).toBeInTheDocument();
   });
 
+  it('renders an "Add expense" link to /expenses/new (plan B10)', async () => {
+    useExpenses.mockReturnValue({ data: [] });
+    useEvents.mockReturnValue({ data: [] });
+
+    render(<ExpenseListIsland />);
+    emit(USER);
+
+    expect(await screen.findByRole('link', { name: /add expense/i })).toHaveAttribute('href', '/expenses/new');
+  });
+
   it('renders rows with the description, paid-by name, event link and a settled badge', async () => {
     useExpenses.mockReturnValue({
       data: [
