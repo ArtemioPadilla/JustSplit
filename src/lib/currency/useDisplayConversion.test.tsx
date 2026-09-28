@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { $profile } from '@/stores/session';
 import { useDisplayConversion } from './useDisplayConversion';
 
@@ -95,6 +95,58 @@ describe('useDisplayConversion', () => {
     await waitFor(() => expect(fetchExchangeRate).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole('button', { name: 'refresh' }));
     await waitFor(() => expect(fetchExchangeRate).toHaveBeenCalledTimes(2));
+  });
+
+  it('never reports ready with rates resolved for the PREVIOUS target after the target changes (coordinator review)', async () => {
+    // 10 EUR converted at the first (USD) rate is 20; at the second (GBP)
+    // rate it is 30 — two easily-distinguishable numbers, so a render that
+    // reports ready with the wrong one is unambiguous.
+    fetchExchangeRate.mockResolvedValueOnce({ rate: 2, isFallback: false });
+
+    const renders: Array<{ ready: boolean; converted: number | string }> = [];
+    function ProbeHarness({ currencies }: { currencies: string[] }) {
+      const { convert, ready } = useDisplayConversion(currencies);
+      const converted = ready ? convert(10, 'EUR') : 'n/a';
+      // Recorded on every render function CALL, not just the final committed
+      // DOM — React still calls the component body for an intermediate
+      // render even when a same-tick effect immediately supersedes its
+      // commit, which is exactly the transient state this test guards
+      // against (screen.getByTestId alone cannot see it: by the time
+      // act() below returns, only the FINAL, already-corrected render is
+      // in the DOM).
+      renders.push({ ready, converted });
+      return null;
+    }
+
+    render(<ProbeHarness currencies={['EUR']} />);
+    await waitFor(() => expect(renders.at(-1)!.ready).toBe(true));
+    expect(renders.at(-1)).toEqual({ ready: true, converted: 20 });
+
+    const beforeSwitch = renders.length;
+    let resolveSecond!: (v: { rate: number; isFallback: boolean }) => void;
+    fetchExchangeRate.mockReturnValueOnce(new Promise((r) => (resolveSecond = r)));
+
+    act(() => {
+      $profile.set({
+        id: 'u1',
+        apps: [],
+        permissions: [],
+        preferences: { preferredCurrency: 'GBP' },
+      });
+    });
+
+    // Not yet resolved for GBP: no render since the switch may report ready
+    // with the stale USD-derived value (20).
+    const sinceSwitch = renders.slice(beforeSwitch);
+    expect(sinceSwitch.some((r) => r.ready && r.converted === 20)).toBe(false);
+
+    resolveSecond({ rate: 3, isFallback: false });
+    await waitFor(() => expect(renders.at(-1)!.ready).toBe(true));
+    expect(renders.at(-1)).toEqual({ ready: true, converted: 30 });
+
+    // Re-check the full history once settled: the stale value must never
+    // have been reported as ready at any point after the switch.
+    expect(renders.slice(beforeSwitch).some((r) => r.ready && r.converted === 20)).toBe(false);
   });
 
   it('does not throw on an unmount before the fetch resolves (cancelled flag)', async () => {
