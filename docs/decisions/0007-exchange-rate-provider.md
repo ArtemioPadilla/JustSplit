@@ -69,6 +69,18 @@ visible attribution link on any page that displays its data.
   COPY of the cache (mutating the atom's own Map in place would neither
   notify subscribers nor persist) and persists a freshly-fetched entry
   through `setRateCacheEntry`.
+- **Request coalescing** (found in B16 review, fixed before this ADR's first
+  merge): `CurrencyExchangeTicker`, and every later Phase 2 list island
+  converting many amounts, calls `fetchExchangeRate` once per OTHER
+  currency against the SAME base — against a cold/expired cache, that is a
+  synchronous fan-out of concurrent calls, not one call. `fetchExchangeRate`
+  tracks one in-flight "leader" promise per base currency: the first
+  concurrent caller for a base does the real fetch; every other caller that
+  arrives before it settles resolves its own target currency from whatever
+  the leader's attempt left in `$rateCache` (the full table, on success)
+  instead of issuing its own request. This is what makes the "at most once
+  per base currency per 6 hours per browser" claim below actually true for
+  a fan-out, not just for sequential calls.
 - **Fallback**: on any fetch failure (network down, rate-limited, malformed
   response), `getExchangeRate` falls back to the hand-maintained
   `FALLBACK_RATES` table (direct pair, then the inverse, `domain/
@@ -120,12 +132,12 @@ and would not need to change.
 
 | Stakeholder | Impact | Mitigation |
 |---|---|---|
-| End users (privacy) | Every distinct base currency the user's session requests reveals their IP to a third party (open.er-api.com) — a visitor's approximate location, correlated with their currency choice. | Only the currency CODE leaves the browser, never a user id, session token, or the amounts being converted. The 6-hour cache means this happens at most once per base currency per 6 hours per browser, not per page view. |
+| End users (privacy) | Every distinct base currency the user's session requests reveals their IP to a third party (open.er-api.com) — a visitor's approximate location, correlated with their currency choice. | Only the currency CODE leaves the browser, never a user id, session token, or the amounts being converted. The 6-hour cache means this happens at most once per base currency per 6 hours per browser, not per page view — and `fetchExchangeRate`'s request coalescing (above) means a single page rendering many converted amounts for the same base (the ticker; later Phase 2 list islands) still only ever issues that one request, not one per amount shown. |
 | End users (trust in the numbers shown) | A user deciding how much to actually pay someone could be misled by a stale, wrong, or fabricated exchange rate presented as current. | `isFallback` is disclosed everywhere a rate is shown (visible marker + sr-only text, never silent); the rate-1 placeholder for a fallback-less pair is omitted rather than shown as false 1:1 parity — the two honesty rules this ADR records. |
 | End users (screen readers / assistive tech) | A "some rates are approximate" note or a bare "*" glyph that isn't in the accessible name is invisible to a screen-reader user, who would then trust an approximate rate as exact. | `CurrencyExchangeTicker` pairs every fallback glyph with `sr-only` text ("(approximate)") and keeps the standing "* Some rates are approximate" paragraph as real (non-`aria-hidden`) text. |
 | End users (assistive tech, refresh cadence) | A ticker that re-announces its full rate list every 30-minute refresh would be disruptive noise for a screen-reader user who has it open in a background tab. | The rate list is plain static content, never wrapped in `aria-live` — a refresh updates the DOM silently; nothing is re-announced. |
 | Maintainer / on-call | A provider rate-limit or outage could make every page load slow (waiting on a hung fetch) or spam the console with errors. | `getExchangeRate`'s try/catch always resolves (never rejects) within the fetch's own timeout behavior; `CurrencyExchangeTicker` additionally wraps each pair's `fetchExchangeRate` call so one failing pair never blanks the rest. |
-| The provider (open.er-api.com) | A free, unauthenticated tier is vulnerable to abusive request volume from any one integrator, degrading service for everyone using it. | The 6-hour client-side cache caps JustSplit's own request volume per visitor to a handful of calls a day regardless of how many pages they view; the attribution link is kept exactly as the free tier's terms require. |
+| The provider (open.er-api.com) | A free, unauthenticated tier is vulnerable to abusive request volume from any one integrator, degrading service for everyone using it. | The 6-hour client-side cache caps JustSplit's own request volume per visitor to a handful of calls a day regardless of how many pages they view; request coalescing caps it further within any one page load, since a page that converts many amounts against the same base (the ticker; later Phase 2 list islands) issues one request for that base, not one per converted amount; the attribution link is kept exactly as the free tier's terms require. |
 
 ## Supersedes
 
