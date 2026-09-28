@@ -57,3 +57,29 @@ describe('/showcase (plan B17a)', () => {
     expect(src).toMatch(/<ShowcaseExportCsvButton\s+client:(idle|visible)/);
   });
 });
+
+/**
+ * Plan B8a: MonthlyTrendsChart/ExpenseDistribution/BalanceOverview are the
+ * dashboard's chart widgets — CLAUDE.md quality bar requires them in
+ * `/showcase` like every other reusable widget (B16/B17a). The island must
+ * load them through `React.lazy` (source-text check here; the built-HTML
+ * assertion lives in `scripts/check-charts-bundle.mjs`, chained into
+ * `npm run check` after `astro build` — unit tests run before the build and
+ * can't grep `dist/`), so Recharts never lands in this page's static import
+ * graph.
+ */
+describe('/showcase (plan B8a)', () => {
+  it('mounts ShowcaseDashboardCharts live, hydrated only when scrolled into view', () => {
+    expect(src).toMatch(/import\s+ShowcaseDashboardCharts\s+from\s+['"][^'"]*ShowcaseDashboardCharts['"]/);
+    expect(src).toMatch(/<ShowcaseDashboardCharts\s+client:visible/);
+  });
+
+  it('loads the chart widgets through React.lazy, not a static import', () => {
+    const islandSrc = readFileSync(
+      resolve(ROOT, 'src/components/islands/ShowcaseDashboardCharts.tsx'),
+      'utf8',
+    );
+    expect(islandSrc).toMatch(/React\.lazy\(\s*\(\)\s*=>\s*import\(['"][^'"]*DashboardCharts\.lazy['"]\)/);
+    expect(islandSrc).not.toMatch(/^import\s+DashboardCharts\s+from/m);
+  });
+});
