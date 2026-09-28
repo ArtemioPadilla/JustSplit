@@ -155,7 +155,7 @@ describe('GroupDetailView', () => {
 
     expect(AttachRowsPanel).toHaveBeenCalledWith(
       expect.objectContaining({ groupId: 'g1', attachableExpenses: [{ id: 'e1', description: 'Attachable' }] }),
-      expect.anything(),
+      undefined,
     );
   });
 
@@ -172,7 +172,7 @@ describe('GroupDetailView', () => {
 
     expect(MembersSection).toHaveBeenCalledWith(
       expect.objectContaining({ friendCandidates: [{ id: 'u3', name: 'Caro' }] }),
-      expect.anything(),
+      undefined,
     );
   });
 });
