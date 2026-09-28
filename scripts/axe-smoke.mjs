@@ -17,7 +17,8 @@
  * via `playwright-core` — no download step, works offline in CI.
  *
  * Pages checked (plan B6): `/`, `/404`, `/auth/signin/`, `/showcase`.
- * `/landing` joins this list in plan B7, which is what builds the page.
+ * `/landing`, `/about`, `/help` join this list in plan B7, which is what
+ * builds those pages.
  */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -32,7 +33,7 @@ const DIST = join(ROOT, 'dist');
 // set) still serves correctly through this same local server.
 const BASE = (process.env.ASTRO_BASE || '/').replace(/\/$/, '');
 
-const PAGES = ['/', '/404', '/auth/signin/', '/showcase'];
+const PAGES = ['/', '/404', '/auth/signin/', '/showcase', '/landing', '/about', '/help'];
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
