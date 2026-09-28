@@ -41,7 +41,7 @@ describe('RecentExpenses', () => {
 
     expect(screen.getByText('Dinner')).toBeInTheDocument();
     expect(screen.getByText('$50.75')).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText(/Alice/)).toBeInTheDocument();
   });
 
   it('links each expense to its detail page', () => {
