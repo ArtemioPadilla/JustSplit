@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
-import { ReceiptImage } from '@/components/features/ReceiptImage';
+import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { removeAvatar, uploadAvatar } from '@/lib/data/storage';
 import { notifyError, notifyInfo, notifySuccess } from '@/stores/notifications';
 import { updateProfile } from '@/stores/auth';
@@ -15,17 +14,15 @@ export interface AvatarUploadFieldProps {
   uid: string;
   /** Used for the fallback initials and the image's accessible name. */
   name: string;
-  /** The CURRENT `profiles.avatarUrl` object path, or null/undefined if none. */
+  /**
+   * The CURRENT `profiles.avatarUrl` — an `avatars/{uid}/…` storage path
+   * once the user has uploaded a custom photo, or still an `https:` URL
+   * (Google OAuth's `photoURL`, `createJustSplitProfile`'s default) if they
+   * never have. Rendered through `UserAvatar` (plan B15 follow-up), which
+   * resolves either shape safely — never through `ReceiptImage` directly,
+   * which only knows how to resolve a receipts-bucket object path.
+   */
   avatarPath: string | null | undefined;
-}
-
-/** First letters of up to two words — mirrors `UserAccountMenu`'s own `initials`. */
-function initials(value: string): string {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0]?.[0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
 }
 
 /** Object-URL preview for the pending pick, revoked on change/unmount. */
@@ -133,12 +130,14 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-muted">
         {previewUrl ? (
           <img src={previewUrl} alt="" className="h-full w-full object-cover" />
-        ) : avatarPath ? (
-          <ReceiptImage path={avatarPath} alt={`${name}'s profile photo`} className="h-full w-full object-cover" />
         ) : (
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="text-lg">{initials(name)}</AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            src={avatarPath}
+            name={name}
+            alt={`${name}'s profile photo`}
+            className="h-16 w-16"
+            fallbackClassName="text-lg"
+          />
         )}
       </div>
       <div className="flex flex-col gap-2">
