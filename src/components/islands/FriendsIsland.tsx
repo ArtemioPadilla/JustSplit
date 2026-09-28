@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -19,15 +19,6 @@ import { notifyError, notifySuccess } from '@/stores/notifications';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import ErrorBoundary from './ErrorBoundary';
-
-/** First letters of up to two words — same rule as `UserAccountMenu`'s Avatar fallback. */
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0]?.[0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 type PersonRow = { id: string; name: string | null; avatarUrl: string | null };
 
@@ -184,10 +175,7 @@ function PersonBadge({ person }: { person: PersonRow | undefined }) {
   const name = person?.name ?? 'Unknown';
   return (
     <div className="flex items-center gap-3">
-      <Avatar className="h-9 w-9">
-        {person?.avatarUrl && <AvatarImage src={person.avatarUrl} alt="" />}
-        <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
-      </Avatar>
+      <UserAvatar src={person?.avatarUrl} name={name} alt="" className="h-9 w-9" fallbackClassName="text-xs" />
       <span className="font-medium text-foreground">{name}</span>
     </div>
   );
