@@ -30,17 +30,17 @@ const categories: Category[] = [
     name: 'Getting Started',
     faqs: [
       { question: 'How do I create an account?', answer: `Sign up from the ${SITE.name} sign-in page — register with your email address or Google.` },
-      { question: `Is ${SITE.name} free to use?`, answer: `Yes! ${SITE.name} is completely free for basic expense splitting.` },
-      { question: 'How do I add friends?', answer: "Go to the Friends section and invite people by email or a shareable invitation link." },
+      { question: `Is ${SITE.name} free to use?`, answer: `Yes. ${SITE.name} is free to use, and there is no paid plan.` },
+      { question: 'How do I add friends?', answer: "Go to Friends and add people by their email address. If they don't have an account yet, you can send them an invitation link to sign up." },
     ],
   },
   {
     id: 'managing-expenses',
     name: 'Managing Expenses',
     faqs: [
-      { question: 'How do I add an expense?', answer: 'Use the "+" action on the dashboard or Expenses page — amount, description, date, who paid, and how to split it.' },
-      { question: 'Can I split expenses unequally?', answer: 'Yes — equal, percentage-based, share-based and exact-amount splits are all supported.' },
-      { question: 'How do I edit or delete an expense?', answer: 'Open the expense from your list and use its edit or delete action; balances recalculate for everyone involved.' },
+      { question: 'How do I add an expense?', answer: 'Use "Add expense" on the dashboard or the Expenses page, then enter the amount, description, date, who paid, and how to split it.' },
+      { question: 'Can I split expenses unequally?', answer: 'Yes. You can split equally, by percentage or by exact amounts.' },
+      { question: 'How do I edit or delete an expense?', answer: 'Open the expense from your list and use Edit or Delete. Deleting is available to whoever created or paid for the expense, and balances recalculate for everyone involved.' },
     ],
   },
   {
@@ -48,8 +48,8 @@ const categories: Category[] = [
     name: 'Groups & Friends',
     faqs: [
       { question: 'How do I create a group?', answer: 'Go to the Groups section, create a group, add a name and invite members.' },
-      { question: "Can I add someone who doesn't use JustSplit?", answer: 'Yes — add them as a non-registered participant; you can invite them to a full account anytime.' },
-      { question: 'How do I remove someone from a group?', answer: 'From the group members list — they need a zero balance first.' },
+      { question: "Can I add someone who doesn't use JustSplit?", answer: 'Everyone in an expense needs a JustSplit account, so the amounts and balances stay accurate for each person. Invite them from Friends. Once they sign up, you can add them.' },
+      { question: 'How do I remove someone from a group?', answer: 'A group admin can remove members from the group\'s member list.' },
     ],
   },
   {
