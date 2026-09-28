@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
 
 /**
@@ -33,14 +34,16 @@ import { $authReady, $profile, $user } from '@/stores/session';
 vi.mock('./AuthIsland', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('./AuthGate', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
-const { useEvents, useExpenses, useProfiles, useDisplayConversion } = vi.hoisted(() => ({
+const { useEvents, useExpenses, useSettlements, useProfiles, useDisplayConversion } = vi.hoisted(() => ({
   useEvents: vi.fn(),
   useExpenses: vi.fn(),
+  useSettlements: vi.fn(),
   useProfiles: vi.fn(),
   useDisplayConversion: vi.fn(),
 }));
 vi.mock('@/lib/data/hooks/useEvents', () => ({ useEvents }));
 vi.mock('@/lib/data/hooks/useExpenses', () => ({ useExpenses }));
+vi.mock('@/lib/data/hooks/useSettlements', () => ({ useSettlements }));
 vi.mock('@/lib/data/hooks/useProfiles', () => ({ useProfiles }));
 vi.mock('@/lib/currency/useDisplayConversion', () => ({ useDisplayConversion }));
 
@@ -90,15 +93,29 @@ const EVENTS: Event[] = [
 ];
 
 const EXPENSES: Expense[] = [
-  // Team Trip: 100 USD (unsettled) + 50 EUR (settled, x2 = 100 USD) + 40 USD that does not name u1 => total 240, unsettled 140.
+  // Team Trip: 100 USD (u1 paid, 50/50 with u2) + 50 EUR (legacy settled, u2 paid, u1's 25 EUR = 50 USD had been settled)
+  // + 40 USD u2 paid with u3 that does not name u1 => total 240; balances u1 +50, u2 -30, u3 -20; still owed 50.
   makeExpense({ id: 'x1', eventId: 'ev1', amount: 100, paidBy: 'u1', memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 50 }, { userId: 'u2', amount: 50 }] }),
-  makeExpense({ id: 'x2', eventId: 'ev1', amount: 50, currency: 'EUR', paidBy: 'u2', memberIds: ['u1', 'u2'], settledAt: '2023-06-18T00:00:00.000Z' }),
-  makeExpense({ id: 'x3', eventId: 'ev1', amount: 40, paidBy: 'u2', memberIds: ['u2', 'u3'] }),
-  // Conference: 150 EUR (x2 = 300 USD), unsettled.
-  makeExpense({ id: 'x4', eventId: 'ev2', amount: 150, currency: 'EUR', paidBy: 'u1' }),
+  makeExpense({ id: 'x2', eventId: 'ev1', amount: 50, currency: 'EUR', paidBy: 'u2', memberIds: ['u1', 'u2'], settledAt: '2023-06-18T00:00:00.000Z', splits: [{ userId: 'u1', amount: 25 }, { userId: 'u2', amount: 25 }] }),
+  makeExpense({ id: 'x3', eventId: 'ev1', amount: 40, paidBy: 'u2', memberIds: ['u2', 'u3'], splits: [{ userId: 'u2', amount: 20 }, { userId: 'u3', amount: 20 }] }),
+  // Conference: 150 EUR (x2 = 300 USD) paid by u1 for u1 and u2: u2 owes 150 USD, nothing paid yet.
+  makeExpense({ id: 'x4', eventId: 'ev2', amount: 150, currency: 'EUR', paidBy: 'u1', memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 75 }, { userId: 'u2', amount: 75 }] }),
   // An expense with no event is never counted anywhere.
   makeExpense({ id: 'x5', eventId: null, amount: 9999, paidBy: 'u1' }),
 ];
+
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'id' | 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  return {
+    groupId: null,
+    currency: 'USD',
+    date: '2023-06-19',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: NOW,
+    eventId: null,
+    ...overrides,
+  };
+}
 
 const PROFILES = [
   { id: 'u1', name: 'Ana', avatarUrl: null },
@@ -124,6 +141,7 @@ beforeEach(() => {
 
   useEvents.mockReturnValue(live(EVENTS));
   useExpenses.mockReturnValue(live(EXPENSES));
+  useSettlements.mockReturnValue(live<Settlement>([]));
   useProfiles.mockReturnValue({ data: PROFILES, isError: false, isFetching: false, refetch: vi.fn() });
   useDisplayConversion.mockReturnValue({ convert, ready: true, approximate: false, refresh: vi.fn() });
 });
@@ -157,6 +175,14 @@ describe('EventsListIsland — chrome and states', () => {
     const again = render(<EventsListIsland />);
     expect(again.container.querySelector('[aria-busy="true"]')).not.toBeNull();
     expect(screen.queryByRole('article')).not.toBeInTheDocument();
+    again.unmount();
+
+    // Settlements too: a progress figure computed without the payments would be wrong.
+    useExpenses.mockReturnValue(live(EXPENSES));
+    useSettlements.mockReturnValue(live<Settlement>(undefined));
+    const settlementsLoading = render(<EventsListIsland />);
+    expect(settlementsLoading.container.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
   });
 
   it('shows an empty state whose primary action creates the first event', () => {
@@ -169,6 +195,7 @@ describe('EventsListIsland — chrome and states', () => {
   it.each([
     ['events', () => useEvents.mockReturnValue(live(undefined, { isError: true }))],
     ['expenses', () => useExpenses.mockReturnValue(live(undefined, { isError: true }))],
+    ['settlements', () => useSettlements.mockReturnValue(live<Settlement>(undefined, { isError: true }))],
     ['profiles', () => useProfiles.mockReturnValue({ data: undefined, isError: true, isFetching: false, refetch: vi.fn() })],
   ])('shows an error state with a retry when %s fail to load (a failed query is not an empty list)', async (_name, fail) => {
     fail();
@@ -182,13 +209,16 @@ describe('EventsListIsland — chrome and states', () => {
     const eventsRefetch = vi.fn();
     const expensesRefetch = vi.fn();
     const profilesRefetch = vi.fn();
+    const settlementsRefetch = vi.fn();
     useEvents.mockReturnValue(live(undefined, { isError: true, refetch: eventsRefetch }));
     useExpenses.mockReturnValue(live(EXPENSES, { refetch: expensesRefetch }));
+    useSettlements.mockReturnValue(live<Settlement>([], { refetch: settlementsRefetch }));
     useProfiles.mockReturnValue({ data: PROFILES, isError: false, isFetching: false, refetch: profilesRefetch });
     const { unmount } = render(<EventsListIsland />);
     await userEvent.click(screen.getByRole('button', { name: /retry/i }));
     expect(eventsRefetch).toHaveBeenCalledTimes(1);
     expect(expensesRefetch).toHaveBeenCalledTimes(1);
+    expect(settlementsRefetch).toHaveBeenCalledTimes(1);
     expect(profilesRefetch).toHaveBeenCalledTimes(1);
     unmount();
 
@@ -217,14 +247,17 @@ describe('EventsListIsland — ported from page.test.tsx (EventList)', () => {
 });
 
 describe('EventsListIsland — per-event figures (ADR 0013: every expense of the event, same for every viewer)', () => {
-  it('shows the total in the display currency with its code, summed over all of the event\'s expenses, and the unsettled amount', () => {
+  it('shows the total in the display currency with its code, summed over all of the event\'s expenses, and what is still owed', () => {
     render(<EventsListIsland />);
     const team = screen.getByRole('article', { name: /team trip/i });
-    // 100 + 50 EUR x2 + 40 (which does not name the viewer) = 240; unsettled = 100 + 40 = 140.
+    // 100 + 50 EUR x2 + 40 (which does not name the viewer) = 240; still owed = the positive balances = 50.
     expect(within(team).getByText('USD 240.00')).toBeInTheDocument();
-    expect(within(team).getByText('USD 140.00')).toBeInTheDocument();
+    expect(within(team).getByText('Still owed')).toBeInTheDocument();
+    expect(within(team).getByText('USD 50.00')).toBeInTheDocument();
+    expect(within(team).queryByText('Unsettled')).not.toBeInTheDocument();
     const conference = screen.getByRole('article', { name: /conference/i });
-    expect(within(conference).getAllByText('USD 300.00')).toHaveLength(2);
+    expect(within(conference).getByText('USD 300.00')).toBeInTheDocument();
+    expect(within(conference).getByText('USD 150.00')).toBeInTheDocument();
   });
 
   it('never counts an expense that belongs to no event, nor another event\'s', () => {
@@ -234,11 +267,53 @@ describe('EventsListIsland — per-event figures (ADR 0013: every expense of the
     expect(within(reunion).getAllByText('USD 0.00').length).toBeGreaterThan(0);
   });
 
-  it('shows the settled share as a labelled progress bar with text', () => {
+  it('shows settled over settled plus still owed as a labelled progress bar with text', () => {
     render(<EventsListIsland />);
     const team = screen.getByRole('article', { name: /team trip/i });
-    expect(within(team).getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '33');
-    expect(within(team).getByText(/33% settled/i)).toBeInTheDocument();
+    // Only the legacy settled expense has moved money: 50 / (50 + 50).
+    expect(within(team).getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '50');
+    expect(within(team).getByText(/50% settled/i)).toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: /conference/i })).getByText(/^0% settled$/i)).toBeInTheDocument();
+  });
+
+  it('reads "Nothing to settle" with no bar for an event with nothing owed and nothing settled', () => {
+    render(<EventsListIsland />);
+    const reunion = screen.getByRole('article', { name: /reunion/i });
+    expect(within(reunion).getByText(/nothing to settle/i)).toBeInTheDocument();
+    expect(within(reunion).queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('counts only each event\'s own settlements: a payment in another event, or in none, changes nothing here (ADR 0014)', () => {
+    useSettlements.mockReturnValue(
+      live<Settlement>([
+        makeSettlement({ id: 's1', eventId: 'ev1', fromUserId: 'u2', toUserId: 'u1', amount: 30 }),
+        makeSettlement({ id: 's2', eventId: 'ev2', fromUserId: 'u2', toUserId: 'u1', amount: 100 }),
+        makeSettlement({ id: 's3', eventId: null, fromUserId: 'u2', toUserId: 'u1', amount: 999 }),
+      ]),
+    );
+    render(<EventsListIsland />);
+    const team = screen.getByRole('article', { name: /team trip/i });
+    // u1 +50 -30 = 20 still owed; settled 30 + 50 legacy = 80 of 100.
+    expect(within(team).getByText('USD 20.00')).toBeInTheDocument();
+    expect(within(team).getByText(/80% settled/i)).toBeInTheDocument();
+    const conference = screen.getByRole('article', { name: /conference/i });
+    // u2 owed 150 and paid 100: 50 still owed, 100 / (100 + 50) = 67%.
+    expect(within(conference).getByText('USD 50.00')).toBeInTheDocument();
+    expect(within(conference).getByText(/67% settled/i)).toBeInTheDocument();
+    // Never lets the unlinked 999 anywhere near a figure.
+    expect(screen.queryByText(/999/)).not.toBeInTheDocument();
+  });
+
+  it('reads "Settled up" once every debt in the event is paid', () => {
+    useSettlements.mockReturnValue(
+      live<Settlement>([
+        makeSettlement({ id: 's1', eventId: 'ev2', fromUserId: 'u2', toUserId: 'u1', amount: 150 }),
+      ]),
+    );
+    render(<EventsListIsland />);
+    const conference = screen.getByRole('article', { name: /conference/i });
+    expect(within(conference).getByText(/^settled up$/i)).toBeInTheDocument();
+    expect(within(conference).getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '100');
   });
 
   it('gives each event\'s timeline exactly that event\'s expenses, in the display currency', () => {
