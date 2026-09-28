@@ -34,7 +34,7 @@
 // keyboard-focus-only test (the legacy suite only ever used `fireEvent.click`),
 // and the "no dates set" / "no expenses" guard states.
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EventTimeline, type EventTimelineExpense } from './EventTimeline';
@@ -243,11 +243,11 @@ describe('EventTimeline — expenses panel is focus-visible, not permanently inv
     const panel = screen.getByTestId('timeline-expenses-panel');
     const items = screen.getAllByTestId('timeline-sr-expense');
 
-    items[0].focus();
+    fireEvent.focus(items[0]);
     expect(panel).not.toHaveClass('sr-only');
     expect(screen.getByText('Expenses in this event')).toBeInTheDocument();
 
-    items[0].blur();
+    fireEvent.blur(items[0]);
     expect(panel).toHaveClass('sr-only');
   });
 

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/domain/formatters';
@@ -31,11 +32,23 @@ import { calculateTimelineProgress, formatTimelineDate, groupNearbyExpenses, typ
  *    keyboard IS the primary path for a screen-reader/keyboard user, not an
  *    incidental hover).
  *  - A marker's hover/focus card is a *convenience*, never the only path:
- *    every expense is ALSO listed in a permanently-present `sr-only`
- *    list at the bottom, each entry a real button with the same
+ *    every expense is ALSO listed in an "Expenses in this event" panel at
+ *    the bottom, each entry a real button with the same
  *    date/description/amount/status text, wired to the same `onNavigate`.
  *    A screen-reader user (or a `prefers-reduced-motion`/no-JS-hover
  *    environment) never needs to trigger a hover card at all.
+ *  - That panel is `sr-only` (Tailwind) until focus lands inside it, then it
+ *    becomes a real visible panel (coordinator review, WCAG 2.4.7 Focus
+ *    Visible fix): a sighted keyboard user must never tab onto a control
+ *    they cannot see. Driven by a plain `onFocus`/`onBlur` state toggle,
+ *    not CSS `:focus-within` — deliberately, so it's testable without a
+ *    real browser/compiled CSS (jsdom has neither). The hover-card popup's
+ *    own per-expense buttons are `tabIndex={-1}` (opted OUT of the tab
+ *    order): a Base UI `PreviewCard` isn't a reliable container for
+ *    interactive content — tabbing out of the trigger closes it — so this
+ *    panel is the ONE dependable keyboard path into a same-day grouped
+ *    marker's individual expenses; the popup stays a mouse/hover quick
+ *    preview only, still clickable, just not tab-reachable.
  *  - Settlement status (settled/unsettled/mixed) and pre-/post-event
  *    placement are each conveyed by an `aria-label` and the legend's text
  *    labels, not by marker color alone.
@@ -109,6 +122,7 @@ function expenseAriaLabel(expense: EventTimelineExpense, convert: EventTimelineP
 }
 
 export function EventTimeline({ event, expenses, users, convert, currency, onNavigate, className }: EventTimelineProps) {
+  const [panelFocused, setPanelFocused] = React.useState(false);
   const startDate = event.startDate ?? event.date;
 
   if (!startDate) {
@@ -184,6 +198,7 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
                         <li key={expense.id}>
                           <button
                             type="button"
+                            tabIndex={-1}
                             onClick={() => onNavigate(expense.id)}
                             aria-label={expenseAriaLabel(expense, convert, currency)}
                             className="flex w-full flex-col gap-0.5 rounded-md p-2 text-left text-xs hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
@@ -250,15 +265,34 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
       )}
 
       {expenses.length > 0 && (
-        <ul className="sr-only">
-          {expenses.map((expense) => (
-            <li key={expense.id}>
-              <button type="button" data-testid="timeline-sr-expense" onClick={() => onNavigate(expense.id)}>
-                {expenseAriaLabel(expense, convert, currency)}
-              </button>
-            </li>
-          ))}
-        </ul>
+        // This div isn't itself interactive (no onClick, no role) — it only
+        // tracks whether focus is somewhere inside it (via native
+        // focus/blur bubbling to reveal itself, WCAG 2.4.7 fix above) so a
+        // sighted keyboard user never tabs onto a control they can't see.
+        // The real interactive elements are its child <button>s.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <div
+          data-testid="timeline-expenses-panel"
+          onFocus={() => setPanelFocused(true)}
+          onBlur={() => setPanelFocused(false)}
+          className={cn(panelFocused ? 'rounded-lg border border-border bg-card p-3' : 'sr-only')}
+        >
+          <p className="mb-2 text-sm font-medium text-foreground">Expenses in this event</p>
+          <ul className="flex flex-col gap-1">
+            {expenses.map((expense) => (
+              <li key={expense.id}>
+                <button
+                  type="button"
+                  data-testid="timeline-sr-expense"
+                  onClick={() => onNavigate(expense.id)}
+                  className="w-full rounded-md p-2 text-left text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {expenseAriaLabel(expense, convert, currency)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
