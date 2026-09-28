@@ -1,4 +1,5 @@
 import type { CreateEventInput, Event, EventPatch } from '@/schemas/event';
+import type { EventFormValues } from '@/schemas/event-form';
 import type { Expense } from '@/schemas/expense';
 import { formatCalendarDate, parseCalendarDate } from './dates';
 import { calculateSettledPercentage } from './timeline';
@@ -169,19 +170,13 @@ export function validateEventDates(startDate: string, endDate: string): string |
   return null;
 }
 
-export interface BuildCreateEventInputParams {
-  name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  preferredCurrency: string;
-  /** The creator: `created_by`, and always a member (`events_insert` requires it). */
-  uid: string;
-  /** The picked members; the creator is added if missing and never duplicated. */
-  memberIds: string[];
-  /** `?group=`: `events_insert` then requires every member to be in the group. */
-  groupId?: string;
-}
+/**
+ * The event form's parsed values (`EventFormValues`, derived from its Zod schema — never
+ * re-declared here, so the form and the payload builders cannot drift) plus who is creating it.
+ * `memberIds` are the picked members; the creator is added if missing and never duplicated.
+ * `groupId` is `?group=`: `events_insert` then requires every member to be in that group.
+ */
+export type BuildCreateEventInputParams = EventFormValues & { uid: string; groupId?: string };
 
 /** The `events` create payload: text trimmed, `date` written with `startDate`, `kind: 'event'`, the creator first in `memberIds`. */
 export function buildCreateEventInput(params: BuildCreateEventInputParams): CreateEventInput {
@@ -200,14 +195,7 @@ export function buildCreateEventInput(params: BuildCreateEventInputParams): Crea
   };
 }
 
-export interface EventEditValues {
-  name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  preferredCurrency: string;
-  memberIds: string[];
-}
+export type EventEditValues = EventFormValues;
 
 /**
  * The minimal patch for an edit: only the fields that changed, so an
