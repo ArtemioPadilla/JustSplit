@@ -76,3 +76,26 @@ export async function rpc<N extends RpcName>(
   if (error) throw error;
   return (data ?? []) as RpcFunctions[N]['returns'];
 }
+
+export interface OAuthRedirectResult {
+  error: Error | null;
+}
+
+/**
+ * The one raw-SDK call `src/stores/auth.ts`'s `signInWithGoogle` needs (plan
+ * B4). `AuthAdapter.signInWithProvider` cannot express a per-call
+ * `redirectTo`, so Google sign-in bypasses it and calls
+ * `client.auth.signInWithOAuth` directly — kept here, not in the store, so
+ * `@supabase/supabase-js` is never imported outside `src/lib/data/`
+ * (CLAUDE.md rule 7, `src/tests/data-boundary.test.ts`). Never throws: the
+ * SDK error is returned, not raised, matching `AuthAdapter`'s own methods.
+ */
+export async function signInWithOAuthRedirect(
+  provider: 'google',
+  redirectTo: string,
+  client: SupabaseClient | null = supabase,
+): Promise<OAuthRedirectResult> {
+  if (!client) return { error: new SupabaseDisabledError() };
+  const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo } });
+  return { error };
+}
