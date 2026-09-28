@@ -118,6 +118,45 @@ if (existsSync(signinHtmlPath)) {
   failures.push(`${signinHtmlPath} is missing — run \`astro build\` first`);
 }
 
+// ---- 3. Public pages must not load the Supabase SDK up front ------------
+// The header's UserMenuIsland is on every page. It reads Nano Stores only and
+// loads the auth actions (and with them @supabase/supabase-js, ~48 kB gz)
+// through a dynamic import on sign-out. Only STATIC imports count here: a
+// lazily imported chunk is fetched on demand, not on page load. B7 adds the
+// marketing pages (/landing, /about, /help) to this list.
+const PUBLIC_PAGES = ['index.html', '404.html'];
+function staticGraph(entryFiles) {
+  const seen = new Set();
+  const queue = [...entryFiles];
+  while (queue.length > 0) {
+    const name = queue.pop();
+    if (seen.has(name)) continue;
+    const path = join(ASTRO_DIR, name);
+    if (!existsSync(path)) continue;
+    seen.add(name);
+    const src = readFileSync(path, 'utf8');
+    for (const m of src.matchAll(/(?:from|import)\s*"\.\/([A-Za-z0-9._-]+\.js)"/g)) {
+      if (!seen.has(m[1])) queue.push(m[1]);
+    }
+  }
+  return seen;
+}
+for (const page of PUBLIC_PAGES) {
+  const htmlPath = join(DIST, page);
+  if (!existsSync(htmlPath)) {
+    failures.push(`${htmlPath} is missing — run \`astro build\` first`);
+    continue;
+  }
+  const html = readFileSync(htmlPath, 'utf8');
+  const entries = [...html.matchAll(/(?:component-url|renderer-url)="[^"]*\/_astro\/([A-Za-z0-9._-]+\.js)"/g)].map((m) => m[1]);
+  const heavy = [...staticGraph(entries)].filter((name) => readFileSync(join(ASTRO_DIR, name), 'utf8').includes('GoTrueClient'));
+  if (heavy.length > 0) {
+    failures.push(`dist/${page} statically loads @supabase/supabase-js (${heavy.join(', ')}) — public pages must not`);
+  } else {
+    console.log(`check-auth-bundle: dist/${page} loads no @supabase/supabase-js chunk up front`);
+  }
+}
+
 if (failures.length) {
   console.error(`\ncheck-auth-bundle failed:\n  - ${failures.join('\n  - ')}`);
   process.exit(1);
