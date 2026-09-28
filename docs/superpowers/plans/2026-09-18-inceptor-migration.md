@@ -1298,6 +1298,12 @@ resolves other users' names through `useProfiles` (B5a).
       mixed currencies through `convert`, a payer outside the participants, past-vs-upcoming events)
       + `DashboardCharts.lazy.test.tsx` (composition wiring).
 ### B8b. Dashboard island (`/`)
+- [x] **Tagged `risk:high` after the fact** (centinela review): the coordinator-review round below
+      touched `src/lib/data/relational-adapter.ts` and `src/lib/data/hooks/useLiveQuery.ts` (a
+      `src/lib/data/*` change trips the risk:high trigger) to fix live-query failure surfacing.
+      Documented as an amendment to ADR 0004 (`docs/decisions/0004-tanstack-query-over-storage-adapter.md`,
+      "Amendment (2026-09-28, plan B8b): live-query failure surfacing"), not a new ADR, since it
+      extends 0004's own `useLiveQuery`/`StorageAdapter` decision rather than a new layering choice.
 - [x] `DashboardIsland` (`ErrorBoundary > AuthIsland > AuthGate > Content`, the same composition as
       the B4 auth pages) composes `DashboardHeader`, `CurrencyExchangeTicker` (B16),
       `FinancialSummary`, `RecentExpenses`, `RecentSettlements`, `UpcomingEvents`, `WelcomeScreen`
@@ -1362,8 +1368,10 @@ resolves other users' names through `useProfiles` (B5a).
       confirming the script failed with the expected message, then reverting.
       `scripts/check-auth-bundle.mjs`'s public-pages check drops `index.html`: `/` is now the first
       AUTHENTICATED route island and is expected to load `@supabase/supabase-js` up front, same as
-      `/auth/signin/` (measured, not gated, in that script's section 2); `/landing`, `/about`,
-      `/help`, `/404` stay enforced.
+      `/auth/signin/` — that script's section 2 now measures and prints `/`'s own static-only chunk
+      graph (informational, no budget yet: 253.46 kB gz across 33 chunks, verified against a real
+      build) the same way it already measured `/auth/signin/`; `/landing`, `/about`, `/help`, `/404`
+      stay enforced.
 - [x] Acceptance: `npm run check:a11y` reports 0 violations on all 7 pages including `/`.
       `/landing` HTML still contains no supabase-js / `@cyber-eco` chunk (unchanged, B7's
       `MARKETING_PAGES` check). What axe actually scans for `/` in this environment (CI has no
@@ -1375,6 +1383,24 @@ resolves other users' names through `useProfiles` (B5a).
       `/landing` within one `location.replace` (no new history entry) — the same behavior
       `AuthGate.test.tsx` already covered generically, exercised here again end-to-end through
       `DashboardIsland.test.tsx`.
+- [x] **Coordinator/centinela review round** (two defects, then a risk:high re-review with two more
+      concerns): (1) `useDisplayConversion` could show `ready: true` with the PREVIOUS target's
+      resolved rates for one render after a currency change — fixed by keying `resolved` to the
+      exact request (`target|distinctCurrencies|nonce`) it answers, `ready` derived by comparing
+      that key during render, never from a separate state flag. (2) a failed live query
+      (`useExpenses`/`useEvents`/`useSettlements`) was silently indistinguishable from a
+      legitimately empty result (`RelationalSupabaseAdapter.subscribeToQuery`'s catch swallowed the
+      error into `callback([])`), so `DashboardIsland`'s `dataLoading` (`data === undefined`) never
+      resolved and rendered an endless skeleton — fixed end to end: `LiveQueryCallback<T>` forwards
+      the error, `useLiveQuery` exposes real `isError`/`error`/`refetch`, `DashboardIsland` checks
+      `isError` before `dataLoading` and renders `ErrorState` + Retry, generic message only (never
+      raw error/RLS/SQL text). Re-review (centinela `NEEDS_HUMAN`, risk:high — see the `risk:high`
+      bullet above) added: `refetch()` bounded to one in-flight retry (`isRetrying`, ref-tracked so
+      two clicks across separate render cycles never stack a second re-subscribe) with the Retry
+      button disabled/`aria-busy` for that window; a second line in the error state naming the
+      FeedbackFAB ("Report an issue") as the path forward for a failure Retry can't fix, without
+      inventing a support channel; the `LiveQueryCallback<T>` extension formalized as a named,
+      documented, exported type instead of an inline widened signature.
 ### B9. Expense list + detail islands (`/expenses/list`, `/expenses/view`)
 - [ ] List: `data-table` with URL-state sort/filter (Inceptor `use-data-table-url-state`; the full
       import closure was grafted in B1, or is added here if B1 chose the alternative); event filter
