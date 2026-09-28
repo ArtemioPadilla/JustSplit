@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateSettlementInputSchema, SettlementSchema } from './settlement';
+import { CreateSettlementInputSchema, SettleInputSchema, SettlementSchema } from './settlement';
 
 const validSettlement = {
   id: 'settle1',
@@ -58,5 +58,46 @@ describe('CreateSettlementInputSchema (plan B3)', () => {
     void _id;
     void _createdAt;
     expect(() => CreateSettlementInputSchema.parse(rest)).not.toThrow();
+  });
+});
+
+describe('SettleInputSchema (plan B14a — what a caller hands repos.settlements.settle)', () => {
+  const valid = { fromUserId: 'user1', toUserId: 'user2', amount: 50, currency: 'USD', date: '2026-09-28' };
+
+  it('parses the minimal input; identity, memberIds and groupId are the repo\'s to fill, never the caller\'s', () => {
+    const parsed = SettleInputSchema.parse(valid);
+    expect(parsed).toEqual(valid);
+    expect(Object.keys(SettleInputSchema.shape)).not.toEqual(expect.arrayContaining(['createdBy']));
+    expect(Object.keys(SettleInputSchema.shape)).not.toEqual(expect.arrayContaining(['memberIds']));
+    expect(Object.keys(SettleInputSchema.shape)).not.toEqual(expect.arrayContaining(['groupId']));
+  });
+
+  it('accepts the optional eventId, method and notes', () => {
+    expect(SettleInputSchema.parse({ ...valid, eventId: 'ev1', method: 'cash', notes: 'thanks' })).toMatchObject({ eventId: 'ev1', method: 'cash' });
+  });
+
+  it('rejects paying yourself', () => {
+    expect(() => SettleInputSchema.parse({ ...valid, toUserId: 'user1' })).toThrow();
+  });
+
+  it('rejects a zero, negative or non-finite amount', () => {
+    for (const amount of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => SettleInputSchema.parse({ ...valid, amount })).toThrow();
+    }
+  });
+
+  it('rejects an amount with more than cents of precision (round it first)', () => {
+    expect(() => SettleInputSchema.parse({ ...valid, amount: 10.005 })).toThrow();
+    expect(() => SettleInputSchema.parse({ ...valid, amount: 33.33 })).not.toThrow();
+  });
+
+  it('rejects a currency that is not a three-letter uppercase code, and a date that is not a calendar date', () => {
+    expect(() => SettleInputSchema.parse({ ...valid, currency: 'usd' })).toThrow();
+    expect(() => SettleInputSchema.parse({ ...valid, currency: 'US' })).toThrow();
+    expect(() => SettleInputSchema.parse({ ...valid, date: '28/09/2026' })).toThrow();
+  });
+
+  it('rejects an empty party id', () => {
+    expect(() => SettleInputSchema.parse({ ...valid, fromUserId: '' })).toThrow();
   });
 });

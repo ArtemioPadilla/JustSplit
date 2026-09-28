@@ -72,7 +72,12 @@ const eventsRepo = {
 };
 vi.mock('../repos/events', () => eventsRepo);
 
-const settlementsRepo = { visibleFilters: vi.fn(() => []) };
+const settlementsRepo = {
+  visibleFilters: vi.fn(() => []),
+  forEventFilters: vi.fn((eventId: string) => [{ field: 'eventId', operator: '==', value: eventId }]),
+  settle: vi.fn(async (input: unknown) => ({ id: 's1', ...(input as object) })),
+  remove: vi.fn(async () => undefined),
+};
 vi.mock('../repos/settlements', () => settlementsRepo);
 
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
@@ -86,7 +91,9 @@ const { useCreateExpense } = await import('./useCreateExpense');
 const { useUpdateExpense } = await import('./useUpdateExpense');
 const { useDeleteExpense } = await import('./useDeleteExpense');
 const { useProfiles } = await import('./useProfiles');
-const { useSettlements } = await import('./useSettlements');
+const { useSettlements, useEventSettlements } = await import('./useSettlements');
+const { useSettleUp } = await import('./useSettleUp');
+const { useRemoveSettlement } = await import('./useRemoveSettlement');
 const { useFriends } = await import('./useFriends');
 const { useUpdateFriendshipStatus } = await import('./useUpdateFriendshipStatus');
 const { useRemoveFriendship } = await import('./useRemoveFriendship');
@@ -183,6 +190,78 @@ describe('useSettlements (plan B8b — same pattern as useExpenses/useEvents)', 
     withClient(<Probe />);
     const [, , , options] = liveQuerySpy.mock.calls[0]!;
     expect((options as { enabled: boolean }).enabled).toBe(false);
+  });
+});
+
+describe('useEventSettlements (plan B14a — mirrors useEventExpenses)', () => {
+  it("subscribes 'settlements' where eventId == id, keyed per event and persisted", () => {
+    function Probe() {
+      useEventSettlements('ev1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(settlementsRepo.forEventFilters).toHaveBeenCalledWith('ev1');
+    expect(liveQuerySpy).toHaveBeenCalledWith(
+      ['settlements', 'event', 'ev1'],
+      'settlements',
+      [{ field: 'eventId', operator: '==', value: 'ev1' }],
+      { enabled: true, persist: true },
+    );
+  });
+
+  it('useEventSettlements(undefined) is disabled and carries no filter', () => {
+    function Probe() {
+      useEventSettlements(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    const [, , filters, options] = liveQuerySpy.mock.calls[0]!;
+    expect(filters).toEqual([]);
+    expect((options as { enabled: boolean }).enabled).toBe(false);
+  });
+});
+
+describe('useSettleUp / useRemoveSettlement (plan B14a)', () => {
+  it('useSettleUp calls repos.settlements.settle (one write) and invalidates the settlements queries only', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    const input = { fromUserId: 'u2', toUserId: 'u1', amount: 30, currency: 'USD', date: '2026-09-29' };
+    let settled = false;
+    function Probe() {
+      const mutation = useSettleUp();
+      React.useEffect(() => {
+        void mutation.mutateAsync(input).then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(settlementsRepo.settle).toHaveBeenCalledWith(input));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['settlements'] });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['expenses'] });
+  });
+
+  it('useRemoveSettlement calls repos.settlements.remove and invalidates the settlements queries', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useRemoveSettlement();
+      React.useEffect(() => {
+        void mutation.mutateAsync('s1').then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(settlementsRepo.remove).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['settlements'] });
   });
 });
 
