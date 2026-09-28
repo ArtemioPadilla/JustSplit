@@ -11,7 +11,7 @@ import { CurrencySelector } from '@/components/features/currency/CurrencySelecto
 import { ReceiptImage } from '@/components/features/ReceiptImage';
 import { LEGACY_CATEGORY_KEYS, type LegacyCategoryKey } from '@/domain/categories';
 import { formatCalendarDate, parseCalendarDate } from '@/domain/dates';
-import { resolveEventParticipants, violatesNoGroupInvariant } from '@/domain/expenseParticipants';
+import { resolveEventParticipants, resolveMemberIds, violatesAddedMembersRule } from '@/domain/expenseParticipants';
 import { acceptedFriendIds as computeAcceptedFriendIds } from '@/domain/friends';
 import { buildSplits, validateSplit } from '@/domain/expenseSplitter';
 import { useAddReceipts } from '@/lib/data/hooks/useAddReceipts';
@@ -85,10 +85,10 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   // A SEPARATE query from `groupQuery` above: when `?event=` resolves to an
   // event that belongs to a group, that group is generally NOT the same one
   // `?group=`/edit's own `contextGroupId` would resolve (there is no
-  // `?group=` param in the event case at all) — spec: `event.groupId` set
-  // means "treat this as a group expense", the same rule as `?group=`
-  // (coordinator review, risk:high: `eventId` has no column, so RLS knows
-  // nothing about event membership — only its OWN group, if any).
+  // `?group=` param in the event case at all). It decides whether the event
+  // expense can ALSO be a group expense (ADR 0013: only when the caller can
+  // see the group and every event member is in it); `event_id` itself needs
+  // no group at all.
   const eventGroupQuery = useGroup(eventQuery.data?.groupId ?? undefined);
   const friendsQuery = useFriends(uid);
 
@@ -113,8 +113,6 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
     groupMemberIds?: string[];
     eventId?: string;
     ignored?: 'group' | 'event' | 'friend';
-    /** Only ever nonzero for a no-group `?event=`: how many of the event's real members got excluded for not being an accepted friend. Count only (never names). */
-    excludedNonFriendCount: number;
   }
 
   const resolved = React.useMemo((): ResolvedContext => {
@@ -126,53 +124,49 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
             currency: groupQuery.data.currency,
             groupId: groupQuery.data.id,
             groupMemberIds: groupQuery.data.memberIds,
-            excludedNonFriendCount: 0,
           };
         }
-        if (groupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'group', excludedNonFriendCount: 0 };
-        return { candidateIds: [], excludedNonFriendCount: 0 };
+        if (groupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'group' };
+        return { candidateIds: [] };
       }
       if (params.event) {
         if (eventQuery.data) {
-          if (eventQuery.data.groupId) {
-            if (eventGroupQuery.data) {
-              const r = resolveEventParticipants(eventQuery.data, eventGroupQuery.data, acceptedFriendIds, uid ?? '');
-              return {
-                candidateIds: r.candidateIds,
-                currency: r.currency,
-                groupId: r.groupId,
-                groupMemberIds: eventGroupQuery.data.memberIds,
-                eventId: eventQuery.data.id,
-                excludedNonFriendCount: 0,
-              };
-            }
-            if (eventGroupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'event', excludedNonFriendCount: 0 };
-            return { candidateIds: [], excludedNonFriendCount: 0 };
-          }
-          if (!friendsQuery.isSuccess) return { candidateIds: [], excludedNonFriendCount: 0 };
-          const r = resolveEventParticipants(eventQuery.data, undefined, acceptedFriendIds, uid ?? '');
-          return { candidateIds: r.candidateIds, currency: r.currency, eventId: eventQuery.data.id, excludedNonFriendCount: r.excludedNonFriendCount };
+          // `undefined` = the event's group is still loading; `null` = the
+          // caller cannot see it (ADR 0013: then this is an event expense).
+          const eventGroup = eventQuery.data.groupId ? (eventGroupQuery.data ?? (eventGroupQuery.isSuccess ? null : undefined)) : undefined;
+          const r = resolveEventParticipants(eventQuery.data, eventGroup);
+          return {
+            candidateIds: r.candidateIds,
+            currency: r.currency,
+            groupId: r.groupId,
+            groupMemberIds: r.groupId ? eventGroupQuery.data?.memberIds : undefined,
+            eventId: eventQuery.data.id,
+          };
         }
-        if (eventQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'event', excludedNonFriendCount: 0 };
-        return { candidateIds: [], excludedNonFriendCount: 0 };
+        if (eventQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'event' };
+        return { candidateIds: [] };
       }
       if (params.friend) {
         if (uid && acceptedFriendIds.includes(params.friend)) {
-          return { candidateIds: [uid, params.friend], excludedNonFriendCount: 0 };
+          return { candidateIds: [uid, params.friend] };
         }
-        if (friendsQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'friend', excludedNonFriendCount: 0 };
-        return { candidateIds: [], excludedNonFriendCount: 0 };
+        if (friendsQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'friend' };
+        return { candidateIds: [] };
       }
-      return { candidateIds: fallbackCandidateIds, excludedNonFriendCount: 0 };
+      return { candidateIds: fallbackCandidateIds };
     }
-    // edit
-    const base = expense?.groupId ? (groupQuery.data?.memberIds ?? []) : fallbackCandidateIds;
+    // edit — candidates: a group expense offers the group's members; an event
+    // expense (no group) offers every event member plus the caller's friends;
+    // otherwise the caller's friends. Whoever is already on the row always
+    // stays a candidate, friend or not (ADR 0013: only ADDED members are checked).
+    const base = expense?.groupId
+      ? (groupQuery.data?.memberIds ?? [])
+      : [...(expense?.eventId ? (eventQuery.data?.memberIds ?? []) : []), ...fallbackCandidateIds];
     return {
       candidateIds: Array.from(new Set([...base, ...(expense?.memberIds ?? [])])),
       groupId: expense?.groupId ?? undefined,
       groupMemberIds: expense?.groupId ? groupQuery.data?.memberIds : undefined,
       eventId: expense?.eventId ?? undefined,
-      excludedNonFriendCount: 0,
     };
   }, [
     mode,
@@ -252,9 +246,10 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   // touched the form yet — a query resolving after the user already started
   // typing must never clobber their input.
   const defaultsAppliedRef = React.useRef(false);
+  // The event path no longer depends on friendships (every event member is a
+  // candidate); it only waits for the event's own group when it has one.
   const eventContextSettled =
-    eventQuery.isSuccess &&
-    (!eventQuery.data || (eventQuery.data.groupId ? eventGroupQuery.isSuccess : friendsQuery.isSuccess));
+    eventQuery.isSuccess && (!eventQuery.data || !eventQuery.data.groupId || eventGroupQuery.isSuccess);
   const contextSettled =
     mode === 'create' &&
     (params.group ? groupQuery.isSuccess : params.event ? eventContextSettled : friendsQuery.isSuccess);
@@ -271,17 +266,6 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   const [fileError, setFileError] = React.useState<string | null>(null);
   const [invariantError, setInvariantError] = React.useState<string | null>(null);
 
-  // Edit-mode-only UX gap (coordinator review): if the CURRENT editor isn't
-  // an accepted friend of everyone already on a no-group expense, the
-  // `expenses_update` RLS policy denies the save outright. Rather than let
-  // that surface as B9's generic post-submit error, this form knows upfront
-  // (derived from `useFriends`) and disables Save with an explicit reason.
-  // Group expenses are unaffected — any group member may edit one. UX only;
-  // RLS is still the sole authority.
-  const editBlockedByFriendship = React.useMemo(() => {
-    if (mode !== 'edit' || !expense || expense.groupId || !uid || !friendsQuery.isSuccess) return false;
-    return violatesNoGroupInvariant(expense.memberIds, acceptedFriendIds, uid);
-  }, [mode, expense, uid, friendsQuery.isSuccess, acceptedFriendIds]);
   const createId = React.useMemo(() => (mode === 'create' ? expensesRepo.generateId() : undefined), [mode]);
 
   const createMutation = useCreateExpenseWithReceipts();
@@ -306,18 +290,37 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
     }
 
     const splits = buildSplits(values.splitType, Number(values.amount), values.participantIds, values.paidBy, values.shares);
-    const memberIds = resolved.groupId
-      ? (resolved.groupMemberIds ?? values.participantIds)
-      : Array.from(new Set([...values.participantIds, values.paidBy, uid].filter((v): v is string => Boolean(v))));
+    const memberIds = resolveMemberIds({
+      mode,
+      participantIds: values.participantIds,
+      paidBy: values.paidBy,
+      uid,
+      groupMemberIds: resolved.groupMemberIds,
+      hasGroup: Boolean(resolved.groupId),
+      existingMemberIds: expense?.memberIds,
+    });
 
-    // Defensive pre-submit check (coordinator review, risk:high): mirrors the
-    // `expenses_insert`/`_update` RLS policy's own `group_id is null` branch
-    // — every member other than the caller must be an accepted friend.
-    // Never trust client state to have kept this true on its own (a
-    // friendship can be revoked out from under an already-selected
-    // participant) — refuse BEFORE sending a request RLS would only deny
-    // anyway. UX only; RLS stays the sole authority either way.
-    if (!resolved.groupId && uid && violatesNoGroupInvariant(memberIds, acceptedFriendIds, uid)) {
+    // Defensive pre-submit check (risk:high): mirrors the database's rule for
+    // people ADDED to the row (`expenses_insert` / `guard_expenses`, ADR 0013)
+    // — group member when the row has a group; otherwise an event member or an
+    // accepted friend when it has an event; otherwise an accepted friend.
+    // Existing members are never re-checked. Never trust client state to have
+    // kept this true on its own (a friendship can be revoked out from under an
+    // already-selected participant) — refuse BEFORE sending a request RLS would
+    // only deny anyway. Skipped while the group/event members are unknown (a
+    // query still loading or not visible): RLS decides either way. UX only.
+    const eventMemberIds = !resolved.groupId && resolved.eventId ? eventQuery.data?.memberIds : undefined;
+    const contextKnown = resolved.groupId ? Boolean(resolved.groupMemberIds) : resolved.eventId ? Boolean(eventMemberIds) : true;
+    if (
+      uid &&
+      contextKnown &&
+      violatesAddedMembersRule(memberIds, mode === 'edit' ? (expense?.memberIds ?? []) : [], {
+        uid,
+        acceptedFriendIds,
+        groupMemberIds: resolved.groupId ? resolved.groupMemberIds : undefined,
+        eventMemberIds,
+      })
+    ) {
       setInvariantError(
         "Something about who's on this expense changed. Please review the participants and try again.",
       );
@@ -425,14 +428,6 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
         {resolved.ignored && (
           <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
             We couldn&apos;t find that {resolved.ignored} — showing your friends instead.
-          </p>
-        )}
-
-        {resolved.excludedNonFriendCount > 0 && (
-          <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            {resolved.excludedNonFriendCount} {resolved.excludedNonFriendCount === 1 ? 'person' : 'people'} in this
-            event {resolved.excludedNonFriendCount === 1 ? "isn't" : "aren't"} in your friends yet, so they can&apos;t
-            be added to this expense.
           </p>
         )}
 
@@ -606,19 +601,13 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           )}
         </div>
 
-        {editBlockedByFriendship && (
-          <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            You can view this expense, but only someone who is friends with everyone on it can edit it here.
-          </p>
-        )}
-
         {invariantError && (
           <p role="alert" className="text-sm font-medium text-destructive">
             {invariantError}
           </p>
         )}
 
-        <Button type="submit" disabled={pending || editBlockedByFriendship} aria-busy={pending}>
+        <Button type="submit" disabled={pending} aria-busy={pending}>
           {pending ? 'Saving…' : mode === 'create' ? 'Save expense' : 'Save changes'}
         </Button>
       </form>
