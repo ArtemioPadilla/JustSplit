@@ -80,9 +80,12 @@ describe('AddFriendForm', () => {
 
   it('copy invite link copies the absolute signup URL and toasts success', async () => {
     mutateAsync.mockResolvedValue({ kind: 'unregistered' });
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
+    // `userEvent.setup()` installs its OWN getter-only `navigator.clipboard`
+    // stub (`attachClipboardStubToView`) — this override must come AFTER
+    // `setup()`, or `setup()` clobbers it right back.
     const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     renderForm();
     await user.type(screen.getByLabelText(/email/i), 'stranger@example.com');
     await user.click(screen.getByRole('button', { name: /send request/i }));
