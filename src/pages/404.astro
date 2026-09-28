@@ -1,20 +1,29 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AppRouterIsland from '../components/islands/AppRouterIsland';
 import { withBase } from '../lib/href';
 
-// Astro emits this as dist/404.html, which GitHub Pages serves for any unknown
-// path. Plan B2c turns it into the app shell for client-only dynamic routes
-// (/expenses/<id> …); until then it is a plain not-found page.
+// The app shell for client-only dynamic routes (spec D2, plan B2c). GitHub
+// Pages serves dist/404.html for every URL without a prerendered page, so
+// /expenses/<id>, /events/edit/<id>, /groups/<id>, /friends/<id>, … land
+// here and AppRouterIsland mounts the matching route island by pathname, or
+// the not-found view. The HTTP status stays 404; these are authenticated
+// routes that crawlers must not index.
 ---
 
-<BaseLayout title="Page not found" description="That page doesn't exist.">
-  <main id="main-content" class="mx-auto flex max-w-3xl flex-col px-4 py-24">
-    <p class="font-mono text-sm uppercase tracking-widest text-primary">404</p>
-    <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight text-foreground">Page not found</h1>
-    <p class="mt-4 max-w-prose text-muted-foreground">
-      The URL doesn't match any built page. If a link on this site brought you here, that's a bug
-      worth filing with the chat bubble in the corner.
-    </p>
-    <a href={withBase('/')} class="mt-8 inline-flex w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Back home</a>
-  </main>
+<BaseLayout title="JustSplit" description="Fair expense splitting made simple." noindex>
+  <AppRouterIsland client:only="react">
+    <div slot="fallback" class="mx-auto flex max-w-3xl flex-col px-4 py-24" aria-busy="true">
+      <div class="h-4 w-24 animate-pulse rounded bg-muted"></div>
+      <div class="mt-4 h-9 w-2/3 animate-pulse rounded bg-muted"></div>
+      <div class="mt-6 h-4 w-full max-w-prose animate-pulse rounded bg-muted"></div>
+      <noscript>
+        <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
+        <p class="mt-4 text-muted-foreground">
+          JustSplit runs in the browser. Enable JavaScript, or go
+          <a class="underline" href={withBase('/')}>back home</a>.
+        </p>
+      </noscript>
+    </div>
+  </AppRouterIsland>
 </BaseLayout>

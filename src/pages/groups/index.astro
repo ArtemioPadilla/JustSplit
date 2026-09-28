@@ -1,0 +1,24 @@
+---
+import { withBase } from '../../lib/href';
+
+// /groups has no page of its own (spec D2): GitHub Pages has no server
+// redirects, so this page forwards to the list with a meta refresh and JS.
+const target = withBase('/groups/list/');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href={target} />
+    <title>JustSplit</title>
+    <script is:inline define:vars={{ target }}>
+      location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p><a href={target}>Continue</a></p>
+  </body>
+</html>

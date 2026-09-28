@@ -13,7 +13,7 @@
     "preview": "astro preview",
     "check:astro": "astro check",
     "check:pragmas": "node scripts/check-ts-pragmas.mjs",
-    "check": "npm-run-all --parallel check:astro type-check test lint check:pragmas --serial build",
+    "check": "npm-run-all --parallel check:astro type-check test lint check:pragmas --serial build check:dist",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -34,7 +34,8 @@
     "db:seed": "psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -X -q -v ON_ERROR_STOP=1 -f supabase/seed.sql",
     "db:reset": "supabase db reset && npm run db:migrate && npm run db:seed",
     "db:audit": "bash scripts/db-audit.sh",
-    "db:env": "node scripts/db-env.mjs"
+    "db:env": "node scripts/db-env.mjs",
+    "check:dist": "node scripts/check-dist.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",

@@ -563,18 +563,26 @@ backend decision; ADR numbers are allocation order, not merge order).
       no file under `supabase/migrations/` exists
 
 ### B2c. `404.astro` shell + `AppRouterIsland` + redirect pages (`phase-1`, `type:feat`)
-- [ ] `src/pages/404.astro` shell + `src/components/islands/AppRouterIsland.tsx` (spec D2): maps
+- [x] `src/pages/404.astro` shell + `src/components/islands/AppRouterIsland.tsx` (spec D2): maps
       `location.pathname` (minus `import.meta.env.BASE_URL`) to the route islands (stubs until
       Phase 2; a real not-found view otherwise); `src/pages/{expenses,events,groups}/index.astro`
       = `<meta http-equiv="refresh">` + JS redirect to `withBase('/…/list')`. Inceptor's
       `scripts/init.mjs` does not emit `404.astro`, so the shell is new code independent of the
       database work
-- [ ] Test: `src/tests/app-router.test.ts` asserts every dynamic route family
+- [x] Test: `src/tests/app-router.test.ts` asserts every dynamic route family
       (`/expenses/:id`, `/expenses/edit/:id`, `/events/:id`, `/events/edit/:id`, `/groups/:id`,
       `/friends/:id`) resolves to an island, that `dist/404.html` exists after build and contains
       the shell, that the three redirect pages exist, and that no `src/pages/auth/v1/**` route
       collides with the Supabase auth path
-- [ ] Acceptance: `npm run check` green; a deep link such as `/expenses/abc` on `npm run preview`
+- Landed: `src/lib/app-routes.ts` (pure matcher; reserved `list`/`new`/`edit` segments are
+      not-found), `AppRouterIsland` + `routes/{RouteStub,NotFoundView}`, the 404 shell with a
+      skeleton fallback and `noindex` (BaseLayout gains a `noindex` prop), and the three redirect
+      pages. `dist/404.html` is asserted after the build by `scripts/check-dist.mjs`, now the last
+      step of `npm run check` (unit tests run before the build). Verified in Chromium against
+      `astro preview` with `ASTRO_BASE=/JustSplit`: `/JustSplit/expenses/abc` and
+      `/JustSplit/groups/g-1/` mount their routes, `/JustSplit/nope` shows the not-found view,
+      `/JustSplit/expenses` forwards to `/JustSplit/expenses/list/`
+- [x] Acceptance: `npm run check` green; a deep link such as `/expenses/abc` on `npm run preview`
       renders the shell and the not-found view (islands arrive in Phase 2)
 
 ### B2b. RLS test suite — every table × every command × member/non-member/anonymous (`risk:high`, blocks B3/B5a)
