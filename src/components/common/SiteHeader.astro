@@ -1,7 +1,13 @@
 ---
 import ThemeToggle from './ThemeToggle.astro';
+import UserMenuIsland from '@/components/islands/UserMenuIsland';
 import { withBase } from '@/lib/href';
-const nav: { href: string; label: string }[] = [];
+
+// Only routes that fully work today (plan B6 scope): About/Help land in B7,
+// and Expenses/Events/Groups/Friends/Settlements land through Phase 2 —
+// adding those now would put dead links in the header on every page, which
+// is exactly what B7 is scoped to clean up, not something to introduce here.
+const nav: { href: string; label: string }[] = [{ href: '/', label: 'Home' }];
 ---
 <header class="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-md">
   <nav class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-2.5">
@@ -12,6 +18,13 @@ const nav: { href: string; label: string }[] = [];
       {nav.map((n) => (
         <a href={withBase(n.href)} class="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-primary">{n.label}</a>
       ))}
+      {/* Layout island (spec D3): reads $user/$profile/$authReady from
+          src/stores/auth.ts only, never mounts AuthIsland or QueryProvider
+          (src/tests/query-provider-boundary.test.ts). client:idle — never
+          client:load for a whole-page concern (CLAUDE.md rule 3); it also
+          needs to render server-side (the signed-out link) so client:only
+          is wrong too — it's one of HydrationCanary's "SSR'd islands". */}
+      <UserMenuIsland client:idle />
       <span class="ml-1"><ThemeToggle /></span>
     </div>
   </nav>
