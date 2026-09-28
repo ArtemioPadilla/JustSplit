@@ -71,7 +71,11 @@ const faqs: { question: string; answer: string }[] = [
         </div>
       </div>
       <div class="rounded-xl border border-border bg-card p-5 shadow-sm motion-preset-slide-left-md motion-duration-500">
-        <h3 class="font-display text-base font-semibold text-foreground">Weekend Trip Expenses</h3>
+        {/* A styled label, not a document heading — the real h1 above is
+            this page's only heading until "Why choose JustSplit?" (h2); a
+            heading here would skip straight from h1 to h3 (axe
+            heading-order). */}
+        <p class="font-display text-base font-semibold text-foreground">Weekend Trip Expenses</p>
         <ul class="mt-4 space-y-3">
           <li class="flex items-center justify-between text-sm">
             <span class="flex items-center gap-2 text-foreground"><span aria-hidden="true">🏨</span> Hotel stay</span>
