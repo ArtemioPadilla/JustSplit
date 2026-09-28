@@ -28,7 +28,8 @@ npm run check      # the umbrella gate: lint → type-check → test → build
 > **npm 10.9.x bug.** `npm install` without a lockfile can abort with
 > `Cannot read properties of null (reading 'edgesOut')` while resolving peer sets.
 > `npm ci` (lockfile present) is unaffected, which is what CI runs. To regenerate the
-> lockfile use `npm install --legacy-peer-deps` or `npx npm@latest install`.
+> lockfile use **`npx npm@latest install`** (npm ≥ 11). Do not use `--legacy-peer-deps`:
+> the lockfile it writes omits peer resolutions and a strict `npm ci` then rejects it.
 > (The frozen Next tree on `main`-before-cutover used `scripts/build-check.sh`
 > placeholders instead; that script left with the tree in B1.)
 
