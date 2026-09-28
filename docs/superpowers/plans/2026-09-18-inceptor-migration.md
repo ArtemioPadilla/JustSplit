@@ -1662,6 +1662,17 @@ resolves other users' names through `useProfiles` (B5a).
       clock reading (`now`) can disagree, which is what the two divergence tests exercise; this is
       recorded in the module's own header comment so a future maintainer doesn't go looking for a
       bug that provably can't exist in the pure calendar-to-calendar paths.
+- [x] **Coordinator review fix**: the permanently-`sr-only` expense list let a sighted keyboard user
+      tab onto controls they couldn't see (WCAG 2.4.7 Focus Visible), and it was also the only
+      dependable keyboard path into a same-day grouped marker's individual expenses — a Base UI
+      `PreviewCard` isn't a reliable container for interactive content (tabbing out of the trigger
+      closes it). Fixed: the list is now an "Expenses in this event" panel that starts `sr-only` and
+      drops that class (a plain `onFocus`/`onBlur` React-state toggle, not CSS `:focus-within` — kept
+      testable without a real browser/compiled CSS) as soon as focus lands inside it, restoring it on
+      blur; every button keeps its default/focus-visible ring. The hover-card popup's own per-expense
+      buttons are now `tabIndex={-1}` (opted out of the tab order, still mouse-clickable) — the panel
+      is the one dependable keyboard path, the popup stays a hover/mouse quick preview only. Red test
+      commit first (`fcb771b`), fixed green (`c25fcee`).
 ### B11b. Events islands (list, new, view, edit)
 - [ ] `events` is the JustSplit-local table (spec D10, B2/B3): list = `events where memberIds
       array-contains uid`; creation writes `memberIds` (creator included — every other member an
