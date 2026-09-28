@@ -80,8 +80,12 @@ describe('ExportCsvButton', () => {
 
     await waitFor(() => expect(capturedBlob).not.toBeNull());
     expect((capturedBlob as unknown as Blob).type).toBe('text/csv;charset=utf-8');
+    // Blob#text() decodes through TextDecoder, which strips a leading BOM by
+    // spec (ignoreBOM defaults to false) — read the raw bytes instead to
+    // assert the EF BB BF sequence is actually present on the wire.
+    const bytes = new Uint8Array(await (capturedBlob as unknown as Blob).arrayBuffer());
+    expect([bytes[0], bytes[1], bytes[2]]).toEqual([0xef, 0xbb, 0xbf]);
     const text = await (capturedBlob as unknown as Blob).text();
-    expect(text.startsWith('﻿')).toBe(true);
     expect(text).toContain('Lunch');
   });
 
