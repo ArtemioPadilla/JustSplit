@@ -161,6 +161,21 @@ function FriendsContent() {
           </ul>
         </section>
       )}
+
+      {partitioned.declined.length > 0 && (
+        <section aria-labelledby="declined-requests-heading" className="flex flex-col gap-3">
+          <h2 id="declined-requests-heading" className="text-lg font-semibold text-foreground">
+            Declined requests
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {partitioned.declined.map((f) => {
+              const id = otherUser(f, uid);
+              if (!id) return null;
+              return <DeclinedRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
@@ -258,6 +273,45 @@ function SentRequestRow({ friendship, person }: RowProps) {
         aria-busy={removeFriendship.isPending}
       >
         Cancel
+      </Button>
+    </li>
+  );
+}
+
+/**
+ * Recipient-only (coordinator review, B13 follow-up: `partitionFriendships`'s
+ * `declined` bucket only ever contains rows the CALLER declined). Reject
+ * stays a recipient-only `status` update (per the plan, `guard_friendships`
+ * is the actual authority) rather than a delete, so the row still exists
+ * and still blocks a fresh request for this pair (`friendships_pair_uniq`
+ * has no partial predicate, ADR 0006) — Undo is what actually frees it, by
+ * deleting the row (never a status change; `friendships_delete` allows
+ * either party). The requester never sees any of this: their own view of a
+ * rejected row has no bucket at all (recipient privacy).
+ */
+function DeclinedRequestRow({ friendship, person }: RowProps) {
+  const removeFriendship = useRemoveFriendship();
+
+  async function handleUndo() {
+    try {
+      await removeFriendship.mutateAsync(friendship.id);
+      notifySuccess('Declined request removed');
+    } catch {
+      notifyError('Could not remove this request');
+    }
+  }
+
+  return (
+    <li className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3">
+      <PersonBadge person={person} />
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleUndo}
+        disabled={removeFriendship.isPending}
+        aria-busy={removeFriendship.isPending}
+      >
+        Undo
       </Button>
     </li>
   );
