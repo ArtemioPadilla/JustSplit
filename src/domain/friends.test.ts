@@ -59,11 +59,25 @@ describe('partitionFriendships', () => {
     expect(result.accepted.map((f) => f.id)).toEqual(['f1']);
     expect(result.received.map((f) => f.id)).toEqual(['f2']);
     expect(result.sent.map((f) => f.id)).toEqual(['f3']);
+    expect(result.declined).toEqual([]);
   });
 
-  it('drops a rejected row from every bucket (plan B13 / ADR 0006: neither pending nor accepted, not shown anywhere)', () => {
+  it('a rejected row lands in `declined` ONLY for the recipient (the one who declined it)', () => {
+    // u1 received u2's request and declined it (guard_friendships: only the
+    // recipient may change status) — u1 is not `requestedBy`.
     const rejected = friendship({ id: 'f1', users: ['u1', 'u2'], status: 'rejected', requestedBy: 'u2' });
     const result = partitionFriendships([rejected], 'u1');
+    expect(result.declined.map((f) => f.id)).toEqual(['f1']);
+    expect(result.accepted).toEqual([]);
+    expect(result.received).toEqual([]);
+    expect(result.sent).toEqual([]);
+  });
+
+  it('a rejected row lands in NO bucket for the requester (recipient privacy: they see nothing)', () => {
+    // u1 sent the request that u2 declined — u1 IS `requestedBy`.
+    const rejected = friendship({ id: 'f1', users: ['u1', 'u2'], status: 'rejected', requestedBy: 'u1' });
+    const result = partitionFriendships([rejected], 'u1');
+    expect(result.declined).toEqual([]);
     expect(result.accepted).toEqual([]);
     expect(result.received).toEqual([]);
     expect(result.sent).toEqual([]);
