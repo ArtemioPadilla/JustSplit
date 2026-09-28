@@ -19,6 +19,16 @@ export type UseLiveQueryResult<T> = Omit<ReturnType<typeof useQuery<T[]>>, 'isEr
   error: Error | null;
   /** Clears the error and forces a full teardown + re-subscribe (the underlying `useQuery`'s own `refetch` is a no-op here — see below). */
   refetch: () => void;
+  /**
+   * True from a `refetch()` call until the re-opened subscription's next
+   * emission (success or error) — orchestrator review, plan B8b: a caller
+   * (e.g. `DashboardIsland`'s Retry button) can disable itself for exactly
+   * that window. `refetch()` itself is ALSO bounded independently of any
+   * caller checking this flag: a call while `isRetrying` is already true is
+   * a no-op, so two rapid calls (e.g. a fast double-click before React
+   * re-renders the disabled button) never stack a second re-subscribe.
+   */
+  isRetrying: boolean;
 };
 
 /**
@@ -56,6 +66,12 @@ export function useLiveQuery<T>(
   const filtersJson = JSON.stringify(filters);
   const [queryError, setQueryError] = React.useState<Error | null>(null);
   const [generation, setGeneration] = React.useState(0);
+  const [isRetrying, setIsRetrying] = React.useState(false);
+  // A ref (not just the `isRetrying` state) because `refetch()` must see the
+  // CURRENT in-flight status synchronously, even across two calls in the
+  // same tick — `isRetrying` state would still read its pre-render value for
+  // both calls if they happened inside the same batch.
+  const retryingRef = React.useRef(false);
 
   const query = useQuery<T[]>({
     queryKey,
@@ -72,6 +88,13 @@ export function useLiveQuery<T>(
     // StorageAdapter callback shape (relational-adapter.ts's doc comment) —
     // real adapters only ever pass it on a genuine query failure.
     const callback: LiveQueryCallback<T> = (rows, error) => {
+      // Clears a retry-in-flight on its first emission, success or failure —
+      // harmless (a no-op) for the initial mount subscription, which never
+      // set it in the first place.
+      if (retryingRef.current) {
+        retryingRef.current = false;
+        setIsRetrying(false);
+      }
       if (error) {
         setQueryError(error instanceof Error ? error : new Error('Failed to load data.'));
         return;
@@ -92,9 +115,14 @@ export function useLiveQuery<T>(
   }, [enabled, collection, queryKeyJson, filtersJson, queryClient, generation]);
 
   const refetch = React.useCallback(() => {
+    // Bounded: a call while a retry is already in flight is a no-op — see
+    // `isRetrying`'s doc comment.
+    if (retryingRef.current) return;
+    retryingRef.current = true;
+    setIsRetrying(true);
     setQueryError(null);
     setGeneration((g) => g + 1);
   }, []);
 
-  return { ...query, isError: queryError !== null, error: queryError, refetch };
+  return { ...query, isError: queryError !== null, error: queryError, refetch, isRetrying };
 }
