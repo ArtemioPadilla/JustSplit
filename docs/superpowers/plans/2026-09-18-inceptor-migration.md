@@ -673,7 +673,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       lists every table with its policies and triggers
 
 ### B3. Zod schemas + domain layer
-- [ ] `src/schemas/`: re-export the universal types from `@cyber-eco/types` (`Expense`,
+- [x] `src/schemas/`: re-export the universal types from `@cyber-eco/types` (`Expense`,
       `Settlement`, `ExpenseGroup`, `Friendship`, `SplitType`) and wrap them in Zod:
       `expense.ts` (`ExpenseSchema` = universal fields with `groupId: z.string().nullable()` and
       `memberIds: z.array(z.string()).min(1)` — the JustSplit row type of spec D10 — plus the
@@ -692,14 +692,25 @@ backend decision; ADR numbers are allocation order, not merge order).
       table has no such column and `SupabaseProfileStore` writes top-level keys as columns).
       Timestamps are ISO strings on read (the adapter rehydrates `timestamptz` — no `Timestamp`
       union); `z.infer` types replace `src/types`
-- [ ] Move pure logic to `src/domain/`: `expenseCalculator`, `formatters`, `csvExport`,
+      > Note (B3): each schema also re-exports/imports the corresponding `@cyber-eco/types` type
+      > and carries a compile-time-only `_ExpectTrue<... extends ... ? true : false>` guard so a
+      > future drift from the upstream package fails `npm run type-check` instead of silently
+      > dropping a field. Uses zod v4's `.loose()` (the non-deprecated equivalent of
+      > `.passthrough()`) throughout — same "never `.strict()`" semantics the plan calls for.
+      > `group.ts`'s universal `settings` sub-object is typed as an opaque `z.record` rather than
+      > the strict `{ defaultSplitType, simplifyDebts, maxMembers }`, per the file's own
+      > "Forward-compatible extra keys" bullet below; Track D issue D1 narrows it for real.
+- [x] Move pure logic to `src/domain/`: `expenseCalculator`, `formatters`, `csvExport`,
       `fileUtils`, `timeline/*`; `currencyExchange` becomes `domain/currency.ts` (pure:
       `SUPPORTED_CURRENCIES`, `FALLBACK_RATES`, `getExchangeRate` with fetch + cache injected);
       its `useExchangeRate` hook is **not** ported — it has no caller in the app; islands wrap
       `domain/currency.getExchangeRate` in `useQuery`. Consolidate on one `formatCurrency` (the
       symbol-based one used by 6 pages + `HoverCard` + `BalanceOverview`); `FinancialSummary`
       (the only Intl consumer) and its test switch to it
-- [ ] `expenseCalculator` is **re-typed onto the universal `Expense`** (spec D10): both balance
+      > Note (B3): `FinancialSummary`/`HoverCard`/`BalanceOverview` don't exist in this tree yet
+      > (Track B islands land later); `domain/formatters.ts` ships the consolidated
+      > `formatCurrency` now so those future ports have one implementation to switch to.
+- [x] `expenseCalculator` is **re-typed onto the universal `Expense`** (spec D10): both balance
       paths (formerly `src/utils/expenseCalculator.ts:36` and `:136`) consume `splits[].amount`
       instead of `amount / participants.length`; `participants` = `splits.map(s => s.userId)`;
       `settled` = `settledAt != null`. This fixes the old share bug by construction; a
@@ -707,13 +718,30 @@ backend decision; ADR numbers are allocation order, not merge order).
       percentage → rounded) is the only writer of `splits[].amount` and is used by B10/B14.
       Tests: equal results unchanged on the ported fixtures; exact 40/30/30; percentage 50/25/25;
       remainder-cent placement. Track D D2 adds the edge-case suite
-- [ ] Port the 4 `src/utils/__tests__` suites + `src/__tests__/timelineCalculations.test.tsx` to
+      > Note (B3): signature is `materializeSplits(amount, input)` with `splitType` as a
+      > discriminant field on `input` (a discriminated union), not a separate third parameter —
+      > same behavior, TS narrows `input.shares`/`input.participantIds` per branch. Percentage
+      > gets the same remainder-cent-on-the-payer rule as equal (not specified by the plan, but
+      > the natural generalization so `splits[]` always sums to exactly `amount`).
+- [x] Port the 4 `src/utils/__tests__` suites + `src/__tests__/timelineCalculations.test.tsx` to
       Vitest via the D7 codemod (`vi.hoisted()` for `jest.mock` factories with outer refs,
       `global.fetch = vi.fn()`), adapting fixtures from `participants`/`splitMethod` to
       `splits[]`/`splitType`; add tests for `formatters` and `fileUtils`
-- [ ] Copy Inceptor's `scripts/check-ts-pragmas.mjs` + `check:pragmas` script (in the B1 `check`
+      > Note (B3): `currencyExchange.test.ts`'s port needed neither `vi.hoisted()` nor
+      > `global.fetch = vi.fn()` — `domain/currency.ts`'s pure, injected-fetch design (see above)
+      > lets each test pass its own mock `fetchImpl` directly. Both timeline suites (the
+      > `src/utils/__tests__` one and the `src/__tests__/timelineCalculations.test.tsx` one) are
+      > ported but stay `describe.skip`: both document a real, pre-existing bug (future-start
+      > progress, off-by-one-day date formatting) with an explicit "rewritten in plan issue B11a"
+      > baseline note; un-skipping without that fix would just re-introduce a red suite B11a
+      > already expects to inherit and rewrite on fixed-TZ fixtures.
+- [x] Copy Inceptor's `scripts/check-ts-pragmas.mjs` + `check:pragmas` script (in the B1 `check`
       umbrella) so missing `// @vitest-environment jsdom` pragmas fail `npm run check`
-- [ ] Forward-compatible `extra` keys (spec D9; written by nobody before Track D): `group.ts`
+      > Note (B3): already present from plan B1 (verified, no changes needed). It enforces banned
+      > TypeScript suppression pragmas (`@ts-nocheck`/`@ts-expect-error` without a `-- reason`),
+      > not literally the jsdom pragma; the jsdom-vs-node environment switch is vitest 4's own
+      > per-file `// @vitest-environment` mechanism, already wired in `vitest.config.ts`.
+- [x] Forward-compatible `extra` keys (spec D9; written by nobody before Track D): `group.ts`
       `kind: z.string().optional()`, `settings: z.record(z.string(),
       z.unknown()).optional()`, `concepts: z.array(z.unknown()).optional()`; `event.ts`
       `settings: z.record(z.string(), z.unknown()).optional()`; `expense.ts`
@@ -727,17 +755,40 @@ backend decision; ADR numbers are allocation order, not merge order).
       mechanically enforces "no undeclared key reaches `extra`"; (2) a row with an unknown
       top-level key survives parse → in-memory `repos.*.update` of one field → the unknown key is
       intact (`updateDocument` merges the patch's overflow keys into `extra`, B5a contract test)
+      > Note (B3): left unticked because test (2) is explicitly deferred (see below) — everything
+      > else here is done: every read schema is `.loose()` (zod v4's non-deprecated
+      > `.passthrough()`), never `.strict()`; write-input schemas `.omit()` exactly the D9
+      > forward-compatible fields above; `schema-map.ts` doesn't exist yet (that's B5a), so
+      > `src/schemas/overflow.ts` declares the per-collection list instead and
+      > `src/schemas/overflow.test.ts` (test 1) parses
+      > `db/migrations/20260928000003_justsplit_tables.sql` directly and proves the write-input
+      > overflow-key set matches it, for all five SchemaMap collections — green. Test (2) needs an
+      > in-memory `repos.*.update` that doesn't exist before B5a; deferred there.
 - [ ] Synthetic fixtures under `src/tests/fixtures/*.synthetic.json`: `group.couple` (`kind`,
       `settings`, `concepts`), `event.trip`, `expense.with-conceptId`, plus one row with an
       unknown `kind` and a non-taxonomy `category`; the round-trip test parses all of them
       without throwing; `supabase/seed.sql` (B2) is generated from the same fixtures
-- [ ] `src/domain/categories.ts` stub exporting the five legacy keys (`food`, `transportation`,
+      > Note (B3): left unticked only for the last clause — `supabase/seed.sql` (hand-written in
+      > B2) is not regenerated from these fixtures here; deferred to B5a once the adapter exists to
+      > do the generation. Everything else is done: `group.couple.synthetic.json`,
+      > `event.trip.synthetic.json`, `expense.with-conceptId.synthetic.json` (also carries the
+      > non-taxonomy `category: 'not-a-taxonomy-key'`), plus a fourth fixture,
+      > `group.unknown-kind.synthetic.json` (`kind: 'polycule'`), for the unknown-`kind` case —
+      > `src/schemas/fixtures.test.ts` parses all four without throwing, green.
+- [x] `src/domain/categories.ts` stub exporting the five legacy keys (`food`, `transportation`,
       `accommodation`, `entertainment`, `other`) as the only options B10 may write; Track D D1
       replaces the file, not the form
 - [ ] Test: schema round-trip against the synthetic fixtures and against rows read back from
       `supabase start` (the adapter's rehydration is part of the contract)
-- [ ] Acceptance: `npm run test` ≥ 7 ported/new suites green; overflow key-set and passthrough
+      > Note (B3): the synthetic-fixture round-trip half is done (`src/schemas/fixtures.test.ts`,
+      > green). Left unticked because the `supabase start` half needs the B5a adapter's
+      > rehydration, which doesn't exist yet; deferred there.
+- [x] Acceptance: `npm run test` ≥ 7 ported/new suites green; overflow key-set and passthrough
       round-trip tests green; `expenseCalculator` share tests green
+      > Note (B3): far exceeded — 16 new test files (8 `src/schemas/*.test.ts`, 8
+      > `src/domain/**/*.test.ts`), 55 passed + 2 intentionally skipped (timeline, see above) at
+      > the `npm run test` level; `src/schemas/overflow.test.ts` and `src/schemas/fixtures.test.ts`
+      > green; `src/domain/expenseCalculator.test.ts` (13 tests, incl. `materializeSplits`) green.
 
 ### B4. Auth: `@cyber-eco/auth` `<AuthProvider>` + store bridge + RouteGuard adapter (`risk:high`)
 - [ ] `src/lib/data/adapter.ts` exports `authAdapter = new SupabaseAuthAdapter(client)` and

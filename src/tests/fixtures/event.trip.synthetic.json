@@ -1,0 +1,19 @@
+{
+  "id": "fixture-event-trip",
+  "name": "Cancun 2026",
+  "description": "Spring break trip",
+  "date": "2026-03-01",
+  "startDate": "2026-03-01",
+  "endDate": "2026-03-08",
+  "location": "Cancun, Mexico",
+  "groupId": null,
+  "memberIds": ["fixture-user-ana", "fixture-user-luis"],
+  "preferredCurrency": "MXN",
+  "kind": "trip",
+  "settings": {
+    "budget": { "amount": 20000, "currency": "MXN" }
+  },
+  "createdBy": "fixture-user-ana",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z"
+}
