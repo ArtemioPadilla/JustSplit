@@ -1546,17 +1546,50 @@ resolves other users' names through `useProfiles` (B5a).
 - [x] Category select reads its five options from the B3 `src/domain/categories.ts` stub, on create
       too (see above). `?group=`/`?event=`/`?friend=` resolved through `useGroup`/`useEvent`/
       `useFriends`: `?group=` pre-selects the group's members and currency and **writes `groupId` +
-      `memberIds` = the group's `memberIds`**; `?event=` pre-selects the event's members and
-      `preferredCurrency` and writes `eventId` (an overflow key) — `memberIds` for an event (or no
-      context at all) is `participants ∪ paidBy ∪ self`, per spec D10's "not the payer necessarily
-      in splits" note, since only the `?group=` case has the plan's own "writes memberIds = the
-      group's" instruction; `?friend=` pre-selects self + that friend. An id that doesn't resolve
-      (missing, RLS-hidden, or — for `?friend=` — not actually an accepted friend of the caller) is
-      ignored, with a small non-blocking notice ("We couldn't find that group/event/friend —
-      showing your friends instead.") that never reveals which of those three reasons applied.
-      Context defaults (currency/paidBy/participants) are applied exactly once, only while the user
-      hasn't touched the form yet. Default currency: the resolved group/event currency, otherwise
-      `$preferredCurrency`. Track D issue D4 still extends the defaults per kind later.
+      `memberIds` = the group's `memberIds`**; `?friend=` pre-selects self + that friend
+      (`memberIds` = `participants ∪ paidBy ∪ self`, spec D10's "not the payer necessarily in
+      splits" note). An id that doesn't resolve (missing, RLS-hidden, or — for `?friend=` — not
+      actually an accepted friend of the caller) is ignored, with a small non-blocking notice ("We
+      couldn't find that group/event/friend — showing your friends instead.") that never reveals
+      which of those three reasons applied. Context defaults (currency/paidBy/participants) are
+      applied exactly once, only while the user hasn't touched the form yet. Default currency: the
+      resolved group/event currency, otherwise `$preferredCurrency`. Track D issue D4 still extends
+      the defaults per kind later.
+- [x] **`?event=` is RLS-aware** (coordinator review, risk:high — the plan text's original "pre-
+      selects the event's members" guess offered participants `expenses_insert`/`expenses_update`
+      would reject: `eventId` has no column, spec D9, so RLS knows nothing about event membership,
+      only about a row's OWN `group_id`/`member_ids`). `domain/expenseParticipants.ts#resolveEventParticipants`
+      mirrors the policy's two branches directly (`db/migrations/20260928000004_rls_policies.sql`):
+      an event with a `groupId` (`src/schemas/event.ts`'s field name) is a GROUP expense — same rule
+      as `?group=`, candidates are the event's members intersected with the group's (falling back to
+      the whole group if that's empty), `memberIds` on submit is the group's own `memberIds`; a
+      no-group event restricts candidates to the caller's accepted friends + self and shows a
+      count-only notice ("N people in this event aren't in your friends yet, so they can't be added
+      to this expense.") when anyone got excluded — a count, never names. A new
+      `domain/expenseParticipants.ts#violatesNoGroupInvariant` mirrors the `group_id is null` WITH
+      CHECK directly as a defensive pre-submit check on every no-group create/update (create AND
+      edit): if `memberIds` ever contains someone who isn't the caller/editor's accepted friend
+      (e.g. a friendship revoked out from under an already-selected participant, which nothing
+      auto-prunes from form state), the submit is refused with a generic inline message instead of
+      sending a request RLS was always going to deny.
+- [x] **Edit-mode friendship gap** (coordinator review): editing a no-group expense denies the save
+      (`expenses_update`) whenever the CURRENT editor isn't an accepted friend of every other member
+      already on it. `ExpenseForm` now checks this upfront (derived from `useFriends`, the same
+      `violatesNoGroupInvariant`) and disables Save with "You can view this expense, but only
+      someone who is friends with everyone on it can edit it here." — UX only, RLS stays the
+      authority; scoped to the edit form only (B9's own inline `Editable` renames on the detail view
+      are unchanged, still a generic post-submit error toast). Group expenses are unaffected — any
+      member may edit one.
+- [x] **Known limitation, escalated as a follow-up decision (not part of B10, recorded in the ADR
+      0005 addendum)**: because `eventId` has no column, a no-group event's expenses are visible and
+      editable purely by `member_ids`/friendship, not by "belongs to this event" — event-wide totals
+      can differ by viewer (each expense's `member_ids` can be a different subset of the event's real
+      members depending on who was friends with whom when it was created), and a non-friend event
+      member can never edit a no-group expense from that event. A real fix needs a schema/RLS
+      change: an `event_id` column with its own event-membership RLS clauses (mirroring
+      `group_id`/`expense_groups`), and/or an `expenses_update` WITH CHECK keyed on `created_by` or
+      the row's OLD `member_ids` instead of solely the current editor's friendships. Neither is
+      decided here.
 - [x] Edit re-materialises `splits[]` when amount or shares change (`buildSplits` again); the
       partial `updateDocument` patch never includes `settledAt` (preserved by the D9 overflow-merge
       contract — the patch object simply never spells the key).
