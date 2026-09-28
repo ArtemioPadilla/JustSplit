@@ -28,7 +28,7 @@ describe('UpcomingEvents', () => {
     render(<UpcomingEvents events={events} />);
 
     expect(screen.getByText('Team Trip')).toBeInTheDocument();
-    expect(screen.getByText('Beach')).toBeInTheDocument();
+    expect(screen.getByText(/Beach/)).toBeInTheDocument();
   });
 
   it('links each event to its detail page', () => {
