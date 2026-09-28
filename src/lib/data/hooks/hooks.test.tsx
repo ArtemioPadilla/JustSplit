@@ -30,15 +30,28 @@ const expensesRepo = {
 };
 vi.mock('../repos/expenses', () => expensesRepo);
 
+class FriendshipAlreadyExistsError extends Error {}
 const friendshipsRepo = {
   forUserFilters: vi.fn((uid: string) => [{ field: 'users', operator: 'array-contains', value: uid }]),
+  update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
+  remove: vi.fn(async () => undefined),
+  request: vi.fn(async (fromUid: string, toUid: string) => ({
+    id: 'f1',
+    users: [fromUid, toUid],
+    status: 'pending',
+    requestedBy: fromUid,
+  })),
+  FriendshipAlreadyExistsError,
 };
 vi.mock('../repos/friendships', () => friendshipsRepo);
 
 const groupsRepo = { get: vi.fn(async (id: string) => ({ id, name: 'Group' })) };
 vi.mock('../repos/groups', () => groupsRepo);
 
-const profilesRepo = { byIds: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: id, avatarUrl: null }))) };
+const profilesRepo = {
+  byIds: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: id, avatarUrl: null }))),
+  byEmail: vi.fn(async (email: string) => (email === 'unregistered@example.com' ? null : { id: 'p1', name: 'Ada', avatarUrl: null })),
+};
 vi.mock('../repos/profiles', () => profilesRepo);
 
 const eventsRepo = {
@@ -61,6 +74,9 @@ const { useDeleteExpense } = await import('./useDeleteExpense');
 const { useProfiles } = await import('./useProfiles');
 const { useSettlements } = await import('./useSettlements');
 const { useFriends } = await import('./useFriends');
+const { useUpdateFriendshipStatus } = await import('./useUpdateFriendshipStatus');
+const { useRemoveFriendship } = await import('./useRemoveFriendship');
+const { useSendFriendRequest } = await import('./useSendFriendRequest');
 const { useCreateExpenseWithReceipts } = await import('./useCreateExpenseWithReceipts');
 const { useAddReceipts } = await import('./useAddReceipts');
 const { useRemoveReceipt } = await import('./useRemoveReceipt');
@@ -388,5 +404,93 @@ describe('useRemoveReceipt (plan B10, edit flow)', () => {
     await waitFor(() => expect(expensesRepo.removeReceipt).toHaveBeenCalledWith('e1', 'expenses/e1/a.jpg'));
     await waitFor(() => expect(settled).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+  });
+});
+
+describe('useUpdateFriendshipStatus (plan B13 — accept/reject)', () => {
+  it('calls repos.friendships.update with the given status and invalidates the friendships query key', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useUpdateFriendshipStatus();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'f1', status: 'accepted' }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(friendshipsRepo.update).toHaveBeenCalledWith('f1', { status: 'accepted' }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'f1', status: 'accepted' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['friendships'] });
+  });
+});
+
+describe('useRemoveFriendship (plan B13 — Remove and Cancel share this mutation)', () => {
+  it('calls repos.friendships.remove and invalidates the friendships query key', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useRemoveFriendship();
+      React.useEffect(() => {
+        void mutation.mutateAsync('f1').then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(friendshipsRepo.remove).toHaveBeenCalledWith('f1'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['friendships'] });
+  });
+});
+
+describe('useSendFriendRequest (plan B13 — add-by-email)', () => {
+  it('a registered email calls repos.friendships.request and invalidates friendships', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useSendFriendRequest();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ uid: 'u1', email: 'ada@example.com' }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(profilesRepo.byEmail).toHaveBeenCalledWith('ada@example.com'));
+    await waitFor(() => expect(friendshipsRepo.request).toHaveBeenCalledWith('u1', 'p1'));
+    await waitFor(() => expect(mutateResult).toMatchObject({ kind: 'sent' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['friendships'] });
+  });
+
+  it('an unregistered email resolves { kind: "unregistered" } without calling request or invalidating', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useSendFriendRequest();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ uid: 'u1', email: 'unregistered@example.com' }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(profilesRepo.byEmail).toHaveBeenCalledWith('unregistered@example.com'));
+    await waitFor(() => expect(mutateResult).toEqual({ kind: 'unregistered' }));
+    expect(friendshipsRepo.request).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 });
