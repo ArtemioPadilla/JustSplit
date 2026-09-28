@@ -95,3 +95,18 @@ describe('support contact (no invented channels)', () => {
     expect(PAGES.help!).toMatch(/\/issues/);
   });
 });
+
+describe('no fabricated social proof (ethics checklist items 2 and 4)', () => {
+  // Nothing in this project backs a user count, a founding date or customer
+  // quotes. Unsupported claims presented as fact are deceptive; the pages
+  // describe what the product does instead.
+  it.each(['landing', 'about', 'help'])('%s makes no unverifiable user-count or founding-date claim', (name) => {
+    const src = PAGES[name]!;
+    expect(src).not.toMatch(/thousands of users|millions of users|\d[\d,.]*\+?\s*(users|customers|groups)/i);
+    expect(src).not.toMatch(/since\s+(19|20)\d\d/i);
+  });
+
+  it('landing carries no invented testimonials', () => {
+    expect(PAGES.landing!).not.toMatch(/testimonial|What our users say|<blockquote/i);
+  });
+});
