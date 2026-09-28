@@ -19,6 +19,14 @@ describe('ExpenseGroupSchema (plan B3)', () => {
     expect(() => ExpenseGroupSchema.parse(validGroup)).not.toThrow();
   });
 
+  // See expense.test.ts: `description` is a nullable column, so a group created without one reads back null
+  // (found driving /groups/new against a real stack: the row was inserted, then get() threw and the form
+  // reported "Could not create this group" — a retry would have created a duplicate).
+  it('parses a row whose description column is null, reading it as absent', () => {
+    const parsed = ExpenseGroupSchema.parse({ ...validGroup, description: null });
+    expect(parsed.description).toBeUndefined();
+  });
+
   it('accepts the JustSplit-only overflow fields kind/concepts and the widened settings', () => {
     const parsed = ExpenseGroupSchema.parse({
       ...validGroup,
