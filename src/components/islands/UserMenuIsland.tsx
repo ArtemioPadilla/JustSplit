@@ -1,16 +1,11 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
-// OPEN QUESTION for plan B7 (flagged, not fixed here — out of B6's scope):
-// this static import pulls src/lib/data/client.ts's @supabase/supabase-js
-// into EVERY page's bundle via SiteHeader → UserMenuIsland, because this
-// island is mounted on every page including the future marketing pages.
-// That conflicts with spec D3 / B7's acceptance ("marketing pages ... no
-// @supabase/supabase-js / @cyber-eco/* chunk"). check:auth-bundle (plan B4)
-// only measures /auth/signin/ today, so nothing catches this yet. B7 needs
-// to either lazy-load this import (dynamic `import('@/stores/auth')` in a
-// useEffect) or extend check:auth-bundle to /landing and confirm the
-// resulting HTML has no static reference to the chunk.
-import { $authReady, $profile, $user, signOut } from '@/stores/auth';
+// This island is in the header of every page, public ones included. It reads
+// the session atoms from @/stores/session (no SDK) and imports the auth
+// actions, which pull @supabase/supabase-js, only when the user signs out.
+// scripts/check-auth-bundle.mjs fails the build if a public page loads the
+// SDK up front.
+import { $authReady, $profile, $user } from '@/stores/session';
 import { withBase } from '@/lib/href';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -76,6 +71,7 @@ function UserMenuInner() {
   async function handleSignOut() {
     setSigningOut(true);
     try {
+      const { signOut } = await import('@/stores/auth');
       await signOut();
       // AuthBridge's own onAuthStateChanged listener (in whichever route
       // island mounted AuthIsland) sets $user back to null; this component

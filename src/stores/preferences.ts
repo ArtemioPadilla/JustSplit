@@ -1,7 +1,7 @@
 import { computed } from 'nanostores';
 import { persistentAtom } from '@nanostores/persistent';
 import { DEFAULT_CURRENCY, createRateCache, type RateCache, type RateCacheEntry } from '@/domain/currency';
-import { $profile } from './auth';
+import { $profile } from './session';
 
 /**
  * Cross-island preferences (plan B5b). Nano Stores, never React Context
