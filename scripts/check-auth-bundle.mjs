@@ -127,7 +127,15 @@ if (existsSync(signinHtmlPath)) {
 // through a dynamic import on sign-out. Only STATIC imports count here: a
 // lazily imported chunk is fetched on demand, not on page load. Plan B7 adds
 // the marketing pages (/landing, /about, /help) to this list.
-const PUBLIC_PAGES = ['index.html', '404.html', 'landing/index.html', 'about/index.html', 'help/index.html'];
+//
+// `index.html` ('/') left this list in plan B8b: it now mounts
+// `DashboardIsland` (`ErrorBoundary > AuthIsland > AuthGate > Content`), the
+// first AUTHENTICATED route island — like `/auth/signin/` (measured, not
+// gated, in section 2 above), it is expected to load @supabase/supabase-js
+// up front. `404.html` stays in this list: today's `AppRouterIsland` only
+// ever mounts `RouteStub`, a placeholder with no data-layer import; it moves
+// out once a Phase-2 dynamic route (B9+) actually reaches the adapter.
+const PUBLIC_PAGES = ['404.html', 'landing/index.html', 'about/index.html', 'help/index.html'];
 function staticGraph(entryFiles) {
   const seen = new Set();
   const queue = [...entryFiles];

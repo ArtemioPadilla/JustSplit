@@ -47,27 +47,36 @@ function staticGraph(entryFiles) {
   return seen;
 }
 
-const SHOWCASE_PAGE = join(DIST, 'showcase', 'index.html');
-if (!existsSync(SHOWCASE_PAGE)) {
-  failures.push(`${SHOWCASE_PAGE} is missing — run \`astro build\` first`);
-} else if (!existsSync(ASTRO_DIR)) {
+// Every page whose islands compose the B8a chart widgets: /showcase
+// (ShowcaseDashboardCharts) and, since plan B8b, / (DashboardIsland). Both
+// must reach DashboardCharts.lazy.tsx only through the dynamic import().
+const CHART_PAGES = [join(DIST, 'showcase', 'index.html'), join(DIST, 'index.html')];
+
+if (!existsSync(ASTRO_DIR)) {
   failures.push(`${ASTRO_DIR} is missing — run \`astro build\` first`);
 } else {
-  const html = readFileSync(SHOWCASE_PAGE, 'utf8');
-  const entries = directEntries(html);
-  if (entries.length === 0) {
-    failures.push(`${SHOWCASE_PAGE} has no astro-island component-url/renderer-url or <script src> — did the page change shape?`);
-  }
+  for (const page of CHART_PAGES) {
+    if (!existsSync(page)) {
+      failures.push(`${page} is missing — run \`astro build\` first`);
+      continue;
+    }
+    const html = readFileSync(page, 'utf8');
+    const entries = directEntries(html);
+    if (entries.length === 0) {
+      failures.push(`${page} has no astro-island component-url/renderer-url or <script src> — did the page change shape?`);
+      continue;
+    }
 
-  const graph = staticGraph(entries);
-  const offenders = [...graph].filter((name) => readFileSync(join(ASTRO_DIR, name), 'utf8').includes(RECHARTS_MARKER));
-  if (offenders.length > 0) {
-    failures.push(
-      `dist/showcase/index.html statically loads Recharts (${offenders.join(', ')}) — the chart widgets must load ` +
-        `through React.lazy(() => import('.../DashboardCharts.lazy')), not a static import`,
-    );
-  } else {
-    console.log(`check-charts-bundle: dist/showcase/index.html loads no Recharts chunk up front (${graph.size} chunk(s) checked)`);
+    const graph = staticGraph(entries);
+    const offenders = [...graph].filter((name) => readFileSync(join(ASTRO_DIR, name), 'utf8').includes(RECHARTS_MARKER));
+    if (offenders.length > 0) {
+      failures.push(
+        `${page} statically loads Recharts (${offenders.join(', ')}) — the chart widgets must load ` +
+          `through React.lazy(() => import('.../DashboardCharts.lazy')), not a static import`,
+      );
+    } else {
+      console.log(`check-charts-bundle: ${page} loads no Recharts chunk up front (${graph.size} chunk(s) checked)`);
+    }
   }
 
   // Informational: which chunk(s) actually carry Recharts, and confirm at
