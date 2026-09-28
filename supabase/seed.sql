@@ -45,7 +45,7 @@ on conflict (id) do nothing;
 insert into public.expense_groups (id, name, type, currency, members, member_ids, admin_ids, created_by, extra)
 values ('seed-group-casa', 'Casa', 'family', 'MXN',
         '[{"userId":"11111111-1111-4111-8111-111111111111","displayName":"Ana","role":"admin","joinedAt":"2026-09-28T00:00:00Z"},
-          {"userId":"22222222-2222-4222-8222-222222222222","displayName":"Beto","role":"user","joinedAt":"2026-09-28T00:00:00Z"}]',
+          {"userId":"22222222-2222-4222-8222-222222222222","displayName":"Beto","role":"member","joinedAt":"2026-09-28T00:00:00Z"}]',
         array['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'],
         array['11111111-1111-4111-8111-111111111111'],
         '11111111-1111-4111-8111-111111111111',
