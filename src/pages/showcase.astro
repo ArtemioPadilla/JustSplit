@@ -4,6 +4,7 @@ import UserMenuIsland from '@/components/islands/UserMenuIsland';
 import ShowcaseCurrencySelector from '@/components/islands/ShowcaseCurrencySelector';
 import CurrencyExchangeTicker from '@/components/islands/CurrencyExchangeTicker';
 import ShowcaseEditable from '@/components/islands/ShowcaseEditable';
+import ShowcaseExportCsvButton from '@/components/islands/ShowcaseExportCsvButton';
 import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
@@ -74,6 +75,20 @@ import { ProgressBar } from '@/components/ui/progress-bar';
       </p>
       <div class="max-w-sm rounded-md border border-border bg-card p-3">
         <ProgressBar value={62} label="Event settlement progress" />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">ExportCsvButton <span class="text-sm font-normal text-muted-foreground">(B17a)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Wraps download-trigger.tsx around domain/csvExport.ts#expensesToCSV — data-source-agnostic
+        (props expenses/users/events/filename), so a real mount site (B8b/B9/B11b) resolves
+        <code>users</code> from <code>useProfiles</code>. Demoed here over two fictional in-memory
+        expenses. The exported CSV is a UTF-8-BOM-prefixed Blob (Excel renders accented names
+        correctly) and defangs any cell that looks like a spreadsheet formula.
+      </p>
+      <div class="inline-flex rounded-md border border-border bg-card p-3">
+        <ShowcaseExportCsvButton client:idle />
       </div>
     </section>
   </main>
