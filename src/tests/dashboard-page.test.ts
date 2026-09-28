@@ -20,6 +20,10 @@ describe('/ dashboard shell (plan B8b)', () => {
     expect(src).toMatch(/<noscript>/);
   });
 
+  it('wraps the island in a <main> landmark (axe landmark-one-main/region)', () => {
+    expect(src).toMatch(/<main[^>]*>[\s\S]*<DashboardIsland/);
+  });
+
   it('renders no landing/marketing copy — that lives only in landing.astro', () => {
     expect(src).not.toMatch(/Fair expense splitting/);
     expect(src).not.toMatch(/JustSplit<\/h1>/);
