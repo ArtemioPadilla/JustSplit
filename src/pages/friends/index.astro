@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FriendsIsland from '../../components/islands/FriendsIsland';
+import { withBase } from '../../lib/href';
+
+// The friends list shell (plan B13, ADR 0006), same pattern as
+// /expenses/list.astro: a static skeleton renders until FriendsIsland
+// hydrates and either mounts the real list or redirects a signed-out
+// visitor to /landing/ (AuthGate, plan B4).
+---
+
+<BaseLayout title="Friends · JustSplit" description="Friend requests, friends, and sent requests — plus adding a friend by email.">
+  <main id="main-content">
+    <FriendsIsland client:only="react">
+      <div slot="fallback" class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-10" aria-busy="true">
+        <div class="h-10 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-64 w-full animate-pulse rounded bg-muted"></div>
+        <noscript>
+          <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
+          <p class="mt-4 text-muted-foreground">
+            JustSplit runs in the browser. Enable JavaScript, or go
+            <a class="underline" href={withBase('/landing/')}>learn more about JustSplit</a>.
+          </p>
+        </noscript>
+      </div>
+    </FriendsIsland>
+  </main>
+</BaseLayout>

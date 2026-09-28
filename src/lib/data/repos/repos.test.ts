@@ -170,9 +170,39 @@ describe('repos.friendships', () => {
     expect(list.map((x) => x.id)).toContain(f.id);
   });
 
-  it('update() changes status (accept/reject)', async () => {
+  it('update() changes status to accepted or rejected', async () => {
     const f = await friendships.create({ users: ['u3', 'u4'], status: 'pending', requestedBy: 'u3' });
     const accepted = await friendships.update(f.id, { status: 'accepted' });
     expect(accepted?.status).toBe('accepted');
+
+    const g = await friendships.create({ users: ['u5', 'u6'], status: 'pending', requestedBy: 'u5' });
+    const rejected = await friendships.update(g.id, { status: 'rejected' });
+    expect(rejected?.status).toBe('rejected');
+  });
+
+  it('remove() deletes the row (plan B13: Cancel by the requester, or Remove by either party)', async () => {
+    const f = await friendships.create({ users: ['u7', 'u8'], status: 'pending', requestedBy: 'u7' });
+    await friendships.remove(f.id);
+    expect(await friendships.get(f.id)).toBeNull();
+  });
+
+  describe('existsForPair / request (plan B13, ADR 0006 "duplicate pair" mapping)', () => {
+    it('existsForPair is false with no row between the two users, true once one exists in either direction', async () => {
+      expect(await friendships.existsForPair('u9', 'u10')).toBe(false);
+      await friendships.create({ users: ['u9', 'u10'], status: 'pending', requestedBy: 'u9' });
+      expect(await friendships.existsForPair('u9', 'u10')).toBe(true);
+      expect(await friendships.existsForPair('u10', 'u9')).toBe(true);
+    });
+
+    it('request() creates a pending row requested by the caller', async () => {
+      const f = await friendships.request('u11', 'u12');
+      expect(f).toMatchObject({ users: ['u11', 'u12'], status: 'pending', requestedBy: 'u11' });
+    });
+
+    it('request() throws FriendshipAlreadyExistsError for a pair that already has a row, in either direction', async () => {
+      await friendships.request('u13', 'u14');
+      await expect(friendships.request('u13', 'u14')).rejects.toBeInstanceOf(friendships.FriendshipAlreadyExistsError);
+      await expect(friendships.request('u14', 'u13')).rejects.toBeInstanceOf(friendships.FriendshipAlreadyExistsError);
+    });
   });
 });

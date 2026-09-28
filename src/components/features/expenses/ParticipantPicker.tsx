@@ -17,8 +17,9 @@ export interface ParticipantPickerProps {
 }
 
 /**
- * The expense form's participant picker (plan B10, B13's ADR pulled
- * forward). Participants are registered users only — there is no free-text
+ * The expense form's participant picker (plan B10, decision pulled forward
+ * from B13's ADR `docs/decisions/0006-registered-participants.md`).
+ * Participants are registered users only — there is no free-text
  * "add a participant" input; every option here comes from `candidates`,
  * which the form resolves from `?group=`/`?event=`/`?friend=` or accepted
  * friends + self.

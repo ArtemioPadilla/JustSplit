@@ -12,6 +12,7 @@ import { ReceiptImage } from '@/components/features/ReceiptImage';
 import { LEGACY_CATEGORY_KEYS, type LegacyCategoryKey } from '@/domain/categories';
 import { formatCalendarDate, parseCalendarDate } from '@/domain/dates';
 import { resolveEventParticipants, violatesNoGroupInvariant } from '@/domain/expenseParticipants';
+import { acceptedFriendIds as computeAcceptedFriendIds } from '@/domain/friends';
 import { buildSplits, validateSplit } from '@/domain/expenseSplitter';
 import { useAddReceipts } from '@/lib/data/hooks/useAddReceipts';
 import { useCreateExpenseWithReceipts } from '@/lib/data/hooks/useCreateExpenseWithReceipts';
@@ -91,12 +92,12 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   const eventGroupQuery = useGroup(eventQuery.data?.groupId ?? undefined);
   const friendsQuery = useFriends(uid);
 
+  // Plan B13: the "other user in a 2-person `users[]`" logic now lives in
+  // one pure helper (`domain/friends.ts`), shared with the friends islands
+  // — this memo is just the wiring (uid guard + useFriends' data shape).
   const acceptedFriendIds = React.useMemo(() => {
     if (!friendsQuery.data || !uid) return [];
-    return friendsQuery.data
-      .filter((f) => f.status === 'accepted')
-      .map((f) => f.users.find((other) => other !== uid))
-      .filter((id): id is string => Boolean(id));
+    return computeAcceptedFriendIds(friendsQuery.data, uid);
   }, [friendsQuery.data, uid]);
 
   const fallbackCandidateIds = React.useMemo(

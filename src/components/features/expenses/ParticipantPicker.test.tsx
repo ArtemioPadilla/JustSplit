@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event';
 import { ParticipantPicker } from './ParticipantPicker';
 
 /**
- * Plan B10, B13's ADR: participants are registered users only — the
+ * Plan B10, decision pulled forward from B13's ADR
+ * (`docs/decisions/0006-registered-participants.md`): participants are registered users only — the
  * candidate POOL is resolved by the form (group members / friends + self /
  * event members) and passed in; this widget only renders it. `paidBy` is
  * chosen from the SAME candidate pool and need not be one of the checked
