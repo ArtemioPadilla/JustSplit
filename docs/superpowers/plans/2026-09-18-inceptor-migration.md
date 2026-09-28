@@ -1401,19 +1401,97 @@ resolves other users' names through `useProfiles` (B5a).
       FeedbackFAB ("Report an issue") as the path forward for a failure Retry can't fix, without
       inventing a support channel; the `LiveQueryCallback<T>` extension formalized as a named,
       documented, exported type instead of an inline widened signature.
-### B9. Expense list + detail islands (`/expenses/list`, `/expenses/view`)
-- [ ] List: `data-table` with URL-state sort/filter (Inceptor `use-data-table-url-state`; the full
-      import closure was grafted in B1, or is added here if B1 chose the alternative); event filter
-      (URL state); display-currency selector (`CurrencySelector`, B16) with every amount converted
-      and an "(Originally: …)" caption; settled badge; links to detail/event; `ExportCsvButton`
-      (B17a) over the filtered rows, filename `all-expenses.csv` or `<event>-expenses.csv`
-- [ ] Detail: `Editable` (B16) description and notes → partial `repos.expenses.update`; amount in
-      the display currency; split type + `splits[]` per participant with names via `useProfiles`
-      (B5a); event link; settled badge; receipt gallery through `<ReceiptImage path>` (B5b signed
-      URLs; opens the signed URL in a new tab); `ExportCsvButton` for `[expense]`
-      (`expense-<id>.csv`); delete with confirm (new — no page calls `deleteExpense` today) via
-      `repos.expenses.remove` (RLS: creator or payer; deletes the receipt objects first, B5b)
-- [ ] Port `src/app/expenses/__tests__/ExpenseDetail.test.tsx`
+### B9. Expense list + detail islands (`/expenses/list`, `/expenses/<id>`) (`risk:high`)
+- [x] **Tagged `risk:high`** (orchestrator, up front — not after the fact like B8b): this issue
+      changes `src/lib/data/repos/expenses.ts`'s `remove()`. **Deviation from the plan text**: the
+      detail route is `/expenses/<id>` (the client-only dynamic route through `dist/404.html` →
+      `AppRouterIsland` → `expense-detail`, plan B2c), not `/expenses/view` — the plan text's guess
+      was wrong; `app-routes.ts`'s `DYNAMIC_ROUTES` already named it `expense-detail` with prefix
+      `['expenses']` before this issue. `AppRouterIsland`'s `expense-detail` case now loads
+      `ExpenseDetailView` through its own `React.lazy(() => import(...))` boundary (a `Suspense`
+      fallback skeleton) instead of `RouteStub` — the first dynamic route with a real view; every
+      other one (`expense-edit`, `event-detail`, `event-edit`, `group-detail`, `friend-detail`)
+      is unchanged until its own Phase-2 issue lands. An id that resolves to no row (missing, or an
+      RLS-hidden expense) renders the SAME `NotFoundView` the shell already uses for an unknown
+      path — the query layer and the route never let a caller distinguish "doesn't exist" from
+      "exists but you can't see it" (ADR 0002's leaked-id reasoning).
+- [x] **Data-loss bug fixed** (the risk:high part, ADR 0005 amendment "delete ordering preflight"):
+      `repos.expenses.remove` ran `removeReceipts(id)` (storage's `receipts_expenses_delete` policy
+      is member-wide by design — B10 relies on it for image edits) BEFORE the row delete
+      (`expenses_delete`: creator or payer only). A member who was neither could destroy every
+      receipt and then have the row delete silently denied by RLS — permanent, partial loss.
+      `remove()` now fetches the fresh row via `get(id)` and refuses BEFORE touching storage —
+      `ExpenseNotFoundError` for a missing/already-deleted row, `ExpenseDeleteNotAllowedError` for a
+      caller who is neither `createdBy` nor `paidBy` — using the uid from a new `requireUid()`
+      (`require-adapter.ts`, reads the `$user` session store, never a function argument). Explicitly
+      a client-side safety preflight against a destructive PARTIAL operation, not authorization: RLS
+      still independently denies the row delete either way (CLAUDE.md rule 8). Red tests first
+      (`src/lib/data/repos/expenses.remove.test.ts`): a member who is neither creator nor payer never
+      calls `removeReceipts` and gets the typed error; the creator and the payer still delete in that
+      order; a storage failure still stops the row delete (existing behavior, preserved). A new RLS
+      test (`src/tests/rls/storage.test.ts`) documents the storage side of the same asymmetry (a
+      non-creator/payer member CAN still delete a receipt object, by design) — not run against a live
+      Supabase stack in this environment; `npm run test:rls` is its own CI job, never part of `check`.
+- [x] List (`ExpenseListIsland`, `/expenses/list`): `useExpenses(uid)` + `useEvents(uid)` +
+      `useProfiles(ids)`, same `ErrorBoundary > AuthIsland > AuthGate > Content` composition and
+      error/retry handling as `DashboardIsland` (B8b). `<DataTable>` (`ui/data-table.tsx`) with
+      `syncToUrl` for sort/global-filter URL state; the event filter is its OWN URL param
+      (`?event=<id>`) via a new, smaller sibling hook, `src/lib/use-url-param.ts` — `DataTable`'s own
+      `useDataTableUrlState` covers sort/global-filter/visibility/sizing but not a value outside the
+      table, and its per-column `meta.filterOptions` select isn't URL-synced either. A local display-
+      currency `CurrencySelector` (initialised from `$preferredCurrency`, never written back to the
+      profile) feeds `useDisplayConversion`'s new optional `targetOverride` parameter (test-first,
+      the B8b dashboard's own call — no override — is unchanged). Every amount converted with an
+      "(Originally: …)" caption when the expense's currency differs, gated on `ready`. Settled badge;
+      links to the detail page and the event. `ExportCsvButton` (B17a) over the FILTERED rows,
+      `all-expenses.csv` or `<event name>-expenses.csv` when an event filter is active. A zero-
+      expenses empty state is distinct from a "no results for this filter" state.
+      **Test-infra note**: `@tanstack/react-virtual`'s `useVirtualizer` measures the scroll
+      container's real height (0 in jsdom), so `<DataTable>`'s virtualized `<tbody>` renders zero
+      rows under Testing Library — verified directly against the bare component. Every DataTable-
+      based test in this issue mocks `useVirtualizer` with a "render every row" stand-in (documented
+      inline in `ExpenseListIsland.test.tsx`); copy it for any future DataTable-based island's tests.
+- [x] Detail (`ExpenseDetailView`, `src/components/islands/routes/`): loads via a new `useExpense(id)`
+      hook (a plain `useQuery` over `repos.expenses.get`, per `useLiveQuery`'s own "non-live keys use
+      a normal `useQuery`" doc comment — same pattern as the pre-existing `useGroup`; a new `useEvent(id)`
+      closes the same gap for the event link). `Editable` (B16) description/notes commit through a new
+      `useUpdateExpense` mutation hook (a partial `repos.expenses.update`), toast on failure via
+      `notifications.ts`, and the displayed text reverts to the pre-edit draft — found and fixed while
+      turning this file's tests green: a CONTROLLED `Editable value=` prop froze typing entirely (the
+      zag-js machine only accepts external input through `onValueChange`, which nothing fed back);
+      the fix uses `Editable` uncontrolled (`defaultValue`, matching its own `editable.behavior.test.tsx`
+      precedent) with a local draft-state + `key`-remount pattern, which is also what makes a failed
+      commit visibly revert. Amount in the local display currency with the original caption (same
+      `useDisplayConversion` override as the list); split type + `splits[]` per participant with names
+      via `useProfiles`; event link/name; settled badge. Receipt gallery via a new `ReceiptGallery`
+      widget (`src/components/features/expenses/`) composing `<ReceiptImage path>` (B5b signed URLs);
+      clicking a thumbnail resolves the signed URL again (cheap — `signedUrl`'s own cache) and opens
+      it via `window.open(url, '_blank', 'noopener,noreferrer')` — the programmatic equivalent of a
+      real anchor's `rel`, since the href isn't known until the signed URL resolves. `ExportCsvButton`
+      for `[expense]` (`expense-<id>.csv`). Delete with confirm: `DeleteExpenseDialog`
+      (`src/components/features/expenses/`), a Base UI `Dialog` whose whole trigger+content
+      composition lives in one component (CLAUDE.md's compound-component rule) via a new
+      `useDeleteExpense` mutation hook wrapping `repos.expenses.remove` (this issue's ADR 0005
+      preflight and typed errors, above); shown only to the creator or payer (UX only, RLS is the
+      authority) — on success, toasts and navigates to `withBase('/expenses/list')`; on failure,
+      toasts one generic message covering both the typed preflight errors and a genuine backend
+      failure.
+- [x] Ported `src/app/expenses/__tests__/ExpenseDetail.test.tsx`'s surviving behavior onto
+      `ExpenseDetailView.test.tsx`: rendering the description/amount/paid-by name/notes/date, editing
+      the description, editing the notes. Dropped: the `AppContext` mocking (this tree has no
+      Context, spec D3), a `toFixed(2)`-on-a-raw-prop assertion (the amount is now a converted,
+      `ready`-gated number, not the raw prop), and the `detailItem` CSS-class DOM query (no such class
+      exists in this rebuild; `screen.getByText` on the resolved name is used instead).
+- [x] `npm run check:a11y`: 0 violations on `/expenses/list` (added to `scripts/axe-smoke.mjs`'s page
+      list) alongside the existing 7 pages.
+- [x] Bundle: `ExpenseDetailView` (20.43 kB / 7.21 kB gz) is reached only through `AppRouterIsland`'s
+      `React.lazy` — `dist/404.html`'s own static reference stays the tiny `AppRouterIsland` loader
+      chunk (0.23 kB gz); the real `ExpenseDetailView` chunk never appears in its static HTML/script
+      tags (verified: no `ExpenseDetailView` filename anywhere in `dist/404.html`). Neither
+      `ExpenseListIsland` (109.87 kB / 31.99 kB gz, `/expenses/list`'s own `client:only` bundle) nor
+      `ExpenseDetailView` contains the Recharts marker (`check-charts-bundle.mjs`'s existing
+      `showcase`/`/` checks are unaffected; a direct grep of both chunks for the
+      `recharts-responsive-container` marker found nothing).
 ### B10. Expense form island (`/expenses/new`, `/expenses/edit`)
 - [ ] `ExpenseSplitter` rewritten without MUI over the universal `splitType` (equal / exact /
       percentage) — the form edits shares, `materializeSplits` (B3) writes `splits[].amount`;
