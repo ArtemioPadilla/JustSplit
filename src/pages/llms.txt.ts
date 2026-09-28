@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { SITE, REPO_URL } from '@/lib/site-meta';
+import { withBase } from '@/lib/href';
 
 /**
  * /llms.txt — agent-first index (llmstxt.org). Keep this in sync as routes
@@ -15,7 +16,10 @@ ${REPO_URL}/blob/main/CLAUDE.md
 
 ## Pages
 
-- [Home](/): landing page (the app's authenticated routes arrive with Track B of the migration plan)
+- [Landing](${withBase('/landing')}): marketing home page — plan and pitch (plan B7)
+- [About](${withBase('/about')}): mission and how it works (plan B7)
+- [Help](${withBase('/help')}): FAQ and support topics (plan B7)
+- [Home](${withBase('/')}): today a placeholder shell; the real authenticated dashboard arrives with Track B Phase 2
 
 ## For agents
 
