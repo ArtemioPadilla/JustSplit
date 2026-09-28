@@ -15,6 +15,8 @@
  */
 import type { Expense } from '../schemas/expense';
 import type { ExpenseSplit, SplitType } from '../schemas/expense';
+import type { Settlement } from '../schemas/settlement';
+import { isLegacySettled, netBalances, round2, settlementsForEvent } from './ledger';
 
 export interface SettlementSuggestion {
   fromUser: string;
@@ -73,35 +75,43 @@ function greedySettle(balances: Record<string, number>, expenseIdsFor: (debtorId
 }
 
 /**
- * Suggested settlements that would zero out every balance among `userIds`,
- * from `expenses` unsettled at the time of the call (`settledAt == null`),
- * optionally scoped to one `eventId`.
+ * Suggested payments that would zero out every balance among `userIds` (plan
+ * B14a, ADR 0014): the scope's expenses net of the scope's `settlements`, then
+ * the greedy minimal-transactions pass. Optionally scoped to one `eventId`,
+ * which narrows BOTH lists to that event; without it every row given counts
+ * (the personal/global scope — the caller narrows to the rows that name the
+ * viewer, and a settlement counts whatever its `eventId`). Legacy settled
+ * expenses (`settledAt != null`) are excluded. Amounts are summed as given,
+ * with no currency conversion: use `calculateSettlementsWithConversion` for
+ * mixed currencies.
+ *
+ * `expenseIds` on a suggestion is informational only — which expenses the
+ * pair's debt came from at best; nothing may rely on it for balance maths.
  */
-export function calculateSettlements(expenses: Expense[], userIds: string[], eventId?: string): SettlementSuggestion[] {
-  const filteredExpenses = eventId
-    ? expenses.filter((e) => e.eventId === eventId && e.settledAt == null)
-    : expenses.filter((e) => e.settledAt == null);
-
-  if (filteredExpenses.length === 0) return [];
+export function calculateSettlements(
+  expenses: Expense[],
+  settlements: Settlement[],
+  userIds: string[],
+  eventId?: string,
+): SettlementSuggestion[] {
+  const scopedExpenses = eventId ? expenses.filter((e) => e.eventId === eventId) : expenses;
+  const scopedSettlements = eventId ? settlementsForEvent(settlements, eventId) : settlements;
+  const liveExpenses = scopedExpenses.filter((e) => !isLegacySettled(e));
 
   const balances: Record<string, number> = {};
   userIds.forEach((id) => {
     balances[id] = 0;
   });
-
-  filteredExpenses.forEach((expense) => {
-    const { paidBy, splits } = expense;
-    splits.forEach((split) => {
-      if (split.userId === paidBy) return;
-      balances[split.userId] = (balances[split.userId] ?? 0) - split.amount;
-      balances[paidBy] = (balances[paidBy] ?? 0) + split.amount;
-    });
+  Object.entries(netBalances(liveExpenses, scopedSettlements, (amount) => amount)).forEach(([id, amount]) => {
+    balances[id] = amount;
   });
 
-  return greedySettle(balances, (debtorId, creditorId) =>
-    filteredExpenses
-      .filter((expense) => expense.paidBy === creditorId && expense.splits.some((s) => s.userId === debtorId))
-      .map((expense) => expense.id),
+  return greedySettle(
+    balances,
+    (debtorId, creditorId) =>
+      liveExpenses
+        .filter((expense) => expense.paidBy === creditorId && expense.splits.some((s) => s.userId === debtorId))
+        .map((expense) => expense.id),
     eventId,
   );
 }
@@ -114,38 +124,36 @@ export type ConvertCurrency = (
 ) => Promise<{ convertedAmount: number; isFallback: boolean }>;
 
 /**
- * Like `calculateSettlements`, but every expense's amount is converted to
- * `targetCurrency` first via the injected `convert` function.
+ * Like `calculateSettlements`, but every expense and settlement amount is
+ * converted to `targetCurrency` first via the injected `convert` function.
  */
 export async function calculateSettlementsWithConversion(
   expenses: Expense[],
+  settlements: Settlement[],
   userIds: string[],
   targetCurrency: string,
   convert: ConvertCurrency,
   filterEventId?: string,
 ): Promise<SettlementSuggestion[]> {
-  const unsettled = expenses.filter((e) => e.settledAt == null);
-  const filteredExpenses = filterEventId ? unsettled.filter((e) => e.eventId === filterEventId) : unsettled;
-
-  if (filteredExpenses.length === 0) return [];
+  const scopedExpenses = filterEventId ? expenses.filter((e) => e.eventId === filterEventId) : expenses;
+  const scopedSettlements = filterEventId ? settlementsForEvent(settlements, filterEventId) : settlements;
+  const liveExpenses = scopedExpenses.filter((e) => !isLegacySettled(e));
 
   const balances: Record<string, number> = {};
   userIds.forEach((id) => {
     balances[id] = 0;
   });
 
+  const toTarget = async (amount: number, currency: string): Promise<number> =>
+    currency.toUpperCase() === targetCurrency.toUpperCase() ? amount : (await convert(amount, currency, targetCurrency)).convertedAmount;
+
   const contributingExpenseIds = new Set<string>();
 
-  for (const expense of filteredExpenses) {
+  for (const expense of liveExpenses) {
     contributingExpenseIds.add(expense.id);
     if (expense.splits.length === 0) continue;
 
-    let amountInTargetCurrency = expense.amount;
-    if (expense.currency.toUpperCase() !== targetCurrency.toUpperCase()) {
-      const { convertedAmount } = await convert(expense.amount, expense.currency, targetCurrency);
-      amountInTargetCurrency = convertedAmount;
-    }
-
+    const amountInTargetCurrency = await toTarget(expense.amount, expense.currency);
     const conversionRatio = expense.amount === 0 ? 0 : amountInTargetCurrency / expense.amount;
 
     balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + amountInTargetCurrency;
@@ -154,9 +162,16 @@ export async function calculateSettlementsWithConversion(
     });
   }
 
+  for (const settlement of scopedSettlements) {
+    if (settlement.fromUserId === settlement.toUserId) continue;
+    const amount = await toTarget(settlement.amount, settlement.currency);
+    balances[settlement.fromUserId] = (balances[settlement.fromUserId] ?? 0) + amount;
+    balances[settlement.toUserId] = (balances[settlement.toUserId] ?? 0) - amount;
+  }
+
   const rounded: Record<string, number> = {};
   Object.entries(balances).forEach(([id, amount]) => {
-    rounded[id] = Math.round(amount * 100) / 100;
+    rounded[id] = round2(amount);
   });
 
   return greedySettle(rounded, () => Array.from(contributingExpenseIds), filterEventId);

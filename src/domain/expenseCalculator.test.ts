@@ -168,9 +168,13 @@ describe('calculateSettlements (plan B3, spec D10 — consumes splits[])', () =>
       expect(result).toEqual([expect.objectContaining({ fromUser: 'beto', toUser: 'ana', amount: 70 })]);
     });
 
-    it('still suggests the reverse when a settlement exceeds what was owed (overpayment)', () => {
+    it('an overpayment makes the payer a creditor: the third person then owes both', () => {
       const result = calculateSettlements([dinner()], [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 40 })], ['ana', 'beto', 'carla']);
-      expect(result.find((s) => s.fromUser === 'ana')).toEqual(expect.objectContaining({ toUser: 'beto', amount: 10 }));
+      // Beto paid 10 more than he owed, so he is now owed 10; Ana is still owed 20; Carla owes 30.
+      expect(result).toEqual([
+        expect.objectContaining({ fromUser: 'carla', toUser: 'ana', amount: 20 }),
+        expect.objectContaining({ fromUser: 'carla', toUser: 'beto', amount: 10 }),
+      ]);
     });
   });
 });
