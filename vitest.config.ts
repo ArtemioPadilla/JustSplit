@@ -13,7 +13,12 @@ export default defineConfig({
     // (vitest.rls.config.ts) in its own CI job, never inside `npm run check`.
     // Same for the real-adapter half of the storage-adapter contract suite
     // (plan B5a): `npm run test:contract:live` (vitest.contract.config.ts).
-    exclude: [...configDefaults.exclude, 'src/tests/rls/**', 'src/tests/storage-adapter-contract.live.test.ts'],
+    exclude: [
+      ...configDefaults.exclude,
+      'src/tests/rls/**',
+      'src/tests/storage-adapter-contract.live.test.ts',
+      'src/tests/storage.live.test.ts',
+    ],
     // Globals: true gives RTL automatic afterEach cleanup (it hooks via
     // global `afterEach`). Without this, multiple `render()` calls in the
     // same test file leak DOM into each other.

@@ -1,6 +1,7 @@
 import type { QueryFilter } from '@cyber-eco/types';
 import { CreateExpenseInputSchema, ExpenseSchema, type CreateExpenseInput, type Expense } from '@/schemas/expense';
 import { requireStorageAdapter } from '../require-adapter';
+import { removeReceipts } from '../storage';
 
 /**
  * `expenses` repo (plan B5a). See `groups.ts` for the shared conventions
@@ -74,6 +75,13 @@ export async function update(id: string, patch: Partial<Expense>): Promise<Expen
   return get(id);
 }
 
+/**
+ * Deletes every receipt object under `expenses/{id}/` BEFORE the row (spec
+ * D10, plan B5b): once the row is gone, no `storage.objects` policy can
+ * reach them, so a storage failure here must stop the row delete rather
+ * than orphan the objects unreachable.
+ */
 export async function remove(id: string): Promise<void> {
+  await removeReceipts(id);
   await requireStorageAdapter().deleteDocument('expenses', id);
 }
