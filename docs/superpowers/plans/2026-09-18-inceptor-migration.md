@@ -1885,18 +1885,40 @@ resolves other users' names through `useProfiles` (B5a).
       expense keeps its `eventId`; a rejected batch leaves every expense unsettled; history lists
       settlements for both directions
 ### B15. Profile island — editable profile, avatar upload, preferred currency
-- [ ] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
+- [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
       (B4); avatar via `FileUpload` + B5b `uploadAvatar` (object path
       `avatars/{uid}/{uuid}.jpg` in `profiles."avatarUrl"`, previous object removed after the
       update succeeds); `preferences.preferredCurrency` written to the profile (source of truth);
       phone number edited with today's validation and stored as `preferences.phoneNumber` (B3
       `profile.ts`) — no top-level key beyond the hub's `profiles` columns is ever written through
       `profileStore.set/update` (`profiles` is copied verbatim, spec D10, and the store writes
-      top-level keys as columns); "Restablecer datos locales" button wired in B17b
-- [ ] Account: change password (`updatePassword`); sign out — the adapter's `signOut()` takes no
+      top-level keys as columns); "Restablecer datos locales" button wired in B17b — done:
+      `/profile` (`ProfileIsland`, `ErrorBoundary > AuthIsland > AuthGate > Content`, same
+      composition as `GroupFormIsland`/`ExpenseFormIsland`), a "Profile" link added to
+      `UserAccountMenu`'s dropdown. `ProfileForm` composes `AvatarUploadField` (upload -> row
+      update -> ONLY THEN remove the old object; a failed row update removes the NEW object
+      instead; a failed old-object removal is `notifyInfo`, not an error; a defensive
+      `avatars/{uid}/` path-prefix check before ever calling `removeAvatar`, since `avatarUrl` is
+      user-writable) + the name/phone form (`ProfileEditSchema`, phone regex ported from the
+      legacy `/app/profile` page — no legacy tests existed to port) + `CurrencySelector` (B16).
+      **Preferences-merge bug guard**: every write of `preferences` (phone, currency here;
+      `DashboardIsland`'s currency selector too, refactored in this issue) goes through the new
+      `buildPreferencesPatch` (`src/domain/profile.ts`) — `SupabaseProfileStore.update` upserts
+      `preferences` as a whole jsonb COLUMN, never a merge, so a bare `{ phoneNumber }` write would
+      silently wipe `preferredCurrency` (and the reverse); asserted by a pure unit test and a
+      `ProfileForm` integration test that a save of one field never observably changes the other.
+      ADR `docs/decisions/0012-profile-and-account-settings.md` (numbered 0012, not the issue
+      text's suggested 0009 — the plan's own pre-assignment table reserves 0009 for B20's future
+      ADR; 0012 is the next number actually free, per the same "check pre-assignments first" rule).
+- [x] Account: change password (`updatePassword`); sign out — the adapter's `signOut()` takes no
       arguments and is already Supabase's default **global** scope (every session revoked), so
       "sign out everywhere" is the plain button; a single-device sign-out would need
-      `client.auth.signOut({ scope: 'local' })` directly and is not built
+      `client.auth.signOut({ scope: 'local' })` directly and is not built — done: `AccountSettings`
+      mounts a change-password form (`ChangePasswordSchema`, reusing `RegisterSchema.shape.password`
+      plus a `confirmPassword` match check; no "current password" field — the session is already
+      authenticated, the copy states this), the "Sign out everywhere" button (`signOut()` +
+      `withBase('/landing')` with the toast queued `{ afterNavigation: true }`, ADR 0008), and the
+      already-built `ResetLocalDataButton` (B17b) — mounted, not duplicated.
 ### B16. Currency exchange ticker + `CurrencySelector` + shared widgets (`risk:high`, `v0.3`)
 - [x] Sequenced in Phase 1 (after B5b, alongside B6/B7) because almost every Phase 2 island depends
       on it: `CurrencySelector` (dashboard header, expenses list/detail, events list/detail,
