@@ -36,7 +36,7 @@ const cases = () => [
   },
   {
     table: 'expenses',
-    row: expenseRow(A, [C], { extra: { conceptId: 'k1', settledAt: null, eventId: 'ev1' } }),
+    row: expenseRow(A, [C], { extra: { conceptId: 'k1', settledAt: null } }),
     patch: { settledAt: '2026-09-28T00:00:00Z' },
   },
 ];
@@ -59,18 +59,13 @@ describe('Track D overflow keys (no migration needed)', () => {
     expect((await B.db.from(table).update({ extra: {} }).eq('id', row.id).select('id')).data).toEqual([]);
   });
 
-  it('settlements carry expenseIds / eventId as overflow keys', async () => {
-    const s = settlementRow(A, A, C, { extra: { expenseIds: ['e1', 'e2'], eventId: 'ev1' } });
+  // `eventId` left this list in B2d (ADR 0013): it is the `event_id` column
+  // now, covered by event-id.test.ts.
+  it('settlements carry expenseIds as an overflow key', async () => {
+    const s = settlementRow(A, A, C, { extra: { expenseIds: ['e1', 'e2'] } });
     await seed('settlements', s);
     const read = await C.db.from('settlements').select('extra').eq('id', s.id).single();
-    expect(read.data!.extra).toEqual({ expenseIds: ['e1', 'e2'], eventId: 'ev1' });
+    expect(read.data!.extra).toEqual({ expenseIds: ['e1', 'e2'] });
     expect((await B.db.from('settlements').select('id').eq('id', s.id)).data).toEqual([]);
-  });
-
-  it('the canonical eventId query resolves through extra->>eventId', async () => {
-    const e = expenseRow(A, [C], { extra: { eventId: 'ev-query' } });
-    await seed('expenses', e);
-    const { data } = await C.db.from('expenses').select('id').eq('extra->>eventId', 'ev-query');
-    expect(data).toEqual([{ id: e.id }]);
   });
 });

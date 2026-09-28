@@ -96,7 +96,8 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
           amount: 100,
           member_ids: ['a', 'b'],
           paid_by: 'a',
-          extra: { eventId: 'trip-1' },
+          event_id: 'trip-1',
+          extra: { conceptId: 'k1' },
         },
         error: null,
       });
@@ -106,7 +107,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       expect(client.from).toHaveBeenCalledWith('expenses');
       expect(builder.select).toHaveBeenCalledWith('*');
       expect(builder.eq).toHaveBeenCalledWith('id', 'e1');
-      expect(doc).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, memberIds: ['a', 'b'], paidBy: 'a', eventId: 'trip-1' });
+      expect(doc).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, memberIds: ['a', 'b'], paidBy: 'a', eventId: 'trip-1', conceptId: 'k1' });
     });
 
     it('returns null when no row matches', async () => {
@@ -122,7 +123,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         amount: 100,
         memberIds: ['a'],
         paidBy: 'a',
-        eventId: 'trip-1',
+        conceptId: 'k1',
       });
 
       expect(result).toEqual({ id: 'e1', success: true });
@@ -132,12 +133,21 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       expect(args.ops).toHaveLength(1);
       expect(args.ops[0]).toMatchObject({ type: 'set', collection: 'expenses', id: 'e1', merge: false });
       expect(args.ops[0]!.data).toMatchObject({ description: 'Tacos', amount: 100, member_ids: ['a'], paid_by: 'a' });
-      expect((args.ops[0]!.data as Record<string, unknown>).extra).toEqual({ eventId: 'trip-1' });
+      expect((args.ops[0]!.data as Record<string, unknown>).extra).toEqual({ conceptId: 'k1' });
       // No client-side upsert: an INSERT … ON CONFLICT is checked against the
       // INSERT policy even when the row exists, which denies a non-creator
       // member's replace (ADR 0002).
       expect(builder.upsert).not.toHaveBeenCalled();
       expect(builder.maybeSingle).not.toHaveBeenCalled();
+    });
+
+    it('eventId is written as the event_id column, not folded into extra (ADR 0013)', async () => {
+      await adapter.setDocument('expenses', 'e1', { description: 'Tacos', eventId: 'trip-1' });
+      await adapter.updateDocument('settlements', 's1', { eventId: null });
+
+      const calls = (client.rpc as Mock).mock.calls as unknown as Array<[string, { ops: Array<{ data: Record<string, unknown> }> }]>;
+      expect(calls[0]![1].ops[0]!.data).toEqual({ description: 'Tacos', event_id: 'trip-1', extra: {} });
+      expect(calls[1]![1].ops[0]!.data).toEqual({ event_id: null, extra: {} });
     });
 
     it('merge: true is passed to the server; extra is never read and merged client-side', async () => {
@@ -197,11 +207,20 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
     it('resolves a real-column filter directly and an overflow filter to extra->>field', async () => {
       await adapter.query('expenses', [
         { field: 'groupId', operator: '==', value: 'g1' },
-        { field: 'eventId', operator: '==', value: 'trip-1' },
+        { field: 'conceptId', operator: '==', value: 'k1' },
       ]);
 
       expect(builder.eq).toHaveBeenCalledWith('group_id', 'g1');
-      expect(builder.eq).toHaveBeenCalledWith('extra->>eventId', 'trip-1');
+      expect(builder.eq).toHaveBeenCalledWith('extra->>conceptId', 'k1');
+    });
+
+    it('eventId is a real column (ADR 0013): the filter hits event_id, never extra->>eventId, on expenses and settlements', async () => {
+      await adapter.query('expenses', [{ field: 'eventId', operator: '==', value: 'trip-1' }]);
+      await adapter.query('settlements', [{ field: 'eventId', operator: '==', value: 'trip-2' }]);
+
+      expect(builder.eq).toHaveBeenCalledWith('event_id', 'trip-1');
+      expect(builder.eq).toHaveBeenCalledWith('event_id', 'trip-2');
+      expect(builder.eq).not.toHaveBeenCalledWith('extra->>eventId', expect.anything());
     });
 
     it('translates array-contains on a real column to .contains', async () => {
@@ -217,11 +236,11 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
 
     it('rehydrates every result row flat (real columns + extra spread)', async () => {
       builder.result = {
-        data: [{ id: 'e1', description: 'Tacos', member_ids: ['a'], extra: { eventId: 'trip-1' } }],
+        data: [{ id: 'e1', description: 'Tacos', member_ids: ['a'], extra: { conceptId: 'k1' } }],
         error: null,
       };
       const result = await adapter.query<Record<string, unknown>>('expenses', []);
-      expect(result.data).toEqual([{ id: 'e1', description: 'Tacos', memberIds: ['a'], eventId: 'trip-1' }]);
+      expect(result.data).toEqual([{ id: 'e1', description: 'Tacos', memberIds: ['a'], conceptId: 'k1' }]);
     });
   });
 
@@ -230,14 +249,14 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       (client.rpc as Mock).mockResolvedValueOnce({ data: 2, error: null });
 
       const result = await adapter.batchWrite([
-        { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', eventId: 'trip-1' } },
+        { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', conceptId: 'k1' } },
         { type: 'delete', collection: 'expenses', id: 'e2' },
       ]);
 
       expect(result).toEqual({ success: true, count: 2 });
       expect(client.rpc).toHaveBeenCalledWith('batch_write', {
         ops: [
-          { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', extra: { eventId: 'trip-1' } }, merge: false },
+          { type: 'set', collection: 'expenses', id: 'e1', data: { description: 'Tacos', extra: { conceptId: 'k1' } }, merge: false },
           { type: 'delete', collection: 'expenses', id: 'e2' },
         ],
       });

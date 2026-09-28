@@ -50,6 +50,11 @@ describe('ExpenseSchema (plan B3)', () => {
     expect(parsed.settledAt).toBe('2026-09-29T00:00:00.000Z');
   });
 
+  it('accepts a null eventId: event_id is a nullable column since B2d, so an unlinked row reads back null (ADR 0013)', () => {
+    const parsed = ExpenseSchema.parse({ ...validExpense, eventId: null });
+    expect(parsed.eventId).toBeNull();
+  });
+
   it('accepts a null settledAt (unsettled expense)', () => {
     const parsed = ExpenseSchema.parse({ ...validExpense, settledAt: null });
     expect(parsed.settledAt).toBeNull();

@@ -66,7 +66,7 @@ describe('batch_write', () => {
   });
 
   it('a partial update leaves untouched columns and unknown overflow keys intact', async () => {
-    const e = await seed('expenses', expenseRow(A, [C], { notes: 'keep', extra: { eventId: 'ev1', futureKey: 1 } }));
+    const e = await seed('expenses', expenseRow(A, [C], { notes: 'keep', extra: { legacyKey: 'ev1', futureKey: 1 } }));
     const { error } = await C.db.rpc('batch_write', {
       ops: [{ type: 'update', collection: 'expenses', id: e.id, data: { description: 'Updated', extra: { conceptId: 'c1' } } }],
     });
@@ -75,7 +75,7 @@ describe('batch_write', () => {
     expect(row.description).toBe('Updated');
     expect(row.notes).toBe('keep');
     expect(Number(row.amount)).toBe(100);
-    expect(row.extra).toEqual({ eventId: 'ev1', futureKey: 1, conceptId: 'c1' });
+    expect(row.extra).toEqual({ legacyKey: 'ev1', futureKey: 1, conceptId: 'c1' });
   });
 
   it('update of a missing or invisible row raises', async () => {

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { schemaMap } from './schema-map';
-import { parseMigrationColumns } from '@/tests/migration-columns';
+import { readMigrationColumns } from '@/tests/migration-columns';
 
 /**
  * Plan B5a: `schema-map.ts` is the SchemaMap of spec D10 and doubles as the
@@ -12,8 +12,8 @@ import { parseMigrationColumns } from '@/tests/migration-columns';
  * chosen from caller input, spec D10).
  */
 
-const TABLES_MIGRATION = resolve(__dirname, '../../../db/migrations/20260928000003_justsplit_tables.sql');
 const BATCH_WRITE_MIGRATION = resolve(__dirname, '../../../db/migrations/20260928000008_batch_write.sql');
+const EVENT_ID_MIGRATION = resolve(__dirname, '../../../db/migrations/20260928000010_event_id_column.sql');
 const NON_COLLECTION_COLUMNS = ['id', 'extra', 'created_at', 'updated_at'];
 
 describe('schemaMap (plan B5a, spec D10)', () => {
@@ -22,8 +22,7 @@ describe('schemaMap (plan B5a, spec D10)', () => {
   });
 
   it('the map\'s table list equals db/migrations minus profiles and schema_migrations', () => {
-    const sql = readFileSync(TABLES_MIGRATION, 'utf-8');
-    const columnsByTable = parseMigrationColumns(sql);
+    const columnsByTable = readMigrationColumns();
     expect(Object.keys(columnsByTable).sort()).toEqual(Object.keys(schemaMap).sort());
     for (const mapping of Object.values(schemaMap)) {
       expect(columnsByTable).toHaveProperty(mapping.table);
@@ -31,12 +30,21 @@ describe('schemaMap (plan B5a, spec D10)', () => {
   });
 
   it("each collection's declared `columns` equals its migration columns minus id/extra/created_at/updated_at", () => {
-    const sql = readFileSync(TABLES_MIGRATION, 'utf-8');
-    const columnsByTable = parseMigrationColumns(sql);
+    const columnsByTable = readMigrationColumns();
     for (const [collection, mapping] of Object.entries(schemaMap)) {
       const migrationColumns = columnsByTable[mapping.table]!.filter((c) => !NON_COLLECTION_COLUMNS.includes(c));
       expect([...mapping.columns].sort(), collection).toEqual(migrationColumns.sort());
     }
+  });
+
+  it('expenses and settlements carry event_id as a real column since B2d (ADR 0013), not as an overflow key', () => {
+    expect(schemaMap.expenses!.columns).toContain('event_id');
+    expect(schemaMap.settlements!.columns).toContain('event_id');
+    expect(schemaMap.events!.columns).not.toContain('event_id');
+    const columnsByTable = readMigrationColumns();
+    expect(columnsByTable.expenses).toContain('event_id');
+    expect(columnsByTable.settlements).toContain('event_id');
+    expect(readFileSync(EVENT_ID_MIGRATION, 'utf-8')).toMatch(/add column event_id text/);
   });
 
   it("batch_write's fixed collection allowlist equals Object.keys(schemaMap)", () => {
