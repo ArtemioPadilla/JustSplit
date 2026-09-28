@@ -23,7 +23,7 @@ const PAGES: Record<string, string> = {
 const CLIENT_DIRECTIVE_RE = /client:(idle|load|only|visible|media)/;
 const BARE_HREF_RE = /\bhref=["']\/(?!\/)[^"']*["']/;
 
-describe.each(Object.entries(PAGES))('%s.astro (plan B7)', (name, src) => {
+describe.each(Object.entries(PAGES))('%s.astro (plan B7)', (_name, src) => {
   it('uses BaseLayout with the static marketing header (no route island, no React header)', () => {
     expect(src).toMatch(/import\s+BaseLayout\s+from\s+['"][^'"]*BaseLayout(\.astro)?['"]/);
     expect(src).toMatch(/<BaseLayout\b[^>]*\bmarketing\b/);
