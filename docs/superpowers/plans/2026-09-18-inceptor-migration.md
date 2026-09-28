@@ -2026,6 +2026,26 @@ resolves other users' names through `useProfiles` (B5a).
       recovery action and still fetches — done (`reset-local.test.ts`'s 7 cases;
       `QueryProvider.test.tsx`'s 2 cases, the second asserting the route content stays mounted
       throughout the recovery-banner case)
+- [x] **Amendment**, filed against this same issue after review: this is a static MPA (spec D2) —
+      every `notify*` call immediately followed by `window.location.assign`/`.replace`/`reload()`
+      was silently discarding the toast, since the whole page (and Base UI's toast manager with
+      it) is torn down by the navigation. Grepping the tree found six real sites:
+      `ExpenseForm`'s create/edit success AND partial-failure receipt-upload honesty message
+      (B10 — the exact message this design exists to surface, always lost until this amendment),
+      `DeleteExpenseDialog` (B9), `GroupForm` create (B12), `DeleteGroupDialog` (B12), and
+      `resetLocalData` itself. Fixed with a cross-navigation handoff in `notifications.ts`:
+      `{ afterNavigation: true }` on `notifySuccess`/`notifyError`/`notifyInfo` queues the toast
+      in `sessionStorage` (`justsplit:pending-toasts`, a bounded, Zod-validated array —
+      `src/schemas/pending-toast.ts`, storage-boundary schema per CLAUDE.md rule 8) instead of
+      firing it; `ToasterIsland` drains the queue once on mount (its own effect, an ancestor of
+      `<Toaster/>`, so React's bottom-up effect order guarantees a listener already exists),
+      firing each entry through the exact same assertive/persistent rules a live toast gets.
+      `resetLocalData`'s own result toast now survives the reset it's reporting on (its
+      `localStorage`-only clearing steps never touch `sessionStorage`) — proven directly against
+      the real `notifications.ts`, not a mock, in `reset-local-toast-survival.test.ts`.
+      `RemoveFriendDialog`/`FriendDetailView` (B13) and `MembersSection` (B12) were checked and
+      do NOT navigate — no migration needed. Full design record, alternatives considered, and
+      Stakeholder Analysis: ADR 0008's "cross-navigation toasts" amendment section.
 ### Phase 3 — Cutover
 
 ### B18. Feature-parity audit
