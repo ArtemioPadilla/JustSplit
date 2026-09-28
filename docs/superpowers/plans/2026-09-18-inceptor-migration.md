@@ -929,8 +929,13 @@ backend decision; ADR numbers are allocation order, not merge order).
       Google Cloud (B2a; documented in `docs/runbooks/staging.md`). `/` redirects to `/landing`
       when logged out; the auth-chunk numbers are in ADR 0003
       - [x] auth-chunk numbers are in ADR 0003
-      - [ ] manual verification against `supabase start` (email+password and Google) — needs the
-        owner's local Supabase project; not run in this session (see report)
+      - [x] manual verification of email+password against the local `supabase start` stack: signUp
+        + signInWithPassword succeed, and an own-row `profiles` upsert (the exact shape
+        `createJustSplitProfile` produces) is accepted under RLS — run ad hoc against
+        `127.0.0.1:54321` in this session (not committed; no files added under `src/tests/rls/`
+        per instruction)
+      - [ ] manual verification of Google sign-in against `supabase start` — needs the local GoTrue
+        provider config (owner action); not run in this session
       - [ ] staging Google callback + redirect-URL registration — owner action, explicitly out of
         scope here (needs the real Supabase project + Google Cloud console)
       - [ ] `/` redirects to `/landing` when logged out — `/` has no `AuthGate` yet (still the
