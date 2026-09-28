@@ -48,7 +48,7 @@ describe('UserMenuIsland', () => {
     expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('renders the profile name/avatar and a sign-out control for a signed-in user', () => {
+  it('renders the profile name/avatar and a sign-out control for a signed-in user', async () => {
     $authReady.set(true);
     $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
     $profile.set({
@@ -62,7 +62,15 @@ describe('UserMenuIsland', () => {
     });
     render(<UserMenuIsland />);
     expect(screen.queryByRole('link', { name: /sign in/i })).not.toBeInTheDocument();
+    // The name is real, accessible content in the Suspense fallback itself
+    // (not aria-hidden) — only the avatar image and the dropdown behavior
+    // are deferred to the lazy chunk.
     expect(screen.getByText('Ana')).toBeInTheDocument();
+    // The dropdown trigger button comes from the lazy-loaded chunk
+    // (React.lazy + Suspense — plan B7/B19 "Header weight") and isn't
+    // present on the very first render.
+    expect(screen.queryByRole('button', { name: /ana/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /ana/i })).toBeInTheDocument();
   });
 
   it('calls signOut() from src/stores/auth.ts when the sign-out control is used', async () => {
@@ -72,7 +80,7 @@ describe('UserMenuIsland', () => {
     $profile.set(null);
     render(<UserMenuIsland />);
 
-    await user.click(screen.getByRole('button', { name: /ana/i }));
+    await user.click(await screen.findByRole('button', { name: /ana/i }));
     await user.click(await screen.findByRole('menuitem', { name: /sign out/i }));
 
     expect(signOut).toHaveBeenCalledTimes(1);

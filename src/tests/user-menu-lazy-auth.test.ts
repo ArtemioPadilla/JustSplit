@@ -24,6 +24,21 @@ describe('UserMenuIsland keeps the Supabase SDK off the first paint', () => {
   });
 });
 
+describe('UserMenuIsland lazy-loads the dropdown menu + avatar (plan B7/B19 "Header weight")', () => {
+  it('never imports @/components/ui/dropdown-menu statically', () => {
+    expect(src).not.toMatch(/^\s*import\s[^;]*from\s+['"]@\/components\/ui\/dropdown-menu['"]/m);
+  });
+
+  it('never imports @/components/ui/avatar statically', () => {
+    expect(src).not.toMatch(/^\s*import\s[^;]*from\s+['"]@\/components\/ui\/avatar['"]/m);
+  });
+
+  it('loads the account menu lazily via React.lazy + a dynamic import()', () => {
+    expect(src).toMatch(/React\.lazy\(/);
+    expect(src).toMatch(/import\(\s*['"][^'"]*UserAccountMenu['"]\s*\)/);
+  });
+});
+
 describe('@/stores/session holds only the atoms', () => {
   const session = readFileSync(resolve(__dirname, '../stores/session.ts'), 'utf8');
   it('imports nothing from the data layer', () => {
