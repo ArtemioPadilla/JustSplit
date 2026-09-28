@@ -37,7 +37,10 @@ vi.mock('@/components/features/currency/CurrencySelector', () => ({
 }));
 
 const { updateProfile } = vi.hoisted(() => ({ updateProfile: vi.fn() }));
-vi.mock('@/stores/auth', () => ({ updateProfile }));
+vi.mock('@/stores/auth', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/stores/auth')>();
+  return { ...actual, updateProfile };
+});
 
 const { notifySuccess, notifyError } = vi.hoisted(() => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
