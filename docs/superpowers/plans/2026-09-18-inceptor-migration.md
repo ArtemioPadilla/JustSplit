@@ -2019,14 +2019,18 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       expense). A person's balance in a scope is the sum of their split debts and credits over
       **every** expense in it **minus the settlements in it**; a settlement F→T for X raises F and
       lowers T, converted like an expense amount. **Settle-up never writes `settledAt`**; a
-      settlement is a single insert. `settledAt` is legacy and read-only (Track D's import may carry
-      it): an expense with `settledAt != null` counts as fully settled and is excluded from
+      settlement is a single insert. `settledAt` is legacy and read-only (kept in case rows carrying
+      it ever arrive; no import is planned, B20): an expense with `settledAt != null` counts as fully settled and is excluded from
       balances, as before. Scopes: event = `eventId == id` expenses and settlements (a real column
       since B2d); personal/global = rows that name the viewer (`involvingUser`), where a settlement
       counts whatever its `eventId`/`groupId` (money moved); friend = expenses and settlements that
       involve both people. A settlement made in an event therefore also counts globally and in the
       friend view. Rounding per displayed figure with `round2`, tolerance 0.01 everywhere.
-- [x] `src/domain/ledger.ts` (new; `ledger.test.ts`): `netBalances`, `isSettledUp`,
+- [x] `src/domain/ledger.ts` (new; `ledger.test.ts`): `netBalances` (**zero-sum by construction**: per
+      split, each non-payer split credits the payer and debits that user by the same converted
+      amount; `expense.amount` is never read, so a row whose splits disagree with its amount, a
+      rounding remainder or a conversion cannot leave a phantom "Still owed" or stall progress
+      below 100%; `calculateSettlementsWithConversion` pairs the same way), `isSettledUp`,
       `settlementProgress` (settled ÷ (settled + outstanding); `null` percentage = "nothing to
       settle"), `settlementsForEvent`, `settlementsBetween`, `isLegacySettled`, `round2`.
       `calculateSettlements` / `calculateSettlementsWithConversion` take the scope's settlements
@@ -2059,10 +2063,19 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `createDocument`; the single insert is `setDocument` with a generated id, as every repo `create`.
 - [x] Trust statement (ADR 0002, restated in ADR 0014): a settlement is an attestation by
       `created_by`, not a verified payment; either party may record one; the history says "Marked as
-      paid by <name>"; deleting it is creator-only. **Known limitation:** with a null `group_id`,
-      `settlements_insert` requires the counterparty to be an accepted friend of the creator, so
-      non-friend co-members of an event cannot settle between themselves until D7's group scope or a
-      policy change; B14 presents the denial as a plain sentence.
+      paid by <name>"; deleting it is creator-only.
+- [x] Migration `db/migrations/20260928000015_settlements_event_counterparty.sql` (full down;
+      `settlements_insert` only): with a null `group_id` **and** an `event_id`, the counterparty may
+      be a member of THAT event **or** an accepted friend of the creator — matching what an event
+      expense may already name (B2d) — so B14's event settle-up never suggests a payment the payer
+      cannot record. The group branch, the friends-only rule with no event, `event_id is null or
+      is_event_member(event_id)`, `created_by`/party/`member_ids` clauses and creator-only delete
+      are unchanged. `src/tests/rls/settlements-event-counterparty.test.ts` (non-friend co-members
+      allowed with the event_id; the same pair without it, an event the counterparty is not in, an
+      event the creator is not in, a stranger and the group branch denied), two new mutations in
+      `scripts/rls-mutation-check.mjs` (event branch removed; event co-member check widened; 51/51
+      mutations killed); verified against Postgres 17: red before the migration, green after, and
+      `db:rollback` → `db:migrate` round-trips to the identical policy text.
 - [x] Tests: ledger, calculator, dashboard, events, csv selectors; `settle()` writes exactly one
       settlement document and no expense update / batch / delete; `remove()` preflight and verify
       (silent delete raises); the event scope counts only event settlements and global counts all
@@ -2081,8 +2094,9 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `settledAt` is never written**. The pending tab is `calculateSettlementsWithConversion`
       over the scope's expenses and settlements (B14a); recording a suggestion writes a settlement
       for its amount (`round2`), and a partial payment is just a smaller amount. `eventId` is
-      passed when the scope is `?event=`. A denied insert (RLS) surfaces a toast; the
-      non-friend-co-member denial reads as a plain sentence (ADR 0014, Known limitation). The
+      passed when the scope is `?event=` (migration 015 lets non-friend event co-members record
+      it). A denied insert (RLS) surfaces a toast; the
+      denial of a settlement the payer may not record reads as a plain sentence, never a raw error. The
       history tab offers "Undo" on the viewer's own settlements (`useRemoveSettlement`; creator-only)
 - [ ] Trust statement (ADR 0002 / 0014): `settlements` rows are attestations by `created_by`, not
       verified payments — only a party may record one. History shows "Marked as paid by <name>"
@@ -2398,7 +2412,10 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       the Hosting preview channels, delete the App Hosting backend if any; day 14, window closed —
       the owner picks one of two recorded end states: **(a)** delete project `justsplit-eef51`
       outright (the `*.web.app` URL dies; no "we moved" page; export Firestore first to a private
-      archive, nothing is imported anywhere; the 30-day Google grace period is the last safety
+      archive, nothing is imported anywhere — and if a future issue ever imports Firestore rows, an
+      expense's `settledAt` and the `Settlement` rows that covered it are carried **either/or,
+      never both** (the ledger, ADR 0014, already excludes a `settledAt` expense, so a covering
+      settlement would be counted twice); the 30-day Google grace period is the last safety
       net), or **(b)** keep Hosting alive as a stub: deploy the static "we moved" page from a
       throwaway directory with a minimal `firebase.json` (`{"hosting":{"public":"site"}}` —
       today's `frameworksBackend` config cannot deploy a plain static page — `firebase deploy

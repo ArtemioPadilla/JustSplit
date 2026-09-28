@@ -137,7 +137,9 @@ JustSplit moves to **Supabase, consumed through the CyberEco data layer**:
 Firebase — Auth, Firestore, Hosting, project `justsplit-eef51` — is retired
 at cutover (plan B20). **No existing data is worth migrating**: JustSplit
 starts from a clean schema (D10); the Firestore documents, the stale rules
-and the base64 images of §2 are not ported.
+and the base64 images of §2 are not ported. (Should a future issue ever import any of it: an
+expense's legacy `settledAt` and the `Settlement` rows that covered it are carried either/or, never
+both — ADR 0014.)
 
 Rationale:
 

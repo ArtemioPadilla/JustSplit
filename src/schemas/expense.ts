@@ -61,8 +61,9 @@ const ExpenseShapeSchema = z.object({
   eventId: z.string().nullish(),
   // JustSplit-only top-level fields (overflow keys, no mapped column).
   conceptId: z.string().optional(),
-  // LEGACY and READ-ONLY (plan B14a, ADR 0014). Kept only because Track D's Firebase import may
-  // carry it: an expense with `settledAt != null` counts as fully settled and is excluded from
+  // LEGACY and READ-ONLY (plan B14a, ADR 0014). Kept in case rows carrying it ever arrive (no
+  // Firestore import is planned, plan B20; if one is ever added, carry either this or the covering
+  // settlements, never both): an expense with `settledAt != null` counts as fully settled and is excluded from
   // every balance (`domain/ledger.ts`), so imported data stays correct. NOTHING in the Astro app
   // writes it any more: settling up is a `settlements` row, a payment on a ledger, never a mark on
   // an expense (a per-expense flag is wrong for any expense with three or more people, for partial

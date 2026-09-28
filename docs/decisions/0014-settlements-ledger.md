@@ -2,7 +2,7 @@
 
 ## Status
 
-`Accepted` — `risk:high`. Supersedes the settle-up mechanism of
+`Accepted` — `risk:high`. Includes migration 015 (`settlements_insert` for event co-members). Supersedes the settle-up mechanism of
 [0002](./0002-canonical-schema-and-rls.md) ("`settledAt` … written by settle-up in
 the same batch as the `Settlement` insert") and of the plan's original B14 entry.
 
@@ -37,7 +37,12 @@ needed a second write per settle-up (one `update` per covered expense, in a
 
 A person's balance in a scope is the sum of their split debts and credits over
 **every** expense in the scope, **minus the settlements in the scope**
-(`src/domain/ledger.ts#netBalances`). Positive = is owed, negative = owes. A
+(`src/domain/ledger.ts#netBalances`). The pairing is **per split** — each split
+whose user is not the payer credits the payer and debits that user by the same
+converted amount — so the balances of a scope sum to 0 by construction whatever the
+rows look like (an expense whose splits disagree with its amount, a rounding
+remainder, conversion rounding); `expense.amount` is never read, so there is no
+phantom "Still owed" and progress can reach 100%. Positive = is owed, negative = owes. A
 settlement from F to T for amount X in currency C **raises F's balance by X and
 lowers T's by X**, converted into the display currency like any expense amount.
 
@@ -49,14 +54,16 @@ lowers T's by X**, converted into the display currency like any expense amount.
 
 ### 2. `settledAt` is legacy and read-only
 
-It stays in the expense schema because Track D's Firebase import may carry it. An
+It stays in the expense schema in case rows carrying it ever arrive (no import is
+planned: plan B20 and spec §3 port no Firestore data, so today none exist). An
 expense with `settledAt != null` counts as **fully settled and is excluded from
 balances**, exactly as before, so imported data stays correct. Nothing in the Astro
 app writes it (it is omitted from `CreateExpenseInputSchema`, and the schema
-comment says so). Track D must import **either** `settledAt` **or** the
-`Settlement` rows that covered those expenses, never both — the ledger would
-count the payment twice (a legacy settled expense is already excluded, and its
-settlement would then read as an overpayment).
+comment says so). **Rule for any future import of such data: carry either
+`settledAt` on the expense or the `Settlement` rows that covered it, never both**
+— the ledger would count the payment twice (a legacy settled expense is already
+excluded, and its settlement would then read as an overpayment). The rule is
+written where the retirement of Firebase and its data is planned (plan B20, spec §3).
 
 ### 3. Derived settled state replaces per-expense flags
 
@@ -107,10 +114,13 @@ Round per displayed figure with `round2`; tolerance 0.01 everywhere.
 
 ### Client and RLS facts this rests on
 
-`settlements_insert` (migrations 004 and 013) requires: `created_by = auth.uid()`;
+`settlements_insert` (migrations 004, 013 and 015) requires: `created_by = auth.uid()`;
 the creator to be `from_user_id` or `to_user_id`; `member_ids` to be exactly those
-two people; `event_id` null or an event the creator belongs to; and, with a null
-`group_id`, every other party to be an **accepted friend** of the creator.
+two people; `event_id` null or an event the creator belongs to; and for the
+counterparty: with a `group_id`, membership of the group (unchanged); with a null
+`group_id` **and** an `event_id`, membership of that event **or** an accepted friend
+of the creator (migration 015); with neither, an **accepted friend** of the creator
+(unchanged).
 `settlements_delete` is **creator-only**, and there is no update policy.
 `settle()` therefore takes `createdBy` from the session (never the caller), refuses a
 caller who is neither party with a clear error before the network, writes
@@ -158,12 +168,13 @@ model of ADR 0002 is unchanged (see below); `eventId` on a settlement is a colum
 with a foreign key, so deleting an event ungroups its settlements (their amounts
 then count only in the global and friend views).
 
-**Known limitation (not fixed here — no SQL change):** with `group_id` null,
-`settlements_insert` requires the counterparty to be an accepted friend of the
-creator, so two members of an event who are **not** friends cannot record a
-settlement between themselves until Track D D7's group scope (or a policy change
-allowing co-members of an event) exists. `settle()` surfaces the database's denial
-as an error; B14's island must present it as a plain sentence, not a raw failure.
+**Resolved by migration 015 (was an open limitation).** With `group_id` null,
+`settlements_insert` required the counterparty to be an accepted friend of the
+creator even inside an event, while an event *expense* could already name other event
+members (B2d). B14's event settle-up suggests payments across the whole event, so it
+would have suggested payments between two non-friend co-members that the payer could
+not record. `db/migrations/20260928000015_settlements_event_counterparty.sql` makes the
+two rules match (see "Client and RLS facts").
 
 ### Trust statement (ADR 0002, unchanged)
 
@@ -175,6 +186,13 @@ cannot erase the payee's record of having been paid, or the reverse. The only
 recourse for a false attestation is for its creator to delete it, or for the
 disputing party to record a counter-settlement.
 
+## Deploy note (owner action)
+
+After this merges, run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` against
+the real Supabase project so migration 015 is applied (`npm run -s db:audit -- "$SUPABASE_DB_URL"`
+must equal the local dump). Apply it **before or together with** deploying a build that records
+event settlements between non-friend co-members; until then that insert is denied, as it was.
+
 ## Stakeholder Analysis
 
 | Stakeholder | Impact | Mitigation |
@@ -183,8 +201,8 @@ disputing party to record a counter-settlement.
 | The payee | A payer can attest a payment that never happened, lowering what the payee is owed, and the payee **cannot delete** the row (creator-only). Their balance in every view moves. | The row is labelled "Marked as paid by <name>", never "paid"; the payee can record a counter-settlement (the other direction) to restore the balance; the history shows both rows with dates. Not fixed by a policy change: deletion by the other party would let a payee erase real payments. |
 | A third party to a multi-person expense (Carla) | Under the old model another pair's settle-up erased her debt. Now it cannot: her balance changes only by settlements she is a party to. | The ledger nets each person's own debts; tests pin "three-person expense, one pair settles: the third person's debt is intact". |
 | Members of an event | They see every settlement of the event with its amount (ADR 0013), and event progress and balances include them; a settlement made in the event also moves the two parties' global and friend balances. | Disclosed here and in the test names; personal figures still count only rows that name the viewer; RLS decides visibility. |
-| Users with imported Firebase data | Imported expenses with `settledAt` stay settled and excluded. | Legacy `settledAt` handling is tested; the import must not also import settlements for those expenses (Decision §2). |
-| Non-friend event co-members | Cannot record a settlement between themselves today (RLS, see Known limitation). | Surfaced as an error with a plain sentence; Track D D7 / a policy change resolves it. |
+| Users with imported Firebase data (none planned) | Imported expenses with `settledAt` would stay settled and excluded. | Legacy `settledAt` handling is tested; an import must not also carry settlements for those expenses (Decision §2). |
+| Non-friend event co-members | Can record a settlement between themselves **only with that event's `event_id`** (migration 015), which is what the event's own suggestions produce; the same pair without an event still needs friendship. Recording one exposes the two parties' payment to every member of the event, as event expenses already do (ADR 0013). | The creator must belong to the event and the counterparty must be in it (or a friend); a stranger, or an event the counterparty is not in, is denied; proven in `settlements-event-counterparty.test.ts` and killed by two mutations. |
 | Future contributors | One module (`domain/ledger.ts`) owns balance maths; a new view must use it and pick its scope from the table above. | The scope table here; consumers listed in the plan's B14a entry; the forbidden-import and data-boundary suites still apply. |
 
 ## Supersedes
@@ -203,5 +221,7 @@ statement of ADR 0002 stands.
   `src/lib/data/hooks/{useSettlements,useSettleUp,useRemoveSettlement}.ts`,
   `src/schemas/{settlement,expense}.ts`
 - Policies: `db/migrations/20260928000004_rls_policies.sql` (`settlements_*`),
-  `20260928000013_edit_checks_added_members.sql` (`settlements_insert` event check)
+  `20260928000013_edit_checks_added_members.sql` (`settlements_insert` event check),
+  `20260928000015_settlements_event_counterparty.sql` (event co-members);
+  `src/tests/rls/settlements-event-counterparty.test.ts`
 - ADR 0002 (attestations), ADR 0013 (event visibility)

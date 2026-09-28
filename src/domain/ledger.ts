@@ -16,10 +16,11 @@ import type { Settlement } from '@/schemas/settlement';
  * expense, several expenses, or somebody else's debt (a debt-simplified
  * suggestion A→C for a debt that came from B's expense).
  *
- * `settledAt` is legacy and read-only. It can only arrive from Track D's
- * Firebase import; an expense that carries it counts as fully settled and is
- * excluded from every balance, exactly as before, so imported data stays
- * correct. Nothing in this app writes it.
+ * `settledAt` is legacy and read-only. It could only arrive from an import of
+ * old data (none is planned, plan B20); an expense that carries it counts as
+ * fully settled and is excluded from every balance, exactly as before, so such
+ * data stays correct. Nothing in this app writes it. An import must carry
+ * either `settledAt` or the settlements that covered the expense, never both.
  *
  * Scopes (the caller picks the rows; this module never looks at who is
  * viewing): an event is its `eventId` expenses plus its `eventId`
