@@ -1,6 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import UserMenuIsland from '@/components/islands/UserMenuIsland';
+import ShowcaseCurrencySelector from '@/components/islands/ShowcaseCurrencySelector';
+import CurrencyExchangeTicker from '@/components/features/currency/CurrencyExchangeTicker';
+import ShowcaseEditable from '@/components/islands/ShowcaseEditable';
+import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
 ---
@@ -20,6 +24,56 @@ import UserMenuIsland from '@/components/islands/UserMenuIsland';
       </p>
       <div class="inline-flex rounded-md border border-border bg-card p-3">
         <UserMenuIsland client:idle />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">CurrencySelector <span class="text-sm font-normal text-muted-foreground">(B16)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Base UI <code>Combobox</code> (combobox.tsx) extended to accept
+        {'{code,symbol,name}'} items with a <code>renderItem</code>, over
+        SUPPORTED_CURRENCIES (domain/currency.ts). Fully controlled — this
+        wrapper island holds the value/onChange state for the demo.
+      </p>
+      <div class="max-w-xs rounded-md border border-border bg-card p-3">
+        <ShowcaseCurrencySelector client:idle />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">CurrencyExchangeTicker <span class="text-sm font-normal text-muted-foreground">(B16)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Reads $preferredCurrency (defaults to USD here — no session is
+        bootstrapped on this page) and fetchExchangeRate
+        (src/lib/currency/rates.ts, over $rateCache) for every other
+        supported currency. Refreshes every 30 minutes; hydrates only once
+        scrolled into view.
+      </p>
+      <CurrencyExchangeTicker client:visible />
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">Editable <span class="text-sm font-normal text-muted-foreground">(B16)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Inline click-to-edit text (editable.tsx, @zag-js/editable) — replaces
+        the legacy <code>EditableText</code> in expense/event/group detail.
+        Enter saves, Escape cancels, blur saves, an empty commit is rejected
+        and reverts to the previous value.
+      </p>
+      <div class="max-w-sm rounded-md border border-border bg-card p-3">
+        <ShowcaseEditable client:idle />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">ProgressBar <span class="text-sm font-normal text-muted-foreground">(B16)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Purely presentational (progress-bar.tsx) — no interactivity, so no
+        <code>client:*</code> directive: it renders as static HTML, shipping
+        zero JS.
+      </p>
+      <div class="max-w-sm rounded-md border border-border bg-card p-3">
+        <ProgressBar value={62} label="Event settlement progress" />
       </div>
     </section>
   </main>
