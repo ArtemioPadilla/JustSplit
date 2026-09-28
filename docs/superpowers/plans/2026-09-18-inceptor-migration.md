@@ -1145,17 +1145,45 @@ backend decision; ADR numbers are allocation order, not merge order).
       B2b storage cases stay green (`npm run test:rls`, `src/tests/rls/storage.test.ts`, unchanged)
 
 ### B6. Layout, header, theme, FeedbackFAB
-- [ ] `BaseLayout.astro` re-branded (title, JSON-LD `WebApplication`, description); `Header.astro`
+- [x] `BaseLayout.astro` re-branded (title, JSON-LD `WebApplication`, description); `Header.astro`
       with nav + `UserMenuIsland` (avatar, sign-out) + `ThemeToggle`; `FeedbackFAB` wired to
       `ArtemioPadilla/JustSplit` issues; port `src/components/Header/__tests__/Header.test.tsx`
-- [ ] `global.css` tokens: JustSplit palette mapped onto shadcn CSS vars, from
+      — done as `src/components/islands/UserMenuIsland.test.tsx` (signed-out/signed-in/sign-out
+      behavior) + `src/tests/site-header.test.ts` (mount + nav), not a literal file-for-file port:
+      the legacy Header rendered its own nav/auth links directly off `AppContext`; the Astro+island
+      split moves that into `SiteHeader.astro` (static nav) + `UserMenuIsland` (session). Nav is
+      deliberately just `Home` for now — `About`/`Help` are B7, the rest of the app's sections are
+      Phase 2; adding them now would be new dead links (B7's job to fix, not this issue's to add).
+      `FeedbackFAB` was already correct by coincidence (a duplicated `'ArtemioPadilla/JustSplit'`
+      literal); now single-sourced from `site-meta.ts`.
+- [x] `global.css` tokens: JustSplit palette mapped onto shadcn CSS vars, from
       `src/styles/theme.css` (74 custom properties, primary token source), then
       `src/app/globals.css` (33) and `docs/design/style-guide.md`
-- [ ] Every route island wraps its inner component in `<ErrorBoundary name="<Island>">` inside
+      — style-guide.md conflicts with theme.css on which hue is "primary" vs "secondary";
+      resolved in theme.css's favor (documented inline in global.css's mapping comment).
+      `--muted-foreground` is one notch darker than the literal `#757575` (contrast fix against
+      the new `--card` tint). No dedicated unit test — a CSS token substitution has no branching
+      logic to assert; verified by the axe-core contrast rule in the new `check:a11y` script.
+- [x] Every route island wraps its inner component in `<ErrorBoundary name="<Island>">` inside
       the island file (Inceptor pattern, see `LoginForm.tsx`); `HydrationCanary` stays in
       `BaseLayout` only for the SSR'd islands (`UserMenuIsland`, `ToasterIsland`); it is inert
       for `client:only` islands
-- [ ] Acceptance: axe smoke clean on `/landing`; theme persists across reloads without flash
+      — enforced by `src/tests/mounted-island-error-boundary.test.ts` (source-text scan of every
+      `client:*` mount under pages/layouts/components/common). `ToasterIsland` does not exist yet
+      (not in this issue's scope; a later notifications issue adds it — B6 only asks for
+      `UserMenuIsland`).
+- [x] Acceptance: axe smoke clean on `/landing`; theme persists across reloads without flash
+      — `/landing` doesn't exist yet (B7 builds it); `scripts/axe-smoke.mjs` / `npm run check:a11y`
+      instead covers `/`, `/404`, `/auth/signin/`, `/showcase` (all pages that exist today) and is
+      clean on all four (0 violations) — running it surfaced a real `page-has-heading-one` failure
+      on `/auth/signin/`, fixed by promoting `LoginForm`'s (and `SignUpForm`'s) heading from `h2`
+      to `h1`. `/landing` joins the `check:a11y` page list in B7 once it exists. Deliberately its
+      own npm script + CI step, not wired into `npm run check` (too heavy/environment-dependent
+      for the local umbrella gate — same reasoning `npm run check` already applies to `test:rls`).
+      Theme-persists-without-flash: `src/stores/theme.test.ts` (new — no test existed) covers the
+      dynamic "persists" half; `src/tests/base-layout-theme-script.test.ts` asserts the "no flash"
+      half at the source level (pre-paint script is `is:inline`, first in `<head>`, synchronous) —
+      a real paint-timing browser test isn't practical against jsdom (no rendering pipeline).
 
 ### B7. Static pages
 - [ ] `/landing`, `/about`, `/help` as Astro pages with no route island; `motion/react` only where
@@ -1167,6 +1195,9 @@ backend decision; ADR numbers are allocation order, not merge order).
       references no chunk that includes `@supabase/` or `@cyber-eco/` (assert with a Vitest that
       greps the built HTML + `dist/_astro/*.js` manifest); layout-level JS (theme, FeedbackFAB, PWA islands) is
       allowed and budgeted at ≤ 40 kB gz
+- [ ] Add `/landing` to the `PAGES` list in `scripts/axe-smoke.mjs` (`npm run check:a11y`, plan
+      B6) — that check currently covers `/`, `/404`, `/auth/signin/`, `/showcase` only, because
+      `/landing` doesn't exist before this issue
 
 ### Phase 2 — Feature islands (one issue each; all `type:feat`, `phase-2`)
 
