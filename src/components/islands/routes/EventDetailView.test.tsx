@@ -338,6 +338,13 @@ describe('EventDetailView — figures cover ALL of the event\'s expenses (ADR 00
     expect(within(list).getByText('owes USD 20.00')).toBeInTheDocument();
   });
 
+  it('colours "is owed" with a contrast-safe pair, never text-chart-2 (axe color-contrast failed on the live page; the words, not the colour, carry the meaning)', () => {
+    render(<EventDetailView id="e1" />);
+    const owed = screen.getByText('is owed USD 50.00');
+    expect(owed).toHaveClass('text-green-800', 'dark:text-green-200');
+    expect(owed).not.toHaveClass('text-chart-2');
+  });
+
   it('lists every event member even when nothing is unsettled, as "settled up"', () => {
     loaded({ expenses: EXPENSES.map((e) => ({ ...e, settledAt: '2025-02-01T00:00:00.000Z' })) });
     render(<EventDetailView id="e1" />);
