@@ -30,7 +30,10 @@ vi.mock('../repos/groups', () => groupsRepo);
 const profilesRepo = { byIds: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: id, avatarUrl: null }))) };
 vi.mock('../repos/profiles', () => profilesRepo);
 
-const eventsRepo = { forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]) };
+const eventsRepo = {
+  forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
+  get: vi.fn(async (id: string) => ({ id, name: 'Trip' })),
+};
 vi.mock('../repos/events', () => eventsRepo);
 
 const settlementsRepo = { forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]) };
@@ -40,6 +43,7 @@ const { useExpenses, useGroupExpenses } = await import('./useExpenses');
 const { useExpense } = await import('./useExpense');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
+const { useEvent } = await import('./useEvent');
 const { useCreateExpense } = await import('./useCreateExpense');
 const { useUpdateExpense } = await import('./useUpdateExpense');
 const { useDeleteExpense } = await import('./useDeleteExpense');
@@ -151,6 +155,31 @@ describe('useExpense (non-live detail query, plan B9)', () => {
     }
     withClient(<Probe />);
     expect(expensesRepo.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEvent (non-live detail query, plan B9)', () => {
+  it('fetches through repos.events.get, keyed by id', async () => {
+    function Probe({ onData }: { onData: (d: unknown) => void }) {
+      const { data } = useEvent('ev1');
+      React.useEffect(() => {
+        if (data) onData(data);
+      }, [data, onData]);
+      return null;
+    }
+    const onData = vi.fn();
+    withClient(<Probe onData={onData} />);
+    await waitFor(() => expect(eventsRepo.get).toHaveBeenCalledWith('ev1'));
+    await waitFor(() => expect(onData).toHaveBeenCalledWith({ id: 'ev1', name: 'Trip' }));
+  });
+
+  it('is disabled (never calls repos.events.get) while id is undefined', () => {
+    function Probe() {
+      useEvent(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    expect(eventsRepo.get).not.toHaveBeenCalled();
   });
 });
 
