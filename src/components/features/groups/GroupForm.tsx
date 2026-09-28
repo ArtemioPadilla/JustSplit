@@ -83,7 +83,10 @@ export function GroupForm() {
 
     try {
       const created = await createGroup.mutateAsync(input);
-      notifySuccess('Group created');
+      // afterNavigation: true — location.assign() below is a full page
+      // load in this static MPA that would otherwise discard this toast
+      // before it renders (plan B17b amendment, ADR 0008).
+      notifySuccess('Group created', { afterNavigation: true });
       window.location.assign(withBase(`/groups/${created.id}`));
     } catch {
       notifyError('Could not create this group');

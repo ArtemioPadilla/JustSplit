@@ -112,11 +112,21 @@ export async function resetLocalData(options: ResetLocalDataOptions = {}): Promi
   );
 
   const ok = failures.length === 0;
+  // { afterNavigation: true }: `reload()` right below is a full page load
+  // in this static MPA, which would otherwise discard this toast before it
+  // ever renders (plan B17b amendment, ADR 0008 "cross-navigation
+  // toasts"). Queued in sessionStorage — untouched by the localStorage
+  // clearing steps above, so it survives even a resetLocalData() call that
+  // failed partway through.
   if (ok) {
-    notifySuccess('Local data reset', { description: 'Signed out and cleared cached data on this device.' });
+    notifySuccess('Local data reset', {
+      description: 'Signed out and cleared cached data on this device.',
+      afterNavigation: true,
+    });
   } else {
     notifyError('Local data reset finished with errors', {
       description: `${failures.length} step(s) could not complete — try again, or use a private window.`,
+      afterNavigation: true,
     });
   }
 

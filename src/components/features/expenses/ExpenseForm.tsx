@@ -345,12 +345,17 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
 
       try {
         const result = await createMutation.mutateAsync({ id: createId, input, files });
+        // afterNavigation: true — the location.assign() right below is a
+        // full page load in this static MPA that would otherwise discard
+        // this toast (including the partial-failure honesty message)
+        // before it renders (plan B17b amendment, ADR 0008).
         if (result.failedUploadCount > 0) {
           notifyError(
             `Expense saved, but ${result.failedUploadCount} receipt${result.failedUploadCount === 1 ? '' : 's'} couldn't be uploaded. You can add ${result.failedUploadCount === 1 ? 'it' : 'them'} again from Edit.`,
+            { afterNavigation: true },
           );
         } else {
-          notifySuccess('Expense saved');
+          notifySuccess('Expense saved', { afterNavigation: true });
         }
         window.location.assign(withBase(`/expenses/${result.expense.id}`));
       } catch {
@@ -384,12 +389,14 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
         failedUploadCount = receiptResult.failedUploadCount;
       }
 
+      // afterNavigation: true — see the create branch above for why.
       if (failedUploadCount > 0) {
         notifyError(
           `Expense saved, but ${failedUploadCount} receipt${failedUploadCount === 1 ? '' : 's'} couldn't be uploaded. You can add ${failedUploadCount === 1 ? 'it' : 'them'} again from Edit.`,
+          { afterNavigation: true },
         );
       } else {
-        notifySuccess('Expense saved');
+        notifySuccess('Expense saved', { afterNavigation: true });
       }
       window.location.assign(withBase(`/expenses/${expense.id}`));
     } catch {
