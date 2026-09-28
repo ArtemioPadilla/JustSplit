@@ -54,7 +54,7 @@ describe('LoginForm — happy path', () => {
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     await waitFor(() => expect(signIn).toHaveBeenCalledWith('ada@example.com', 'longenoughpw'));
-    await waitFor(() => expect(window.location.href).toBe('/'));
+    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith('/'));
   });
 
   it('shows an error message and does not redirect when signIn rejects', async () => {
@@ -67,7 +67,7 @@ describe('LoginForm — happy path', () => {
     await user.click(screen.getByRole('button', { name: /^sign in$/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/incorrect/i);
-    expect(window.location.href).toBe('');
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 });
 

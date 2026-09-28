@@ -15,7 +15,7 @@ describe('SignUpForm — validation', () => {
     vi.clearAllMocks();
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { ...window.location, href: '', search: '' },
+      value: { ...window.location, href: '', search: '', assign: vi.fn() },
     });
   });
 
@@ -37,7 +37,7 @@ describe('SignUpForm — happy path', () => {
     vi.clearAllMocks();
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { ...window.location, href: '', search: '' },
+      value: { ...window.location, href: '', search: '', assign: vi.fn() },
     });
   });
 
@@ -52,7 +52,7 @@ describe('SignUpForm — happy path', () => {
     await user.click(screen.getByRole('button', { name: /sign up/i }));
 
     await waitFor(() => expect(signUp).toHaveBeenCalledWith('ada@example.com', 'longenoughpw', 'Ada'));
-    await waitFor(() => expect(window.location.href).toBe('/'));
+    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith('/'));
   });
 
   it('shows an error message when signUp rejects (e.g. duplicate email)', async () => {
@@ -66,7 +66,7 @@ describe('SignUpForm — happy path', () => {
     await user.click(screen.getByRole('button', { name: /sign up/i }));
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(window.location.href).toBe('');
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 });
 
@@ -74,7 +74,7 @@ describe('SignUpForm — links', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { ...window.location, href: '', search: '' },
+      value: { ...window.location, href: '', search: '', assign: vi.fn() },
     });
   });
 
