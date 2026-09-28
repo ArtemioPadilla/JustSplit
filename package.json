@@ -13,7 +13,7 @@
     "preview": "astro preview",
     "check:astro": "astro check",
     "check:pragmas": "node scripts/check-ts-pragmas.mjs",
-    "check": "npm-run-all --parallel check:astro type-check test lint check:pragmas --serial build check:dist check:auth-bundle",
+    "check": "npm-run-all --parallel check:astro type-check test lint check:pragmas --serial build check:dist check:auth-bundle check:charts-bundle",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest --watch",
@@ -38,6 +38,7 @@
     "db:env": "node scripts/db-env.mjs",
     "check:dist": "node scripts/check-dist.mjs",
     "check:auth-bundle": "node scripts/check-auth-bundle.mjs",
+    "check:charts-bundle": "node scripts/check-charts-bundle.mjs",
     "check:a11y": "node scripts/axe-smoke.mjs"
   },
   "dependencies": {
