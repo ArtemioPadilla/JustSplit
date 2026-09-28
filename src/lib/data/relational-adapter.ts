@@ -98,6 +98,9 @@ interface SplitResult {
   overflow: Record<string, unknown>;
 }
 
+/** PostgREST's `max_rows` (supabase/config.toml): the most rows one response can carry. */
+const QUERY_PAGE_SIZE = 1000;
+
 export class RelationalSupabaseAdapter implements StorageAdapter {
   private client: SupabaseClient | null = null;
   private readonly schemaMap: SchemaMap;
@@ -228,9 +231,18 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
     return { id, success: true };
   }
 
-  async query<T>(collection: string, filters: QueryFilter[], options?: QueryOptions): Promise<PaginatedResult<T>> {
-    const mapping = this.mappingFor(collection);
-    const client = this.ensureClient();
+  /**
+   * One PostgREST request's query: select + translated filters + the caller's
+   * sort, plus (for a paged read) the id as the final tie-breaker. Built fresh
+   * per request: a builder awaited once must not be reused for the next page.
+   */
+  private buildQuery(
+    client: SupabaseClient,
+    mapping: CollectionMapping,
+    filters: QueryFilter[],
+    options: QueryOptions | undefined,
+    idTieBreaker: boolean,
+  ) {
     let qb = client.from(mapping.table).select('*');
 
     for (const filter of filters) {
@@ -273,24 +285,59 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
       }
     }
 
-    if (options?.sort) {
-      for (const sort of options.sort) {
-        const { path, isOverflow } = this.resolveField(mapping, sort.field);
-        qb = qb.order(isOverflow ? `extra->>${sort.field}` : path, { ascending: sort.direction === 'asc' });
-      }
+    for (const sort of options?.sort ?? []) {
+      const { path, isOverflow } = this.resolveField(mapping, sort.field);
+      qb = qb.order(isOverflow ? `extra->>${sort.field}` : path, { ascending: sort.direction === 'asc' });
     }
-    if (options?.offset !== undefined) {
-      const pageSize = options.limit ?? 1000;
+    if (idTieBreaker && !(options?.sort ?? []).some((sort) => sort.field === 'id')) {
+      qb = qb.order(mapping.idColumn ?? 'id', { ascending: true });
+    }
+    return qb;
+  }
+
+  /**
+   * PostgREST truncates every response at `max_rows` (1000, locally and on the
+   * hosted project), silently and arbitrarily. Since ADR 0013 `useExpenses` /
+   * `useSettlements` read every visible row with no filter, so a query WITHOUT an
+   * explicit `limit`/`offset` pages with `.range()` in pages of 1000 until a
+   * short page arrives, in a deterministic order: the caller's sort, then the id
+   * as the final tie-breaker, so pages neither overlap nor skip a row. An
+   * explicit `limit`/`offset` keeps its single-request behaviour. The Realtime
+   * fetch-then-listen path calls this same method, so it pages too. (A server
+   * with `max_rows` below the page size would look like a short page; the
+   * project pins it at 1000 in `supabase/config.toml`.)
+   */
+  async query<T>(collection: string, filters: QueryFilter[], options?: QueryOptions): Promise<PaginatedResult<T>> {
+    const mapping = this.mappingFor(collection);
+    const client = this.ensureClient();
+    const fail = (message: string) => new Error(`RelationalSupabaseAdapter: query('${collection}') failed: ${message}`);
+
+    if (options?.limit === undefined && options?.offset === undefined) {
+      const rows: Array<Record<string, unknown>> = [];
+      for (let from = 0; ; from += QUERY_PAGE_SIZE) {
+        const { data, error } = await this.buildQuery(client, mapping, filters, options, true).range(from, from + QUERY_PAGE_SIZE - 1);
+        if (error) throw fail(error.message);
+        const page = (data ?? []) as Array<Record<string, unknown>>;
+        rows.push(...page);
+        if (page.length < QUERY_PAGE_SIZE) break;
+      }
+      const docs = rows.map((row) => this.fromRow(mapping, row) as T);
+      return { data: docs, total: docs.length, hasMore: false };
+    }
+
+    let qb = this.buildQuery(client, mapping, filters, options, false);
+    if (options.offset !== undefined) {
+      const pageSize = options.limit ?? QUERY_PAGE_SIZE;
       qb = qb.range(options.offset, options.offset + pageSize - 1);
-    } else if (options?.limit !== undefined) {
+    } else if (options.limit !== undefined) {
       qb = qb.limit(options.limit);
     }
 
     const { data, error } = await qb;
-    if (error) throw new Error(`RelationalSupabaseAdapter: query('${collection}') failed: ${error.message}`);
+    if (error) throw fail(error.message);
     const rows = (data ?? []) as Array<Record<string, unknown>>;
     const docs = rows.map((row) => this.fromRow(mapping, row) as T);
-    const hasMore = options?.limit !== undefined ? rows.length === options.limit : false;
+    const hasMore = options.limit !== undefined ? rows.length === options.limit : false;
     return { data: docs, total: docs.length, hasMore };
   }
 
