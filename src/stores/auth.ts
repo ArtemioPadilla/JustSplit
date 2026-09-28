@@ -5,6 +5,7 @@ import type { GuardUser } from '@/lib/route-guard';
 import { authAdapter, profileStore } from '@/lib/data/adapter';
 import { SupabaseDisabledError, signInWithOAuthRedirect, waitForSession } from '@/lib/data/client';
 import { safeNext, withBase } from '@/lib/href';
+import { clearPersistedQueryCache } from '@/lib/queryClient';
 
 /**
  * Cross-island session state (plan B4, spec D3: Nano Stores, never React
@@ -51,8 +52,14 @@ export async function signUp(email: string, password: string, displayName: strin
   await requireAuthAdapter().signUp(email, password, displayName);
 }
 
+/**
+ * Signs out, then clears the persisted Query cache (ADR 0004: the idb-stored
+ * cache is a copy of this user's groups/expenses/settlements — it must not
+ * linger for the next person to use this device).
+ */
 export async function signOut(): Promise<void> {
   await requireAuthAdapter().signOut();
+  await clearPersistedQueryCache();
 }
 
 export async function resetPassword(email: string): Promise<void> {

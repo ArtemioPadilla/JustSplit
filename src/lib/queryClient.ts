@@ -8,6 +8,14 @@ import { get, set, del } from 'idb-keyval';
 const IDB_PERSIST_KEY = 'tanstack-query-cache';
 
 /**
+ * The one shared idb-keyval key every JustSplit route island passes to
+ * `QueryProvider` (plan B5a, spec D3: "exactly one `QueryProvider` per page
+ * ... with the single shared idbKey='justsplit:query'"), so a warm
+ * navigation to any route reuses collections fetched on another.
+ */
+export const JUSTSPLIT_QUERY_IDB_KEY = 'justsplit:query';
+
+/**
  * idb-keyval-backed Persister. Stores the whole TanStack Query cache as one
  * JSON-serializable object under a single key in IndexedDB.
  */
@@ -76,6 +84,17 @@ export function shouldPersistQuery(query: {
  * Only successfully-settled queries with `meta.persist === true` are written
  * to disk (see `shouldPersistQuery`).
  */
+/**
+ * Clears the persisted Query cache from IndexedDB (ADR 0004: a signed-out
+ * user's cached groups/expenses/settlements must not linger for the next
+ * person to use this device). Called from `src/stores/auth.ts`'s `signOut()`
+ * — the in-memory `QueryClient` itself needs no explicit clearing, since
+ * Inceptor is an MPA and sign-out navigates to a fresh page anyway.
+ */
+export async function clearPersistedQueryCache(idbKey: string = JUSTSPLIT_QUERY_IDB_KEY): Promise<void> {
+  await del(idbKey);
+}
+
 export function attachPersister(
   client: QueryClient,
   options?: { idbKey?: string },

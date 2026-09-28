@@ -83,6 +83,16 @@ jobs:
         run: npm run db:migrate
       - name: RLS suite
         run: npm run test:rls
+      # Real-adapter half of the storage-adapter contract suite (plan B5a):
+      # RelationalSupabaseAdapter against this same local stack. No secret —
+      # it reuses src/tests/rls/fixtures.ts's actor client (never client.ts),
+      # which reads the stack's keys via `supabase status`, same as the RLS
+      # suite above. Deliberately sets no public config env var here:
+      # supabase-workflow-env.test.ts asserts this file never does, so the
+      # `build` job's coverage of the guarded/disabled client.ts path stays
+      # meaningful.
+      - name: Storage-adapter contract suite (real adapter)
+        run: npm run test:contract:live
       - name: Stop the stack
         if: always()
         run: npm run db:stop
