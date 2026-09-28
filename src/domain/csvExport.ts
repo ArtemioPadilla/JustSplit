@@ -1,0 +1,121 @@
+/**
+ * CSV export (plan B3). Ported from the legacy Next tree's
+ * `src/utils/csvExport.ts`, re-typed onto the `src/schemas/expense.ts`
+ * `Expense` (spec D10): `participants` reads from `splits[].userId` instead
+ * of the retired `participants` array, and `status` reads `settledAt != null`
+ * instead of the retired `settled` boolean. `users`/`events` stay small,
+ * schema-independent lookup shapes (`{ id, name }`) — a `User` collection
+ * doesn't exist in the universal types; only names are needed here.
+ */
+import type { Expense } from '../schemas/expense';
+import { ensureCSVExtension } from './fileUtils';
+
+export interface CsvNamedUser {
+  id: string;
+  name: string;
+}
+
+export interface CsvNamedEvent {
+  id: string;
+  name: string;
+}
+
+const warn = (message: string): void => {
+  console.warn(`[CSV Export] ${message}`);
+};
+
+/** Always-quote escaping, used by `expensesToCSV` (matches the legacy output byte-for-byte). */
+const quoteCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+
+/** Quote-only-when-needed escaping, used by the generic `exportToCSV`. */
+const escapeCsvValue = (value: string): string => {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+};
+
+/** Convert `expenses` to a CSV string (one row per expense, header first). */
+export const expensesToCSV = (expenses: Expense[], users: CsvNamedUser[], events: CsvNamedEvent[]): string => {
+  const headers = ['Date', 'Description', 'Amount', 'Currency', 'Paid By', 'Participants', 'Event', 'Status', 'Notes'];
+
+  const getUserName = (userId: string): string => users.find((u) => u.id === userId)?.name ?? 'Unknown';
+
+  const getEventName = (eventId?: string): string => {
+    if (!eventId) return 'No Event';
+    return events.find((e) => e.id === eventId)?.name ?? 'Unknown Event';
+  };
+
+  const rows = expenses.map((expense) => {
+    const participantNames = expense.splits.map((split) => getUserName(split.userId)).join(', ');
+    const status = expense.settledAt != null ? 'Settled' : 'Unsettled';
+
+    return [
+      new Date(expense.date).toLocaleDateString(),
+      expense.description,
+      expense.amount.toFixed(2),
+      expense.currency,
+      getUserName(expense.paidBy),
+      participantNames,
+      getEventName(expense.eventId),
+      status,
+      expense.notes ?? '',
+    ]
+      .map((value) => quoteCsvValue(value.toString()))
+      .join(',');
+  });
+
+  return [headers.join(','), ...rows].join('\n');
+};
+
+/** Trigger a browser download of `csvContent` as `filename`. */
+export const downloadCSV = (csvContent: string, filename: string): void => {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+};
+
+/** Convert `expenses` to CSV and trigger a download in one call. */
+export const exportExpensesToCSV = (
+  expenses: Expense[],
+  users: CsvNamedUser[],
+  events: CsvNamedEvent[],
+  filename = 'expenses.csv',
+): void => {
+  downloadCSV(expensesToCSV(expenses, users, events), filename);
+};
+
+/** Convert any row-shaped array to CSV (headers from the first row's keys) and trigger a download. */
+export const exportToCSV = <T extends Record<string, unknown>>(data: T[], filename: string): void => {
+  if (!data || data.length === 0) {
+    warn('No data provided for CSV export');
+    downloadCSV('', ensureCSVExtension(filename || 'export.csv'));
+    return;
+  }
+
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map((row) =>
+      headers
+        .map((header) => {
+          const cell = row[header];
+          const cellData = cell === undefined || cell === null ? '' : String(cell);
+          return escapeCsvValue(cellData);
+        })
+        .join(','),
+    ),
+  ].join('\n');
+
+  downloadCSV(csvContent, ensureCSVExtension(filename));
+};
