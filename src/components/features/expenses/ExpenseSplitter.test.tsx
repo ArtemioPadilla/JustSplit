@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ExpenseSplitter } from './ExpenseSplitter';
+import type { Shares } from '@/domain/expenseSplitter';
 
 /**
  * Plan B10: the form edits SHARES, never `splits[].amount` directly
@@ -97,17 +98,27 @@ describe('ExpenseSplitter', () => {
   it('calls onSharesChange with the updated share when a participant\'s amount is edited', async () => {
     const onSharesChange = vi.fn();
     const user = userEvent.setup();
-    render(
-      <ExpenseSplitter
-        splitType="exact"
-        onSplitTypeChange={vi.fn()}
-        participantIds={['u1', 'u2']}
-        amount={100}
-        shares={{ u1: 60, u2: 40 }}
-        onSharesChange={onSharesChange}
-        names={NAMES}
-      />,
-    );
+    // A stateful wrapper — a real controlled <input> needs the parent to
+    // actually apply onSharesChange back as a new `shares` prop between
+    // keystrokes, the same closed loop the real form provides.
+    function Wrapper() {
+      const [shares, setShares] = React.useState<Shares>({ u1: 60, u2: 40 });
+      return (
+        <ExpenseSplitter
+          splitType="exact"
+          onSplitTypeChange={vi.fn()}
+          participantIds={['u1', 'u2']}
+          amount={100}
+          shares={shares}
+          onSharesChange={(next) => {
+            setShares(next);
+            onSharesChange(next);
+          }}
+          names={NAMES}
+        />
+      );
+    }
+    render(<Wrapper />);
     const input = screen.getByLabelText(/Beto.?s share/i);
     await user.clear(input);
     await user.type(input, '50');
