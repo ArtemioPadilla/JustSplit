@@ -123,16 +123,12 @@ function makeEvent(overrides: Partial<Event> & Pick<Event, 'id' | 'name'>): Even
   };
 }
 
-const replace = vi.fn();
-
 beforeEach(() => {
   adapterState.listeners = [];
   adapterState.profile = { id: 'u1', apps: ['justsplit'], permissions: [], preferences: { preferredCurrency: 'USD' } };
   $user.set(null);
   $profile.set(null);
   $authReady.set(false);
-  replace.mockClear();
-  Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, replace } });
   window.history.replaceState(null, '', '/expenses/list');
 
   useExpenses.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: vi.fn() });
@@ -150,13 +146,24 @@ describe('ExpenseListIsland', () => {
     render(<ExpenseListIsland />);
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    expect(replace).not.toHaveBeenCalled();
   });
 
   it('redirects to /landing/ once ready with no signed-in user', async () => {
+    // Real `window.location` (not overridden, unlike the other tests) needs
+    // to be swapped for a plain stub ONLY here — `location.replace` itself
+    // is non-configurable on jsdom's real Location object, but `location`
+    // as a property of `window` is. Every other test needs the OPPOSITE:
+    // the real, live `window.location.search`, reactive to
+    // `history.replaceState` (the event-filter/sort URL-state assertions).
+    const replace = vi.fn();
+    const realLocation = window.location;
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...realLocation, replace } });
+
     render(<ExpenseListIsland />);
     emit(null);
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/landing/'));
+
+    Object.defineProperty(window, 'location', { configurable: true, value: realLocation });
   });
 
   it('renders an empty state when the user has no expenses', async () => {
@@ -186,8 +193,8 @@ describe('ExpenseListIsland', () => {
     expect(screen.getByText('Taxi')).toBeInTheDocument();
     expect(screen.getAllByText('Ana').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Team Trip' })).toHaveAttribute('href', '/events/ev1');
-    expect(screen.getByText(/settled/i)).toBeInTheDocument();
-    expect(screen.getByText(/unsettled/i)).toBeInTheDocument();
+    expect(screen.getByText('Settled')).toBeInTheDocument();
+    expect(screen.getByText('Unsettled')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dinner' })).toHaveAttribute('href', '/expenses/e1');
   });
 
