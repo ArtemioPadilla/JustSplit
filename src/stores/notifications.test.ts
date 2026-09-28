@@ -16,6 +16,7 @@ const PENDING_TOASTS_KEY = 'justsplit:pending-toasts';
 
 beforeEach(() => {
   sessionStorage.clear();
+  toast.mockClear();
 });
 
 describe('notifySuccess', () => {
