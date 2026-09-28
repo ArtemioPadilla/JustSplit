@@ -11,18 +11,20 @@ import { withBase } from '../lib/href';
 ---
 
 <BaseLayout title="Dashboard · JustSplit" description="Your expenses, events and balances at a glance.">
-  <DashboardIsland client:only="react">
-    <div slot="fallback" class="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-10" aria-busy="true">
-      <div class="h-10 w-full animate-pulse rounded bg-muted"></div>
-      <div class="h-24 w-full animate-pulse rounded bg-muted"></div>
-      <div class="h-48 w-full animate-pulse rounded bg-muted"></div>
-      <noscript>
-        <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
-        <p class="mt-4 text-muted-foreground">
-          JustSplit runs in the browser. Enable JavaScript, or go
-          <a class="underline" href={withBase('/landing/')}>learn more about JustSplit</a>.
-        </p>
-      </noscript>
-    </div>
-  </DashboardIsland>
+  <main id="main-content">
+    <DashboardIsland client:only="react">
+      <div slot="fallback" class="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-10" aria-busy="true">
+        <div class="h-10 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-24 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-48 w-full animate-pulse rounded bg-muted"></div>
+        <noscript>
+          <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
+          <p class="mt-4 text-muted-foreground">
+            JustSplit runs in the browser. Enable JavaScript, or go
+            <a class="underline" href={withBase('/landing/')}>learn more about JustSplit</a>.
+          </p>
+        </noscript>
+      </div>
+    </DashboardIsland>
+  </main>
 </BaseLayout>
