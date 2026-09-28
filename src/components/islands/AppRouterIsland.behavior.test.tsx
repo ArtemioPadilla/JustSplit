@@ -1,17 +1,22 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { act, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
-import AppRouterIsland from './AppRouterIsland';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Every dynamic route has its own lazily loaded view now (the last two, the
+// events routes, in plan B11b), so there is no stub left to assert on: the
+// views are mocked and this file keeps only the shell-level behavior.
+vi.mock('./routes/EventDetailView', () => ({
+  default: ({ id }: { id: string }) => <div data-testid="event-detail-view">{id}</div>,
+}));
+
+const { default: AppRouterIsland } = await import('./AppRouterIsland');
 
 /**
- * Plan B2c: the 404 shell's router mounts the island matching the URL.
- * `expense-detail` (plan B9), `expense-edit` (plan B10), `friend-detail`
- * (plan B13), and `group-detail` (plan B12) are covered separately, in
- * `AppRouterIsland.expense-detail.test.tsx`, `AppRouterIsland.expense-edit.test.tsx`,
- * `AppRouterIsland.friend-detail.test.tsx`, and `AppRouterIsland.group-detail.test.tsx`
- * — they render their real, lazily-loaded views now, not `RouteStub`, so all
- * four are dropped from this file's stub-route table.
+ * Plan B2c: the 404 shell's router mounts the island matching the URL. Each
+ * dynamic route's own wiring is covered in its own file
+ * (`AppRouterIsland.{expense-detail,expense-edit,friend-detail,group-detail,events}.test.tsx`);
+ * `RouteStub` and its stub-route table are gone now that every family has a real view.
  */
 afterEach(() => window.history.replaceState(null, '', '/'));
 
@@ -20,33 +25,22 @@ function at(path: string) {
 }
 
 describe('AppRouterIsland (behavior)', () => {
-  it.each([
-    ['/events/ev1', 'event-detail', 'ev1'],
-    ['/events/edit/ev1', 'event-edit', 'ev1'],
-  ])('%s mounts the %s route with its id', (path, route, id) => {
-    at(path);
-    render(<AppRouterIsland />);
-    const view = screen.getByTestId('route-view');
-    expect(view).toHaveAttribute('data-route', route);
-    expect(view).toHaveAttribute('data-id', id);
-  });
-
   it('renders the not-found view for an unknown path', () => {
     at('/definitely/not/a/route');
     render(<AppRouterIsland />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/not found|no encontrada/i);
-    expect(screen.queryByTestId('route-view')).toBeNull();
+    expect(screen.queryByTestId('event-detail-view')).toBeNull();
   });
 
-  it('re-matches on popstate (back/forward inside the shell)', () => {
+  it('re-matches on popstate (back/forward inside the shell)', async () => {
     at('/events/ev1');
     render(<AppRouterIsland />);
+    expect(await screen.findByTestId('event-detail-view')).toHaveTextContent('ev1');
     act(() => {
       at('/events/ev9');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(screen.getByTestId('route-view')).toHaveAttribute('data-route', 'event-detail');
-    expect(screen.getByTestId('route-view')).toHaveAttribute('data-id', 'ev9');
+    await waitFor(() => expect(screen.getByTestId('event-detail-view')).toHaveTextContent('ev9'));
   });
 
   it('removes its popstate listener on unmount', () => {
