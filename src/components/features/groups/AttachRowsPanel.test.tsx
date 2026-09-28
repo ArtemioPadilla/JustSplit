@@ -23,6 +23,7 @@ const { useAttachExpensesToGroup, useAttachEventsToGroup } = vi.hoisted(() => ({
 vi.mock('@/lib/data/hooks/useAttachExpensesToGroup', () => ({ useAttachExpensesToGroup }));
 vi.mock('@/lib/data/hooks/useAttachEventsToGroup', () => ({ useAttachEventsToGroup }));
 
+const { GroupNotFoundError } = await import('@/lib/data/repos/groups');
 const { AttachRowsPanel } = await import('./AttachRowsPanel');
 
 let attachExpensesMutateAsync: ReturnType<typeof vi.fn>;
@@ -92,5 +93,48 @@ describe('AttachRowsPanel', () => {
       <AttachRowsPanel groupId="g1" attachableExpenses={[{ id: 'e1', description: 'Tacos' }]} attachableEvents={[]} />,
     );
     expect(screen.getByRole('button', { name: /attach expenses/i })).toBeDisabled();
+  });
+
+  it('shows "This group no longer exists" and restores the button when the group was deleted mid-session, with no unhandled rejection', async () => {
+    attachExpensesMutateAsync.mockRejectedValueOnce(new GroupNotFoundError('g1'));
+    render(
+      <AttachRowsPanel groupId="g1" attachableExpenses={[{ id: 'e1', description: 'Tacos' }]} attachableEvents={[]} />,
+    );
+    const checkbox = screen.getByRole('checkbox', { name: 'Tacos' });
+    await userEvent.click(checkbox);
+    const button = screen.getByRole('button', { name: /attach expenses/i });
+    await userEvent.click(button);
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('This group no longer exists'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    // Restored: the selection survives a failure (so a retry doesn't start
+    // from scratch), the button stays enabled and not stuck busy.
+    expect(checkbox).toBeChecked();
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'false');
+  });
+
+  it('shows a generic toast for any other failure, never leaking raw error text', async () => {
+    attachExpensesMutateAsync.mockRejectedValueOnce(new Error('relation "expenses" violates row-level security policy'));
+    render(
+      <AttachRowsPanel groupId="g1" attachableExpenses={[{ id: 'e1', description: 'Tacos' }]} attachableEvents={[]} />,
+    );
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Tacos' }));
+    await userEvent.click(screen.getByRole('button', { name: /attach expenses/i }));
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith("Couldn't attach these items. Please try again."));
+  });
+
+  it('the events section has the same catch/restore behavior as the expenses section', async () => {
+    attachEventsMutateAsync.mockRejectedValueOnce(new Error('boom'));
+    render(<AttachRowsPanel groupId="g1" attachableExpenses={[]} attachableEvents={[{ id: 'ev1', name: 'Trip' }]} />);
+    const checkbox = screen.getByRole('checkbox', { name: 'Trip' });
+    await userEvent.click(checkbox);
+    const button = screen.getByRole('button', { name: /attach events/i });
+    await userEvent.click(button);
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith("Couldn't attach these items. Please try again."));
+    expect(checkbox).toBeChecked();
+    expect(button).not.toBeDisabled();
   });
 });
