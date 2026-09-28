@@ -297,3 +297,10 @@ describe('ExpenseForm — double submit', () => {
     expect(button).toHaveAttribute('aria-busy', 'true');
   });
 });
+
+describe('ExpenseForm — heading ownership', () => {
+  it('never renders its own <h1> — the mounting island/route view owns the page\'s one <h1> outside the auth gate (axe page-has-heading-one)', () => {
+    render(<ExpenseForm mode="create" />);
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+});
