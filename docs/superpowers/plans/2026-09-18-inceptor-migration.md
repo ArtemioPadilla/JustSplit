@@ -1358,6 +1358,9 @@ resolves other users' names through `useProfiles` (B5a).
       - Alternative (lower priority): extend `ui/timeline.tsx` with expense/event item renderers
         instead of a separate widget — only if its `items` API fits without forking
 - [ ] Port `src/__tests__/{timeline,timelineEvents,postEventExpenses,hoverCard,expenseGroups}.test.tsx`
+- [ ] Note (B8a review): `src/domain/timeline/*` parses calendar-date strings with a bare
+      `new Date(...)`, the same UTC-midnight bug fixed in `dashboard.ts`/`csvExport.ts`/
+      `formatters.ts` (B8a) — adopt `src/domain/dates.ts#parseCalendarDate` here too
 ### B11b. Events islands (list, new, view, edit)
 - [ ] `events` is the JustSplit-local table (spec D10, B2/B3): list = `events where memberIds
       array-contains uid`; creation writes `memberIds` (creator included — every other member an

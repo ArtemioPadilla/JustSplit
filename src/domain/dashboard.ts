@@ -1,5 +1,6 @@
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
+import { parseCalendarDate } from './dates';
 
 /**
  * Pure dashboard selectors (plan B8a). Every selector takes domain objects
@@ -47,7 +48,11 @@ function monthKeyOf(date: Date): string {
  * Monthly spend totals in the display currency, the last 6 months (this
  * month inclusive) oldest first, **including months with zero expenses** —
  * the dashboard shows a flat line for a quiet month rather than skipping it.
- * `now` is injectable for tests; defaults to the real clock.
+ * `now` is injectable for tests; defaults to the real clock. `expense.date`
+ * is parsed with `parseCalendarDate` (bug fix, B8a review), not a bare
+ * `new Date(...)` — the latter reads a calendar-date string as UTC midnight,
+ * which bucketed an expense on the 1st into the PRIOR month for anyone west
+ * of UTC (the user base is largely in Mexico, UTC-6).
  */
 export function monthlyTotals(
   expenses: Expense[],
@@ -63,7 +68,7 @@ export function monthlyTotals(
   const rawTotals = new Map<string, number>();
 
   for (const expense of expenses) {
-    const date = new Date(expense.date);
+    const date = parseCalendarDate(expense.date);
     if (Number.isNaN(date.getTime())) continue;
     const key = monthKeyOf(date);
     if (!byKey.has(key)) continue; // outside the 6-month window
@@ -178,6 +183,10 @@ export function balancesWithUser(
  * Events whose start (`startDate`, falling back to `date`) is today or
  * later, soonest first, capped at 3. An event with neither field set is
  * dropped — there is nothing to sort it by. `now` is injectable for tests.
+ * The start is parsed with `parseCalendarDate` (bug fix, B8a review): a bare
+ * `new Date(startDate)` reads a calendar-date string as UTC midnight, which
+ * read as 18:00 the previous local day west of UTC and wrongly dropped an
+ * event starting today as already past.
  */
 export function upcomingEvents(events: Event[], now: Date = new Date()): Event[] {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -185,7 +194,7 @@ export function upcomingEvents(events: Event[], now: Date = new Date()): Event[]
   return events
     .map((event) => ({ event, start: event.startDate ?? event.date }))
     .filter((e): e is { event: Event; start: string } => e.start != null)
-    .map(({ event, start }) => ({ event, startAt: new Date(start) }))
+    .map(({ event, start }) => ({ event, startAt: parseCalendarDate(start) }))
     .filter(({ startAt }) => !Number.isNaN(startAt.getTime()) && startAt >= startOfToday)
     .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
     .slice(0, 3)
