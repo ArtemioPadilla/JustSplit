@@ -64,10 +64,16 @@ describe('RLS coverage guard', () => {
     expect(rows).toEqual([]);
   });
 
-  it('SECURITY DEFINER functions pin search_path; only the two profile lookups are definer', () => {
+  it('SECURITY DEFINER functions pin search_path; only the profile lookups and the B2d membership helpers are definer', () => {
     const rows = sql(`select p.proname || '|' || coalesce(array_to_string(p.proconfig, ';'), '') from pg_proc p
                        where p.pronamespace = 'public'::regnamespace and p.prosecdef order by 1`);
-    expect(rows.map((r) => r.split('|')[0])).toEqual(['find_profile_by_email', 'find_profiles_by_ids']);
+    expect(rows.map((r) => r.split('|')[0])).toEqual([
+      'can_see_expense',
+      'find_profile_by_email',
+      'find_profiles_by_ids',
+      'is_event_member',
+      'is_group_member',
+    ]);
     for (const r of rows) expect(r).toMatch(/search_path=/);
   });
 
