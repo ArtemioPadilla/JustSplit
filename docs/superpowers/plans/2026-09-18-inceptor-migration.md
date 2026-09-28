@@ -1251,15 +1251,52 @@ resolves other users' names through `useProfiles` (B5a).
 | `src/app/__tests__/exampleTest.tsx` | drop |
 
 ### B8a. Recharts wrappers + chart widgets
-- [ ] `MonthlyTrendsChart`, `ExpenseDistribution`, `BalanceLine` rebuilt on `ui/charts/`
+- [x] `MonthlyTrendsChart`, `ExpenseDistribution`, `BalanceLine` rebuilt on `ui/charts/`
       Recharts wrappers (nothing to port — chart.js is installed but unused; today's charts are
-      hand-rolled CSS/SVG), lazy chunk asserted by a build test
-- [ ] Sub-decision per widget (recorded in the issue): `MonthlyTrends` / `ExpenseDistribution` /
+      hand-rolled CSS/SVG), lazy chunk asserted by a build test — deviation: `BalanceLine` is an
+      accessible CSS bar, not a Recharts wrapper (see the sub-decision below); `MonthlyTrendsChart`
+      (`ui/charts/bar-chart.tsx`) and `ExpenseDistribution` (`ui/charts/donut-chart.tsx`) are.
+      `DashboardCharts.lazy.tsx` (default export) is the single `React.lazy(() => import(...))`
+      boundary all three compose behind; `ShowcaseDashboardCharts.tsx` (`/showcase`, `client:visible`)
+      is the only mount site until B8b wires `DashboardIsland`.
+      `scripts/check-charts-bundle.mjs` (chained into `npm run check` after `check:auth-bundle`,
+      same precedent as `check-dist.mjs`/`check-auth-bundle.mjs`) asserts `dist/showcase/index.html`'s
+      static import graph never contains the `recharts-responsive-container` marker and that the
+      Recharts chunk is reached only through a dynamic `import()`; verified genuinely red by
+      temporarily replacing the island's `React.lazy` call with a static import, rebuilding, and
+      confirming the script failed, then reverting.
+- [x] Sub-decision per widget (recorded in the issue): `MonthlyTrends` / `ExpenseDistribution` /
       `BalanceOverview` / `UpcomingEvents` get real selectors over the B5a hooks or are dropped
       (today `page.tsx` imports the first two but never renders them and feeds the others
       placeholder state); if `ExpenseDistribution` is kept, group by the raw `category` string for
-      now — Track D D8 re-keys it to the taxonomy
-- [ ] Port the 2 existing chart tests + a new `BalanceLine` test
+      now — Track D D8 re-keys it to the taxonomy — decided (orchestrator, all four **kept**, fed by
+      real pure selectors in `src/domain/dashboard.ts`, not the B5a hooks directly — selectors take
+      domain objects + an injected synchronous `convert`/`names` map, B8b wires them from the hooks):
+      **MonthlyTrends** — `monthlyTotals`, last 6 months oldest-first including zero months.
+      **ExpenseDistribution** — `categoryDistribution`, grouped by the raw `category` string
+      (missing/empty → `'Uncategorized'`); Track D D8 re-keys it to the taxonomy as planned.
+      **BalanceOverview** — `balancesWithUser`, net balance between the current user and each other
+      person (positive = they owe you, negative = you owe them), derived directly from `splits[]`
+      rather than `calculateSettlements`'s greedy pairing (a settlement suggestion matches the
+      largest debtor with the largest creditor globally, which doesn't answer "who owes whom" for a
+      specific relationship). `BalanceLine` (the diverging row) is an **accessible CSS bar, not a
+      Recharts wrapper** — a diverging bar is one value per person, not a series; the only
+      Recharts-native rendering would be one `ResponsiveContainer`/`BarChart` per row, which isn't
+      justified over a styled `<div>`. Its text label ("Alex owes you $50.00" / "You owe Alex
+      $50.00") is the primary owe/owed signal (never color alone, CLAUDE.md a11y rule); the colored
+      bar is a secondary, `aria-hidden` reinforcement. **UpcomingEvents** — B8a ships only the pure
+      selector, `upcomingEvents` (events starting today or later, soonest first, capped at 3); its
+      widget is B8b's (composes the 9 non-chart widgets).
+- [x] Port the 2 existing chart tests + a new `BalanceLine` test — `MonthlyTrendsChart.test.tsx`
+      rewritten onto the props-based widget (dropped: the event/spender toggle, hover-card
+      drill-down, `isConvertingCurrencies` — none survive the rebuild, conversion is always on).
+      `ExpenseDistribution.test.tsx` was `describe.skip`'d in A3a (TODO(track-b): it passed an
+      `expenses` prop the component never took) — un-skipped and rewritten the same way. Both drop
+      the `AppContext` mocking. New: `BalanceLine.test.tsx` (direction/sign, the owe/owed text
+      label, proportional bar width) + a light `BalanceOverview` suite (row composition order, empty
+      state) + `src/domain/dashboard.test.ts` (all four selectors: zero months, `Uncategorized`,
+      mixed currencies through `convert`, a payer outside the participants, past-vs-upcoming events)
+      + `DashboardCharts.lazy.test.tsx` (composition wiring).
 ### B8b. Dashboard island (`/`)
 - [ ] `DashboardIsland` composing the 9 non-chart widgets of the 11 dashboard components
       (`UserSummary` is unused by any page — keep or drop, its test follows); `DashboardHeader`
@@ -1321,6 +1358,9 @@ resolves other users' names through `useProfiles` (B5a).
       - Alternative (lower priority): extend `ui/timeline.tsx` with expense/event item renderers
         instead of a separate widget — only if its `items` API fits without forking
 - [ ] Port `src/__tests__/{timeline,timelineEvents,postEventExpenses,hoverCard,expenseGroups}.test.tsx`
+- [ ] Note (B8a review): `src/domain/timeline/*` parses calendar-date strings with a bare
+      `new Date(...)`, the same UTC-midnight bug fixed in `dashboard.ts`/`csvExport.ts`/
+      `formatters.ts` (B8a) — adopt `src/domain/dates.ts#parseCalendarDate` here too
 ### B11b. Events islands (list, new, view, edit)
 - [ ] `events` is the JustSplit-local table (spec D10, B2/B3): list = `events where memberIds
       array-contains uid`; creation writes `memberIds` (creator included — every other member an

@@ -5,6 +5,7 @@ import ShowcaseCurrencySelector from '@/components/islands/ShowcaseCurrencySelec
 import CurrencyExchangeTicker from '@/components/islands/CurrencyExchangeTicker';
 import ShowcaseEditable from '@/components/islands/ShowcaseEditable';
 import ShowcaseExportCsvButton from '@/components/islands/ShowcaseExportCsvButton';
+import ShowcaseDashboardCharts from '@/components/islands/ShowcaseDashboardCharts';
 import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
@@ -89,6 +90,21 @@ import { ProgressBar } from '@/components/ui/progress-bar';
       </p>
       <div class="inline-flex rounded-md border border-border bg-card p-3">
         <ShowcaseExportCsvButton client:idle />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">Dashboard charts <span class="text-sm font-normal text-muted-foreground">(B8a)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        MonthlyTrendsChart/ExpenseDistribution (Recharts, <code>ui/charts/bar-chart.tsx</code> +
+        <code>ui/charts/donut-chart.tsx</code>) and BalanceOverview/BalanceLine (an accessible CSS
+        bar — see BalanceLine.tsx for why) over fictional in-memory expenses, run through the real
+        <code>domain/dashboard.ts</code> selectors. Recharts loads through <code>React.lazy</code>
+        (<code>DashboardCharts.lazy.tsx</code>), so it never lands in this page's static JS —
+        <code>scripts/check-charts-bundle.mjs</code> asserts that at the built-HTML level.
+      </p>
+      <div class="rounded-md border border-border bg-card p-4">
+        <ShowcaseDashboardCharts client:visible />
       </div>
     </section>
   </main>

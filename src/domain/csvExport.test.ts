@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Expense } from '../schemas/expense';
 import { downloadCSV, exportExpensesToCSV, exportToCSV, expensesToCSV } from './csvExport';
 
@@ -186,6 +186,38 @@ describe('expensesToCSV', () => {
     expect(dataRow).toContain('"Lunch"');
     expect(dataRow).toContain('"-15.00"');
     expect(dataRow).not.toContain("'-15.00");
+  });
+
+  /**
+   * Bug fix (found in B8a review): `expense.date` is a calendar-date string
+   * (`YYYY-MM-DD`) from an `<input type="date">`, but `new Date('2026-03-01')`
+   * parses that as UTC midnight — anyone west of UTC (the user base is
+   * largely in Mexico, UTC-6) exports the PREVIOUS day. Pinned to
+   * America/Mexico_City so this fails for the right reason regardless of
+   * where/when the suite runs.
+   */
+  describe('date cell — timezone-safe calendar-date parsing (bug fix)', () => {
+    let originalTZ: string | undefined;
+
+    beforeAll(() => {
+      originalTZ = process.env.TZ;
+      process.env.TZ = 'America/Mexico_City';
+    });
+
+    afterAll(() => {
+      process.env.TZ = originalTZ;
+    });
+
+    it('renders the Date column as the calendar date, not the previous day', () => {
+      const expenses = [
+        makeExpense({ description: 'Lunch', amount: 10, paidBy: 'user1', participantIds: ['user1'], date: '2026-03-01' }),
+      ];
+      const users = [{ id: 'user1', name: 'Alice' }];
+
+      const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+      const expectedDate = new Date(2026, 2, 1).toLocaleDateString();
+      expect(dataRow).toContain(expectedDate);
+    });
   });
 });
 

@@ -6,6 +6,7 @@
  * switches to this one too, so the app has exactly one `formatCurrency`.
  */
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from './currency';
+import { parseCalendarDate } from './dates';
 
 /** The currency symbol for a code, or `'$'` if the code is unsupported. */
 export const getCurrencySymbol = (currencyCode: string = DEFAULT_CURRENCY): string => {
@@ -22,10 +23,16 @@ export const formatCurrency = (amount: number, currencyCode: string = DEFAULT_CU
   return `${currency.symbol}${amount.toFixed(2)}`;
 };
 
-/** e.g. `formatDate('2026-09-28') === 'Sep 28, 2026'`. */
+/**
+ * e.g. `formatDate('2026-09-28') === 'Sep 28, 2026'`. Uses `parseCalendarDate`
+ * (bug fix, B8a review) rather than a bare `new Date(dateString)`: the
+ * latter reads a calendar-date string as UTC midnight, which showed the
+ * PREVIOUS day for anyone west of UTC (the user base is largely in Mexico,
+ * UTC-6). A full ISO timestamp (with a time and/or offset) is unaffected.
+ */
 export const formatDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString);
+    const date = parseCalendarDate(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   } catch {
     return 'Invalid date';

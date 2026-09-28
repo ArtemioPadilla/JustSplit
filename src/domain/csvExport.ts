@@ -9,6 +9,7 @@
  */
 import type { Expense } from '../schemas/expense';
 import { ensureCSVExtension } from './fileUtils';
+import { parseCalendarDate } from './dates';
 
 export interface CsvNamedUser {
   id: string;
@@ -66,7 +67,10 @@ export const expensesToCSV = (expenses: Expense[], users: CsvNamedUser[], events
       // Date, amount, currency and status are never user-controlled text —
       // neutralization is deliberately skipped for these four columns so a
       // negative amount stays numeric (spec: "do not alter numeric cells").
-      new Date(expense.date).toLocaleDateString(),
+      // `parseCalendarDate` (bug fix, B8a review): a bare `new Date(expense.date)`
+      // reads a calendar-date string as UTC midnight, exporting the PREVIOUS
+      // day for anyone west of UTC (the user base is largely in Mexico, UTC-6).
+      parseCalendarDate(expense.date).toLocaleDateString(),
       neutralizeCsvFormula(expense.description),
       expense.amount.toFixed(2),
       expense.currency,
