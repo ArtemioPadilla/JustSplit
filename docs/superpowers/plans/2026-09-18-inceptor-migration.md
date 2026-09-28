@@ -1184,6 +1184,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       dynamic "persists" half; `src/tests/base-layout-theme-script.test.ts` asserts the "no flash"
       half at the source level (pre-paint script is `is:inline`, first in `<head>`, synchronous) —
       a real paint-timing browser test isn't practical against jsdom (no rendering pipeline).
+- Review fix (orchestrator): `UserMenuIsland` statically imported `stores/auth.ts`, pulling
+      `@supabase/supabase-js` into every page. The session atoms moved to `src/stores/session.ts`
+      (no data-layer import) and the island loads the auth actions lazily on sign-out;
+      `scripts/check-auth-bundle.mjs` now fails the build if `/` or `/404` statically loads the SDK
+      (red `0a29db1`). B7 adds `/landing`, `/about` and `/help` to its `PUBLIC_PAGES`
 
 ### B7. Static pages
 - [ ] `/landing`, `/about`, `/help` as Astro pages with no route island; `motion/react` only where
