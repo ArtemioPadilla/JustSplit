@@ -26,6 +26,26 @@ function memoryHarness(): ContractHarness {
       createdAt: adapter.serverTimestamp(),
       ...overrides,
     }),
+    makeGroup: (overrides = {}) => ({
+      name: 'Group',
+      type: 'friends',
+      currency: 'MXN',
+      members: [],
+      totalExpenses: 0,
+      memberIds: ['u1'],
+      adminIds: ['u1'],
+      createdBy: 'u1',
+      createdAt: adapter.serverTimestamp(),
+      ...overrides,
+    }),
+    makeEvent: (overrides = {}) => ({
+      name: 'Trip',
+      kind: 'event',
+      memberIds: ['u1'],
+      createdBy: 'u1',
+      createdAt: adapter.serverTimestamp(),
+      ...overrides,
+    }),
     cleanup: async () => {},
   };
 }

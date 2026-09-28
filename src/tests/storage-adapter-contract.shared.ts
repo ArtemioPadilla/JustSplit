@@ -15,6 +15,10 @@ export interface ContractHarness {
   collection: string;
   /** A fresh, minimal, RLS-valid expense document (id assigned separately via `generateId`). */
   makeExpense(overrides?: Record<string, unknown>): Record<string, unknown>;
+  /** A fresh `expense_groups` document the harness's actor may create (B2d: foreign-key cases). */
+  makeGroup(overrides?: Record<string, unknown>): Record<string, unknown>;
+  /** A fresh `events` document the harness's actor may create (B2d: foreign-key cases). */
+  makeEvent(overrides?: Record<string, unknown>): Record<string, unknown>;
   /** Removes anything the case wrote. Called after every `it`. */
   cleanup(): Promise<void>;
 }
@@ -50,24 +54,56 @@ export function runStorageAdapterContractSuite(name: string, getHarness: () => P
       expect(doc?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
-    it("updateDocument merges a patch's overflow keys into extra without erasing others — settledAt never wipes eventId (spec D9)", async () => {
+    // `eventId` left the overflow keys in B2d (ADR 0013: it is the `event_id`
+    // column, with a foreign key), so the D9 overflow invariant is exercised
+    // with `conceptId`, which still has no column.
+    it("updateDocument merges a patch's overflow keys into extra without erasing others — settledAt never wipes conceptId (spec D9)", async () => {
       const id = harness.adapter.generateId(harness.collection);
-      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ eventId: 'trip-1' }));
+      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ conceptId: 'k1' }));
       await harness.adapter.updateDocument(harness.collection, id, { settledAt: '2026-09-28T00:00:00.000Z' });
       const doc = await harness.adapter.getDocument<Record<string, unknown>>(harness.collection, id);
-      expect(doc).toMatchObject({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z' });
+      expect(doc).toMatchObject({ conceptId: 'k1', settledAt: '2026-09-28T00:00:00.000Z' });
     });
 
     it('concurrent updateDocument calls with different overflow keys both survive (no lost update)', async () => {
       const id = harness.adapter.generateId(harness.collection);
-      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ eventId: 'trip-1' }));
+      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ conceptId: 'k1' }));
       await Promise.all([
         harness.adapter.updateDocument(harness.collection, id, { settledAt: '2026-09-28T00:00:00.000Z' }),
-        harness.adapter.updateDocument(harness.collection, id, { conceptId: 'k1' }),
+        harness.adapter.updateDocument(harness.collection, id, { notes: 'a note' }),
         harness.adapter.updateDocument(harness.collection, id, { description: 'Renamed' }),
       ]);
       const doc = await harness.adapter.getDocument<Record<string, unknown>>(harness.collection, id);
-      expect(doc).toMatchObject({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z', conceptId: 'k1', description: 'Renamed' });
+      expect(doc).toMatchObject({ conceptId: 'k1', settledAt: '2026-09-28T00:00:00.000Z', notes: 'a note', description: 'Renamed' });
+    });
+
+    it('deleting a group sets groupId to null on the expenses that named it (ON DELETE SET NULL, ADR 0013)', async () => {
+      const groupId = harness.adapter.generateId('expense_groups');
+      await harness.adapter.setDocument('expense_groups', groupId, harness.makeGroup());
+      const id = harness.adapter.generateId(harness.collection);
+      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ groupId }));
+      expect((await harness.adapter.getDocument<{ groupId: string | null }>(harness.collection, id))?.groupId).toBe(groupId);
+
+      await harness.adapter.deleteDocument('expense_groups', groupId);
+
+      expect(await harness.adapter.getDocument('expense_groups', groupId)).toBeNull();
+      expect((await harness.adapter.getDocument<{ groupId: string | null }>(harness.collection, id))?.groupId).toBeNull();
+    });
+
+    it('eventId is a real column: it filters with ==, and deleting the event sets it to null (ADR 0013)', async () => {
+      const eventId = harness.adapter.generateId('events');
+      await harness.adapter.setDocument('events', eventId, harness.makeEvent());
+      const id = harness.adapter.generateId(harness.collection);
+      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ eventId }));
+
+      const linked = await harness.adapter.query<{ id: string }>(harness.collection, [{ field: 'eventId', operator: '==', value: eventId }]);
+      expect(linked.data.map((d) => d.id)).toEqual([id]);
+
+      await harness.adapter.deleteDocument('events', eventId);
+
+      expect((await harness.adapter.getDocument<{ eventId: string | null }>(harness.collection, id))?.eventId).toBeNull();
+      const after = await harness.adapter.query(harness.collection, [{ field: 'eventId', operator: '==', value: eventId }]);
+      expect(after.data).toEqual([]);
     });
 
     it('batchWrite is all-or-nothing: one op targeting an unmapped collection rolls back the whole batch', async () => {
