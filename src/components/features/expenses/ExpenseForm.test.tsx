@@ -194,6 +194,7 @@ describe('ExpenseForm — query-param defaults', () => {
 
   it('?event= belonging to a group is treated as a group expense: candidates + currency + payload come from the group (coordinator review)', async () => {
     window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    const location = stubLocationAssign();
     useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2'], groupId: 'g1', name: 'Trip' }, isSuccess: true });
     useGroup.mockReturnValue({
       data: { id: 'g1', memberIds: ['u1', 'u2', 'u3'], currency: 'EUR', members: [], name: 'Group', type: 'friends' },
@@ -215,10 +216,12 @@ describe('ExpenseForm — query-param defaults', () => {
     const { input } = createMutateAsync.mock.calls[0]![0];
     expect(input.groupId).toBe('g1');
     expect(input.memberIds.slice().sort()).toEqual(['u1', 'u2', 'u3']);
+    location.restore();
   });
 
   it('?event= with no group excludes non-friend members, shows a count-only notice, and never sends a payload the RLS policy would reject (coordinator review)', async () => {
     window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    const location = stubLocationAssign();
     useEvent.mockReturnValue({
       data: { id: 'ev1', memberIds: ['u1', 'u2', 'u3'], groupId: null, preferredCurrency: 'MXN', name: 'Party' },
       isSuccess: true,
@@ -245,6 +248,7 @@ describe('ExpenseForm — query-param defaults', () => {
     const { input } = createMutateAsync.mock.calls[0]![0];
     expect(input.groupId).toBeNull();
     expect(input.memberIds).not.toContain('u3');
+    location.restore();
   });
 });
 

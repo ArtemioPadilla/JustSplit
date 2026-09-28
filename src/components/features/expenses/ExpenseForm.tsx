@@ -11,6 +11,7 @@ import { CurrencySelector } from '@/components/features/currency/CurrencySelecto
 import { ReceiptImage } from '@/components/features/ReceiptImage';
 import { LEGACY_CATEGORY_KEYS, type LegacyCategoryKey } from '@/domain/categories';
 import { formatCalendarDate, parseCalendarDate } from '@/domain/dates';
+import { resolveEventParticipants, violatesNoGroupInvariant } from '@/domain/expenseParticipants';
 import { buildSplits, validateSplit } from '@/domain/expenseSplitter';
 import { useAddReceipts } from '@/lib/data/hooks/useAddReceipts';
 import { useCreateExpenseWithReceipts } from '@/lib/data/hooks/useCreateExpenseWithReceipts';
@@ -80,6 +81,14 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
 
   const groupQuery = useGroup(contextGroupId ?? undefined);
   const eventQuery = useEvent(contextEventId ?? undefined);
+  // A SEPARATE query from `groupQuery` above: when `?event=` resolves to an
+  // event that belongs to a group, that group is generally NOT the same one
+  // `?group=`/edit's own `contextGroupId` would resolve (there is no
+  // `?group=` param in the event case at all) — spec: `event.groupId` set
+  // means "treat this as a group expense", the same rule as `?group=`
+  // (coordinator review, risk:high: `eventId` has no column, so RLS knows
+  // nothing about event membership — only its OWN group, if any).
+  const eventGroupQuery = useGroup(eventQuery.data?.groupId ?? undefined);
   const friendsQuery = useFriends(uid);
 
   const acceptedFriendIds = React.useMemo(() => {
@@ -95,37 +104,90 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
     [uid, acceptedFriendIds],
   );
 
-  const resolved = React.useMemo(() => {
+  interface ResolvedContext {
+    candidateIds: string[];
+    currency?: string;
+    groupId?: string;
+    /** The resolved group's OWN memberIds (spec: `memberIds` = the group's memberIds, `?group=` and a group-backed `?event=` alike) — kept separate from `candidateIds` so a `?group=`/event-group intersection fallback doesn't have to be reverse-engineered at submit time. */
+    groupMemberIds?: string[];
+    eventId?: string;
+    ignored?: 'group' | 'event' | 'friend';
+    /** Only ever nonzero for a no-group `?event=`: how many of the event's real members got excluded for not being an accepted friend. Count only (never names). */
+    excludedNonFriendCount: number;
+  }
+
+  const resolved = React.useMemo((): ResolvedContext => {
     if (mode === 'create') {
       if (params.group) {
-        if (groupQuery.data) return { candidateIds: groupQuery.data.memberIds, currency: groupQuery.data.currency, groupId: groupQuery.data.id as string | undefined, eventId: undefined as string | undefined, ignored: undefined as 'group' | 'event' | 'friend' | undefined };
-        if (groupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, currency: undefined, groupId: undefined, eventId: undefined, ignored: 'group' as const };
-        return { candidateIds: [] as string[], currency: undefined, groupId: undefined, eventId: undefined, ignored: undefined };
+        if (groupQuery.data) {
+          return {
+            candidateIds: groupQuery.data.memberIds,
+            currency: groupQuery.data.currency,
+            groupId: groupQuery.data.id,
+            groupMemberIds: groupQuery.data.memberIds,
+            excludedNonFriendCount: 0,
+          };
+        }
+        if (groupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'group', excludedNonFriendCount: 0 };
+        return { candidateIds: [], excludedNonFriendCount: 0 };
       }
       if (params.event) {
-        if (eventQuery.data) return { candidateIds: eventQuery.data.memberIds, currency: eventQuery.data.preferredCurrency, groupId: undefined, eventId: eventQuery.data.id as string | undefined, ignored: undefined };
-        if (eventQuery.isSuccess) return { candidateIds: fallbackCandidateIds, currency: undefined, groupId: undefined, eventId: undefined, ignored: 'event' as const };
-        return { candidateIds: [] as string[], currency: undefined, groupId: undefined, eventId: undefined, ignored: undefined };
+        if (eventQuery.data) {
+          if (eventQuery.data.groupId) {
+            if (eventGroupQuery.data) {
+              const r = resolveEventParticipants(eventQuery.data, eventGroupQuery.data, acceptedFriendIds, uid ?? '');
+              return {
+                candidateIds: r.candidateIds,
+                currency: r.currency,
+                groupId: r.groupId,
+                groupMemberIds: eventGroupQuery.data.memberIds,
+                eventId: eventQuery.data.id,
+                excludedNonFriendCount: 0,
+              };
+            }
+            if (eventGroupQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'event', excludedNonFriendCount: 0 };
+            return { candidateIds: [], excludedNonFriendCount: 0 };
+          }
+          if (!friendsQuery.isSuccess) return { candidateIds: [], excludedNonFriendCount: 0 };
+          const r = resolveEventParticipants(eventQuery.data, undefined, acceptedFriendIds, uid ?? '');
+          return { candidateIds: r.candidateIds, currency: r.currency, eventId: eventQuery.data.id, excludedNonFriendCount: r.excludedNonFriendCount };
+        }
+        if (eventQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'event', excludedNonFriendCount: 0 };
+        return { candidateIds: [], excludedNonFriendCount: 0 };
       }
       if (params.friend) {
         if (uid && acceptedFriendIds.includes(params.friend)) {
-          return { candidateIds: [uid, params.friend], currency: undefined, groupId: undefined, eventId: undefined, ignored: undefined };
+          return { candidateIds: [uid, params.friend], excludedNonFriendCount: 0 };
         }
-        if (friendsQuery.isSuccess) return { candidateIds: fallbackCandidateIds, currency: undefined, groupId: undefined, eventId: undefined, ignored: 'friend' as const };
-        return { candidateIds: [] as string[], currency: undefined, groupId: undefined, eventId: undefined, ignored: undefined };
+        if (friendsQuery.isSuccess) return { candidateIds: fallbackCandidateIds, ignored: 'friend', excludedNonFriendCount: 0 };
+        return { candidateIds: [], excludedNonFriendCount: 0 };
       }
-      return { candidateIds: fallbackCandidateIds, currency: undefined, groupId: undefined, eventId: undefined, ignored: undefined };
+      return { candidateIds: fallbackCandidateIds, excludedNonFriendCount: 0 };
     }
     // edit
     const base = expense?.groupId ? (groupQuery.data?.memberIds ?? []) : fallbackCandidateIds;
     return {
       candidateIds: Array.from(new Set([...base, ...(expense?.memberIds ?? [])])),
-      currency: undefined,
       groupId: expense?.groupId ?? undefined,
+      groupMemberIds: expense?.groupId ? groupQuery.data?.memberIds : undefined,
       eventId: expense?.eventId,
-      ignored: undefined,
+      excludedNonFriendCount: 0,
     };
-  }, [mode, params, groupQuery.data, groupQuery.isSuccess, eventQuery.data, eventQuery.isSuccess, friendsQuery.isSuccess, fallbackCandidateIds, acceptedFriendIds, uid, expense]);
+  }, [
+    mode,
+    params,
+    groupQuery.data,
+    groupQuery.isSuccess,
+    eventQuery.data,
+    eventQuery.isSuccess,
+    eventGroupQuery.data,
+    eventGroupQuery.isSuccess,
+    friendsQuery.isSuccess,
+    fallbackCandidateIds,
+    acceptedFriendIds,
+    uid,
+    expense,
+  ]);
 
   const profilesQuery = useProfiles(resolved.candidateIds);
   const names = React.useMemo(() => namesFrom(profilesQuery.data), [profilesQuery.data]);
@@ -189,9 +251,12 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   // touched the form yet — a query resolving after the user already started
   // typing must never clobber their input.
   const defaultsAppliedRef = React.useRef(false);
+  const eventContextSettled =
+    eventQuery.isSuccess &&
+    (!eventQuery.data || (eventQuery.data.groupId ? eventGroupQuery.isSuccess : friendsQuery.isSuccess));
   const contextSettled =
     mode === 'create' &&
-    (params.group ? groupQuery.isSuccess : params.event ? eventQuery.isSuccess : friendsQuery.isSuccess);
+    (params.group ? groupQuery.isSuccess : params.event ? eventContextSettled : friendsQuery.isSuccess);
   React.useEffect(() => {
     if (mode !== 'create' || defaultsAppliedRef.current || !contextSettled || form.formState.isDirty) return;
     defaultsAppliedRef.current = true;
@@ -203,6 +268,19 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
 
   const [files, setFiles] = React.useState<File[]>([]);
   const [fileError, setFileError] = React.useState<string | null>(null);
+  const [invariantError, setInvariantError] = React.useState<string | null>(null);
+
+  // Edit-mode-only UX gap (coordinator review): if the CURRENT editor isn't
+  // an accepted friend of everyone already on a no-group expense, the
+  // `expenses_update` RLS policy denies the save outright. Rather than let
+  // that surface as B9's generic post-submit error, this form knows upfront
+  // (derived from `useFriends`) and disables Save with an explicit reason.
+  // Group expenses are unaffected — any group member may edit one. UX only;
+  // RLS is still the sole authority.
+  const editBlockedByFriendship = React.useMemo(() => {
+    if (mode !== 'edit' || !expense || expense.groupId || !uid || !friendsQuery.isSuccess) return false;
+    return violatesNoGroupInvariant(expense.memberIds, acceptedFriendIds, uid);
+  }, [mode, expense, uid, friendsQuery.isSuccess, acceptedFriendIds]);
   const createId = React.useMemo(() => (mode === 'create' ? expensesRepo.generateId() : undefined), [mode]);
 
   const createMutation = useCreateExpenseWithReceipts();
@@ -228,8 +306,23 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
 
     const splits = buildSplits(values.splitType, Number(values.amount), values.participantIds, values.paidBy, values.shares);
     const memberIds = resolved.groupId
-      ? (groupQuery.data?.memberIds ?? values.participantIds)
+      ? (resolved.groupMemberIds ?? values.participantIds)
       : Array.from(new Set([...values.participantIds, values.paidBy, uid].filter((v): v is string => Boolean(v))));
+
+    // Defensive pre-submit check (coordinator review, risk:high): mirrors the
+    // `expenses_insert`/`_update` RLS policy's own `group_id is null` branch
+    // — every member other than the caller must be an accepted friend.
+    // Never trust client state to have kept this true on its own (a
+    // friendship can be revoked out from under an already-selected
+    // participant) — refuse BEFORE sending a request RLS would only deny
+    // anyway. UX only; RLS stays the sole authority either way.
+    if (!resolved.groupId && uid && violatesNoGroupInvariant(memberIds, acceptedFriendIds, uid)) {
+      setInvariantError(
+        "Something about who's on this expense changed. Please review the participants and try again.",
+      );
+      return;
+    }
+    setInvariantError(null);
 
     if (mode === 'create') {
       if (!uid || !createId) return;
@@ -324,6 +417,14 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
         {resolved.ignored && (
           <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
             We couldn&apos;t find that {resolved.ignored} — showing your friends instead.
+          </p>
+        )}
+
+        {resolved.excludedNonFriendCount > 0 && (
+          <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+            {resolved.excludedNonFriendCount} {resolved.excludedNonFriendCount === 1 ? 'person' : 'people'} in this
+            event {resolved.excludedNonFriendCount === 1 ? "isn't" : "aren't"} in your friends yet, so they can&apos;t
+            be added to this expense.
           </p>
         )}
 
@@ -497,7 +598,19 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           )}
         </div>
 
-        <Button type="submit" disabled={pending} aria-busy={pending}>
+        {editBlockedByFriendship && (
+          <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+            You can view this expense, but only someone who is friends with everyone on it can edit it here.
+          </p>
+        )}
+
+        {invariantError && (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {invariantError}
+          </p>
+        )}
+
+        <Button type="submit" disabled={pending || editBlockedByFriendship} aria-busy={pending}>
           {pending ? 'Saving…' : mode === 'create' ? 'Save expense' : 'Save changes'}
         </Button>
       </form>
