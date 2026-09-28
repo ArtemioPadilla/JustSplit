@@ -167,10 +167,16 @@ describe('useLiveQuery (plan B5a, spec D3: single network source)', () => {
       setAdapter(adapter);
       const client = new QueryClient();
 
-      let latest: ReturnType<typeof useLiveQuery> | undefined;
+      // Pushed (not reassigned) during render — the react-hooks lint rule
+      // forbids reassigning an outer-scope variable from a component body,
+      // but appending to an array it doesn't own is fine (same pattern as
+      // useDisplayConversion.test.tsx's render-log probe).
+      const results: Array<ReturnType<typeof useLiveQuery<{ id: string }>>> = [];
       function ErrorHarness() {
-        const result = useLiveQuery(['expenses', 'u1'], 'expenses', [{ field: 'memberIds', operator: 'array-contains', value: 'u1' }]);
-        latest = result;
+        const result = useLiveQuery<{ id: string }>(['expenses', 'u1'], 'expenses', [
+          { field: 'memberIds', operator: 'array-contains', value: 'u1' },
+        ]);
+        results.push(result);
         return null;
       }
       render(
@@ -179,15 +185,15 @@ describe('useLiveQuery (plan B5a, spec D3: single network source)', () => {
         </QueryClientProvider>,
       );
 
-      await waitFor(() => expect(latest?.isError).toBe(true));
-      expect(latest?.error).toBeInstanceOf(Error);
+      await waitFor(() => expect(results.at(-1)?.isError).toBe(true));
+      expect(results.at(-1)?.error).toBeInstanceOf(Error);
 
       act(() => {
-        latest?.refetch();
+        results.at(-1)?.refetch();
       });
 
-      await waitFor(() => expect(latest?.isError).toBe(false));
-      await waitFor(() => expect(latest?.data).toEqual([{ id: 'e1' }]));
+      await waitFor(() => expect(results.at(-1)?.isError).toBe(false));
+      await waitFor(() => expect(results.at(-1)?.data).toEqual([{ id: 'e1' }]));
       expect(subscribeCalls).toBe(2);
     },
   );
