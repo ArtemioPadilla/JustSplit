@@ -19,6 +19,17 @@ interface Props {
    *  src/lib/json-ld.ts's jsonLd() (plain JSON.stringify is an XSS vector
    *  here — see that file's doc comment). */
   jsonLd?: Record<string, unknown>[];
+  /**
+   * /landing, /about, /help (plan B7, spec D3): plain marketing pages with
+   * no route island and no @supabase/supabase-js / @cyber-eco/* chunk.
+   * Passes `static` through to SiteHeader (a plain sign-in link, no
+   * UserMenuIsland) and skips HydrationCanary — with zero hydrated React on
+   * the page there is no hydration to mismatch, so the detector has nothing
+   * to detect, and mounting it anyway would pull in the ~66 kB gz
+   * @astrojs/react client runtime for no benefit (the 40 kB layout-JS
+   * budget these pages must meet).
+   */
+  marketing?: boolean;
 }
 
 const {
@@ -30,6 +41,7 @@ const {
   lang = 'en',
   noindex = false,
   jsonLd: extraJsonLd = [],
+  marketing = false,
 } = Astro.props;
 
 // Canonical URL — Astro.site + the current path (falls back to null in dev
@@ -82,15 +94,19 @@ const jsonLdBlocks: Record<string, unknown>[] = [
     ))}
   </head>
   <body class="relative min-h-screen bg-background text-foreground antialiased">
-    <SiteHeader />
+    <SiteHeader static={marketing} />
     <slot />
     <SiteFooter />
     <FeedbackFAB lang={lang} />
-    {/* Side-effect-only island (renders null): listens for React hydration-
-        mismatch signatures and stashes a pre-filled GitHub issue URL for
-        FeedbackFAB to offer. Lives in BaseLayout only (CLAUDE.md "Island
-        lifecycle discipline" exemplar) — client:idle like every other
-        always-on-every-page layout island so it never blocks first paint. */}
-    <HydrationCanary client:idle />
+    {!marketing && (
+      /* Side-effect-only island (renders null): listens for React hydration-
+          mismatch signatures and stashes a pre-filled GitHub issue URL for
+          FeedbackFAB to offer. Lives in BaseLayout only (CLAUDE.md "Island
+          lifecycle discipline" exemplar) — client:idle like every other
+          always-on-every-page layout island so it never blocks first paint.
+          Skipped on `marketing` pages: no hydrated island runs there (spec
+          D3), so there is no hydration to mismatch. */
+      <HydrationCanary client:idle />
+    )}
   </body>
 </html>

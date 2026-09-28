@@ -48,33 +48,53 @@ describe('UserMenuIsland', () => {
     expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('renders the profile name/avatar and a sign-out control for a signed-in user', () => {
-    $authReady.set(true);
-    $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
-    $profile.set({
-      id: 'u1',
-      name: 'Ana',
-      email: 'ana@example.test',
-      avatarUrl: null,
-      apps: [],
-      permissions: [],
-      preferences: { preferredCurrency: 'USD' },
-    });
-    render(<UserMenuIsland />);
-    expect(screen.queryByRole('link', { name: /sign in/i })).not.toBeInTheDocument();
-    expect(screen.getByText('Ana')).toBeInTheDocument();
-  });
+  it(
+    'renders the profile name/avatar and a sign-out control for a signed-in user',
+    async () => {
+      $authReady.set(true);
+      $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
+      $profile.set({
+        id: 'u1',
+        name: 'Ana',
+        email: 'ana@example.test',
+        avatarUrl: null,
+        apps: [],
+        permissions: [],
+        preferences: { preferredCurrency: 'USD' },
+      });
+      render(<UserMenuIsland />);
+      expect(screen.queryByRole('link', { name: /sign in/i })).not.toBeInTheDocument();
+      // The name is real, accessible content in the Suspense fallback itself
+      // (not aria-hidden) — only the avatar image and the dropdown behavior
+      // are deferred to the lazy chunk.
+      expect(screen.getByText('Ana')).toBeInTheDocument();
+      // The dropdown trigger button comes from the lazy-loaded chunk
+      // (React.lazy + Suspense — plan B7/B19 "Header weight") and isn't
+      // present on the very first render.
+      expect(screen.queryByRole('button', { name: /ana/i })).not.toBeInTheDocument();
+      // Generous timeout (matches src/components/ui/field-type/form-item.behavior.test.tsx's
+      // lazy DatePicker test): this is the first time this file resolves the
+      // UserAccountMenu chunk, which is measurably slower than an already-warm
+      // module cache under a full, parallel test-suite run.
+      expect(await screen.findByRole('button', { name: /ana/i }, { timeout: 15000 })).toBeInTheDocument();
+    },
+    20000,
+  );
 
-  it('calls signOut() from src/stores/auth.ts when the sign-out control is used', async () => {
-    const user = userEvent.setup();
-    $authReady.set(true);
-    $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
-    $profile.set(null);
-    render(<UserMenuIsland />);
+  it(
+    'calls signOut() from src/stores/auth.ts when the sign-out control is used',
+    async () => {
+      const user = userEvent.setup();
+      $authReady.set(true);
+      $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
+      $profile.set(null);
+      render(<UserMenuIsland />);
 
-    await user.click(screen.getByRole('button', { name: /ana/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /sign out/i }));
+      await user.click(await screen.findByRole('button', { name: /ana/i }, { timeout: 15000 }));
+      await user.click(await screen.findByRole('menuitem', { name: /sign out/i }));
 
-    expect(signOut).toHaveBeenCalledTimes(1);
-  });
+      expect(signOut).toHaveBeenCalledTimes(1);
+    },
+    20000,
+  );
 });

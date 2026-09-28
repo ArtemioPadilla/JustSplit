@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '@/lib/href';
+import { SITE } from '@/lib/site-meta';
+
+// Marketing home page (plan B7, spec D3): ported from the legacy Next tree's
+// src/app/landing/page.tsx. No route island, no @supabase/supabase-js /
+// @cyber-eco/* chunk — `marketing` tells BaseLayout to render the static
+// (unhydrated) header and skip HydrationCanary, so this page ships zero
+// React (see BaseLayout.astro's doc comment for why that's safe here).
+// The scroll-spy nav dots and IntersectionObserver from the Next version are
+// dropped — they were decorative JS with no content value, and re-adding
+// them would need a route island, defeating the point of this page.
+
+const features: { emoji: string; title: string; body: string }[] = [
+  { emoji: '📱', title: 'Easy to use', body: 'A simple, intuitive interface that makes expense tracking and splitting a breeze, even for complex group arrangements.' },
+  { emoji: '💸', title: 'Multiple currencies', body: 'Travel internationally? Track expenses in different currencies with automatic conversion to your preferred currency.' },
+  { emoji: '👨‍👩‍👧‍👦', title: 'Group management', body: 'Create different groups for roommates, trips, or events. Keep your expenses organized by context.' },
+  { emoji: '📊', title: 'Expense analytics', body: 'Visualize spending patterns with intuitive charts to better understand where your money is going.' },
+  { emoji: '⚖️', title: 'Fair splitting', body: 'Split expenses equally or by custom amounts. Accommodate different sharing arrangements with flexibility.' },
+  { emoji: '🔒', title: 'Secure & private', body: 'Your financial data stays private — every row is protected by row-level security, not client-side checks.' },
+];
+
+const steps: { title: string; body: string }[] = [
+  { title: 'Create a group or event', body: 'Start by creating a group for your roommates, a trip, or even a one-time dinner. Add friends to your expense group.' },
+  { title: 'Add expenses as they happen', body: 'Log expenses with details like amount, category, and who paid. Choose how to split costs — equally or by custom amounts.' },
+  { title: 'See who owes who', body: 'JustSplit automatically calculates balances and optimizes who pays whom to minimize the number of transactions needed.' },
+];
+
+const faqs: { question: string; answer: string }[] = [
+  { question: 'Is JustSplit free to use?', answer: 'Yes! JustSplit is completely free for basic expense tracking and splitting.' },
+  { question: 'Can I split expenses unequally?', answer: 'Absolutely — equal, percentage-based, share-based and exact-amount splits are all supported, and you can exclude people from a specific expense.' },
+  { question: 'Does JustSplit support multiple currencies?', answer: 'Yes. Add expenses in any currency and JustSplit converts them to your preferred currency using up-to-date exchange rates.' },
+  { question: 'How does settlement work?', answer: 'JustSplit calculates the optimal way for people to settle debts with the fewest transactions, then you mark them settled after the real-world payment happens.' },
+  { question: 'Can I export my expense data?', answer: 'Yes — export to CSV for use in a spreadsheet or another financial tool.' },
+];
+---
+
+<BaseLayout
+  title={`${SITE.name} — Split expenses with friends and family`}
+  description={SITE.description}
+  marketing
+>
+  <main id="main-content">
+    {/* Hero */}
+    <section class="mx-auto grid max-w-6xl gap-10 px-5 py-20 motion-preset-fade motion-duration-500 sm:py-28 lg:grid-cols-2 lg:items-center">
+      <div>
+        <h1 class="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">{SITE.name}</h1>
+        <p class="mt-4 text-lg text-muted-foreground">
+          Split expenses with friends and family. Track who owes who and settle up easily.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a
+            href={withBase('/auth/signup/')}
+            class="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Get started
+          </a>
+          <a
+            href={withBase('/about')}
+            class="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            Learn more
+          </a>
+        </div>
+      </div>
+      <div class="rounded-xl border border-border bg-card p-5 shadow-sm motion-preset-slide-left-md motion-duration-500">
+        {/* A styled label, not a document heading — the real h1 above is
+            this page's only heading until "Why choose JustSplit?" (h2); a
+            heading here would skip straight from h1 to h3 (axe
+            heading-order). */}
+        <p class="font-display text-base font-semibold text-foreground">Weekend Trip Expenses</p>
+        <ul class="mt-4 space-y-3">
+          <li class="flex items-center justify-between text-sm">
+            <span class="flex items-center gap-2 text-foreground"><span aria-hidden="true">🏨</span> Hotel stay</span>
+            <span class="font-medium text-foreground">$350</span>
+          </li>
+          <li class="flex items-center justify-between text-sm">
+            <span class="flex items-center gap-2 text-foreground"><span aria-hidden="true">🍽️</span> Dinner</span>
+            <span class="font-medium text-foreground">$125</span>
+          </li>
+          <li class="flex items-center justify-between text-sm">
+            <span class="flex items-center gap-2 text-foreground"><span aria-hidden="true">⛽</span> Gas</span>
+            <span class="font-medium text-foreground">$60</span>
+          </li>
+        </ul>
+        <p class="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
+          Andy owes you: $178.33<br />You owe Sarah: $54.16
+        </p>
+      </div>
+    </section>
+
+    {/* Features */}
+    <section class="border-t border-border bg-card/40 px-5 py-16">
+      <div class="mx-auto max-w-6xl">
+        <h2 class="text-center font-display text-2xl font-semibold text-foreground sm:text-3xl">Why choose {SITE.name}?</h2>
+        <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => (
+            <div class="rounded-xl border border-border bg-card p-5">
+              <div class="text-2xl" aria-hidden="true">{f.emoji}</div>
+              <h3 class="mt-3 font-medium text-foreground">{f.title}</h3>
+              <p class="mt-2 text-sm text-muted-foreground">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* How it works */}
+    <section class="px-5 py-16">
+      <div class="mx-auto max-w-4xl">
+        <h2 class="text-center font-display text-2xl font-semibold text-foreground sm:text-3xl">How it works</h2>
+        <ol class="mt-10 space-y-8">
+          {steps.map((s, i) => (
+            <li class="flex gap-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-display text-sm font-semibold text-primary-foreground" aria-hidden="true">
+                {i + 1}
+              </span>
+              <div>
+                <h3 class="font-medium text-foreground">{s.title}</h3>
+                <p class="mt-1 text-sm text-muted-foreground">{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    {/* FAQ — native <details>, no JS accordion */}
+    <section class="px-5 py-16">
+      <div class="mx-auto max-w-3xl">
+        <h2 class="text-center font-display text-2xl font-semibold text-foreground sm:text-3xl">Frequently asked questions</h2>
+        <div class="mt-8 divide-y divide-border rounded-xl border border-border bg-card">
+          {faqs.map((f) => (
+            <details class="group p-4 open:pb-4">
+              <summary class="cursor-pointer list-none font-medium text-foreground marker:content-none">
+                <span class="flex items-center justify-between gap-4">
+                  {f.question}
+                  <span class="text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+                </span>
+              </summary>
+              <p class="mt-2 text-sm text-muted-foreground">{f.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="border-t border-border bg-primary px-5 py-16 text-center text-primary-foreground">
+      <div class="mx-auto max-w-2xl">
+        <h2 class="font-display text-2xl font-semibold sm:text-3xl">Ready to split expenses without the headache?</h2>
+        <p class="mt-3 text-primary-foreground/80">Create a group, add what everyone paid, and see who owes whom.</p>
+        <a
+          href={withBase('/auth/signup/')}
+          class="mt-8 inline-flex h-11 items-center justify-center rounded-md bg-background px-8 text-sm font-medium text-foreground transition-colors hover:bg-background/90"
+        >
+          Get started for free
+        </a>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

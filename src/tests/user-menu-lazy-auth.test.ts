@@ -19,8 +19,28 @@ describe('UserMenuIsland keeps the Supabase SDK off the first paint', () => {
     expect(src).toMatch(/from\s+['"]@\/stores\/session['"]/);
   });
 
-  it('loads the auth actions lazily for sign-out', () => {
-    expect(src).toMatch(/import\(\s*['"]@\/stores\/auth['"]\s*\)/);
+  it('loads the auth actions lazily for sign-out (directly, or transitively via the lazy UserAccountMenu chunk)', () => {
+    const accountMenuSrc = readFileSync(
+      resolve(__dirname, '../components/islands/UserAccountMenu.tsx'),
+      'utf8',
+    );
+    const AUTH_DYNAMIC_IMPORT_RE = /import\(\s*['"]@\/stores\/auth['"]\s*\)/;
+    expect(AUTH_DYNAMIC_IMPORT_RE.test(src) || AUTH_DYNAMIC_IMPORT_RE.test(accountMenuSrc)).toBe(true);
+  });
+});
+
+describe('UserMenuIsland lazy-loads the dropdown menu + avatar (plan B7/B19 "Header weight")', () => {
+  it('never imports @/components/ui/dropdown-menu statically', () => {
+    expect(src).not.toMatch(/^\s*import\s[^;]*from\s+['"]@\/components\/ui\/dropdown-menu['"]/m);
+  });
+
+  it('never imports @/components/ui/avatar statically', () => {
+    expect(src).not.toMatch(/^\s*import\s[^;]*from\s+['"]@\/components\/ui\/avatar['"]/m);
+  });
+
+  it('loads the account menu lazily via React.lazy + a dynamic import()', () => {
+    expect(src).toMatch(/React\.lazy\(/);
+    expect(src).toMatch(/import\(\s*['"][^'"]*UserAccountMenu['"]\s*\)/);
   });
 });
 
