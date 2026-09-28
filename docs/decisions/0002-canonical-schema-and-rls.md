@@ -2,7 +2,8 @@
 
 ## Status
 
-`Accepted`
+`Accepted` (the `expenses`, `settlements` and `events` policies and guards were
+changed by [ADR 0013](./0013-membership-lifecycle.md), plan B2d)
 
 Date: 2026-09-28 (spec D10; plan B2 + B2b)
 
@@ -138,6 +139,8 @@ means a migration plus a suite update.
 names and avatars are reachable only through the two lookup functions.
 
 ## Amendment (2026-09-28, plan B12): group membership lifecycle
+
+> **Superseded by [ADR 0013](./0013-membership-lifecycle.md)** (plan B2d): the member-removal preflight, the group-delete friendship preflight and the open schema question below are resolved by foreign keys, live group/event visibility and added-members-only edit checks. Kept below as the historical record.
 
 ### Context
 
