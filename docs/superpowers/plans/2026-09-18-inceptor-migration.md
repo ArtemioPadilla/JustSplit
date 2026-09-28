@@ -1500,12 +1500,32 @@ resolves other users' names through `useProfiles` (B5a).
       `https://www.exchangerate-api.com` (the `www` host, matching the issue's spec text; the
       legacy component linked the bare apex domain).
 ### B17a. CSV export (shared button, before Phase 2)
-- [ ] `domain/csvExport` wired to a `download-trigger` as one `ExportCsvButton` (props `expenses`,
+- [x] `domain/csvExport` wired to a `download-trigger` as one `ExportCsvButton` (props `expenses`,
       `users` from `useProfiles`, `events`, `filename`) + `/showcase` entry; mounted by the islands
       that own the four export sites today: `DashboardHeader` (B8b, all expenses,
       `all-expenses.csv`), the expenses list toolbar (B9, filtered rows, `all-expenses.csv` or
       `<event>-expenses.csv`), expense detail (B9, `[expense]`, `expense-<id>.csv`) and event
-      detail (B11b, `<event.name>-expenses.csv`); Track D issue D8 adds the category columns
+      detail (B11b, `<event.name>-expenses.csv`); Track D issue D8 adds the category columns —
+      done: `src/components/features/export/ExportCsvButton.tsx` (data-source-agnostic: `users`
+      is a plain `{id,name}[]`, so `useProfiles` stays the caller's job; the four mount sites are
+      B8b/B9/B11b, not this issue) + `src/components/islands/ShowcaseExportCsvButton.tsx`, mounted
+      in `/showcase`. The Blob is `text/csv;charset=utf-8` with a leading UTF-8 BOM (Excel renders
+      accented names correctly) — the BOM lives only in the Blob passed to `download-trigger`,
+      never in `expensesToCSV`'s string return. `filename` runs through the new
+      `sanitizeFilename` (`domain/fileUtils.ts` — no existing helper before this issue) BEFORE
+      `ensureCSVExtension`, not after: sanitizing after appending `.csv` could strip characters
+      out of an all-hostile-input result and leave a non-fallback, extension-only string;
+      `sanitizeFilename` also falls back to `'expenses.csv'` on an empty result. Export failures
+      go through `notifyError` (`src/stores/notifications.ts`), not console-only.
+- [x] Security addendum (not in the original bullet, added per this issue's dispatch): CSV
+      formula-injection neutralization (OWASP guidance) in `domain/csvExport.ts` — any text cell
+      starting with `=`, `+`, `-`, `@`, a tab or a CR gets a leading `'` before quoting, in both
+      `expensesToCSV` (description, notes, payer/participant names, event name — never the
+      computed date/amount/currency/status) and the generic `exportToCSV` (any cell whose
+      original value is a `string`, so a negative numeric cell is untouched). Six new red cases in
+      `csvExport.test.ts` covered this before the fix; all pre-existing `csvExport.test.ts` cases
+      kept passing unmodified (none of their fixtures start with a neutralization-triggering
+      character).
 ### B17b. Toaster island wiring + local-cache reset
 - [ ] Vitest (`@vitest-environment jsdom`): two separate `createRoot`s on one document — root B
       mounts `<Toaster />`, root A calls `toast()`; assert the toast renders in B. Record the
