@@ -175,7 +175,7 @@ check`) measures the gz size of every `dist/_astro/*.js` chunk reachable from
 carries `@supabase/supabase-js`/`@cyber-eco/auth`, by grepping a stable
 literal each ships (`GoTrueClient`, `AUTH_INVALID_CREDENTIALS`).
 
-Measured on this branch:
+Measured on this branch (after the `/auth/callback/` session-wait fix):
 
 | Chunk | gz | Contains |
 |---|---|---|
@@ -184,8 +184,8 @@ Measured on this branch:
 | `href.*.js` | 1.55 kB | `src/lib/href.ts` + friends |
 | `index.*.js` | 3.32 kB | shared small shim chunk |
 | `schemas.*.js` | 43.33 kB | zod v4 + `src/schemas/*` |
-| `utils.*.js` | 66.91 kB | **`@supabase/supabase-js`** |
-| **Total** | **182.00 kB** | |
+| `utils.*.js` | 66.98 kB | **`@supabase/supabase-js`** |
+| **Total** | **182.07 kB** | |
 
 **`@cyber-eco/auth` is not present in any built chunk yet.** Nothing shipped
 on any route mounts `AuthIsland`/`<AuthProvider>` — `LoginForm`/`SignUpForm`/
@@ -199,10 +199,10 @@ becomes real and should be re-measured.
 **The fallback the plan describes for a 150 kB-busting auth chunk is already
 the architecture**: `SupabaseAuthAdapter`/`SupabaseProfileStore` are driven
 from `src/stores/auth.ts` directly, with no `<AuthProvider>` import on any
-`/auth/*` page. Despite that, the measured 182.00 kB total still exceeds
+`/auth/*` page. Despite that, the measured 182.07 kB total still exceeds
 Inceptor's global 150 kB script budget — but the excess is React + ReactDOM
 (65.62 kB, the fixed cost of any `client:only="react"` island, auth or not)
-plus `@supabase/supabase-js` (66.91 kB, unavoidable for any email/password or
+plus `@supabase/supabase-js` (66.98 kB, unavoidable for any email/password or
 OAuth call) plus zod v4 (43.33 kB, needed for the `react-hook-form` +
 `zodResolver` validation these forms already used before B4). None of that
 is `@cyber-eco/auth` weight to strip. Rather than silently raising the global
