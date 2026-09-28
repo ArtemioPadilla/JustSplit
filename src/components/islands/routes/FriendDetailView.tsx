@@ -10,14 +10,17 @@ import { RemoveFriendDialog } from '@/components/features/friends/RemoveFriendDi
 import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import { parseCalendarDate } from '@/domain/dates';
 import { otherUser } from '@/domain/friends';
+import { settlementsBetween } from '@/domain/ledger';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useExpenses } from '@/lib/data/hooks/useExpenses';
 import { useFriends } from '@/lib/data/hooks/useFriends';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
+import { useSettlements } from '@/lib/data/hooks/useSettlements';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/schemas/expense';
 import type { Friendship } from '@/schemas/friendship';
+import type { Settlement } from '@/schemas/settlement';
 import { $preferredCurrency } from '@/stores/preferences';
 import { $user } from '@/stores/auth';
 import AuthGate from '../AuthGate';
@@ -58,12 +61,14 @@ function FriendDetailContent({ friendId }: { friendId: string }) {
 
   const friendsQuery = useFriends(uid || undefined);
   const expensesQuery = useExpenses(uid || undefined);
+  const settlementsQuery = useSettlements(uid || undefined);
 
-  const isError = Boolean(friendsQuery.isError || expensesQuery.isError);
-  const isRetrying = Boolean(friendsQuery.isRetrying || expensesQuery.isRetrying);
+  const isError = Boolean(friendsQuery.isError || expensesQuery.isError || settlementsQuery.isError);
+  const isRetrying = Boolean(friendsQuery.isRetrying || expensesQuery.isRetrying || settlementsQuery.isRetrying);
   function handleRetry() {
     friendsQuery.refetch();
     expensesQuery.refetch();
+    settlementsQuery.refetch();
   }
 
   if (isError) {
@@ -80,7 +85,7 @@ function FriendDetailContent({ friendId }: { friendId: string }) {
     );
   }
 
-  if (friendsQuery.data === undefined || expensesQuery.data === undefined) {
+  if (friendsQuery.data === undefined || expensesQuery.data === undefined || settlementsQuery.data === undefined) {
     return (
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-10" aria-busy="true">
         <Skeleton className="h-10 w-2/3" />
@@ -93,8 +98,18 @@ function FriendDetailContent({ friendId }: { friendId: string }) {
   if (!friendshipRow) return <NotFoundView />;
 
   // ADR 0013: the query returns every row the viewer can see; "shared with this
-  // friend" and the balance are about the rows that name the viewer.
-  return <FriendDetailLoaded friendId={friendId} friendshipId={friendshipRow.id} uid={uid} expenses={involvingUser(expensesQuery.data, uid)} />;
+  // friend" and the balance are about the rows that name the viewer. The friend
+  // scope's settlements are the ones between exactly the two of them, whatever
+  // event they were made in (plan B14a, ADR 0014: money moved).
+  return (
+    <FriendDetailLoaded
+      friendId={friendId}
+      friendshipId={friendshipRow.id}
+      uid={uid}
+      expenses={involvingUser(expensesQuery.data, uid)}
+      settlements={settlementsBetween(settlementsQuery.data, uid, friendId)}
+    />
+  );
 }
 
 function FriendDetailLoaded({
@@ -102,11 +117,13 @@ function FriendDetailLoaded({
   friendshipId,
   uid,
   expenses,
+  settlements,
 }: {
   friendId: string;
   friendshipId: string;
   uid: string;
   expenses: Expense[];
+  settlements: Settlement[];
 }) {
   const preferredCurrency = useStore($preferredCurrency);
   const profilesQuery = useProfiles([friendId]);
@@ -124,14 +141,14 @@ function FriendDetailLoaded({
   // every one of `uid`'s expenses to compute the balance, so every currency
   // it might call `convert()` with must have a resolved rate before `ready`
   // (same wiring `DashboardIsland`'s own `BalanceOverview` uses).
-  const currencies = React.useMemo(() => expenses.map((e) => e.currency), [expenses]);
+  const currencies = React.useMemo(() => [...expenses.map((e) => e.currency), ...settlements.map((s) => s.currency)], [expenses, settlements]);
   const { convert, ready, approximate } = useDisplayConversion(currencies, displayCurrency);
 
   const names = React.useMemo(() => ({ [friendId]: name }), [friendId, name]);
   const balance = React.useMemo(() => {
     if (!ready) return undefined;
-    return balancesWithUser(expenses, uid, names, convert).find((b) => b.userId === friendId);
-  }, [expenses, uid, names, convert, ready, friendId]);
+    return balancesWithUser(expenses, settlements, uid, names, convert).find((b) => b.userId === friendId);
+  }, [expenses, settlements, uid, names, convert, ready, friendId]);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10">

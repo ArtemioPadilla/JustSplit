@@ -1,6 +1,8 @@
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
+import type { Settlement } from '@/schemas/settlement';
 import { parseCalendarDate } from './dates';
+import { BALANCE_TOLERANCE, isLegacySettled, round2 } from './ledger';
 
 /**
  * Pure dashboard selectors (plan B8a). Every selector takes domain objects
@@ -44,18 +46,6 @@ export interface MonthlyTotal {
 }
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * Rounds to 2 decimal places — the same "money as cents" pattern
- * `expenseCalculator.ts`'s `calculateSettlementsWithConversion` already uses
- * (`Math.round(amount * 100) / 100`). `domain/formatters.ts` has no
- * dedicated rounding helper (only display-time `toFixed(2)` inside
- * `formatCurrency`), so selectors round their own sums here rather than
- * invent a new shared helper for what is, so far, a single call site.
- */
-function round2(amount: number): number {
-  return Math.round(amount * 100) / 100;
-}
 
 function monthKeyOf(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -149,20 +139,29 @@ export interface PersonBalance {
 }
 
 /**
- * Net balance between `currentUserId` and every other person they share an
- * *unsettled* expense with (`settledAt == null`), derived directly from
- * `splits[]` (spec D10) rather than `calculateSettlements`'s greedy pairing:
- * a settlement suggestion matches the largest debtor with the largest
- * creditor globally, which is not necessarily the two people who actually
- * shared an expense — it cannot answer "who owes whom" for a specific
- * relationship. `paidBy` may be outside `splits[]` entirely (spec D10 lets
- * the payer take no share); that case still resolves correctly here because
- * the loop only ever looks at the two parties on each individual split.
+ * Net balance between `currentUserId` and every other person, from the ledger
+ * (plan B14a, ADR 0014): the split debts and credits of every expense they
+ * share, minus the settlements between them. Derived directly from `splits[]`
+ * (spec D10) rather than `calculateSettlements`'s greedy pairing: a settlement
+ * suggestion matches the largest debtor with the largest creditor globally,
+ * which is not necessarily the two people who actually shared an expense — it
+ * cannot answer "who owes whom" for a specific relationship. `paidBy` may be
+ * outside `splits[]` entirely (spec D10 lets the payer take no share); that
+ * case still resolves correctly here because the loop only ever looks at the
+ * two parties on each individual split.
+ *
+ * A settlement counts when it names the current user, whatever its `eventId`
+ * or `groupId` — it moved money between two people. The one they paid (or who
+ * paid them) owes less: settling never rewrites an expense, so a payment
+ * covers part of one, several, or a debt that came from a third person's
+ * expense. A settlement between two OTHER people is irrelevant here. A legacy
+ * settled expense (`settledAt != null`, only ever imported) is excluded.
  * Relationships that round to exactly zero are dropped — there is nothing to
  * render for them. Sorted by balance, descending (most owed to you first).
  */
 export function balancesWithUser(
   expenses: Expense[],
+  settlements: Settlement[],
   currentUserId: string,
   names: Record<string, string>,
   convert: (amount: number, currency: string) => number,
@@ -170,7 +169,7 @@ export function balancesWithUser(
   const raw = new Map<string, number>();
 
   for (const expense of expenses) {
-    if (expense.settledAt != null) continue;
+    if (isLegacySettled(expense)) continue;
     const { paidBy, splits, currency } = expense;
 
     for (const split of splits) {
@@ -188,16 +187,30 @@ export function balancesWithUser(
     }
   }
 
+  for (const settlement of settlements) {
+    if (settlement.fromUserId === settlement.toUserId) continue;
+    const converted = convert(settlement.amount, settlement.currency);
+
+    if (settlement.fromUserId === currentUserId) {
+      // The current user paid them: they owe the current user more (or the current user owes them less).
+      raw.set(settlement.toUserId, (raw.get(settlement.toUserId) ?? 0) + converted);
+    } else if (settlement.toUserId === currentUserId) {
+      // They paid the current user: they owe less.
+      raw.set(settlement.fromUserId, (raw.get(settlement.fromUserId) ?? 0) - converted);
+    }
+    // Neither party is the current user: irrelevant to this selector.
+  }
+
   return [...raw.entries()]
     .map(([userId, balance]) => ({ userId, name: names[userId] ?? 'Unknown', balance: round2(balance) }))
     .filter((b) => b.balance !== 0)
     .sort((a, b) => b.balance - a.balance);
 }
 
-// ─── totalSpent / unsettledCount ───────────────────────────────────────────
+// ─── totalSpent / openBalanceCount ─────────────────────────────────────────
 
 /**
- * The two figures `FinancialSummary` actually computed from real data (plan
+ * The figures `FinancialSummary` actually computed from real data (plan
  * B8b) — every other prop the legacy component accepted
  * (`compareWithLastMonth`, `avgPerDay`, `mostExpensiveCategory`,
  * `activeEvents`, `activeParticipants`, `highestExpense`) was fed a
@@ -210,9 +223,16 @@ export function totalSpent(expenses: Expense[], convert: (amount: number, curren
   return round2(expenses.reduce((sum, expense) => sum + convert(expense.amount, expense.currency), 0));
 }
 
-/** Count of expenses with no `settledAt` (never settled, or not yet written at all). */
-export function unsettledCount(expenses: Expense[]): number {
-  return expenses.filter((expense) => expense.settledAt == null).length;
+/**
+ * How many people the viewer has an open balance with (plan B14a, ADR 0014):
+ * the honest replacement for `unsettledCount`, which counted expenses without
+ * `settledAt` — a per-expense flag that no longer exists to count, since
+ * settling up is a payment on a ledger, not a mark on an expense. Takes
+ * `balancesWithUser`'s output (already converted and net of settlements); a
+ * balance below one cent is not open.
+ */
+export function openBalanceCount(balances: PersonBalance[]): number {
+  return balances.filter((b) => Math.abs(b.balance) >= BALANCE_TOLERANCE).length;
 }
 
 // ─── upcomingEvents ─────────────────────────────────────────────────────────
