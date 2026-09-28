@@ -63,7 +63,7 @@ function Combobox({
   return (
     <BaseCombobox.Root<ComboboxItem>
       items={items}
-      value={selectedItem}
+      value={selectedItem ?? undefined}
       itemToStringLabel={itemToCode}
       itemToStringValue={itemToCode}
       isItemEqualToValue={(a, b) => itemToCode(a) === itemToCode(b)}
