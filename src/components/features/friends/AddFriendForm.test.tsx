@@ -21,6 +21,9 @@ vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
 class FriendshipAlreadyExistsError extends Error {}
 vi.mock('@/lib/data/repos/friendships', () => ({ FriendshipAlreadyExistsError }));
 
+class LookupRateLimitedError extends Error {}
+vi.mock('@/lib/data/repos/profiles', () => ({ LookupRateLimitedError }));
+
 const { useSendFriendRequest } = vi.hoisted(() => ({ useSendFriendRequest: vi.fn() }));
 vi.mock('@/lib/data/hooks/useSendFriendRequest', () => ({ useSendFriendRequest }));
 
@@ -104,6 +107,23 @@ describe('AddFriendForm', () => {
     await waitFor(() =>
       expect(notifyError).toHaveBeenCalledWith('You already have a request or friendship with this person'),
     );
+  });
+
+  it('a rate-limited lookup (ADR 0013) shows the fixed sentence inline, with no toast and no raw text, and clears on the next try', async () => {
+    mutateAsync.mockRejectedValueOnce(Object.assign(new LookupRateLimitedError('rate_limited'), { code: 'P0429' }));
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText(/email/i), 'beto@example.com');
+    await user.click(screen.getByRole('button', { name: /send request/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent("You've looked up a lot of emails recently. Please try again in a while.");
+    expect(document.body.textContent).not.toMatch(/rate_limited|P0429/);
+    expect(notifyError).not.toHaveBeenCalled();
+
+    mutateAsync.mockResolvedValueOnce({ kind: 'unregistered' });
+    await user.click(screen.getByRole('button', { name: /send request/i }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
   });
 
   it('a generic failure shows a generic message', async () => {
