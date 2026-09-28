@@ -372,14 +372,16 @@ describe('EventDetailView — figures cover ALL of the event\'s expenses (ADR 00
 });
 
 describe('EventDetailView — display currency', () => {
-  it('seeds the display currency from the event\'s preferred currency, or the visitor\'s when the event has none', () => {
+  it('seeds the display currency from the event\'s preferred currency', () => {
     render(<EventDetailView id="e1" />);
     expect(screen.getByLabelText(/display currency/i)).toHaveValue('USD');
     expect(useDisplayConversion).toHaveBeenLastCalledWith(expect.arrayContaining(['USD', 'EUR']), 'USD');
+  });
 
+  it('falls back to the visitor\'s preferred currency when the event has none', () => {
     loaded({ event: makeEvent({ preferredCurrency: undefined }) });
     render(<EventDetailView id="e1" />);
-    expect(screen.getAllByLabelText(/display currency/i)[1]).toHaveValue('MXN');
+    expect(screen.getByLabelText(/display currency/i)).toHaveValue('MXN');
   });
 
   it('shows every amount with its currency code and an "Originally" caption for a converted expense', () => {
