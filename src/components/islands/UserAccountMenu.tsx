@@ -1,20 +1,12 @@
 import * as React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-/** First letters of up to two words — the Avatar fallback when there's no photo. */
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0]?.[0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
+import { withBase } from '@/lib/href';
 
 interface UserAccountMenuProps {
   name: string;
@@ -56,13 +48,11 @@ export default function UserAccountMenu({ name, avatarUrl }: UserAccountMenuProp
         className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Account menu for ${name}`}
       >
-        <Avatar className="h-7 w-7">
-          {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
-          <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
-        </Avatar>
+        <UserAvatar src={avatarUrl} name={name} alt="" className="h-7 w-7" fallbackClassName="text-xs" />
         <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem render={<a href={withBase('/profile')}>Profile</a>} />
         <DropdownMenuItem disabled={signingOut} onClick={handleSignOut}>
           {signingOut ? 'Signing out…' : 'Sign out'}
         </DropdownMenuItem>

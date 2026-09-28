@@ -20,9 +20,9 @@
  * `/landing`, `/about`, `/help` join this list in plan B7, which is what
  * builds those pages. `/expenses/list` joins in plan B9, `/expenses/new` in
  * plan B10, `/friends` in plan B13, `/groups/list` and `/groups/new` in
- * plan B12 (same reasoning as `/`: an authenticated route island,
- * deterministic and accessible in every auth state a CI build without
- * Supabase env vars can reach).
+ * plan B12, `/profile` in plan B15 (same reasoning as `/`: an authenticated
+ * route island, deterministic and accessible in every auth state a CI build
+ * without Supabase env vars can reach).
  */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -50,6 +50,7 @@ const PAGES = [
   '/friends',
   '/groups/list',
   '/groups/new',
+  '/profile',
 ];
 
 const MIME = {

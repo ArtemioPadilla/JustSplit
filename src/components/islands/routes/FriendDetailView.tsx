@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -24,14 +24,6 @@ import AuthGate from '../AuthGate';
 import AuthIsland from '../AuthIsland';
 import NotFoundView from './NotFoundView';
 
-/** First letters of up to two words — same rule as `FriendsIsland`/`UserAccountMenu`'s Avatar fallback. */
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0]?.[0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 /**
  * `/friends/<id>`'s route view (plan B13, ADR 0006), loaded through
@@ -142,10 +134,7 @@ function FriendDetailLoaded({
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10">
       <div className="flex items-center gap-4">
-        <Avatar className="h-14 w-14">
-          {profile?.avatarUrl && <AvatarImage src={profile.avatarUrl} alt="" />}
-          <AvatarFallback className="text-lg">{initials(name)}</AvatarFallback>
-        </Avatar>
+        <UserAvatar src={profile?.avatarUrl} name={name} alt="" className="h-14 w-14" fallbackClassName="text-lg" />
         <h2 className="font-display text-2xl font-semibold text-foreground">{name}</h2>
       </div>
 

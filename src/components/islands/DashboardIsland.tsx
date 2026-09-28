@@ -18,6 +18,7 @@ import {
   upcomingEvents as selectUpcomingEvents,
 } from '@/domain/dashboard';
 import { parseCalendarDate } from '@/domain/dates';
+import { buildPreferencesPatch } from '@/domain/profile';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvents } from '@/lib/data/hooks/useEvents';
 import { useExpenses } from '@/lib/data/hooks/useExpenses';
@@ -130,7 +131,11 @@ function DashboardContent() {
   const handleCurrencyChange = React.useCallback(
     async (code: string) => {
       try {
-        await updateProfile({ preferences: { ...profile?.preferences, preferredCurrency: code } });
+        // buildPreferencesPatch (plan B15): spreads the CURRENT preferences
+        // before overwriting preferredCurrency — SupabaseProfileStore.update
+        // upserts `preferences` as a whole column value, so a bare
+        // `{ preferredCurrency }` would silently wipe `phoneNumber`.
+        await updateProfile({ preferences: buildPreferencesPatch(profile?.preferences, { preferredCurrency: code }) });
       } catch {
         notifyError('Could not update your preferred currency');
       }

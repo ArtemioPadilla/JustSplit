@@ -82,6 +82,22 @@ describe('UserMenuIsland', () => {
   );
 
   it(
+    'includes a "Profile" link to /profile (plan B15)',
+    async () => {
+      const user = userEvent.setup();
+      $authReady.set(true);
+      $user.set({ uid: 'u1', email: 'ana@example.test', displayName: 'Ana', photoURL: null, emailVerified: true });
+      $profile.set(null);
+      render(<UserMenuIsland />);
+
+      await user.click(await screen.findByRole('button', { name: /ana/i }, { timeout: 15000 }));
+      const link = await screen.findByRole('menuitem', { name: /profile/i });
+      expect(link).toHaveAttribute('href', '/profile');
+    },
+    20000,
+  );
+
+  it(
     'calls signOut() from src/stores/auth.ts when the sign-out control is used',
     async () => {
       const user = userEvent.setup();
