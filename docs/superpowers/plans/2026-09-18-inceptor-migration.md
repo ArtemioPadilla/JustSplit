@@ -1732,32 +1732,69 @@ resolves other users' names through `useProfiles` (B5a).
       asserts both agree on the seed. Legacy-kind logic (`parseKind`) only from Track D on — here
       the page has no kind logic
 ### B13. Friends islands (list, add, view) — friendship request flow (`risk:high`)
-- [ ] Decision (ADR `docs/decisions/0006-registered-participants.md`): participants/friends must
+- [x] Decision (ADR `docs/decisions/0006-registered-participants.md`): participants/friends must
       be registered users found by exact email through `find_profile_by_email` (B2; the lookup is
       by `auth.users` email, never the user-writable `profiles.email`, and the result is only used
       to create the pending friendship). What exists today and is kept: the `/friends` list page
-      already sends persisted friend requests by exact email (`sendFriendRequest` →
-      `friendships`), shows Friend Requests / Friends / Sent Requests (with Cancel) sections —
-      `/friends` keeps that email form, now via `find_profile_by_email`. What is **dropped** and
-      recorded in the ADR: the browsable directory search over all users by name or email (own-row
-      `profiles` RLS, no `users` list), `/friends/add` — the only local-only form, whose `ADD_USER`
-      dispatch nothing persisted (it redirects to `/friends/`, or `/friends/add.astro` mounts the
-      same island) — and the legacy `User.friends`/`friendRequestsSent`/`friendRequestsReceived`
-      arrays of `friendsReducer`. New: an unregistered email offers a mailto/copy-link invitation.
-      A registered email creates the `friendships` row (`status: 'pending'`, `requestedBy: uid`,
-      `users: [uid, other]`); Cancel = the requester deletes the pending row (delete: either party)
-- [ ] Rows are the universal `Friendship` (`@cyber-eco/types`, `packages/types/src/friendship.ts`);
-      accept/reject = recipient-only `status` update; remove = delete by either party — all
-      enforced by the `friendships` policies plus the `guard_friendships` trigger shipped in the
-      **B2 migration** and asserted by the B2b suite (`cardinality(users) = 2`, `requested_by =
-      uid` on insert, `users`/`requested_by` immutable, `status` changes only by the recipient, one
-      row per pair). This issue adds no migration
-- [ ] Friends list and friend detail render names/avatars through `useProfiles(ids)` (B5a;
-      `friendships.users` carries bare uids). Friend detail: shared expenses = `expenses where
-      memberIds array-contains uid` filtered client-side to rows that also contain the friend;
-      balances from `expenseCalculator`; "Add shared expense" → `/expenses/new?friend=<id>` (B10)
-- [ ] Tests: request/accept/reject/remove/cancel against the memory adapter; unregistered email
-      path; the RLS cases for `friendships` stay green
+      already sends persisted friend requests by exact email, shows Friend Requests / Friends /
+      Sent Requests (with Cancel) sections — `/friends` keeps that email form, now via
+      `find_profile_by_email` through a new `repos.friendships.request`/`useSendFriendRequest`
+      (the repo's `byEmail` lookup already existed since B2/B5a, unused until this issue). What is
+      **dropped** and recorded in the ADR: the browsable directory search over all users by name or
+      email (own-row `profiles` RLS, no `users` list); `/friends/add` — the only local-only form,
+      whose `ADD_USER` dispatch never persisted anything — now redirects to `/friends/`
+      (`src/pages/friends/add.astro`, the same redirect pattern as `expenses/index.astro`); the
+      legacy `User.friends`/`friendRequestsSent`/`friendRequestsReceived` arrays and
+      `friendsReducer`. New: an unregistered email offers a mailto/copy-link invitation
+      (`AddFriendForm`'s `InvitePanel` — no token, no avatar/name preview before sending either
+      outcome). A registered email creates the `friendships` row (`status: 'pending'`,
+      `requestedBy: uid`, `users: [uid, other]`) via `repos.friendships.request`, which pre-checks
+      `existsForPair` and throws a typed `FriendshipAlreadyExistsError` for a duplicate pair instead
+      of catching Postgres's `23505` — `RelationalSupabaseAdapter.setDocument` discards the
+      original error's `.code`, so there's nothing to catch by code from the repo layer (recorded as
+      an accepted gap in the ADR, not silently claimed closed); Cancel = the requester deletes the
+      pending row via the same `useRemoveFriendship` mutation Remove uses (delete: either party).
+      **Deviation, routes**: `/friends` is the list shell directly (`src/pages/friends/index.astro`,
+      same shape as `/expenses/list.astro`) rather than a redirect to a separate `/friends/list` —
+      matching the legacy tree's own `/friends` page and the plan text's own "`/friends` keeps that
+      email form" phrasing, unlike `/expenses`/`/events`/`/groups`'s redirect-to-`/list` pattern.
+- [x] Rows are the universal `Friendship` (`@cyber-eco/types`, `packages/types/src/friendship.ts`);
+      accept/reject = recipient-only `status` update (`useUpdateFriendshipStatus`); remove = delete
+      by either party (`useRemoveFriendship`) — all enforced by the `friendships` policies plus the
+      `guard_friendships` trigger shipped in the **B2 migration** and asserted by the B2b suite
+      (`cardinality(users) = 2`, `requested_by = uid` on insert, `users`/`requested_by` immutable,
+      `status` changes only by the recipient, one row per pair). This issue adds no migration.
+      **Recorded limitation (ADR 0006)**: `friendships_pair_uniq` has no partial predicate, so a
+      `status: 'rejected'` row (which `partitionFriendships` shows in none of the three sections)
+      permanently blocks a fresh request for that pair — unlike a removed (deleted) row, which frees
+      it. No page calls the reject path's "undo" today; flagged as a follow-up in the ADR, not fixed
+      here.
+- [x] Friends list and friend detail render names/avatars through `useProfiles(ids)` (B5a;
+      `friendships.users` carries bare uids; the "other user in a 2-person `users[]`" logic is one
+      pure helper, `src/domain/friends.ts#otherUser`, shared with B10's `ExpenseForm` via a pure
+      refactor — its own 16 tests stayed green unmodified). Friend detail (`FriendDetailView`,
+      `/friends/<id>` — the dynamic `friend-detail` route already named in `app-routes.ts` since
+      B2c, wired to a real view through `AppRouterIsland`'s own `React.lazy` boundary, the third
+      after B9's `expense-detail`/B10's `expense-edit`): shared expenses = `useExpenses(uid)`
+      filtered client-side to rows whose `memberIds` include the friend; "Add shared expense" →
+      `/expenses/new?friend=<id>` (B10); Remove behind `RemoveFriendDialog`'s confirm. **Deviation
+      from the plan text's "balances from `expenseCalculator`"** (orchestrator decision, matching
+      B8a's own reasoning): the balance uses `src/domain/dashboard.ts#balancesWithUser` (already
+      shipped in B8a for the dashboard's `BalanceOverview`), filtered to this one friend, over the
+      caller's full expense list — never re-derived from `calculateSettlements`'s greedy minimal-
+      transactions pairing, which answers "who should settle with whom overall," not "what do these
+      two specific people owe each other." An id that resolves to no ACCEPTED friendship of the
+      caller — unknown entirely, a stranger, or someone with a pending (not yet accepted) request
+      either direction — renders the same `NotFoundView` every other dynamic route uses (ADR 0002's
+      leaked-id reasoning, extended here to "does this user even exist").
+- [x] Tests: request/accept/reject/remove/cancel against the memory adapter
+      (`src/lib/data/repos/repos.test.ts`, `src/lib/data/hooks/hooks.test.tsx`); the unregistered
+      email path, self-email local refusal (no RPC call), and the duplicate-pair mapping
+      (`AddFriendForm.test.tsx`); not-found hiding existence (`FriendDetailView.test.tsx`); the
+      detail balance using the selector; `ExpenseForm.test.tsx`'s existing 16 cases stayed green
+      after the `domain/friends.ts` refactor. The `friendships` RLS suite in `src/tests/rls/` is
+      unchanged by this issue (no migration) and stays green in its own CI job — not runnable here.
+      `/friends` added to `scripts/axe-smoke.mjs`.
 ### B14. Settlements island (`/settlements`, reads `?event=` from `location.search`)
 - [ ] Tabs pending / balance / history (port from `settlements/page.tsx`); display-currency
       selector (`CurrencySelector`, B16) + the exchange-rates table with every amount converted;
