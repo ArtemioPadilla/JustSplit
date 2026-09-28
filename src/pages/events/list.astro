@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EventsListIsland from '../../components/islands/EventsListIsland';
+import { withBase } from '../../lib/href';
+
+// The events list shell (plan B11b), same pattern as groups/list.astro's: a
+// static skeleton renders until EventsListIsland hydrates and either mounts the
+// real list or redirects a signed-out visitor to /landing/ (AuthGate, plan B4).
+---
+
+<BaseLayout title="Events · JustSplit" description="Every event you're part of, with its timeline, total and settlement progress, and a link to create a new one.">
+  <main id="main-content">
+    <EventsListIsland client:only="react">
+      <div slot="fallback" class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-10" aria-busy="true">
+        <div class="h-10 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-72 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-72 w-full animate-pulse rounded bg-muted"></div>
+        <noscript>
+          <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
+          <p class="mt-4 text-muted-foreground">
+            JustSplit runs in the browser. Enable JavaScript, or go
+            <a class="underline" href={withBase('/landing/')}>learn more about JustSplit</a>.
+          </p>
+        </noscript>
+      </div>
+    </EventsListIsland>
+  </main>
+</BaseLayout>
