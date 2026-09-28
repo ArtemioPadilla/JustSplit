@@ -90,7 +90,7 @@ describe('repos.expenses', () => {
     eventId: 'trip-1',
   };
 
-  it('create + get roundtrip, including the eventId overflow key (spec D9/D10)', async () => {
+  it('create + get roundtrip, including eventId (the event_id column since B2d, ADR 0013)', async () => {
     const created = await expenses.create(base);
     const fetched = await expenses.get(created.id);
     expect(fetched).toMatchObject({ description: 'Tacos', eventId: 'trip-1' });
@@ -106,6 +106,13 @@ describe('repos.expenses', () => {
     },
   );
 
+  it('listVisible() applies no filter of its own: visibility is RLS\'s job (ADR 0013), so a group/event row that never names the viewer is included', async () => {
+    expect(expenses.visibleFilters()).toEqual([]);
+    const namesSomeoneElse = await expenses.create({ ...base, memberIds: ['someone-else'], paidBy: 'someone-else', createdBy: 'someone-else', splits: [{ userId: 'someone-else', amount: 100 }], groupId: 'g-visible' });
+    const all = await expenses.listVisible();
+    expect(all.map((x) => x.id)).toContain(namesSomeoneElse.id);
+  });
+
   it('listForGroup and listForEvent use the canonical groupId==id / eventId==id queries (ADR 0002)', async () => {
     const grouped = await expenses.create({ ...base, groupId: 'g1', eventId: undefined });
     const eventScoped = await expenses.create({ ...base, eventId: 'trip-2' });
@@ -119,6 +126,21 @@ describe('repos.expenses', () => {
 });
 
 describe('repos.settlements', () => {
+  it('visibleFilters() is empty and listVisible() returns every row the adapter lets the viewer see (ADR 0013)', async () => {
+    expect(settlements.visibleFilters()).toEqual([]);
+    const s = await settlements.create({
+      groupId: 'g-visible',
+      fromUserId: 'x1',
+      toUserId: 'x2',
+      amount: 5,
+      currency: 'MXN',
+      date: '2026-09-28',
+      memberIds: ['x1', 'x2'],
+      createdBy: 'x1',
+    });
+    expect((await settlements.listVisible()).map((x) => x.id)).toContain(s.id);
+  });
+
   it('create + get roundtrip; settlements are immutable (no update export, D10)', async () => {
     const created = await settlements.create({
       groupId: null,
