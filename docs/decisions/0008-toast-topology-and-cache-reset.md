@@ -166,9 +166,11 @@ B15 has nothing left to build but the mount.
 
 ## Consequences
 
-**Positive** — every `notifications.ts` call site (B8b onward) is now
-actually visible to users, without touching a single one of those call
-sites; the pre-hydration queue means a fast `client:only` island firing a
+**Positive** — every `notifications.ts` call site (B8b onward) that stays
+on the same page is now actually visible to users, without touching a
+single one of those call sites (the ones that navigate right after
+notifying needed their own fix — see the "cross-navigation toasts"
+amendment below); the pre-hydration queue means a fast `client:only` island firing a
 toast before the layout Toaster hydrates is no longer a silent failure
 mode; the persister-restore-failure path has a real, tested recovery
 action instead of a permanently-inert `useLiveQuery` disabled-`queryFn`
@@ -180,13 +182,11 @@ persister side).
 logic (module-level `pendingToasts`/`toasterMounted`) that Base UI itself
 doesn't provide; a future Base UI version that adds its own buffering would
 make this redundant (harmless, just unnecessary) rather than conflicting
-with it. `resetLocalData()`'s reload happens unconditionally even on
-partial failure, which means the `notifyError`/`notifySuccess` toast has a
-narrow, real risk of not being visually read before the page navigates away
-— the same accepted trade-off `DeleteExpenseDialog`/`RemoveFriendDialog`
-already make (`notifySuccess` immediately followed by
-`window.location.assign`); not new to this issue, but worth naming since
-`resetLocalData()`'s failure toast is the more consequential one to miss.
+with it. (The original draft of this ADR accepted a narrower, real risk
+here — a notify-then-navigate toast not being visually read before the
+page tears down — as an unfixed trade-off shared with
+`DeleteExpenseDialog`/`RemoveFriendDialog`. The "cross-navigation toasts"
+amendment below replaces that acceptance with an actual fix.)
 
 **Neutral** — the pre-hydration queue only ever holds toasts fired before
 the FIRST `<Toaster/>` mount of the page's lifetime (there is exactly one,
@@ -202,6 +202,154 @@ page navigation (each navigation is a fresh document in this MPA, spec D2).
 | Users on a shared/borrowed device | `resetLocalData()` signs the user out and wipes cached data — a genuinely destructive action if triggered by accident. | Confirm dialog (`ResetLocalDataButton`) is the only way to reach it from the UI; no auto-trigger anywhere. |
 | Users who hit a genuine persister failure | Previously an unhandled promise rejection with zero visible signal — the app would just silently start cold, indistinguishable from a normal fresh visit, with no path to a deliberate full reset if the cause was more persistent (e.g. IndexedDB quota exhausted by another site). | `QueryProvider`'s recovery banner names the failure and offers `ResetLocalDataButton` directly, without blocking the route content, which keeps fetching over the network underneath it. |
 
+## Amendment (2026-09-28, plan B17b): cross-navigation toasts
+
+### Context
+
+This ADR's original text already named the risk in its "Negative"
+consequences and in `resetLocalData`'s own design ("the same accepted
+trade-off `DeleteExpenseDialog`/`RemoveFriendDialog` already make") but
+stopped short of fixing it: **this is a static MPA (spec D2) — every
+`window.location.assign`/`.replace`/`reload()` is a full page load, and it
+discards any toast fired synchronously right before it**, because Base UI's
+toast manager (and every React tree holding it) lives in the JS heap of the
+document being torn down. Grepping the whole tree for
+`location.assign`/`location.replace`/`reload(` found six real call sites
+where a `notify*` call is immediately followed by one:
+
+- `ExpenseForm` (B10): create success, create partial-failure ("Expense
+  saved, but N receipt(s) couldn't be uploaded...", the exact honesty
+  message this was designed to surface), edit success, edit
+  partial-failure — four notify-then-navigate pairs in one file.
+- `DeleteExpenseDialog` (B9): delete success.
+- `GroupForm` (B12): create success.
+- `DeleteGroupDialog` (B12): delete success.
+- `resetLocalData` (this issue): its own result toast, success or
+  "finished with errors".
+
+`RemoveFriendDialog`/`FriendDetailView`'s remove flow (B13) was checked
+and does **not** navigate at all — the friend list re-renders in place, so
+its `notifySuccess('Friend removed')` was never at risk and needed no
+change. `MembersSection` (B12, add/remove group members) is the same:
+no navigation follows. `AuthGate`/`AuthCallbackIsland`/`LoginForm`/
+`SignUpForm`/`ResetPasswordIsland`'s redirects were checked too — none of
+them fire a toast before navigating (sign-in success just redirects;
+`ResetPasswordIsland` uses inline `status` state, not a toast).
+
+### Decision
+
+**A cross-navigation toast handoff, in `notifications.ts` itself.**
+`{ afterNavigation: true }` on `notifySuccess`/`notifyError`/`notifyInfo`
+queues the toast in `sessionStorage` (`justsplit:pending-toasts`) instead
+of firing it immediately. `ToasterIsland` drains that queue once, on
+mount, firing each entry through the SAME internal `fireNow` path used for
+a live toast — so a drained error still gets `priority: 'high'`/
+`timeout: 0`, and a drained success still gets the plain 5s-default
+treatment. Design choices, and why:
+
+- **An option on the existing functions, not a new `notifyAfterNavigation`
+  export.** Every call site already imports `notifySuccess`/`notifyError`;
+  adding a boolean option is a one-line diff at each site instead of a
+  rename, and keeps the assertive/persistence rules defined in exactly one
+  place (`fireNow`) regardless of whether a call fires live or is drained.
+- **`sessionStorage`, not `localStorage`.** It's per-tab and clears itself
+  when the tab closes — a queued toast has no reason to survive longer than
+  the navigation it's bridging, and no reason to leak into a different tab
+  a user might have open. Only the toast's `kind`/`title`/`description`
+  text is stored — nothing about WHO performed the action or WHAT record it
+  touched.
+- **A Zod schema (`src/schemas/pending-toast.ts`), not a bare
+  `interface`.** `sessionStorage` is a storage boundary — CLAUDE.md rule
+  8 — so a malformed entry (garbage JSON, a future/older schema version, a
+  hand-edited devtools value) is dropped by `PendingToastQueueSchema.safeParse`
+  instead of crashing `ToasterIsland`'s mount-time drain. Bounded to
+  `MAX_PENDING_TOASTS = 5` (oldest dropped first) so a page that queues
+  repeatedly before ever draining (in practice: never happens today, since
+  every migrated site navigates once) can't grow the key unbounded.
+- **Read-then-remove, synchronously, before firing anything.**
+  `drainPendingToasts()` reads and clears `sessionStorage` in the same
+  synchronous call, before firing a single toast. This makes it idempotent
+  by construction: a second call — React StrictMode's dev-only double
+  effect invocation, or (defensively) two `ToasterIsland`s mounted at
+  once — finds nothing left, with no async gap either call could race into.
+- **`drainPendingToasts()` is called from `ToasterIsland`'s OWN mount
+  effect, an ANCESTOR of `<Toaster/>`.** React commits child effects before
+  parent effects on mount, so `Toaster`'s own flush effect and
+  `BaseToast.Provider`'s subscribe effect (both descendants) run first —
+  the manager already has a listener by the time the drain fires. The
+  earlier pre-hydration queue inside `ui/toast.tsx` (this ADR's original
+  section) is still there as a second, independent safety net regardless.
+- **Fallback to firing immediately if `sessionStorage` is unavailable**
+  (private-browsing storage limits, quota exceeded). The write path is
+  wrapped in `try`/`catch`; a failure to WRITE falls back to `fireNow`
+  directly rather than silently dropping the toast — the read path
+  (`readQueue`) fails closed instead (an empty queue), since there is
+  nothing sensible to fall back to when DRAINING.
+- **`resetLocalData`'s own result toast now queues too**, and specifically
+  survives the reset it's reporting on: its `localStorage`-clearing step
+  only ever touches `localStorage` (`clearLocalStorageByPrefix`), never
+  `sessionStorage`, so the pending-toast queue is untouched by any of
+  `resetLocalData`'s own steps regardless of order. Tested directly against
+  the REAL `notifications.ts` (not mocked, unlike `reset-local.test.ts`'s
+  unit-level checks) in `reset-local-toast-survival.test.ts`, so the
+  assertion exercises the actual storage boundary rather than trusting
+  that `localStorage` and `sessionStorage` staying separate is obviously
+  true.
+- **Marketing pages leave the queue in place.** A marketing page never
+  mounts `ToasterIsland` (spec D3; `check-auth-bundle.mjs`'s zero-island
+  rule), so it never drains anything — `sessionStorage` persists across
+  same-tab navigations regardless of which page reads it, so a toast queued
+  on a non-marketing page that happens to navigate THROUGH a marketing page
+  (no real route in this app does that today) would simply wait for the
+  next page that mounts `ToasterIsland`. This is a documented consequence,
+  not a bug: there's no page in the app today where this path is exercised.
+
+### Alternatives considered
+
+- **A `beforeunload`/`pagehide` listener that flushes toasts into
+  storage.** Rejected: every migrated call site already knows, at the exact
+  moment it fires the toast, that it's about to navigate — there's no
+  reason to defer that decision to a generic unload listener, which would
+  also have to run on EVERY toast (even same-page ones) to know which
+  toasts need saving, and unload listeners are notoriously unreliable
+  timing-wise (the spec allows the browser to skip synchronous work in
+  them).
+- **Passing the toast as a query string/URL fragment on the navigated-to
+  URL.** Rejected: every migrated call site navigates to a canonical
+  resource URL (`/expenses/<id>`, `/groups/<id>`, `/groups/list`) that
+  other code (bookmarks, `?group=`/`?event=` deep links, `useUrlParam`)
+  already assigns meaning to; smuggling toast state through it risks a
+  collision with an existing or future query param and litters shareable
+  URLs with UI-only state.
+
+### Consequences
+
+**Positive** — the exact bug this amendment opens with (B10's
+partial-failure receipt-upload honesty message, always lost) is fixed,
+along with five other real, previously-silent-failure sites; the fix is
+one shared mechanism (`{ afterNavigation: true }` + `drainPendingToasts()`)
+rather than a bespoke workaround per call site.
+
+**Negative** — every future notify-then-navigate call site must remember
+to pass `{ afterNavigation: true }` — nothing enforces this at the type
+level (a boolean option is easy to forget). No lint rule or test scans for
+a `notify*` call immediately followed by a `location.*`/`reload(` call
+across the whole tree; this ADR's six-site enumeration is a point-in-time
+audit, not a standing guarantee.
+
+**Neutral** — same-page toasts (the majority of call sites: form
+validation errors, `RemoveFriendDialog`, `MembersSection`,
+`AttachRowsPanel`, ...) are entirely unaffected — they never needed the
+handoff and don't use it.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| End users | The receipt-upload partial-failure message — telling someone their expense saved but a specific receipt didn't and they need to re-add it from Edit — was silently lost on every save. Five other success/result toasts were equally invisible. | All six sites migrated; `drainPendingToasts()` fires them on the very next page load, through the same assertive/persistent rules a live error gets. |
+| Users on a shared/borrowed device | `resetLocalData()`'s OWN failure toast (naming that the reset was incomplete) is the most consequential one to lose — a user could believe their data was fully wiped when it wasn't. | Now queued and proven (by test) to survive the reset's own storage-clearing steps, landing on the very next page. |
+| Future contributors | A new notify-then-navigate call site is easy to write without realizing the toast will be silently discarded — there's no error, just a toast nobody ever sees. | This ADR's decision section states the rule explicitly (`{ afterNavigation: true }` whenever a `notify*` call precedes a navigation) as the documented pattern; no automated enforcement exists yet (named as a residual risk above). |
+
 ## Supersedes
 
 None.
@@ -212,10 +360,20 @@ None.
 - `src/components/ui/toast.tsx`, `src/components/ui/toast.test.tsx`
 - `src/components/islands/ToasterIsland.tsx`, `src/layouts/BaseLayout.astro`
 - `src/stores/notifications.ts`, `src/stores/notifications.test.ts`
-- `src/lib/data/reset-local.ts`, `src/lib/data/reset-local.test.ts`
+- `src/schemas/pending-toast.ts` + `.test.ts` (the amendment's
+  storage-boundary schema)
+- `src/lib/data/reset-local.ts`, `src/lib/data/reset-local.test.ts`,
+  `src/lib/data/reset-local-toast-survival.test.ts` (the amendment's
+  real-`notifications.ts` survival test)
 - `src/lib/queryClient.ts` (`QueryCacheRestoreError`, `attachPersister`'s
   `onRestoreError`), `src/lib/queryClient.test.ts`
 - `src/components/islands/QueryProvider.tsx`, `QueryProvider.test.tsx`
+- The amendment's six migrated call sites:
+  `src/components/features/expenses/ExpenseForm.tsx` (+ `.test.tsx`),
+  `src/components/features/expenses/DeleteExpenseDialog.tsx` (+ `.test.tsx`),
+  `src/components/features/groups/GroupForm.tsx` (+ `.test.tsx`),
+  `src/components/features/groups/DeleteGroupDialog.tsx` (+ `.test.tsx`),
+  `src/lib/data/reset-local.ts`
 - `src/components/features/settings/ResetLocalDataButton.tsx` +
   `.test.tsx`, `src/components/islands/ShowcaseResetLocalDataButton.tsx`
 - ADR 0004 (TanStack Query over StorageAdapter, incl. the `signOut()` ⇒
