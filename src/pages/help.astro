@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { withBase } from '@/lib/href';
-import { SITE } from '@/lib/site-meta';
+import { REPO_URL, SITE } from '@/lib/site-meta';
 
 // Help page (plan B7, spec D3): ported from the legacy Next tree's
 // src/app/help/page.tsx. The original drove category switching, live
@@ -71,6 +71,9 @@ const categories: Category[] = [
     ],
   },
 ];
+// The only support channel that exists today: the repository's issues
+// (the same place the FeedbackFAB files reports).
+const supportHref = `${REPO_URL}/issues`;
 ---
 
 <BaseLayout title={`Help — ${SITE.name}`} description="Find answers to common JustSplit questions." marketing>
@@ -99,9 +102,9 @@ const categories: Category[] = [
         </nav>
         <div class="mt-8 rounded-xl border border-border bg-card p-4">
           <h3 class="font-medium text-foreground">Need more help?</h3>
-          <p class="mt-1 text-sm text-muted-foreground">Our support team is ready to assist you.</p>
-          <a href="mailto:support@justsplit.app" class="mt-2 inline-block text-sm font-medium text-primary hover:underline">
-            Contact support
+          <p class="mt-1 text-sm text-muted-foreground">Ask a question or report a problem on GitHub, or use the feedback button on any page.</p>
+          <a href={supportHref} rel="noopener" class="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+            Open an issue
           </a>
         </div>
       </aside>
@@ -131,7 +134,7 @@ const categories: Category[] = [
           <p class="text-muted-foreground">Didn't find what you're looking for?</p>
           <div class="mt-3 flex flex-wrap justify-center gap-4">
             <a href={withBase('/about')} class="text-sm font-medium text-primary hover:underline">About us</a>
-            <a href="mailto:support@justsplit.app" class="text-sm font-medium text-primary hover:underline">Contact support</a>
+            <a href={supportHref} rel="noopener" class="text-sm font-medium text-primary hover:underline">Ask on GitHub</a>
           </div>
         </div>
       </div>
