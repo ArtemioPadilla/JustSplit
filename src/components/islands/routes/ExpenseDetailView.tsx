@@ -124,10 +124,26 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
   // below forces `Editable` to remount with the new `defaultValue` on both
   // an optimistic forward update AND a revert — the only way to change an
   // uncontrolled component's displayed value from outside itself.
+  //
+  // Adjusted DURING RENDER (React's own "adjusting state when a prop
+  // changes" pattern), not inside a `useEffect` — an effect would commit
+  // one extra, visible render with the STALE draft before catching up;
+  // this bails out in the same render pass instead. `prevDescription`/
+  // `prevNotes` are the change-detection cells, deliberately separate from
+  // the draft state itself (which also changes on every optimistic
+  // update/revert that has nothing to do with a new `expense` prop).
   const [descriptionDraft, setDescriptionDraft] = React.useState(expense.description);
-  React.useEffect(() => setDescriptionDraft(expense.description), [expense.description]);
+  const [prevDescription, setPrevDescription] = React.useState(expense.description);
+  if (expense.description !== prevDescription) {
+    setPrevDescription(expense.description);
+    setDescriptionDraft(expense.description);
+  }
   const [notesDraft, setNotesDraft] = React.useState(expense.notes ?? '');
-  React.useEffect(() => setNotesDraft(expense.notes ?? ''), [expense.notes]);
+  const [prevNotes, setPrevNotes] = React.useState(expense.notes ?? '');
+  if ((expense.notes ?? '') !== prevNotes) {
+    setPrevNotes(expense.notes ?? '');
+    setNotesDraft(expense.notes ?? '');
+  }
 
   const updateExpense = useUpdateExpense();
   const handleDescriptionCommit = React.useCallback(
