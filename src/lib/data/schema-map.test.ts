@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { schemaMap } from './schema-map';
-import { readMigrationColumns } from '@/tests/migration-columns';
+import { SERVER_ONLY_TABLES, readMigrationColumns } from '@/tests/migration-columns';
 
 /**
  * Plan B5a: `schema-map.ts` is the SchemaMap of spec D10 and doubles as the
@@ -27,6 +27,12 @@ describe('schemaMap (plan B5a, spec D10)', () => {
     for (const mapping of Object.values(schemaMap)) {
       expect(columnsByTable).toHaveProperty(mapping.table);
     }
+  });
+
+  it('server-only tables (the lookup rate-limit counter) are never SchemaMap collections', () => {
+    const tables = Object.values(schemaMap).map((m) => m.table);
+    for (const table of SERVER_ONLY_TABLES) expect(tables).not.toContain(table);
+    expect(SERVER_ONLY_TABLES).toContain('profile_lookup_attempts');
   });
 
   it("each collection's declared `columns` equals its migration columns minus id/extra/created_at/updated_at", () => {

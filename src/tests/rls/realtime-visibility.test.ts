@@ -21,7 +21,8 @@ const channels: RealtimeChannel[] = [];
 const probes: string[] = [];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function waitFor(pred: () => boolean, ms = 8000): Promise<void> {
+// Generous: after a long RLS run Realtime can lag behind the WAL for several seconds.
+async function waitFor(pred: () => boolean, ms = 20_000): Promise<void> {
   const until = Date.now() + ms;
   while (!pred() && Date.now() < until) await sleep(100);
 }
@@ -96,7 +97,7 @@ beforeAll(async () => {
   const later = await admin.from('expenses').insert(rows.afterRemoval!);
   if (later.error) throw later.error;
   await sleep(2500); // give D's stream the same chance to (wrongly) receive it
-}, 90_000);
+}, 150_000);
 
 afterAll(async () => {
   if (probes.length) await admin.from('expense_groups').delete().in('id', probes);

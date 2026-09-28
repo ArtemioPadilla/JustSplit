@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useSendFriendRequest } from '@/lib/data/hooks/useSendFriendRequest';
 import { FriendshipAlreadyExistsError } from '@/lib/data/repos/friendships';
+import { LookupRateLimitedError } from '@/lib/data/repos/profiles';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import { AddFriendFormValuesSchema, type AddFriendFormValues } from '@/schemas/friend-request-form';
@@ -28,7 +29,8 @@ export interface AddFriendFormProps {
  * account?"): no avatar/name preview before sending either outcome; a
  * registered email creates the pending friendship directly; an
  * unregistered one offers a mailto/copy-link invitation with NO token and
- * no personal data beyond the inviter's own name.
+ * no personal data beyond the inviter's own name. Past the server-side lookup
+ * limit (plan B2d, ADR 0013) a fixed inline sentence is shown instead.
  */
 export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProps) {
   const form = useForm<AddFriendFormValues>({
@@ -37,9 +39,11 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
   });
   const sendRequest = useSendFriendRequest();
   const [invite, setInvite] = React.useState<{ email: string } | null>(null);
+  const [rateLimited, setRateLimited] = React.useState(false);
 
   async function handleValid(values: AddFriendFormValues) {
     setInvite(null);
+    setRateLimited(false);
     // Local check, no RPC call (spec): refuse before ever looking anything up.
     if (selfEmail && values.email === selfEmail.trim().toLowerCase()) {
       form.setError('email', { message: "You can't send a friend request to your own email." });
@@ -54,7 +58,11 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
         setInvite({ email: values.email });
       }
     } catch (error) {
-      if (error instanceof FriendshipAlreadyExistsError) {
+      if (error instanceof LookupRateLimitedError) {
+        // Inline and persistent (not a toast that vanishes): it explains why
+        // the button seems dead, and never shows the limit or raw error text.
+        setRateLimited(true);
+      } else if (error instanceof FriendshipAlreadyExistsError) {
         notifyError('You already have a request or friendship with this person');
       } else {
         notifyError('Could not send this friend request. Please try again.');
@@ -84,6 +92,12 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
           </Button>
         </form>
       </Form>
+
+      {rateLimited && (
+        <p role="alert" className="text-sm text-destructive">
+          You&apos;ve looked up a lot of emails recently. Please try again in a while.
+        </p>
+      )}
 
       {invite && <InvitePanel email={invite.email} inviterName={inviterName} />}
     </div>

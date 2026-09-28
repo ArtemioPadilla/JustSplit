@@ -65,7 +65,29 @@ export interface RpcFunctions {
 
 export type RpcName = keyof RpcFunctions;
 
-/** Typed wrapper over `supabase.rpc`; throws the PostgREST error instead of returning it. */
+/**
+ * `find_profile_by_email` raises SQLSTATE `P0429` / `rate_limited` past its
+ * per-caller hourly limit (plan B2d, ADR 0013). `rpc()` maps it to this typed
+ * error so callers can show their own sentence: the raw database text and code
+ * never reach the UI, and the limit itself is deliberately not part of the
+ * message.
+ */
+export class LookupRateLimitedError extends Error {
+  constructor() {
+    super('Too many email lookups in a short time.');
+    this.name = 'LookupRateLimitedError';
+  }
+}
+
+function isLookupRateLimited(error: { code?: string; message?: string }): boolean {
+  return error.code === 'P0429' || error.message === 'rate_limited';
+}
+
+/**
+ * Typed wrapper over `supabase.rpc`; throws the PostgREST error instead of
+ * returning it, except the lookup rate limit, which becomes a
+ * `LookupRateLimitedError`.
+ */
 export async function rpc<N extends RpcName>(
   name: N,
   args: RpcFunctions[N]['args'],
@@ -73,7 +95,7 @@ export async function rpc<N extends RpcName>(
 ): Promise<RpcFunctions[N]['returns']> {
   if (!client) throw new SupabaseDisabledError();
   const { data, error } = await client.rpc(name, args);
-  if (error) throw error;
+  if (error) throw isLookupRateLimited(error) ? new LookupRateLimitedError() : error;
   return (data ?? []) as RpcFunctions[N]['returns'];
 }
 
