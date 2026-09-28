@@ -46,6 +46,7 @@ const friendshipsRepo = {
 vi.mock('../repos/friendships', () => friendshipsRepo);
 
 const groupsRepo = {
+  forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]),
   get: vi.fn(async (id: string) => ({ id, name: 'Group' })),
   create: vi.fn(async (input: unknown) => ({ id: 'g1', ...(input as object) })),
   update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
@@ -87,6 +88,7 @@ const { useSendFriendRequest } = await import('./useSendFriendRequest');
 const { useCreateExpenseWithReceipts } = await import('./useCreateExpenseWithReceipts');
 const { useAddReceipts } = await import('./useAddReceipts');
 const { useRemoveReceipt } = await import('./useRemoveReceipt');
+const { useGroups } = await import('./useGroups');
 const { useCreateGroup } = await import('./useCreateGroup');
 const { useUpdateGroup } = await import('./useUpdateGroup');
 const { useDeleteGroup } = await import('./useDeleteGroup');
@@ -223,6 +225,30 @@ describe('useEvent (non-live detail query, plan B9)', () => {
     }
     withClient(<Probe />);
     expect(eventsRepo.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('useGroups (plan B12 — the list island\'s live query)', () => {
+  it("subscribes 'expense_groups' with the memberIds array-contains filter, persisted", () => {
+    function Probe() {
+      useGroups('u1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(liveQuerySpy).toHaveBeenCalledWith(['groups', 'u1'], 'expense_groups', groupsRepo.forUserFilters('u1'), {
+      enabled: true,
+      persist: true,
+    });
+  });
+
+  it('useGroups(undefined) is disabled (no signed-in user yet)', () => {
+    function Probe() {
+      useGroups(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    const [, , , options] = liveQuerySpy.mock.calls[0]!;
+    expect((options as { enabled: boolean }).enabled).toBe(false);
   });
 });
 
