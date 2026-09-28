@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
-import { balancesWithUser, categoryDistribution, monthlyTotals, upcomingEvents } from './dashboard';
+import { balancesWithUser, categoryDistribution, monthlyTotals, totalSpent, unsettledCount, upcomingEvents } from './dashboard';
 
 /** New suite (plan B8a): pure dashboard selectors had no equivalent in the legacy tree (the
  * hand-rolled Dashboard components read `AppContext` and computed inline). */
@@ -246,6 +246,58 @@ describe('upcomingEvents', () => {
     ];
     const result = upcomingEvents(events, now);
     expect(result.map((e) => e.id)).toEqual(['has-date']);
+  });
+});
+
+/**
+ * Plan B8b: `totalSpent` and `unsettledCount` are the ONLY two figures the
+ * legacy `FinancialSummary` actually computed from real data — every other
+ * prop it accepted (`compareWithLastMonth`, `avgPerDay`,
+ * `mostExpensiveCategory`, `activeEvents`, `activeParticipants`,
+ * `highestExpense`) was fed a hardcoded default by `page.tsx` and never a
+ * real value, so those are not ported (spec §6, plan B8b decision).
+ */
+describe('totalSpent', () => {
+  it('sums every expense (settled and unsettled) through the injected convert function', () => {
+    const expenses = [
+      makeExpense({ amount: 10, paidBy: 'user1', date: '2026-01-01', settledAt: null }),
+      makeExpense({ amount: 20, paidBy: 'user1', date: '2026-01-02', settledAt: '2026-01-03T00:00:00.000Z' }),
+    ];
+    expect(totalSpent(expenses, identity)).toBe(30);
+  });
+
+  it('converts each expense through its own currency', () => {
+    const convert = (amount: number, currency: string) => (currency === 'EUR' ? amount * 2 : amount);
+    const expenses = [
+      makeExpense({ amount: 10, currency: 'USD', paidBy: 'user1', date: '2026-01-01' }),
+      makeExpense({ amount: 10, currency: 'EUR', paidBy: 'user1', date: '2026-01-02' }),
+    ];
+    expect(totalSpent(expenses, convert)).toBe(30);
+  });
+
+  it('is 0 for no expenses', () => {
+    expect(totalSpent([], identity)).toBe(0);
+  });
+});
+
+describe('unsettledCount', () => {
+  it('counts expenses whose settledAt is null', () => {
+    const expenses = [
+      makeExpense({ amount: 10, paidBy: 'user1', date: '2026-01-01', settledAt: null }),
+      makeExpense({ amount: 20, paidBy: 'user1', date: '2026-01-02', settledAt: null }),
+      makeExpense({ amount: 30, paidBy: 'user1', date: '2026-01-03', settledAt: '2026-01-04T00:00:00.000Z' }),
+    ];
+    expect(unsettledCount(expenses)).toBe(2);
+  });
+
+  it('treats a missing settledAt (never written) the same as null — unsettled', () => {
+    const expenses = [makeExpense({ amount: 10, paidBy: 'user1', date: '2026-01-01' })];
+    delete (expenses[0] as { settledAt?: string | null }).settledAt;
+    expect(unsettledCount(expenses)).toBe(1);
+  });
+
+  it('is 0 for no expenses', () => {
+    expect(unsettledCount([])).toBe(0);
   });
 });
 
