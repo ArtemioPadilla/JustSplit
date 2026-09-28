@@ -124,7 +124,8 @@ describe('expensesToCSV', () => {
     const users = [{ id: 'user1', name: 'Alice' }];
 
     const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
-    expect(dataRow).toContain('"\'=HYPERLINK("http://evil.example","click me")"');
+    // Internal double-quotes are still doubled by quoteCsvValue on top of the neutralization prefix.
+    expect(dataRow).toContain('"\'=HYPERLINK(""http://evil.example"",""click me"")"');
   });
 
   it('neutralizes a formula-injection payload in notes', () => {

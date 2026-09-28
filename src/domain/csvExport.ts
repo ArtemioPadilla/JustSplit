@@ -24,6 +24,18 @@ const warn = (message: string): void => {
   console.warn(`[CSV Export] ${message}`);
 };
 
+/**
+ * CSV formula-injection neutralization (B17a, OWASP CSV-injection guidance):
+ * every text cell in an export can be written by another group member and
+ * opened in Excel/Sheets, which treats a cell starting with `=`, `+`, `-`,
+ * `@`, a tab or a CR as a formula/macro trigger. Prefixing it with a single
+ * quote forces it to render as literal text while leaving benign values
+ * (and numeric cells, which never go through this function) untouched.
+ */
+const FORMULA_INJECTION_PREFIX_RE = /^[=+\-@\t\r]/;
+const neutralizeCsvFormula = (value: string): string =>
+  FORMULA_INJECTION_PREFIX_RE.test(value) ? `'${value}` : value;
+
 /** Always-quote escaping, used by `expensesToCSV` (matches the legacy output byte-for-byte). */
 const quoteCsvValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
 
@@ -51,15 +63,18 @@ export const expensesToCSV = (expenses: Expense[], users: CsvNamedUser[], events
     const status = expense.settledAt != null ? 'Settled' : 'Unsettled';
 
     return [
+      // Date, amount, currency and status are never user-controlled text —
+      // neutralization is deliberately skipped for these four columns so a
+      // negative amount stays numeric (spec: "do not alter numeric cells").
       new Date(expense.date).toLocaleDateString(),
-      expense.description,
+      neutralizeCsvFormula(expense.description),
       expense.amount.toFixed(2),
       expense.currency,
-      getUserName(expense.paidBy),
-      participantNames,
-      getEventName(expense.eventId),
+      neutralizeCsvFormula(getUserName(expense.paidBy)),
+      neutralizeCsvFormula(participantNames),
+      neutralizeCsvFormula(getEventName(expense.eventId)),
       status,
-      expense.notes ?? '',
+      neutralizeCsvFormula(expense.notes ?? ''),
     ]
       .map((value) => quoteCsvValue(value.toString()))
       .join(',');
@@ -111,7 +126,11 @@ export const exportToCSV = <T extends Record<string, unknown>>(data: T[], filena
         .map((header) => {
           const cell = row[header];
           const cellData = cell === undefined || cell === null ? '' : String(cell);
-          return escapeCsvValue(cellData);
+          // Only neutralize genuine string cells — a numeric cell (e.g. a
+          // negative balance) must stay numeric, never gain a `'` prefix,
+          // even though its stringified form also starts with `-`.
+          const safeData = typeof cell === 'string' ? neutralizeCsvFormula(cellData) : cellData;
+          return escapeCsvValue(safeData);
         })
         .join(','),
     ),
