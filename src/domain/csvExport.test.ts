@@ -101,6 +101,132 @@ describe('expensesToCSV', () => {
     expect(dataRow).toContain('"Lunch, with ""quotes"""');
     expect(dataRow).toContain('"Notes with, commas and ""quotes"""');
   });
+
+  /**
+   * B17a: every user-controlled TEXT cell (description, notes, payer/
+   * participant names, event name) is written by other group members, so a
+   * cell that starts with `=`, `+`, `-`, `@`, a tab or a CR must be
+   * defanged with a leading `'` before quoting (OWASP CSV-injection
+   * guidance) — otherwise opening the export in Excel/Sheets executes it as
+   * a formula. The computed date, `amount.toFixed(2)`, currency code and
+   * status columns are never user-controlled text and must stay untouched
+   * (a negative amount must remain numeric, not gain a `'` prefix).
+   */
+  it('neutralizes a formula-injection payload in the description', () => {
+    const expenses = [
+      makeExpense({
+        description: '=HYPERLINK("http://evil.example","click me")',
+        amount: 10,
+        paidBy: 'user1',
+        participantIds: ['user1'],
+      }),
+    ];
+    const users = [{ id: 'user1', name: 'Alice' }];
+
+    const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+    // Internal double-quotes are still doubled by quoteCsvValue on top of the neutralization prefix.
+    expect(dataRow).toContain('"\'=HYPERLINK(""http://evil.example"",""click me"")"');
+  });
+
+  it('neutralizes a formula-injection payload in notes', () => {
+    const expenses = [
+      makeExpense({
+        description: 'Groceries',
+        amount: 10,
+        paidBy: 'user1',
+        participantIds: ['user1'],
+        notes: '+1',
+      }),
+    ];
+    const users = [{ id: 'user1', name: 'Alice' }];
+
+    const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+    expect(dataRow.endsWith('"\'+1"')).toBe(true);
+  });
+
+  it('neutralizes a formula-injection payload in a payer/participant name', () => {
+    const expenses = [
+      makeExpense({ description: 'Dinner', amount: 20, paidBy: 'user1', participantIds: ['user1'] }),
+    ];
+    const users = [{ id: 'user1', name: '@SUM(A1)' }];
+
+    const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+    // Both the "Paid By" and "Participants" columns render the same name.
+    expect(dataRow.match(/"'@SUM\(A1\)"/g)?.length).toBe(2);
+  });
+
+  it('neutralizes a formula-injection payload in the event name', () => {
+    const expenses = [
+      makeExpense({ description: 'Dinner', amount: 20, paidBy: 'user1', participantIds: ['user1'], eventId: 'event1' }),
+    ];
+    const users = [{ id: 'user1', name: 'Alice' }];
+    const events = [{ id: 'event1', name: '-2+3' }];
+
+    const dataRow = expensesToCSV(expenses, users, events).split('\n')[1];
+    expect(dataRow).toContain('"\'-2+3"');
+  });
+
+  it('neutralizes a value that starts with a tab or a carriage return', () => {
+    const expenses = [
+      makeExpense({ description: '\tsneaky', amount: 10, paidBy: 'user1', participantIds: ['user1'] }),
+    ];
+    const users = [{ id: 'user1', name: 'Alice' }];
+
+    const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+    expect(dataRow).toContain('"\'\tsneaky"');
+  });
+
+  it('leaves a benign description and the numeric amount column unchanged, including a negative amount', () => {
+    const expenses = [
+      makeExpense({ description: 'Lunch', amount: -15, paidBy: 'user1', participantIds: ['user1'] }),
+    ];
+    const users = [{ id: 'user1', name: 'Alice' }];
+
+    const dataRow = expensesToCSV(expenses, users, []).split('\n')[1];
+    expect(dataRow).toContain('"Lunch"');
+    expect(dataRow).toContain('"-15.00"');
+    expect(dataRow).not.toContain("'-15.00");
+  });
+});
+
+describe('exportToCSV formula-injection neutralization (B17a)', () => {
+  beforeEach(() => {
+    document.createElement = vi.fn().mockImplementation((tag: string) => {
+      if (tag === 'a') {
+        return { setAttribute: vi.fn(), style: { display: '' }, click: vi.fn(), remove: vi.fn() };
+      }
+      return null;
+    }) as unknown as typeof document.createElement;
+    vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
+    vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+    URL.createObjectURL = vi.fn().mockReturnValue('mock-url');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('neutralizes a formula-injection string cell but leaves a numeric cell (even negative) untouched', () => {
+    // downloadCSV builds the Blob synchronously from the CSV string; capture
+    // it from the createObjectURL call and read it back with Blob#text()
+    // rather than racing exportToCSV's (synchronous) return.
+    let capturedBlob: Blob | null = null;
+    (URL.createObjectURL as unknown as ReturnType<typeof vi.fn>).mockImplementation((blob: Blob) => {
+      capturedBlob = blob;
+      return 'mock-url';
+    });
+
+    exportToCSV([{ label: '=cmd|/c calc', balance: -42 }], 'export');
+
+    expect(capturedBlob).not.toBeNull();
+    return (capturedBlob as unknown as Blob).text().then((text) => {
+      const dataRow = text.split('\n')[1];
+      expect(dataRow).toContain("'=cmd|/c calc");
+      expect(dataRow).toContain('-42');
+      expect(dataRow).not.toContain("'-42");
+    });
+  });
 });
 
 describe('downloadCSV', () => {

@@ -46,3 +46,14 @@ describe('/showcase (plan B16)', () => {
     expect(src).not.toMatch(/<ProgressBar[^>]*client:/);
   });
 });
+
+/**
+ * Plan B17a: "CSV export (shared button, before Phase 2)" — CLAUDE.md
+ * quality bar requires every reusable widget in `/showcase`, same as B16.
+ */
+describe('/showcase (plan B17a)', () => {
+  it('mounts ExportCsvButton live, hydrated (needs onExport click handling)', () => {
+    expect(src).toMatch(/import\s+ShowcaseExportCsvButton\s+from\s+['"][^'"]*ShowcaseExportCsvButton['"]/);
+    expect(src).toMatch(/<ShowcaseExportCsvButton\s+client:(idle|visible)/);
+  });
+});

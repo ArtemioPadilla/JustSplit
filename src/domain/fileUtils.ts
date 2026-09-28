@@ -11,3 +11,30 @@ export const ensureCSVExtension = (filename: string): string => {
   }
   return filename;
 };
+
+/** Path-/OS-hostile characters (Windows reserved set, superset of POSIX's `/`). */
+const UNSAFE_FILENAME_CHARS_RE = /[\\/:*?"<>|]/g;
+
+/**
+ * Strip path-/OS-hostile and control characters from a filename built from
+ * user-controlled input (plan B17a: `ExportCsvButton` callers pass
+ * `<event.name>-expenses.csv`, and event names are written by any group
+ * member). Collapses whitespace runs and trims the ends; falls back to
+ * `'expenses.csv'` if sanitizing leaves nothing behind. Run this BEFORE
+ * `ensureCSVExtension` — sanitizing after would strip characters from an
+ * already-appended `.csv` in edge cases (e.g. an all-hostile input) and
+ * could leave a non-fallback, extension-only result like `.csv`.
+ *
+ * Control characters are filtered by code point rather than a `\x00-\x1f`
+ * regex range — ESLint's `no-control-regex` flags that pattern outright
+ * (any control-character range in a regex literal, escaped or not), and
+ * disabling the rule would hide a real class of regex bugs elsewhere.
+ */
+export const sanitizeFilename = (filename: string): string => {
+  const withoutHostileChars = filename.replace(UNSAFE_FILENAME_CHARS_RE, '');
+  const withoutControlChars = Array.from(withoutHostileChars)
+    .filter((ch) => (ch.codePointAt(0) ?? 0) >= 0x20)
+    .join('');
+  const cleaned = withoutControlChars.replace(/\s+/g, ' ').trim();
+  return cleaned.length > 0 ? cleaned : 'expenses.csv';
+};
