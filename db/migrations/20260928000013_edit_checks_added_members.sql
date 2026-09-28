@@ -23,8 +23,9 @@
 --
 -- and pointing a row at a (different) group/event is allowed only to someone
 -- named on the row and a member of the target (group targets also need
--- member_ids ⊆ the group, the B12 attach rule). NULLing group_id/event_id is
--- always allowed; it is what the foreign keys of migration B do on delete.
+-- member_ids ⊆ the group, the B12 attach rule). Leaving one (NULL or a move
+-- away) needs membership of the one being left, except for the ON DELETE SET
+-- NULL action of migration B (see below).
 --
 -- The lookups run SECURITY INVOKER under the actor's own RLS: an actor sees a
 -- group only when they belong to it, an event likewise, and friendships are
@@ -35,7 +36,18 @@
 -- Insert is unchanged for group expenses and plain friend expenses. A
 -- no-group event expense may name other event members OR the creator's
 -- friends, and the creator must belong to the event (otherwise anyone could
--- push rows into an event's feed, which every event member now sees).
+-- push rows into an event's feed, which every event member now sees). The
+-- same holds for settlements (migration 012 made event members see them, with
+-- their amounts): settlements_insert requires the creator to be an event member.
+--
+-- LEAVING a group or event is privileged like joining one: visibility follows
+-- group_id/event_id, so nulling (or moving away from) the link pulls the row
+-- out of every member's feed and changes their balances. A direct write needs
+-- membership of the group/event the row is leaving. The ON DELETE SET NULL
+-- referential action is exempt - it must keep working for rows nobody in the
+-- group can see - and is told apart by trigger nesting: a direct UPDATE fires
+-- the guard at pg_trigger_depth() = 1, the foreign key's UPDATE is issued from
+-- inside the RI trigger, so the guard runs at depth 2.
 -- ============================================================================
 
 alter policy expenses_insert on public.expenses
@@ -101,6 +113,35 @@ alter policy expenses_update on public.expenses
 alter policy events_update on public.events
   with check ((select auth.uid())::text = any (member_ids));
 
+-- Settlements: the same feed-injection rule as expenses (event_id must be an
+-- event the creator belongs to); the rest of the policy is migration 04's.
+alter policy settlements_insert on public.settlements
+  with check (
+    created_by = (select auth.uid())::text
+    and (select auth.uid())::text in (from_user_id, to_user_id)
+    and member_ids @> array[from_user_id, to_user_id]
+    and member_ids <@ array[from_user_id, to_user_id]
+    and (settlements.event_id is null or public.is_event_member(settlements.event_id))
+    and (
+      (settlements.group_id is not null and exists (
+        select 1 from public.expense_groups g
+        where g.id = settlements.group_id
+          and (select auth.uid())::text = any (g.member_ids)
+          and settlements.member_ids <@ g.member_ids
+      ))
+      or
+      (settlements.group_id is null and not exists (
+        select 1 from unnest(settlements.member_ids) as m(uid)
+        where m.uid <> (select auth.uid())::text
+          and not exists (
+            select 1 from public.friendships f
+            where f.status = 'accepted'
+              and f.users @> array[(select auth.uid())::text, m.uid]
+          )
+      ))
+    )
+  );
+
 create or replace function public.guard_expenses()
 returns trigger
 language plpgsql
@@ -121,7 +162,24 @@ begin
     return new;
   end if;
 
-  -- Pointing the row at a different group / event (NULLing is always fine).
+  -- Leaving a group / event (nulling or moving away) needs membership of the
+  -- one being left; pg_trigger_depth() > 1 is the ON DELETE SET NULL action.
+  if old.group_id is not null and new.group_id is distinct from old.group_id
+     and pg_trigger_depth() <= 1 then
+    if not public.is_group_member(old.group_id) then
+      raise exception 'only a member of a group can take an expense out of it'
+        using errcode = 'insufficient_privilege';
+    end if;
+  end if;
+  if old.event_id is not null and new.event_id is distinct from old.event_id
+     and pg_trigger_depth() <= 1 then
+    if not public.is_event_member(old.event_id) then
+      raise exception 'only a member of an event can take an expense out of it'
+        using errcode = 'insufficient_privilege';
+    end if;
+  end if;
+
+  -- Pointing the row at a different group / event.
   if new.group_id is not null and new.group_id is distinct from old.group_id then
     if not (actor = any (old.member_ids)) then
       raise exception 'only someone named on an expense can move it into a group'
@@ -204,7 +262,17 @@ begin
     return new;
   end if;
 
-  -- Attaching to a different group (NULLing is always fine): the actor must
+  -- Leaving a group (nulling or moving away) needs membership of the group
+  -- being left; pg_trigger_depth() > 1 is the ON DELETE SET NULL action.
+  if old.group_id is not null and new.group_id is distinct from old.group_id
+     and pg_trigger_depth() <= 1 then
+    if not public.is_group_member(old.group_id) then
+      raise exception 'only a member of a group can take an event out of it'
+        using errcode = 'insufficient_privilege';
+    end if;
+  end if;
+
+  -- Attaching to a different group: the actor must
   -- belong to it and the event's members must all be group members (B12).
   if new.group_id is not null and new.group_id is distinct from old.group_id then
     if not public.is_group_member(new.group_id) then
@@ -322,6 +390,33 @@ alter policy events_update on public.events
       or
       (events.group_id is null and not exists (
         select 1 from unnest(events.member_ids) as m(uid)
+        where m.uid <> (select auth.uid())::text
+          and not exists (
+            select 1 from public.friendships f
+            where f.status = 'accepted'
+              and f.users @> array[(select auth.uid())::text, m.uid]
+          )
+      ))
+    )
+  );
+
+-- settlements_insert (04)
+alter policy settlements_insert on public.settlements
+  with check (
+    created_by = (select auth.uid())::text
+    and (select auth.uid())::text in (from_user_id, to_user_id)
+    and member_ids @> array[from_user_id, to_user_id]
+    and member_ids <@ array[from_user_id, to_user_id]
+    and (
+      (settlements.group_id is not null and exists (
+        select 1 from public.expense_groups g
+        where g.id = settlements.group_id
+          and (select auth.uid())::text = any (g.member_ids)
+          and settlements.member_ids <@ g.member_ids
+      ))
+      or
+      (settlements.group_id is null and not exists (
+        select 1 from unnest(settlements.member_ids) as m(uid)
         where m.uid <> (select auth.uid())::text
           and not exists (
             select 1 from public.friendships f
