@@ -2,8 +2,10 @@ import * as React from 'react';
 import { useStore } from '@nanostores/react';
 import { RouteGuard } from '@/lib/route-guard';
 import { withBase } from '@/lib/href';
+import { JUSTSPLIT_QUERY_IDB_KEY } from '@/lib/queryClient';
 import { $authReady, $profile, $user, toGuardUser } from '@/stores/auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import QueryProvider from './QueryProvider';
 
 export interface AuthGateProps {
   /** Roles allowed through (RouteGuard's explicit allowlist). Defaults to any signed-in user. */
@@ -26,7 +28,14 @@ export interface AuthGateProps {
  *   the frozen Next tree's `ProtectedRoute`; `/landing` doesn't exist until
  *   Phase 2, which is fine — nothing currently renders `AuthGate` on a
  *   shipped route).
- * - Otherwise: `<RouteGuard>` with the session-derived `GuardUser`.
+ * - Otherwise: `<RouteGuard>` with the session-derived `GuardUser`, around a
+ *   `QueryProvider`: this is where signed-in content begins, so it is the one
+ *   spot that gives every route island its page's single `QueryClient` (spec D3
+ *   / ADR 0004: one provider per page, shared idb key `justsplit:query`) —
+ *   and only once a user is known and allowed, so an anonymous or denied
+ *   visitor never has the device cache restored. Without it every data hook
+ *   throws "No QueryClient set" (no island mounted one; their unit tests mock
+ *   the hooks, which hid it). Layout islands still never mount it.
  */
 export default function AuthGate({ allow = ['user'], fallback = null, children }: AuthGateProps): React.ReactNode {
   const user = useStore($user);
@@ -45,7 +54,7 @@ export default function AuthGate({ allow = ['user'], fallback = null, children }
 
   return (
     <RouteGuard user={toGuardUser(user, profile)} allow={allow} fallback={fallback}>
-      {children}
+      <QueryProvider idbKey={JUSTSPLIT_QUERY_IDB_KEY}>{children}</QueryProvider>
     </RouteGuard>
   );
 }

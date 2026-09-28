@@ -251,6 +251,34 @@ describe('EventTimeline — expenses panel is focus-visible, not permanently inv
     expect(panel).toHaveClass('sr-only');
   });
 
+  // B11a follow-up (plan B11b): the blur handler used to close the panel on ANY
+  // blur, so tabbing from one expense to the next closed it for a beat and
+  // reopened it on the next focus — a visible flicker (and a layout jump) for
+  // exactly the keyboard user this panel exists for. Only focus LEAVING the
+  // panel may close it.
+  it('stays open when focus moves to another control inside the panel (blur carries a relatedTarget inside)', () => {
+    renderTimeline();
+    const panel = screen.getByTestId('timeline-expenses-panel');
+    const items = screen.getAllByTestId('timeline-sr-expense');
+
+    fireEvent.focus(items[0]);
+    fireEvent.blur(items[0], { relatedTarget: items[1] });
+
+    expect(panel).not.toHaveClass('sr-only');
+  });
+
+  it('closes when focus moves to an element outside the panel', () => {
+    renderTimeline();
+    const panel = screen.getByTestId('timeline-expenses-panel');
+    const items = screen.getAllByTestId('timeline-sr-expense');
+    const marker = screen.getAllByTestId('timeline-marker')[0];
+
+    fireEvent.focus(items[0]);
+    fireEvent.blur(items[0], { relatedTarget: marker });
+
+    expect(panel).toHaveClass('sr-only');
+  });
+
   it('keeps each same-day grouped expense (exp3 and exp4) as its own naturally-focusable control in the panel — the dependable keyboard path into a merged marker', () => {
     renderTimeline();
     const items = screen.getAllByTestId('timeline-sr-expense');

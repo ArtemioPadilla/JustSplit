@@ -29,6 +29,22 @@ describe('ExpenseSchema (plan B3)', () => {
     expect(parsed.groupId).toBeNull();
   });
 
+  // The relational adapter copies every mapped column, so a column nobody filled in reads
+  // back as null (found driving /expenses/new against a real stack: the row was inserted,
+  // then repos.expenses.get threw on `notes: null` and the form reported a failed save).
+  it('parses a row whose nullable columns (category, notes, source, transactionId) are null, reading them as absent', () => {
+    const parsed = ExpenseSchema.parse({ ...validExpense, category: null, notes: null, source: null, transactionId: null });
+    expect(parsed.category).toBeUndefined();
+    expect(parsed.notes).toBeUndefined();
+    expect(parsed.source).toBeUndefined();
+    expect(parsed.transactionId).toBeUndefined();
+  });
+
+  it('still keeps a real notes/category value', () => {
+    const parsed = ExpenseSchema.parse({ ...validExpense, category: 'food', notes: 'Tacos' });
+    expect(parsed).toMatchObject({ category: 'food', notes: 'Tacos' });
+  });
+
   it('rejects an empty memberIds array (spec D10: RLS membership mirror needs at least one member)', () => {
     expect(() => ExpenseSchema.parse({ ...validExpense, memberIds: [] })).toThrow();
   });

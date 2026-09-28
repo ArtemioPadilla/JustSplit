@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalColumn } from './nullable-column';
 
 /**
  * `events` (plan B3, spec D10) — JustSplit-local, not a universal
@@ -16,14 +17,14 @@ export const EventSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string().optional(),
-    date: z.string().optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    location: z.string().optional(),
+    description: optionalColumn(),
+    date: optionalColumn(),
+    startDate: optionalColumn(),
+    endDate: optionalColumn(),
+    location: optionalColumn(),
     groupId: z.string().nullable().optional(),
     memberIds: z.array(z.string()).min(1),
-    preferredCurrency: z.string().optional(),
+    preferredCurrency: optionalColumn(),
     // Real column since B2, `text not null default 'event'`. Never an enum.
     kind: z.string(),
     createdBy: z.string(),
@@ -49,3 +50,27 @@ export const CreateEventInputSchema = EventSchema.omit({
   settings: true,
 });
 export type CreateEventInput = z.infer<typeof CreateEventInputSchema>;
+
+/**
+ * The partial update the edit form and the detail page's inline rename send
+ * (plan B11b). `.strict()` on purpose: `createdBy` is immutable (guard
+ * trigger), and `groupId`/`kind` are not edited from these islands — an
+ * unexpected key is a bug at the call site, not something to forward.
+ * The clearable columns take `null` rather than `undefined`: an `undefined`
+ * key is dropped from the request body and would silently leave the old value.
+ * `memberIds` keeps `.min(1)` (the schema's own rule).
+ */
+export const EventPatchSchema = z
+  .object({
+    name: z.string().min(1),
+    description: z.string().nullable(),
+    date: z.string().nullable(),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
+    location: z.string().nullable(),
+    preferredCurrency: z.string().nullable(),
+    memberIds: z.array(z.string()).min(1),
+  })
+  .partial()
+  .strict();
+export type EventPatch = z.infer<typeof EventPatchSchema>;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalColumn } from './nullable-column';
 import type { Expense as UniversalExpense, ExpenseSplit as UniversalExpenseSplit, SplitType as UniversalSplitType } from '@cyber-eco/types';
 
 /**
@@ -45,12 +46,12 @@ const ExpenseShapeSchema = z.object({
   splits: z.array(ExpenseSplitSchema),
   date: z.string(),
   // Real column; stays a free string forever (spec D9) — never an enum.
-  category: z.string().optional(),
+  category: optionalColumn(),
   tags: z.array(z.string()).optional(),
-  notes: z.string().optional(),
+  notes: optionalColumn(),
   images: z.array(z.string()).optional(),
-  source: z.string().optional(),
-  transactionId: z.string().optional(),
+  source: optionalColumn(),
+  transactionId: optionalColumn(),
   // D10: required in JustSplit (RLS membership mirror reads it on every row).
   memberIds: z.array(z.string()).min(1),
   createdBy: z.string(),

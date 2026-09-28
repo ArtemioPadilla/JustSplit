@@ -4,13 +4,10 @@ import { createDisposer } from '@/lib/disposer';
 import { Skeleton } from '@/components/ui/skeleton';
 import ErrorBoundary from './ErrorBoundary';
 import NotFoundView from './routes/NotFoundView';
-import RouteStub from './routes/RouteStub';
 
 // Plan B9: the first dynamic route wired to a real view. `React.lazy` PER
 // ROUTE (not a static import) so the 404 shell's own static import graph
-// never statically carries a route view's whole dependency tree — the rest
-// still render RouteStub (a trivial static import) until their own Phase-2
-// issues land.
+// never statically carries a route view's whole dependency tree.
 const ExpenseDetailView = React.lazy(() => import('./routes/ExpenseDetailView'));
 /** Plan B10: the second dynamic route wired to a real view, same reasoning. */
 const ExpenseEditView = React.lazy(() => import('./routes/ExpenseEditView'));
@@ -18,13 +15,18 @@ const ExpenseEditView = React.lazy(() => import('./routes/ExpenseEditView'));
 const FriendDetailView = React.lazy(() => import('./routes/FriendDetailView'));
 /** Plan B12: the fourth dynamic route wired to a real view, same reasoning. */
 const GroupDetailView = React.lazy(() => import('./routes/GroupDetailView'));
+/** Plan B11b: the last two dynamic routes wired to real views, same reasoning. */
+const EventDetailView = React.lazy(() => import('./routes/EventDetailView'));
+const EventEditView = React.lazy(() => import('./routes/EventEditView'));
 
 /**
  * The router of the 404 app shell (spec D2, plan B2c). GitHub Pages serves
  * `dist/404.html` for every URL without a prerendered page; this island reads
  * `location.pathname` (minus Astro's base) and mounts the matching route
  * island. Mounted with `client:only="react"`, so `window` exists on first
- * render. Route islands replace RouteStub in Phase 2 (plans B8–B13).
+ * render. Every dynamic route family has its own lazily loaded view
+ * (plans B9–B13); the `switch` below is exhaustive over `RouteName`, so a new
+ * family fails `type-check` until it is wired.
  */
 function current(): RouteMatch {
   return matchRoute(window.location.pathname, import.meta.env.BASE_URL);
@@ -65,8 +67,22 @@ function routeContent(match: { name: Exclude<RouteName, 'not-found'>; id: string
           <GroupDetailView id={match.id} />
         </React.Suspense>
       );
-    default:
-      return <RouteStub route={match.name} id={match.id} />;
+    case 'event-detail':
+      return (
+        <React.Suspense fallback={<RouteFallback />}>
+          <EventDetailView id={match.id} />
+        </React.Suspense>
+      );
+    case 'event-edit':
+      return (
+        <React.Suspense fallback={<RouteFallback />}>
+          <EventEditView id={match.id} />
+        </React.Suspense>
+      );
+    default: {
+      const unhandled: never = match.name;
+      return unhandled;
+    }
   }
 }
 

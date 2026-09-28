@@ -1761,28 +1761,96 @@ resolves other users' names through `useProfiles` (B5a).
       is the one dependable keyboard path, the popup stays a hover/mouse quick preview only. Red test
       commit first (`fcb771b`), fixed green (`c25fcee`).
 ### B11b. Events islands (list, new, view, edit)
-- [ ] `events` is the JustSplit-local table (spec D10, B2/B3): list = `events where memberIds
-      array-contains uid`; creation writes `memberIds` (creator included — every other member an
-      accepted friend or a co-member of `?group=`, per the RLS membership mirror), `kind: 'event'`,
-      `preferredCurrency`, optional `groupId` from `?group=`, `createdBy`; event expenses =
-      `expenses where eventId == id` (B10 writes `eventId`; the adapter resolves it to
-      `extra->>'eventId'`)
-- [ ] List: sort by date/name/total with order toggle, date filter, per-event `EventTimeline`
-      (B11a), per-event total converted to the display currency (`CurrencySelector`, B16),
-      "Create event" button
-- [ ] Detail: `Editable` name (B16) → partial `repos.events.update` (description is static
-      today), `EventTimeline`, Settlement Progress `ProgressBar` (B16; `domain/timeline`
-      `calculateSettledPercentage`), total/unsettled stats and per-member balances over `splits[]`
-      in the display currency (default `event.preferredCurrency`), member names via `useProfiles`,
-      expense list with settled badges, "View Settlements" → `/settlements?event=<id>`,
-      "Add expense" → `/expenses/new?event=<id>` (B10), `ExportCsvButton` (B17a,
-      `<event.name>-expenses.csv`)
-- [ ] Participant picker = registered users only (see B13 ADR): accepted friends, or the group's
-      members when `?group=` is set; no free-text participant creation
-- [ ] Delete event: **not built** (no page calls `deleteEvent` today). If it is ever built:
-      `deleteDocument('events')` (RLS: creator), leaving its expenses with a dangling `eventId`
-      that lists ignore
-- [ ] Port `EventDetail.test.tsx` + `page.test.tsx` (EventList part)
+Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `eventId` is the real
+`event_id` column, every event member sees every expense of the event, and the foreign keys are
+`ON DELETE SET NULL`.
+- [x] `events` is the JustSplit-local table (spec D10, B2/B3): list = `useEvents(uid)` (`events where
+      memberIds array-contains uid`); creation writes `memberIds` (creator first, then friends — or,
+      with `?group=`, that group's members, because `events_insert` needs `member_ids ⊆ group`),
+      `kind: 'event'`, `preferredCurrency`, `groupId` from `?group=` (else `null`), `date` together
+      with `startDate`, `createdBy = uid` (`domain/events.ts#buildCreateEventInput`, its own test
+      coverage); `EventForm` (react-hook-form + `EventFormValuesSchema`, native date inputs so dates
+      render in the visitor's locale and the end date can be cleared) serves `/events/new` and
+      `/events/edit/<id>`. Event expenses are `repos.expenses.forEventFilters(id)` (the `event_id`
+      column since B2d) via `useEventExpenses` on the detail page; the list reads `useExpenses(uid)`
+      (every expense the viewer may see) and groups it by `eventId` (`expensesByEvent`) instead of
+      opening one subscription per event. Settlements for an event are filtered the same way
+      (`repos.settlements.forEventFilters`, shipped in B5a; these islands do not read them —
+      settling marks expenses `settledAt`, and B14 owns the settlements views).
+- [x] **Every figure is over ALL of the event's expenses and identical for every viewer** (ADR
+      0013): total, unsettled, count, settlement progress and per-member balances never use
+      `involvingUser`, and the tests assert the same text for two different viewers and that an
+      expense that does not name the viewer is counted.
+- [x] List (`EventsListIsland`, `/events/list`, `EventCard`): sort by date | name | total (each
+      starts in its natural order; undated events last; accent-insensitive names; stable ties) with
+      an order button that names the current order and what it switches to, a start-year filter
+      that offers only years that have an event, a polite live count, a display-currency
+      `CurrencySelector` (B16, seeded from the visitor's preference, never written back), the
+      per-event `EventTimeline` (B11a), the total and unsettled amount converted with their
+      currency code, a labelled settlement `ProgressBar`, a participants disclosure (`aria-expanded`,
+      `UserAvatar`), "View details" and a "New event" link present in every state. Loading is a
+      card-shaped skeleton (no jump), empty is "No events yet" with "Create your first event",
+      failure is an `ErrorState` whose Retry re-subscribes events and expenses and refetches the
+      profiles (`useLiveQuery`'s `isError`/`refetch`/`isRetrying` surfaced), and no converted number
+      or timeline is shown before the rates are ready.
+- [x] Detail (`EventDetailView`, `/events/<id>` through `AppRouterIsland`'s fifth and sixth
+      `React.lazy` boundaries): `Editable` name (B16) → partial `useUpdateEvent` (generic toast and
+      revert on failure), locale dates, `EventTimeline`, settlement `ProgressBar`
+      (`domain/events#eventStats`), a Summary with a display-currency selector seeded from
+      `event.preferredCurrency` (else the visitor's), total / unsettled / count, per-member balances
+      over `splits[]` on unsettled expenses (`eventBalances`; words "is owed" / "owes" / "settled
+      up", not colour alone; a former member who still has a balance is listed), names via
+      `useProfiles`, the expense list with text status badges and "(Originally: …)" captions,
+      "Add expense" → `/expenses/new?event=<id>` (B10), "Edit event" → `/events/edit/<id>`, "View
+      Settlements" → `/settlements?event=<id>` (**built by B14; this link may 404 until then, as
+      accepted**), `ExportCsvButton` (B17a, `<event.name>-expenses.csv`, all the event's expenses).
+      A missing or RLS-hidden id renders the shared `NotFoundView`; an expenses failure keeps the
+      header and replaces only the figures with an error + Retry.
+- [x] Edit (`EventEditView`, `/events/edit/<id>`): name, description, dates, currency and the
+      member list. Only ADDED members are checked, as accepted friends (or, for a group event, as
+      members of the group; `violatesAddedMembersRule` mirrors `guard_events`); an existing
+      non-friend member is listed, never blocks a save and can be removed; removing anyone locks
+      nothing (ADR 0013), and the form says who stops seeing what; the editor cannot untick
+      themselves (RLS needs the actor to remain a member). The patch is minimal
+      (`buildEventPatch`; `null` clears a column, an untouched event sends no request) and
+      validated by `EventPatchSchema` (strict: no `createdBy`/`groupId`/`kind`);
+      `repos.events.update` throws `EventNotFoundError` when the write matched no row.
+- [x] Participant picker = registered users only (see B13 ADR): accepted friends, or the group's
+      members when `?group=` is set; the creator is always included and locked; no free-text
+      participant creation (asserted absent). A `?group=` that resolves to nothing says so and
+      falls back to friends without writing a group. The group page (B12) gained a "New event"
+      link (`/events/new?group=<id>`), and the dashboard's "Create event" quick action is restored
+      (B8b dropped it for want of a page).
+- [x] Delete event: **not built** (no page calls `deleteEvent` today). If it is ever built:
+      `deleteDocument('events')` (RLS: creator), and the `ON DELETE SET NULL` foreign keys (ADR
+      0013, migration 011) unlink the event's expenses and settlements atomically — nothing
+      dangles, so no client-side ungroup/unlink step is needed.
+- [x] Port `EventDetail.test.tsx` + `page.test.tsx` (EventList part): `EventDetailView.test.tsx`
+      keeps "renders event details correctly" and "allows editing event name" on the real
+      `Editable`/`ProgressBar` (dropping the `AppContext`/`next/navigation`/`Timeline`/`Button`
+      mocks and the ISO-timestamp fixtures); `EventsListIsland.test.tsx` keeps "displays event
+      information correctly" (names, a details link per event, participant count — "Participants: 0"
+      was an artefact of a `members: []` fixture a real event cannot have, now "N participants").
+      Both headers list what was kept, changed and added. `/events/list` and `/events/new` are in
+      `scripts/axe-smoke.mjs`.
+- [x] B11a follow-ups: `EventTimeline`'s panel `onBlur` only closes when focus LEAVES the panel
+      (`relatedTarget` outside it); the three display-format timeline tests
+      (`formatTimelineDate`, both `formatDateRange` cases) pin `America/Mexico_City` themselves
+      (restoring `TZ`, deleting it when it was unset) — with `parseCalendarDate` forced back to a bare
+      `new Date()` all three now fail on a UTC machine, where before they stayed green.
+- [x] **Deviations and defects found against a real stack** (each its own red/green pair, listed in
+      the PR): (1) `EventSchema` rejected the `null` the relational adapter returns for an empty
+      column, so `repos.events.get` would have thrown for an event with no description or end date;
+      the same was true of expenses (`notes`/`category`/…), groups (`description`) and settlements
+      (`method`/`notes`/`transactionId`) — `/expenses/new` and `/groups/new` inserted the row and
+      then reported a failed save; a shared `optionalColumn()` reads null as absent. (2)
+      **No route island mounted `QueryProvider`**, so every data page threw "No QueryClient set" (each
+      island's tests mock their hooks); `AuthGate` now mounts it (one per page, shared idb key) once a
+      user is known and allowed. (3) `find_profiles_by_ids` refuses more than 200 ids and the list
+      resolves every member and payer at once, so `repos.profiles.byIds` chunks. (4) The seed's
+      group had a member role the app does not know. (5) With the events routes wired every dynamic
+      family has a real view, so `RouteStub` is deleted and the router's `switch` is exhaustive.
+      (6) `text-chart-2` failed axe `color-contrast` on the "is owed" status.
 ### B12. Groups islands (list, new, view) (`risk:high`)
 - [x] Decision (orchestrator; ADR 0002 amendment "group membership lifecycle"): routes match
       `/expenses`'s shape — `/groups/index.astro` redirects to `/groups/list` (`GroupsListIsland`,

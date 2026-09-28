@@ -1,5 +1,5 @@
 import type { QueryFilter } from '@cyber-eco/types';
-import { CreateEventInputSchema, EventSchema, type CreateEventInput, type Event } from '@/schemas/event';
+import { CreateEventInputSchema, EventPatchSchema, EventSchema, type CreateEventInput, type Event, type EventPatch } from '@/schemas/event';
 import { requireStorageAdapter } from '../require-adapter';
 
 /** `events` repo (plan B5a). JustSplit-local collection, not a universal `@cyber-eco/types` type (see `src/schemas/event.ts`). */
@@ -41,8 +41,30 @@ export async function create(input: CreateEventInput): Promise<Event> {
   return created;
 }
 
-export async function update(id: string, patch: Partial<Event>): Promise<Event | null> {
-  await requireStorageAdapter().updateDocument('events', id, patch);
+/**
+ * Thrown by `update()` when the write matched no row: the event was deleted, or
+ * RLS hides it from this user (this repo never distinguishes the two, same
+ * leaked-id reasoning as ADR 0002). `adapter.updateDocument` reports that as
+ * `success: false`, not as an exception.
+ */
+export class EventNotFoundError extends Error {
+  constructor(id: string) {
+    super(`repos.events: event "${id}" was not found`);
+    this.name = 'EventNotFoundError';
+  }
+}
+
+/**
+ * A partial patch, validated by `EventPatchSchema` (strict: no `createdBy`, no
+ * `groupId`/`kind`; `null` clears a column). Throws `EventNotFoundError` if the
+ * write matched no visible row instead of returning the untouched row as if it
+ * had worked. Membership rules for ADDED members are `guard_events`' job, not
+ * this repo's.
+ */
+export async function update(id: string, patch: EventPatch): Promise<Event | null> {
+  const parsed = EventPatchSchema.parse(patch);
+  const result = await requireStorageAdapter().updateDocument('events', id, parsed);
+  if (!result.success) throw new EventNotFoundError(id);
   return get(id);
 }
 

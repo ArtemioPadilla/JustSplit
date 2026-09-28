@@ -4,7 +4,7 @@
 
 `Accepted`
 
-Date: 2026-09-28 (spec D3; plan B5a)
+Date: 2026-09-28 (spec D3; plan B5a). Amended by plan B8b and plan B11b (below).
 
 ## Context
 
@@ -80,7 +80,8 @@ invalidating the affected non-live keys on success — a live key doesn't need
 invalidation (Realtime already pushes the new row to every open subscriber),
 but invalidation is the fallback for a page that isn't currently subscribed.
 
-**One `QueryProvider` per page,** mounted by the route island, with the
+**One `QueryProvider` per page,** mounted by the route island (concretely:
+by `AuthGate`, inside `RouteGuard` — B11b amendment below), with the
 single shared idb key `JUSTSPLIT_QUERY_IDB_KEY = 'justsplit:query'`
 (`src/lib/queryClient.ts`) — so a warm navigation to any route reuses
 collections fetched on another (Inceptor's default is one `QueryClient` per
@@ -245,6 +246,87 @@ error.
 | Supabase / the provider | A user stuck on a failing screen could otherwise hammer Retry, or a naive auto-retry could loop against a denied/rate-limited endpoint. | No automatic retry loop exists anywhere in this layering — retry is always a deliberate user click, and `useLiveQuery` bounds it to exactly one in-flight re-subscribe per click regardless of how many times the (disabled) button is clicked. |
 | Future contributors | The next person extending `StorageAdapter` (a new field, a new backend) has no prior written precedent for how to do that without touching the vendored interface. | The optional-trailing-parameter rule is written once, in `LiveQueryCallback`'s doc comment and here — the next extension is a documented pattern to follow, not a fresh design decision. |
 
+## Amendment (2026-09-28, plan B11b): provider placement, NULL columns, id-lookup chunking
+
+### Context
+
+B11b drove every island in a real browser against `supabase start` for the
+first time. That run found three data-layer defects which the mocked unit
+suites could not see, because they mock the hooks and the adapter:
+
+1. **No island mounted `QueryProvider`.** "Mounted by the route island"
+   (Decision, above) was never implemented. Every data page (`/`,
+   `/expenses/list`, `/groups/list`, `/friends`, …) threw "No QueryClient set"
+   on its first hook call.
+2. **The relational adapter returns `null` for an unset nullable column.**
+   Examples: an expense without `notes`, a group without `description`, an
+   event without `endDate`. The Zod read schemas declared those fields
+   `z.string().optional()`, which rejects `null`. As a result `repos.*.get()`
+   threw right after a successful insert. The form reported a failed save for
+   a row that had been written, and pressing Retry would have duplicated it.
+3. **`find_profiles_by_ids` refuses more than 200 ids per call** (migration
+   09). The events list resolves every member and payer of every visible
+   event in one call, so it could exceed that cap.
+
+### Decision
+
+- **`AuthGate` mounts the page's single `QueryProvider`**, keyed with
+  `JUSTSPLIT_QUERY_IDB_KEY` and placed inside `<RouteGuard>`. This makes
+  "mounted by the route island" concrete. Every route island and every
+  `AppRouterIsland` view renders exactly one `AuthGate`, so each page gets
+  exactly one provider. The provider exists only once a user is known and
+  allowed, so an anonymous, still-resolving or denied visitor never has the
+  device cache restored. Layout islands still never mount it
+  (`query-provider-boundary.test.ts`). The cache reset of ADR 0008 deletes
+  the same idb key. The test `AuthGate.query-client.test.tsx` pins all three
+  visitor states.
+- **Read schemas map `NULL` to "absent".** `optionalColumn()`
+  (`src/schemas/nullable-column.ts`) preprocesses `null` to `undefined`
+  before `z.string().optional()`. The inferred types are unchanged
+  (`string | undefined`, optional key), so no caller changes. **Write**
+  schemas are separate and keep `null` as the explicit way to clear a
+  column. For example, `EventPatchSchema` is strict with `.nullable()`
+  fields, so clearing an event's end date sends `endDate: null`.
+- **`repos.profiles.byIds` chunks** at 200 ids, runs the chunks in
+  parallel, and flattens the results. An empty list makes no call. The
+  server cap stays as it is: it bounds the work of a single request, and
+  the client adapts to it.
+- **`repos.events.update` validates its patch** with `EventPatchSchema`
+  before writing, and throws `EventNotFoundError` for a row the caller
+  cannot see. This follows the B9 and B12 convention that a silent 0-row
+  write is never reported as success.
+
+### Consequences
+
+**Positive**
+- The app works end to end for the first time.
+- A saved row is never reported as a failed save.
+- Large ledgers resolve every name.
+
+**Negative**
+- One provider per page means one `QueryClient` per page load. A
+  cross-page cache is possible only through the persisted idb snapshot
+  (this was always the design).
+- A narrow race remains on sign-out. An idb persist already in flight when
+  the provider unmounts could land after `clearPersistedQueryCache()`
+  deletes the key. The next sign-in then restores that stale snapshot only
+  until the first fetch, and RLS still decides what the new user can read.
+  This is recorded here and not engineered away.
+
+**Neutral**
+- The mocked suites could not see any of these defects. The follow-up is a
+  live smoke job in CI that drives the built `dist` against
+  `supabase start`. It is tracked as its own plan issue.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| End users | Before this amendment every data page failed, and a successful save could look failed, which invited a duplicate on retry. | The provider is mounted once per page. NULL columns read as absent. Save outcomes now match what was written. Each defect has a red→green test. |
+| Anonymous / denied visitors | A provider mounted above the guard would restore the device's persisted cache (another user's data on a shared device) before any access check. | The provider sits inside `RouteGuard`. The three visitor states are pinned by `AuthGate.query-client.test.tsx`. |
+| Users on shared devices | The sign-out persist race above could leave a stale snapshot. | ADR 0008's reset still deletes the key. The stale snapshot shows only until the first fetch. RLS remains the only authority over reads (CLAUDE.md rule 8). |
+| Supabase / the provider | Chunked id lookups send more requests for very large ledgers. | Each request stays within the server's own 200-id bound. Chunks are sent only when needed, and an empty list sends nothing. |
+
 ## Supersedes
 
 None.
@@ -262,6 +344,10 @@ None.
   `src/lib/data/hooks/useLiveQuery.ts` (`isError`/`error`/`refetch`/
   `isRetrying`), `src/components/islands/DashboardIsland.tsx` (the first
   consumer), and their `.test.ts(x)` files
+- B11b amendment: `src/components/islands/AuthGate.tsx` (+
+  `AuthGate.query-client.test.tsx`), `src/schemas/nullable-column.ts`,
+  `src/lib/data/repos/{profiles,events}.ts`, `src/schemas/event.ts`
+  (`EventPatchSchema`), and their tests
 - ADR 0002 (canonical schema and RLS), ADR 0011 (Supabase via the CyberEco
   data layer)
 - `cyber-eco/cybereco-hub`: `docs/design/schema-map-strategy.md`,

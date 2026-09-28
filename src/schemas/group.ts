@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalColumn } from './nullable-column';
 import type { AppRole, ExpenseGroup as UniversalExpenseGroup, ExpenseGroupMember as UniversalExpenseGroupMember } from '@cyber-eco/types';
 
 /**
@@ -31,7 +32,7 @@ export const ExpenseGroupSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string().optional(),
+    description: optionalColumn(),
     type: z.enum(['family', 'friends', 'community', 'organization', 'other']),
     currency: z.string(),
     members: z.array(ExpenseGroupMemberSchema),

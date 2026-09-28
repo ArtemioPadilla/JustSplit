@@ -21,12 +21,12 @@ export interface DashboardHeaderProps {
 }
 
 /**
- * Dashboard header (plan B8b, "Add expense" restored by plan B10): the
- * preferred-currency selector, a "Refresh rates" action, "Add expense", and
- * the all-expenses CSV export. The legacy "Create Event" quick-action link
- * stays dropped — `/events/new` is B11b, not shipped yet, and adding it now
- * would be a new dead link (the same reasoning that dropped both links in
- * B8b, now half-resolved).
+ * Dashboard header (plan B8b; "Add expense" restored by plan B10, "Create
+ * event" by plan B11b): the preferred-currency selector, a "Refresh rates"
+ * action, the two quick-action links the legacy component had, and the
+ * all-expenses CSV export. Both links were dropped in B8b because their pages
+ * did not exist yet (a dead link on the landing view of the app), and came
+ * back as each page landed.
  */
 export function DashboardHeader({ expenses, users, events, currency, onCurrencyChange, onRefreshRates }: DashboardHeaderProps) {
   return (
@@ -40,6 +40,10 @@ export function DashboardHeader({ expenses, users, events, currency, onCurrencyC
         <a href={withBase('/expenses/new')} className={cn(buttonVariants({ variant: 'default' }))}>
           <PlusIcon aria-hidden="true" className="size-4" />
           Add expense
+        </a>
+        <a href={withBase('/events/new')} className={cn(buttonVariants({ variant: 'outline' }))}>
+          <PlusIcon aria-hidden="true" className="size-4" />
+          Create event
         </a>
         <ExportCsvButton
           expenses={expenses}

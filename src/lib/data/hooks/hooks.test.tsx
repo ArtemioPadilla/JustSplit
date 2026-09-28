@@ -67,6 +67,8 @@ vi.mock('../repos/profiles', () => profilesRepo);
 const eventsRepo = {
   forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
   get: vi.fn(async (id: string) => ({ id, name: 'Trip' })),
+  create: vi.fn(async (input: unknown) => ({ id: 'ev1', ...(input as object) })),
+  update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
 };
 vi.mock('../repos/events', () => eventsRepo);
 
@@ -78,6 +80,8 @@ const { useExpense } = await import('./useExpense');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
 const { useEvent } = await import('./useEvent');
+const { useCreateEvent } = await import('./useCreateEvent');
+const { useUpdateEvent } = await import('./useUpdateEvent');
 const { useCreateExpense } = await import('./useCreateExpense');
 const { useUpdateExpense } = await import('./useUpdateExpense');
 const { useDeleteExpense } = await import('./useDeleteExpense');
@@ -649,5 +653,49 @@ describe('useAttachEventsToGroup (plan B12)', () => {
     await waitFor(() => expect(mutateResult).toEqual({ attached: ['ev1'], skipped: [] }));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups', 'g1'] });
+  });
+});
+
+describe('useCreateEvent (plan B11b)', () => {
+  it('calls repos.events.create and invalidates the events keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useCreateEvent();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ name: 'Cancun' } as never).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(eventsRepo.create).toHaveBeenCalledWith({ name: 'Cancun' }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'ev1', name: 'Cancun' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
+  });
+});
+
+describe('useUpdateEvent (plan B11b — the detail rename and the edit form share this mutation)', () => {
+  it('calls repos.events.update with the partial patch and invalidates the events keys (list, group and detail share the prefix)', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useUpdateEvent();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'ev1', patch: { name: 'Renamed' } }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(eventsRepo.update).toHaveBeenCalledWith('ev1', { name: 'Renamed' }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'ev1', name: 'Renamed' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
   });
 });

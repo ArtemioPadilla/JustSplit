@@ -23,6 +23,13 @@ describe('SettlementSchema (plan B3)', () => {
     expect(SettlementSchema.parse({ ...validSettlement, eventId: null }).eventId).toBeNull();
   });
 
+  it('parses a row whose nullable columns (method, notes, transactionId) are null, reading them as absent', () => {
+    const parsed = SettlementSchema.parse({ ...validSettlement, method: null, notes: null, transactionId: null });
+    expect(parsed.method).toBeUndefined();
+    expect(parsed.notes).toBeUndefined();
+    expect(parsed.transactionId).toBeUndefined();
+  });
+
   it('accepts the JustSplit-only overflow fields expenseIds/eventId', () => {
     const parsed = SettlementSchema.parse({
       ...validSettlement,
