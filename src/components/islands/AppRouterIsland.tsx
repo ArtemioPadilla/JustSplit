@@ -8,10 +8,12 @@ import RouteStub from './routes/RouteStub';
 
 // Plan B9: the first dynamic route wired to a real view. `React.lazy` PER
 // ROUTE (not a static import) so the 404 shell's own static import graph
-// never statically carries a route view's whole dependency tree — only
-// `expense-detail` has one so far; the rest still render RouteStub (a
-// trivial static import) until their own Phase-2 issues land.
+// never statically carries a route view's whole dependency tree — the rest
+// still render RouteStub (a trivial static import) until their own Phase-2
+// issues land.
 const ExpenseDetailView = React.lazy(() => import('./routes/ExpenseDetailView'));
+/** Plan B10: the second dynamic route wired to a real view, same reasoning. */
+const ExpenseEditView = React.lazy(() => import('./routes/ExpenseEditView'));
 
 /**
  * The router of the 404 app shell (spec D2, plan B2c). GitHub Pages serves
@@ -39,6 +41,12 @@ function routeContent(match: { name: Exclude<RouteName, 'not-found'>; id: string
       return (
         <React.Suspense fallback={<RouteFallback />}>
           <ExpenseDetailView id={match.id} />
+        </React.Suspense>
+      );
+    case 'expense-edit':
+      return (
+        <React.Suspense fallback={<RouteFallback />}>
+          <ExpenseEditView id={match.id} />
         </React.Suspense>
       );
     default:
