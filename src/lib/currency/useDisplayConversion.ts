@@ -34,13 +34,19 @@ export function useDisplayConversion(currencies: string[]): DisplayConversion {
   const [ready, setReady] = React.useState(false);
   const [nonce, setNonce] = React.useState(0);
 
+  // `currencies` is a plain array rebuilt every render by the caller — its
+  // joined value is the real identity for the memo/effect below. Computed as
+  // a plain identifier (not inline in a dependency array): the
+  // react-hooks/use-memo lint rule requires dependency-array entries to be
+  // simple expressions, not call expressions like `.join(',')`.
+  const currenciesKey = currencies.join(',');
+
   const distinct = React.useMemo(
     () => Array.from(new Set(currencies)).filter((code) => code !== target).sort(),
-    // `currencies` is a plain array rebuilt every render by the caller; its
-    // joined value is the real identity for this memo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currencies.join(','), target],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currenciesKey is currencies' real identity
+    [currenciesKey, target],
   );
+  const distinctKey = distinct.join(',');
 
   React.useEffect(() => {
     let cancelled = false;
@@ -66,10 +72,10 @@ export function useDisplayConversion(currencies: string[]): DisplayConversion {
     return () => {
       cancelled = true;
     };
-    // `distinct` is a fresh array each render; its joined value + `nonce`
+    // `distinct` is a fresh array each render; `distinctKey` + `nonce`
     // (bumped by `refresh()`) are the real dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [distinct.join(','), target, nonce]);
+  }, [distinctKey, target, nonce]);
 
   const convert = React.useCallback(
     (amount: number, currency: string) => {

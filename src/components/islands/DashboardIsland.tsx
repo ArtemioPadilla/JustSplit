@@ -74,9 +74,12 @@ function DashboardContent() {
   const eventsQuery = useEvents(uid);
   const settlementsQuery = useSettlements(uid);
 
-  const expenses = expensesQuery.data ?? [];
-  const events = eventsQuery.data ?? [];
-  const settlements = settlementsQuery.data ?? [];
+  // Memoized (not a bare `?? []`): the fallback array literal would
+  // otherwise get a fresh identity every render, defeating the useMemos
+  // below that depend on `expenses`/`settlements`.
+  const expenses = React.useMemo(() => expensesQuery.data ?? [], [expensesQuery.data]);
+  const events = React.useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+  const settlements = React.useMemo(() => settlementsQuery.data ?? [], [settlementsQuery.data]);
   const dataLoading = expensesQuery.data === undefined || eventsQuery.data === undefined || settlementsQuery.data === undefined;
 
   const currencies = React.useMemo(() => expenses.map((expense) => expense.currency), [expenses]);
