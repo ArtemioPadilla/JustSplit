@@ -28,7 +28,24 @@ import { $authReady, $profile, $user } from '@/stores/session';
 function stubLocationAssign() {
   const real = window.location;
   const assign = vi.fn();
-  Object.defineProperty(window, 'location', { configurable: true, value: { ...real, assign } });
+  // Live getters over the real location (not a frozen spread copy): `?group=` is read
+  // from `location.search` at mount, so `history.replaceState` in each test must stay visible.
+  const stub = {
+    assign,
+    get search() {
+      return real.search;
+    },
+    get pathname() {
+      return real.pathname;
+    },
+    get href() {
+      return real.href;
+    },
+    get hash() {
+      return real.hash;
+    },
+  };
+  Object.defineProperty(window, 'location', { configurable: true, value: stub });
   return {
     assign,
     restore: () => Object.defineProperty(window, 'location', { configurable: true, value: real }),
@@ -173,7 +190,7 @@ describe('EventForm — create: who can be picked (registered users only)', () =
     window.history.replaceState(null, '', '/events/new?group=g1');
     useGroup.mockReturnValue({ data: makeGroup({ currency: 'EUR' }), isLoading: false, isSuccess: true, isError: false, refetch: vi.fn() });
     render(<EventForm mode="create" />);
-    expect(screen.getByText(/roommates/i, { selector: 'p, span' })).toBeInTheDocument();
+    expect(screen.getByText('Roommates', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^currency/i)).toHaveValue('EUR');
   });
 
