@@ -201,6 +201,26 @@ describe('DashboardIsland', () => {
     },
   );
 
+  it(
+    'points to the FeedbackFAB by name for a failure that keeps happening, without inventing a support ' +
+      'channel or leaking cause (orchestrator review, plan B8b)',
+    async () => {
+      useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('permission denied for table expenses'), isRetrying: false, refetch: vi.fn() });
+
+      render(<DashboardIsland />);
+      emit(USER);
+
+      const alert = await screen.findByRole('alert');
+      // Names the FeedbackFAB's actual accessible label (BaseLayout renders
+      // it lang="en" by default — "Report an issue"), not an invented email
+      // or support channel.
+      expect(alert).toHaveTextContent(/report an issue/i);
+      expect(alert).not.toHaveTextContent(/@|support@|mailto/i);
+      expect(alert).not.toHaveTextContent(/permission denied/i);
+      expect(alert).not.toHaveTextContent(/SQL|policy/i);
+    },
+  );
+
   it('never shows a permanent skeleton for a query error (dataLoading alone must not mask isError)', async () => {
     // data stays undefined (as a real failed live query leaves it) AND isError is true —
     // the old `dataLoading` check alone would have shown a skeleton forever here.
