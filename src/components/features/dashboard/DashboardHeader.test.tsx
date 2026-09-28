@@ -9,12 +9,12 @@ import { DashboardHeader } from './DashboardHeader';
 /**
  * Ported from `Dashboard/__tests__/DashboardHeader.test.tsx` (plan B8b), but
  * substantially rewritten:
- *   - the "Add Expense"/"Create Event" quick-action links are DROPPED — the
- *     legacy component linked `/expenses/new`/`/events/new`, which are B10/
- *     B11b's pages and do not exist yet on this tree; adding the links now
- *     would be new dead links, same reasoning B6 already applied to the
- *     header nav (WelcomeScreen, whose CTAs are the decided exception, is
- *     the dashboard's OWN empty state, not this always-visible header);
+ *   - the "Add Expense"/"Create Event" quick-action links were DROPPED in B8b
+ *     (the legacy component linked `/expenses/new`/`/events/new`, which did not
+ *     exist yet — new dead links, the same reasoning B6 applied to the header
+ *     nav) and are RESTORED as their pages land: "Add expense" in B10, "Create
+ *     event" in B11b (WelcomeScreen, the dashboard's OWN empty state, always
+ *     had both);
  *   - `exportExpensesToCSV` -> the shared `ExportCsvButton` (B17a);
  *   - the legacy `CurrencySelector`'s baked-in refresh button/`isConverting`
  *     toggle -> the B16 `CurrencySelector` (`value`/`onChange` only) plus a
@@ -102,7 +102,7 @@ describe('DashboardHeader', () => {
     expect(screen.getByRole('link', { name: /add expense/i })).toHaveAttribute('href', '/expenses/new');
   });
 
-  it('still does not render "Create event" (/events/new is plan B11b, not shipped yet)', () => {
+  it('renders a "Create event" link to /events/new now that plan B11b shipped it (the legacy quick action, restored like "Add expense" was in B10)', () => {
     render(
       <DashboardHeader
         expenses={[]}
@@ -113,6 +113,6 @@ describe('DashboardHeader', () => {
         onRefreshRates={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('link', { name: /create event/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create event/i })).toHaveAttribute('href', '/events/new');
   });
 });
