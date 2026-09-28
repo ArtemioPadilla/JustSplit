@@ -143,7 +143,7 @@ names and avatars are reachable only through the two lookup functions.
 
 Building the groups islands (list, new, view; `risk:high` because it adds
 `expense_groups` write paths — create, member management, attach, delete —
-over `src/lib/data/repos/groups.ts`) surfaced three consequences of this
+over `src/lib/data/repos/groups.ts`) surfaced four consequences of this
 ADR's own schema/RLS choices that were previously only latent:
 
 1. **Removing a member can make existing rows uneditable forever.**
@@ -169,6 +169,20 @@ ADR's own schema/RLS choices that were previously only latent:
    deletes the group can report `{ success: true }` from `batch_write`
    while the group row is still there — "the RPC didn't error" is never
    proof the delete actually happened.
+4. **`repos.groups.remove`'s preflight and its ungrouping batch only ever
+   see the rows the acting admin can READ** — `expenses_select`/
+   `events_select` are `uid = any(member_ids)`, so `listForGroup(id)`
+   silently returns a SUBSET of the group's true row set whenever a group
+   row's `member_ids` doesn't include the admin doing the deleting. Such a
+   row would be neither preflight-checked, nor ungrouped, nor even known
+   about by the batch — it keeps its `group_id` pointing at a now-deleted
+   group. Its own `expenses_update`/`events_update` group branch
+   (`exists (select 1 from public.expense_groups g where g.id =
+   expenses.group_id and …)`) then fails for EVERYONE, since the group row
+   no longer exists — the same "uneditable forever" failure mode as
+   consequence 1, reached a different way, and NOT closed by this
+   amendment's member-removal preflight (that preflight only guards
+   `MembersSection`'s own Remove action, not this).
 
 Separately, `group.totalExpenses` (this ADR's own `expense_groups` column,
 carried into the universal `ExpenseGroup`) has no writer that keeps it in
@@ -268,6 +282,25 @@ amendment encodes client-side already existed in
 `db/migrations/20260928000004_rls_policies.sql`/`…000005_guard_triggers.sql`/
 `…000008_batch_write.sql` before this issue.
 
+**Known limitation, recorded honestly (context item 4, coordinator
+review)** — a group row whose `member_ids` doesn't include the acting
+admin survives `repos.groups.remove` with its `group_id` still pointing
+at the now-deleted group, permanently unreachable by the group-branch
+update check. **This cannot arise through the app today**: B10's create
+and this issue's own `attachExpenses`/`attachEvents` always write
+`memberIds: group.memberIds` (so a group row's members are always a
+subset of the group's, never a superset that could exclude an admin),
+`MembersSection`'s removal preflight blocks removing a member still on
+any group row, and `guard_expense_groups` only lets an admin add a member
+who is already added TO the group's own `member_ids` — an admin cannot
+be silently absent from a row that still legitimately belongs to their
+own group's membership. **It could arise from a direct API write**
+(a hand-crafted `insert`/`update` bypassing this app's own repos, or a
+future caller that doesn't maintain the `memberIds ⊆ group.memberIds`
+invariant) — accepted as a narrow, unclosed gap rather than silently
+assumed impossible; see the open schema question below for the shape
+that would close it for real.
+
 ### Stakeholder Analysis (new rows, this amendment)
 
 | Stakeholder | Impact | Mitigation |
@@ -279,10 +312,12 @@ amendment encodes client-side already existed in
 
 ### Open schema question (not decided here)
 
-This amendment's member-removal lockout and B10's own addendum's
+This amendment's member-removal lockout, its own context item 4 (a group
+row invisible to the deleting admin surviving that group's deletion,
+recorded as a known limitation above), and B10's own addendum's
 event-visibility limitation (`docs/decisions/0005-supabase-storage-images.md`,
 "Amendment (2026-09-28, plan B10 coordinator review): event participant
-resolution, the edit gap, and a known limitation") are two faces of the
+resolution, the edit gap, and a known limitation") are three faces of the
 SAME open question for the schema's eventual owner: **this design has no
 way to say "this row belongs to this membership set at write time" that
 survives the membership set changing later** — `member_ids`-based RLS
@@ -303,7 +338,12 @@ neither implemented, by this amendment or B10's):
   this graph, which the current design has nowhere (spec D9's overflow
   keys and `member_ids` denormalisation were both chosen specifically to
   avoid needing them — revisiting that trade-off is itself part of the
-  question, not a foregone conclusion).
+  question, not a foregone conclusion). A `group_id` foreign key with
+  `ON DELETE SET NULL` specifically would close context item 4 outright —
+  a deleted group could no longer leave any row pointing at it, visible or
+  not to whoever did the deleting, without this amendment's own
+  read-then-ungroup client-side choreography having to be correct or
+  complete in the first place.
 
 ## Supersedes
 
