@@ -322,6 +322,8 @@ describe('EventsListIsland — per-event figures (ADR 0013: every expense of the
     const idsPerCall = calls.map((props) => props.expenses.map((e) => e.id).sort().join(','));
     expect(idsPerCall).toEqual(expect.arrayContaining(['x1,x2,x3', 'x4', '']));
     expect(new Set(calls.map((props) => props.currency))).toEqual(new Set(['USD']));
+    // No per-expense settled state exists on the ledger (ADR 0014): the timeline must not invent one.
+    expect(calls.every((props) => (props as unknown as { showSettlementStatus?: boolean }).showSettlementStatus === false)).toBe(true);
   });
 
   it('shows the date range in the visitor\'s locale, a single date without an end, and "No dates set" for an undated event', () => {

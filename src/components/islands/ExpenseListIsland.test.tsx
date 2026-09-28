@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
@@ -203,9 +203,27 @@ describe('ExpenseListIsland', () => {
     expect(screen.getByText('Taxi')).toBeInTheDocument();
     expect(screen.getAllByText('Ana').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Team Trip' })).toHaveAttribute('href', '/events/ev1');
-    expect(screen.getByText('Settled')).toBeInTheDocument();
-    expect(screen.getByText('Unsettled')).toBeInTheDocument();
+    // Only the legacy (imported) settledAt row earns a badge; nothing else is derivable per expense (ADR 0014).
+    expect(screen.getAllByText('Settled')).toHaveLength(1);
+    expect(within(screen.getByText('Taxi').closest('tr')!).getByText('Settled')).toBeInTheDocument();
+    expect(within(screen.getByText('Dinner').closest('tr')!).queryByText(/settled/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsettled')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Dinner' })).toHaveAttribute('href', '/expenses/e1');
+  });
+
+  it('has no Status column when no expense carries a legacy settledAt (a column of blanks would say nothing)', async () => {
+    useExpenses.mockReturnValue({
+      data: [makeExpense({ id: 'e1', description: 'Dinner', amount: 50, paidBy: 'u1', date: '2026-05-10' })],
+    });
+    useEvents.mockReturnValue({ data: [] });
+    useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+
+    render(<ExpenseListIsland />);
+    emit(USER);
+
+    expect(await screen.findByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /status/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/settled/i)).not.toBeInTheDocument();
   });
 
   it('shows the "(Originally: …)" caption only when the expense currency differs from the display currency', async () => {

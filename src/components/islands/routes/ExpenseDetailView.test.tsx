@@ -180,6 +180,22 @@ describe('ExpenseDetailView', () => {
     expect(screen.getAllByText(/100\.00/).length).toBeGreaterThan(0);
   });
 
+  it('shows no settled state for an expense without a legacy settledAt (nothing per-expense is derivable from the ledger, ADR 0014)', async () => {
+    useExpense.mockReturnValue({
+      data: makeExpense({ id: 'e1', description: 'Tacos', amount: 100, paidBy: 'u1', date: '2026-05-10', splits: [{ userId: 'u1', amount: 100 }], settledAt: null }),
+      isLoading: false,
+      isError: false,
+    });
+    useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+
+    render(<ExpenseDetailView id="e1" />);
+    emit(USER);
+
+    expect(await screen.findByText('Tacos')).toBeInTheDocument();
+    expect(screen.queryByText('Settled')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsettled')).not.toBeInTheDocument();
+  });
+
   it(
     'editing the description commits a partial update via useUpdateExpense',
     async () => {

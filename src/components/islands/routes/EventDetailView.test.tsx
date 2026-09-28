@@ -545,6 +545,8 @@ describe('EventDetailView — expenses, timeline, links', () => {
       expect(props.currency).toBe('USD');
       expect(props.users).toMatchObject({ u1: 'Ana', u2: 'Beto', u3: 'Caro' });
       expect(props.event).toMatchObject({ startDate: '2025-01-01', endDate: '2025-01-10' });
+      // No per-expense settled state exists on the ledger (ADR 0014): the timeline must not invent one.
+      expect((props as unknown as { showSettlementStatus?: boolean }).showSettlementStatus).toBe(false);
 
       screen.getByTestId('event-timeline').click();
       expect(assign).toHaveBeenCalledWith('/expenses/exp1');

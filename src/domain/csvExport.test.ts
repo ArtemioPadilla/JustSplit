@@ -62,8 +62,20 @@ describe('expensesToCSV', () => {
     expect(dataRow).toContain('Alice');
     expect(dataRow).toContain('Alice, Bob');
     expect(dataRow).toContain('Trip');
-    expect(dataRow).toContain('Unsettled');
+    // Plan B14a (ADR 0014): no per-expense status can be derived honestly from a ledger, so the cell is empty.
+    expect(dataRow).not.toContain('Unsettled');
+    expect(dataRow).toContain('"Trip","","Test notes"');
     expect(dataRow).toContain('Test notes');
+  });
+
+  it('writes "Settled" only for a legacy (imported) settledAt, and an empty status otherwise', () => {
+    const legacy = makeExpense({ description: 'Old', amount: 10, paidBy: 'user1', participantIds: ['user1'], settledAt: '2023-01-02T00:00:00.000Z' });
+    const live = makeExpense({ description: 'New', amount: 10, paidBy: 'user1', participantIds: ['user1'] });
+    const rows = expensesToCSV([legacy, live], [{ id: 'user1', name: 'Alice' }], []).split('\n');
+    expect(rows[1]).toContain('"Settled"');
+    expect(rows[2]).not.toMatch(/settled/i);
+    // The header keeps its shape: an empty cell, not a removed column.
+    expect(rows[2]!.split('","')).toHaveLength(rows[0]!.split(',').length);
   });
 
   it('handles unknown users and events gracefully', () => {
