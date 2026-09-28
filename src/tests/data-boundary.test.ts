@@ -49,10 +49,29 @@ describe('data-layer import boundary (CLAUDE.md rule 7)', () => {
   });
 });
 
-/** Argument text of every `new SupabaseStorageAdapter(…)` call in `src`. */
-export function storageAdapterCalls(src: string): string[] {
+/**
+ * Argument text of every `new SupabaseStorageAdapter(…)` /
+ * `new RelationalSupabaseAdapter(…)` call in `src`. Both are covered by the
+ * same scanner (plan B5a): the upstream document-mode adapter (rule 9 as
+ * originally written) AND the contingency relational adapter
+ * (`src/lib/data/relational-adapter.ts`) — neither may ever be constructed
+ * without a `schemaMap`, since a `schemaMap`-less `SupabaseStorageAdapter`
+ * falls back to document mode (owner-only RLS, forbidden for shared data by
+ * spec D10) and a `schemaMap`-less `RelationalSupabaseAdapter` doesn't even
+ * type-check (its config is required) — this is the defense-in-depth,
+ * source-level guard for both.
+ */
+const STORAGE_ADAPTER_CLASS_RE = /SupabaseStorageAdapter|RelationalSupabaseAdapter/.source;
+
+/** Strips `/** ... *\/`-style block comments so a doc-comment mention (e.g. an example call) never counts as real code. */
+function stripBlockComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+export function storageAdapterCalls(rawSrc: string): string[] {
+  const src = stripBlockComments(rawSrc);
   const calls: string[] = [];
-  for (const m of src.matchAll(/new\s+SupabaseStorageAdapter\s*(?:<[^>]*>)?\s*\(/g)) {
+  for (const m of src.matchAll(new RegExp(`new\\s+(?:${STORAGE_ADAPTER_CLASS_RE})\\s*(?:<[^>]*>)?\\s*\\(`, 'g'))) {
     let depth = 1;
     let i = m.index! + m[0].length;
     const start = i;
@@ -71,19 +90,26 @@ describe('storage adapter construction (CLAUDE.md rule 9)', () => {
 
   it('the scanner extracts nested argument lists', () => {
     const src = `a = new SupabaseStorageAdapter(() => client, { table: 'documents' });
-      b = new SupabaseStorageAdapter(() => getClient(), { schemaMap: build({ x: 1 }) });`;
+      b = new SupabaseStorageAdapter(() => getClient(), { schemaMap: build({ x: 1 }) });
+      c = new RelationalSupabaseAdapter(() => getClient(), { schemaMap });`;
     expect(storageAdapterCalls(src)).toEqual([
       "() => client, { table: 'documents' }",
       '() => getClient(), { schemaMap: build({ x: 1 }) }',
+      '() => getClient(), { schemaMap }',
     ]);
   });
 
-  it('never constructs the upstream SupabaseStorageAdapter without a schemaMap', () => {
+  it('never constructs SupabaseStorageAdapter or RelationalSupabaseAdapter without a schemaMap', () => {
     for (const file of dataFiles) {
       for (const args of storageAdapterCalls(readFileSync(file, 'utf8'))) {
-        expect(args, `${relative(ROOT, file)}: document-mode SupabaseStorageAdapter`).toMatch(/\bschemaMap\b/);
+        expect(args, `${relative(ROOT, file)}: storage adapter constructed without a schemaMap`).toMatch(/\bschemaMap\b/);
       }
     }
+  });
+
+  it('adapter.ts actually constructs a storage adapter (guards against a vacuous pass, plan B5a)', () => {
+    const src = readFileSync(resolve(DATA, 'adapter.ts'), 'utf8');
+    expect(storageAdapterCalls(src).length).toBeGreaterThan(0);
   });
 
   it('adapter.ts is the only file that imports @cyber-eco/supabase', () => {
