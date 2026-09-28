@@ -28,10 +28,15 @@ export interface DisplayConversion {
  * (unconverted) fallback value even when called too early, so a caller that
  * forgets to gate on `ready` degrades to "wrong number" rather than a crash.
  */
+interface ResolvedRates {
+  /** The exact request these rates answer — see `currentKey` below. */
+  key: string;
+  rates: Record<string, { rate: number; isFallback: boolean }>;
+}
+
 export function useDisplayConversion(currencies: string[]): DisplayConversion {
   const target = useStore($preferredCurrency);
-  const [rates, setRates] = React.useState<Record<string, { rate: number; isFallback: boolean }>>({});
-  const [ready, setReady] = React.useState(false);
+  const [resolved, setResolved] = React.useState<ResolvedRates | null>(null);
   const [nonce, setNonce] = React.useState(0);
 
   // `currencies` is a plain array rebuilt every render by the caller — its
@@ -48,16 +53,28 @@ export function useDisplayConversion(currencies: string[]): DisplayConversion {
   );
   const distinctKey = distinct.join(',');
 
+  // Coordinator review fix: identifies exactly which request `resolved`
+  // answers. `ready`/`rates` below are derived from comparing this to
+  // `resolved.key` DURING RENDER — never from a separate `ready` state flag
+  // set later by the effect. The bug this replaces: `target`/`distinct` can
+  // change on a render that commits BEFORE the effect (which only runs
+  // after that commit) gets a chance to invalidate the old `ready`/`rates`
+  // state, so for one render `ready` read `true` while `rates` still held
+  // the PREVIOUS target's numbers — `convert` then silently multiplied by
+  // the wrong rate under the new currency's label. Keying `resolved` and
+  // comparing it to `currentKey` on every render closes that window
+  // entirely: a render with a new `currentKey` is `ready: false`
+  // immediately, with no dependency on effect timing.
+  const currentKey = `${target}|${distinctKey}|${nonce}`;
+
   React.useEffect(() => {
     let cancelled = false;
 
     if (distinct.length === 0) {
-      setRates({});
-      setReady(true);
+      setResolved({ key: currentKey, rates: {} });
       return undefined;
     }
 
-    setReady(false);
     Promise.all(
       distinct.map(async (code) => {
         const result = await fetchExchangeRate(code, target);
@@ -65,23 +82,27 @@ export function useDisplayConversion(currencies: string[]): DisplayConversion {
       }),
     ).then((entries) => {
       if (cancelled) return;
-      setRates(Object.fromEntries(entries));
-      setReady(true);
+      setResolved({ key: currentKey, rates: Object.fromEntries(entries) });
     });
 
     return () => {
       cancelled = true;
     };
-    // `distinct` is a fresh array each render; `distinctKey` + `nonce`
-    // (bumped by `refresh()`) are the real dependencies.
+    // `distinct`/`target` fold into `currentKey`, the real dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [distinctKey, target, nonce]);
+  }, [currentKey]);
+
+  const ready = resolved?.key === currentKey;
+  // Memoized (not a bare ternary): an inline `{}` fallback would get a new
+  // identity every render while `!ready`, defeating the `useCallback` below.
+  const emptyRates = React.useMemo(() => ({}), []);
+  const rates = ready ? resolved!.rates : emptyRates;
 
   const convert = React.useCallback(
     (amount: number, currency: string) => {
       if (currency === target) return amount;
-      const resolved = rates[currency];
-      return resolved ? amount * resolved.rate : amount;
+      const rate = rates[currency];
+      return rate ? amount * rate.rate : amount;
     },
     [rates, target],
   );
