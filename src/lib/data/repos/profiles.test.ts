@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Plan B5a: `profiles` is not a SchemaMap collection (spec D10) — cross-user
@@ -9,6 +9,10 @@ const rpcMock = vi.fn();
 vi.mock('../client', () => ({ rpc: rpcMock }));
 
 const profiles = await import('./profiles');
+
+beforeEach(() => {
+  rpcMock.mockClear();
+});
 
 describe('repos.profiles', () => {
   it('byEmail calls find_profile_by_email and returns the first row, or null', async () => {
