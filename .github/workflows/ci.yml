@@ -50,6 +50,18 @@ jobs:
       # body changes in B1 (Astro tree); its name never does — CLAUDE.md.
       - name: Check (lint, type-check, test, build)
         run: npm run check
+      # ---------------------------------------------------------------------
+      # Accessibility smoke (plan B6): deliberately its own step, not part of
+      # `npm run check` above — see scripts/axe-smoke.mjs's header comment
+      # for why (same reasoning CLAUDE.md already applies to `test:rls`).
+      # Runs against the dist/ the `check` step above just built. This
+      # sandbox's preinstalled Chromium (/opt/pw-browsers/chromium) doesn't
+      # exist on a GitHub-hosted runner, so install one here first.
+      # ---------------------------------------------------------------------
+      - name: Install Chromium for the accessibility smoke check
+        run: npx playwright-core install --with-deps chromium
+      - name: Accessibility smoke (axe-core)
+        run: npm run check:a11y
 
   # ---------------------------------------------------------------------------
   # RLS suite (plan B2b): the dbmate migrations applied to a real local
