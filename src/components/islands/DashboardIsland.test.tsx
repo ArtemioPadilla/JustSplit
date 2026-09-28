@@ -114,10 +114,10 @@ beforeEach(() => {
   replace.mockClear();
   Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, replace } });
 
-  useExpenses.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
-  useEvents.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
-  useSettlements.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
-  useProfiles.mockReturnValue({ data: [], isError: false, error: null, refetch: vi.fn() });
+  useExpenses.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: vi.fn() });
+  useEvents.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: vi.fn() });
+  useSettlements.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: vi.fn() });
+  useProfiles.mockReturnValue({ data: [], isError: false, error: null, isFetching: false, refetch: vi.fn() });
 });
 
 afterEach(() => {
@@ -204,7 +204,7 @@ describe('DashboardIsland', () => {
   it('never shows a permanent skeleton for a query error (dataLoading alone must not mask isError)', async () => {
     // data stays undefined (as a real failed live query leaves it) AND isError is true —
     // the old `dataLoading` check alone would have shown a skeleton forever here.
-    useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), refetch: vi.fn() });
+    useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), isRetrying: false, refetch: vi.fn() });
 
     render(<DashboardIsland />);
     emit(USER);
@@ -212,5 +212,56 @@ describe('DashboardIsland', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.queryByText(/no expenses or events yet/i)).not.toBeInTheDocument();
     expect(document.querySelector('[aria-busy="true"]')).not.toBeInTheDocument();
+  });
+
+  it(
+    'clicking Retry calls refetch on every query (expenses, events, settlements, profiles) ' +
+      '(orchestrator review, plan B8b)',
+    async () => {
+      const refetchExpenses = vi.fn();
+      const refetchEvents = vi.fn();
+      const refetchSettlements = vi.fn();
+      const refetchProfiles = vi.fn();
+      useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), isRetrying: false, refetch: refetchExpenses });
+      useEvents.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: refetchEvents });
+      useSettlements.mockReturnValue({ data: undefined, isError: false, error: null, isRetrying: false, refetch: refetchSettlements });
+      useProfiles.mockReturnValue({ data: [], isError: false, error: null, isFetching: false, refetch: refetchProfiles });
+
+      render(<DashboardIsland />);
+      emit(USER);
+
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: /retry/i }));
+
+      expect(refetchExpenses).toHaveBeenCalledTimes(1);
+      expect(refetchEvents).toHaveBeenCalledTimes(1);
+      expect(refetchSettlements).toHaveBeenCalledTimes(1);
+      expect(refetchProfiles).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it(
+    'disables Retry with aria-busy while any query reports isRetrying/isFetching (orchestrator review, plan B8b)',
+    async () => {
+      useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), isRetrying: true, refetch: vi.fn() });
+
+      render(<DashboardIsland />);
+      emit(USER);
+
+      const retryButton = await screen.findByRole('button', { name: /retry/i });
+      expect(retryButton).toBeDisabled();
+      expect(retryButton).toHaveAttribute('aria-busy', 'true');
+    },
+  );
+
+  it('Retry is enabled and not aria-busy when no query is retrying', async () => {
+    useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), isRetrying: false, refetch: vi.fn() });
+
+    render(<DashboardIsland />);
+    emit(USER);
+
+    const retryButton = await screen.findByRole('button', { name: /retry/i });
+    expect(retryButton).not.toBeDisabled();
+    expect(retryButton).toHaveAttribute('aria-busy', 'false');
   });
 });
