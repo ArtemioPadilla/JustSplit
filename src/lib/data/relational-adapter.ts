@@ -152,52 +152,44 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
     return this.fromRow(mapping, data as Record<string, unknown>) as T;
   }
 
-  async setDocument<T>(collection: string, id: string, data: T, options?: WriteOptions): Promise<WriteResult> {
+  /**
+   * Translates one write to the pre-translated row shape `batch_write`
+   * expects (snake_case columns + an `extra` object with the overflow keys).
+   */
+  private toOp(type: 'set' | 'update', collection: string, id: string, data: Record<string, unknown>, merge = false) {
     const mapping = this.mappingFor(collection);
-    const client = this.ensureClient();
-    const idColumn = mapping.idColumn ?? 'id';
     const jsonbColumn = mapping.jsonbColumn ?? 'extra';
-    const { columns, overflow } = this.splitFields(mapping, data as Record<string, unknown>);
+    const { columns, overflow } = this.splitFields(mapping, data);
+    return { type, collection, id, data: { ...columns, [jsonbColumn]: overflow }, merge };
+  }
 
-    let finalOverflow = overflow;
-    if (options?.merge) {
-      // Read-then-merge (not atomic under concurrent writers — same trade-off
-      // as the reference document-mode adapter's setDocument({merge:true}));
-      // batchWrite's RPC performs the equivalent merge server-side atomically.
-      const { data: existing } = await client.from(mapping.table).select(jsonbColumn).eq(idColumn, id).maybeSingle();
-      const existingOverflow = (existing as Record<string, unknown> | null)?.[jsonbColumn] as Record<string, unknown> | undefined;
-      finalOverflow = { ...(existingOverflow ?? {}), ...overflow };
-    }
-
-    const row: Record<string, unknown> = { [idColumn]: id, ...columns, [jsonbColumn]: finalOverflow };
-    const { error } = await client.from(mapping.table).upsert(row, { onConflict: idColumn });
+  /**
+   * Single writes go through the same `batch_write` RPC as `batchWrite`
+   * (`db/migrations/20260928000008_batch_write.sql`), never through a client
+   * upsert or a read-modify-write:
+   * - `set` updates a visible row first and inserts only when none matched.
+   *   A client `upsert` is checked against the INSERT policy even when the
+   *   row exists, which denies a non-creator member's replace (ADR 0002).
+   * - `merge: true` and `update` merge `extra` on the server
+   *   (`extra = extra || patch`) in one statement, so concurrent writers of
+   *   different overflow keys cannot lose each other's changes.
+   */
+  async setDocument<T>(collection: string, id: string, data: T, options?: WriteOptions): Promise<WriteResult> {
+    const op = this.toOp('set', collection, id, data as Record<string, unknown>, options?.merge ?? false);
+    const client = this.ensureClient();
+    const { error } = await client.rpc('batch_write', { ops: [op] });
     if (error) throw new Error(`RelationalSupabaseAdapter: setDocument(${collection}/${id}) failed: ${error.message}`);
     return { id, success: true };
   }
 
   async updateDocument(collection: string, id: string, data: Record<string, unknown>): Promise<WriteResult> {
-    const mapping = this.mappingFor(collection);
+    const op = this.toOp('update', collection, id, data);
     const client = this.ensureClient();
-    const idColumn = mapping.idColumn ?? 'id';
-    const jsonbColumn = mapping.jsonbColumn ?? 'extra';
-    const { columns, overflow } = this.splitFields(mapping, data);
-
-    const payload: Record<string, unknown> = { ...columns };
-    if (Object.keys(overflow).length > 0) {
-      // D9 invariant: `extra = extra || <overflow keys of the patch>` — never
-      // a replace. supabase-js `.update()` cannot express the jsonb `||`
-      // concat directly, so this is read-then-merge (batchWrite's RPC does
-      // the atomic version server-side).
-      const { data: existing, error: readError } = await client.from(mapping.table).select(jsonbColumn).eq(idColumn, id).maybeSingle();
-      if (readError) throw new Error(`RelationalSupabaseAdapter: updateDocument(${collection}/${id}) read failed: ${readError.message}`);
-      const existingOverflow = (existing as Record<string, unknown> | null)?.[jsonbColumn] as Record<string, unknown> | undefined;
-      payload[jsonbColumn] = { ...(existingOverflow ?? {}), ...overflow };
-    }
-
-    const { data: rows, error } = await client.from(mapping.table).update(payload).eq(idColumn, id).select(idColumn);
+    const { error } = await client.rpc('batch_write', { ops: [op] });
+    // batch_write raises no_data_found when the row is absent or not visible.
+    if (error && (error as { code?: string }).code === 'P0002') return { id, success: false };
     if (error) throw new Error(`RelationalSupabaseAdapter: updateDocument(${collection}/${id}) failed: ${error.message}`);
-    const success = Array.isArray(rows) && rows.length > 0;
-    return { id, success };
+    return { id, success: true };
   }
 
   async deleteDocument(collection: string, id: string): Promise<WriteResult> {
@@ -293,19 +285,11 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
       // report the same "nothing applied" contract as an RPC-side rollback,
       // never throw (storage-adapter-contract.md §3: batchWrite never throws).
       ops = operations.map((op) => {
-        const mapping = this.mappingFor(op.collection);
         if (op.type === 'delete') {
+          this.mappingFor(op.collection);
           return { type: 'delete' as const, collection: op.collection, id: op.id };
         }
-        const jsonbColumn = mapping.jsonbColumn ?? 'extra';
-        const { columns, overflow } = this.splitFields(mapping, op.data ?? {});
-        return {
-          type: op.type,
-          collection: op.collection,
-          id: op.id,
-          data: { ...columns, [jsonbColumn]: overflow },
-          merge: op.options?.merge ?? false,
-        };
+        return this.toOp(op.type, op.collection, op.id, (op.data ?? {}) as Record<string, unknown>, op.options?.merge ?? false);
       });
     } catch (cause) {
       return { success: false, count: 0, errors: [{ index: -1, error: (cause as Error).message }] };
