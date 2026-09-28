@@ -21,7 +21,7 @@ export function parseMigrationColumns(sql: string): Record<string, string[]> {
     const columns: string[] = [];
     for (const rawLine of body.split('\n')) {
       const line = rawLine.trim().replace(/,$/, '');
-      if (!line || line.startsWith('--') || /^constraint\b/i.test(line)) continue;
+      if (!line || line.startsWith('--') || /^constraint\b/i.test(line) || /^check\b/i.test(line)) continue;
       const columnMatch = line.match(/^"?([a-zA-Z_][a-zA-Z0-9_]*)"?\s+/);
       if (columnMatch) columns.push(columnMatch[1]!);
     }
