@@ -286,21 +286,30 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
   async batchWrite(operations: BatchOperation[]): Promise<BatchResult> {
     if (operations.length === 0) return { success: true, count: 0 };
     const client = this.ensureClient();
-    const ops = operations.map((op) => {
-      const mapping = this.mappingFor(op.collection);
-      if (op.type === 'delete') {
-        return { type: 'delete' as const, collection: op.collection, id: op.id };
-      }
-      const jsonbColumn = mapping.jsonbColumn ?? 'extra';
-      const { columns, overflow } = this.splitFields(mapping, op.data ?? {});
-      return {
-        type: op.type,
-        collection: op.collection,
-        id: op.id,
-        data: { ...columns, [jsonbColumn]: overflow },
-        merge: op.options?.merge ?? false,
-      };
-    });
+    let ops: unknown[];
+    try {
+      // Client-side pre-translation can itself fail (e.g. an unmapped
+      // collection, spec D1: never fall back to document mode) — that must
+      // report the same "nothing applied" contract as an RPC-side rollback,
+      // never throw (storage-adapter-contract.md §3: batchWrite never throws).
+      ops = operations.map((op) => {
+        const mapping = this.mappingFor(op.collection);
+        if (op.type === 'delete') {
+          return { type: 'delete' as const, collection: op.collection, id: op.id };
+        }
+        const jsonbColumn = mapping.jsonbColumn ?? 'extra';
+        const { columns, overflow } = this.splitFields(mapping, op.data ?? {});
+        return {
+          type: op.type,
+          collection: op.collection,
+          id: op.id,
+          data: { ...columns, [jsonbColumn]: overflow },
+          merge: op.options?.merge ?? false,
+        };
+      });
+    } catch (cause) {
+      return { success: false, count: 0, errors: [{ index: -1, error: (cause as Error).message }] };
+    }
     const { data, error } = await client.rpc('batch_write', { ops });
     if (error) return { success: false, count: 0, errors: [{ index: -1, error: error.message }] };
     return { success: true, count: typeof data === 'number' ? data : operations.length };
