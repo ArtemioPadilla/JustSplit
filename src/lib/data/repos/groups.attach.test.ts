@@ -110,11 +110,10 @@ describe('repos.groups.attachExpenses', () => {
     const eligible = await expenses.create(expenseBase({ paidBy: 'u1', splits: [{ userId: 'u1', amount: 100 }] }));
     const alsoEligible = await expenses.create(expenseBase({ paidBy: 'u2', memberIds: ['u2'], splits: [{ userId: 'u2', amount: 100 }] }));
 
-    const batchSpy = vi.spyOn(storageAdapter!, 'batchWrite').mockResolvedValueOnce({ success: true, count: 1 });
     // Simulate a batch that only actually applied the FIRST op (e.g. a
     // partial real-adapter apply the RPC still reported as "success").
     const original = storageAdapter!.updateDocument.bind(storageAdapter);
-    batchSpy.mockImplementationOnce(async (ops) => {
+    const batchSpy = vi.spyOn(storageAdapter!, 'batchWrite').mockImplementationOnce(async (ops) => {
       await original(ops[0]!.collection, ops[0]!.id, ops[0]!.data ?? {});
       return { success: true, count: 1 };
     });

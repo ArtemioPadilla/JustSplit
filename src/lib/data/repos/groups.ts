@@ -1,4 +1,5 @@
 import type { BatchOperation, QueryFilter } from '@cyber-eco/types';
+import { isEventAttachable, isExpenseAttachable } from '@/domain/groups';
 import { acceptedFriendIds } from '@/domain/friends';
 import { violatesNoGroupInvariant } from '@/domain/expenseParticipants';
 import { CreateExpenseGroupInputSchema, ExpenseGroupSchema, type CreateExpenseGroupInput, type ExpenseGroup } from '@/schemas/group';
@@ -148,4 +149,86 @@ export async function remove(id: string): Promise<void> {
 
   const stillExists = await get(id);
   if (stillExists) throw new GroupDeleteVerificationFailedError(id);
+}
+export interface AttachResult {
+  /** Ids that were attached AND verified by a re-read after the batch. */
+  attached: string[];
+  /** Ids that were not attachable to begin with, or failed the post-batch verification — never claimed as a success (plan B12). */
+  skipped: string[];
+}
+
+/**
+ * Attaches existing ungrouped expenses to a group (plan B12): offers only
+ * expenses `isExpenseAttachable` (ungrouped, `splits[].userId ∪ {paidBy} ⊆
+ * group.memberIds`) accepts — anything else is skipped rather than sent to
+ * a doomed write. One `batchWrite` for every attachable id, then a re-read
+ * of each attempted id verifies `groupId` actually changed before counting
+ * it as attached (same "never claim success for rows that didn't change"
+ * rule `remove()` follows for its own batch).
+ */
+export async function attachExpenses(groupId: string, expenseIds: string[]): Promise<AttachResult> {
+  const group = await get(groupId);
+  if (!group) throw new GroupNotFoundError(groupId);
+
+  const skipped: string[] = [];
+  const ops: BatchOperation[] = [];
+  for (const id of expenseIds) {
+    const expense = await expensesRepo.get(id);
+    if (!expense || !isExpenseAttachable(expense, group)) {
+      skipped.push(id);
+      continue;
+    }
+    ops.push({ type: 'update', collection: 'expenses', id, data: { groupId, memberIds: group.memberIds } });
+  }
+
+  if (ops.length === 0) return { attached: [], skipped };
+
+  const adapter = requireStorageAdapter();
+  const result = await adapter.batchWrite(ops);
+  if (!result.success) return { attached: [], skipped: [...skipped, ...ops.map((op) => op.id)] };
+
+  const attached: string[] = [];
+  for (const op of ops) {
+    const fresh = await expensesRepo.get(op.id);
+    if (fresh?.groupId === groupId) attached.push(op.id);
+    else skipped.push(op.id);
+  }
+  return { attached, skipped };
+}
+
+/**
+ * Attaches existing ungrouped events to a group (plan B12): offers only
+ * events `isEventAttachable` (ungrouped, `memberIds ⊆ group.memberIds`)
+ * accepts, writing `groupId` only (an event's own expenses stay keyed by
+ * `eventId`, unaffected by this). Same one-batch-then-verify contract as
+ * `attachExpenses`.
+ */
+export async function attachEvents(groupId: string, eventIds: string[]): Promise<AttachResult> {
+  const group = await get(groupId);
+  if (!group) throw new GroupNotFoundError(groupId);
+
+  const skipped: string[] = [];
+  const ops: BatchOperation[] = [];
+  for (const id of eventIds) {
+    const event = await eventsRepo.get(id);
+    if (!event || !isEventAttachable(event, group)) {
+      skipped.push(id);
+      continue;
+    }
+    ops.push({ type: 'update', collection: 'events', id, data: { groupId } });
+  }
+
+  if (ops.length === 0) return { attached: [], skipped };
+
+  const adapter = requireStorageAdapter();
+  const result = await adapter.batchWrite(ops);
+  if (!result.success) return { attached: [], skipped: [...skipped, ...ops.map((op) => op.id)] };
+
+  const attached: string[] = [];
+  for (const op of ops) {
+    const fresh = await eventsRepo.get(op.id);
+    if (fresh?.groupId === groupId) attached.push(op.id);
+    else skipped.push(op.id);
+  }
+  return { attached, skipped };
 }
