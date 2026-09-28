@@ -45,7 +45,15 @@ const friendshipsRepo = {
 };
 vi.mock('../repos/friendships', () => friendshipsRepo);
 
-const groupsRepo = { get: vi.fn(async (id: string) => ({ id, name: 'Group' })) };
+const groupsRepo = {
+  forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]),
+  get: vi.fn(async (id: string) => ({ id, name: 'Group' })),
+  create: vi.fn(async (input: unknown) => ({ id: 'g1', ...(input as object) })),
+  update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
+  remove: vi.fn(async () => undefined),
+  attachExpenses: vi.fn(async () => ({ attached: ['e1'], skipped: [] })),
+  attachEvents: vi.fn(async () => ({ attached: ['ev1'], skipped: [] })),
+};
 vi.mock('../repos/groups', () => groupsRepo);
 
 const profilesRepo = {
@@ -80,6 +88,12 @@ const { useSendFriendRequest } = await import('./useSendFriendRequest');
 const { useCreateExpenseWithReceipts } = await import('./useCreateExpenseWithReceipts');
 const { useAddReceipts } = await import('./useAddReceipts');
 const { useRemoveReceipt } = await import('./useRemoveReceipt');
+const { useGroups } = await import('./useGroups');
+const { useCreateGroup } = await import('./useCreateGroup');
+const { useUpdateGroup } = await import('./useUpdateGroup');
+const { useDeleteGroup } = await import('./useDeleteGroup');
+const { useAttachExpensesToGroup } = await import('./useAttachExpensesToGroup');
+const { useAttachEventsToGroup } = await import('./useAttachEventsToGroup');
 
 function withClient(node: React.ReactElement, client = new QueryClient()) {
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
@@ -211,6 +225,30 @@ describe('useEvent (non-live detail query, plan B9)', () => {
     }
     withClient(<Probe />);
     expect(eventsRepo.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('useGroups (plan B12 — the list island\'s live query)', () => {
+  it("subscribes 'expense_groups' with the memberIds array-contains filter, persisted", () => {
+    function Probe() {
+      useGroups('u1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(liveQuerySpy).toHaveBeenCalledWith(['groups', 'u1'], 'expense_groups', groupsRepo.forUserFilters('u1'), {
+      enabled: true,
+      persist: true,
+    });
+  });
+
+  it('useGroups(undefined) is disabled (no signed-in user yet)', () => {
+    function Probe() {
+      useGroups(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    const [, , , options] = liveQuerySpy.mock.calls[0]!;
+    expect((options as { enabled: boolean }).enabled).toBe(false);
   });
 });
 
@@ -492,5 +530,120 @@ describe('useSendFriendRequest (plan B13 — add-by-email)', () => {
     await waitFor(() => expect(mutateResult).toEqual({ kind: 'unregistered' }));
     expect(friendshipsRepo.request).not.toHaveBeenCalled();
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('useCreateGroup (plan B12)', () => {
+  it('calls repos.groups.create and invalidates the groups query key on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useCreateGroup();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ name: 'Roommates' } as never).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(groupsRepo.create).toHaveBeenCalled());
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'g1' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups'] });
+  });
+});
+
+describe('useUpdateGroup (plan B12 — member add/remove share this mutation)', () => {
+  it('calls repos.groups.update with the partial patch and invalidates both the collection and detail keys', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useUpdateGroup();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'g1', patch: { memberIds: ['u1', 'u2'] } }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(groupsRepo.update).toHaveBeenCalledWith('g1', { memberIds: ['u1', 'u2'] }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'g1', memberIds: ['u1', 'u2'] }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups', 'g1'] });
+  });
+});
+
+describe('useDeleteGroup (plan B12, risk:high)', () => {
+  it('calls repos.groups.remove and invalidates groups, expenses and events on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useDeleteGroup();
+      React.useEffect(() => {
+        void mutation.mutateAsync('g1').then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(groupsRepo.remove).toHaveBeenCalledWith('g1'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
+  });
+});
+
+describe('useAttachExpensesToGroup (plan B12)', () => {
+  it('calls repos.groups.attachExpenses and invalidates expenses and the group', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useAttachExpensesToGroup();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ groupId: 'g1', expenseIds: ['e1'] }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(groupsRepo.attachExpenses).toHaveBeenCalledWith('g1', ['e1']));
+    await waitFor(() => expect(mutateResult).toEqual({ attached: ['e1'], skipped: [] }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups', 'g1'] });
+  });
+});
+
+describe('useAttachEventsToGroup (plan B12)', () => {
+  it('calls repos.groups.attachEvents and invalidates events and the group', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useAttachEventsToGroup();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ groupId: 'g1', eventIds: ['ev1'] }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(groupsRepo.attachEvents).toHaveBeenCalledWith('g1', ['ev1']));
+    await waitFor(() => expect(mutateResult).toEqual({ attached: ['ev1'], skipped: [] }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups', 'g1'] });
   });
 });

@@ -1696,41 +1696,89 @@ resolves other users' names through `useProfiles` (B5a).
       `deleteDocument('events')` (RLS: creator), leaving its expenses with a dangling `eventId`
       that lists ignore
 - [ ] Port `EventDetail.test.tsx` + `page.test.tsx` (EventList part)
-### B12. Groups islands (list, new, view)
-- [ ] Queries per ADR 0002: `expense_groups` by `memberIds array-contains uid`; creation writes
-      the universal `ExpenseGroup` (`type: 'friends'` until Track D, `currency` = creator's
-      preferred, `members[]` of universal `ExpenseGroupMember` items — the creator `{ userId,
-      displayName, role: 'owner', joinedAt: now }`, every invitee `{ userId, displayName, role:
-      'member', joinedAt: now, invitedBy: uid }`, `displayName` filled from
-      `repos.profiles.byIds` at add time; `memberIds`; `adminIds = members.filter(m =>
-      hasMinimumRole(m.role, 'admin')).map(m => m.userId)` with the helper from
-      `@cyber-eco/types`, so `adminIds` and `members[].role` never drift; `settings: {
-      defaultSplitType: 'equal', simplifyDebts: true, maxMembers: 50 }`, `totalExpenses: 0`,
-      `createdBy`). Members are picked from accepted friends only (the B13 model; the RLS insert
-      check and `guard_expense_groups` reject a non-friend)
-- [ ] Group expenses through `useGroupExpenses(id)` = `expenses where groupId == id` (indexed
-      column, RLS-filtered; no client-side union); group events = `events where groupId == id`;
-      the "add expense" button links `/expenses/new?group=<id>` (B10 writes `groupId` +
-      `memberIds`). Member management: admins edit `memberIds`/`members[]`/`adminIds` through a
-      partial `updateDocument` (RLS: member update + the `guard_expense_groups` BEFORE UPDATE
-      trigger — a non-admin update touching `memberIds`/`adminIds` is rejected, and a new member
-      must be an accepted friend of the acting admin); leaving is an admin action in v1 (spec D10);
-      member names via `useProfiles`
-- [ ] Attach existing rows (today's "available events/expenses" lists): attach an expense = offer
-      only ungrouped expenses whose `splits[].userId ∪ {paidBy}` ⊆ the group's `memberIds` (so the
-      D10 invariant `splits[].userId ∈ member_ids` keeps holding and no participant is silently
-      dropped) and write `{ groupId, memberIds: group.memberIds }` + the group's `totalExpenses` in
-      one `batchWrite`; attach an event = write `events.groupId` only (its expenses stay keyed by
-      `eventId`)
-- [ ] Delete group (admin, two-step confirm as today): one `batchWrite` nulling `groupId` on every
-      group expense and event, then `deleteDocument('expense_groups', id)` (RLS: `adminIds`); rows
-      survive ungrouped with their `memberIds`. Test: a non-admin is denied and nothing is deleted
-- [ ] Display-currency selector (`CurrencySelector`, B16) on the detail page with converted totals
-      (today's `targetCurrency`)
-- [ ] `totalExpenses` is a display cache: the expense create/delete/attach mutations update it in
-      the same `batchWrite`; the detail page also shows the sum of the loaded rows and a test
-      asserts both agree on the seed. Legacy-kind logic (`parseKind`) only from Track D on — here
-      the page has no kind logic
+### B12. Groups islands (list, new, view) (`risk:high`)
+- [x] Decision (orchestrator; ADR 0002 amendment "group membership lifecycle"): routes match
+      `/expenses`'s shape — `/groups/index.astro` redirects to `/groups/list` (`GroupsListIsland`,
+      with a "New group" link present in every content state), `/groups/new.astro` mounts
+      `GroupFormIsland`, and the already-named `group-detail` dynamic route is wired to a real
+      `GroupDetailView` through `AppRouterIsland`'s fourth `React.lazy` boundary (a missing or
+      RLS-hidden group renders the same `NotFoundView` every other dynamic route uses).
+- [x] Queries per ADR 0002: `useGroups(uid)` = `expense_groups` by `memberIds array-contains uid`
+      (new B5a-shaped live-query hook, `src/lib/data/hooks/useGroups.ts`); creation writes the
+      universal `ExpenseGroup` exactly per the field list below, built by the pure
+      `src/domain/groups.ts#buildCreateGroupInput` (its own test coverage) and wired through the
+      new `useCreateGroup` mutation: `type: 'friends'` until Track D, `currency` = the creator's
+      preferred currency, `members[]` — the creator `{ userId, displayName, role: 'owner',
+      joinedAt: now }`, every invitee `{ userId, displayName, role: 'member', joinedAt: now,
+      invitedBy: uid }` — `displayName` filled from `useProfiles` at add time; `memberIds`;
+      `adminIds = members.filter(m => hasMinimumRole(m.role, 'admin')).map(m => m.userId)` via
+      `domain/groups.ts#computeAdminIds`, so `adminIds` and `members[].role` never drift;
+      `settings: { defaultSplitType: 'equal', simplifyDebts: true, maxMembers: 50 }`,
+      `totalExpenses: 0`, `createdBy`. Members are picked from accepted friends only
+      (`GroupForm`, the B13 model — the `expense_groups_insert` RLS check and
+      `guard_expense_groups` reject anyone else); `maxMembers` is enforced client-side before any
+      mutation call.
+- [x] `GroupDetailView`: the group's expenses/events via the already-shipped `useGroupExpenses(id)`/
+      `useGroupEvents(id)` (B5a); member names/role badges via `useProfiles` in `MembersSection`;
+      "Add expense" links `/expenses/new?group=<id>` (B10 writes `groupId` + `memberIds`). Member
+      management (`MembersSection`, admins only in the UI — `guard_expense_groups`'s BEFORE UPDATE
+      trigger is the actual authority): **Add** — a Dialog offering the admin's accepted friends
+      who are not already members, writing `memberIds`/`members[]`/`adminIds` together via
+      `domain/groups.ts#withAddedMembers` + the new `useUpdateGroup` mutation (a partial patch).
+      **Remove/leave** (an admin action in v1, spec D10) — preflight-blocked with an honest inline
+      count (`memberRemovalBlockerCount`: "Alex is still part of 3 expenses in this group, so they
+      can't be removed yet.") when the member still appears in any group expense's/event's
+      `memberIds`, and the sole remaining admin can never remove or demote themselves
+      (`isLastAdmin`) — both are UX-only client-side preflights, recorded in the ADR 0002
+      amendment alongside the RLS reasoning that makes them necessary.
+- [x] Attach existing rows (`AttachRowsPanel`): attach an expense offers only ungrouped expenses
+      whose `splits[].userId ∪ {paidBy} ⊆ group.memberIds` (`domain/groups.ts#isExpenseAttachable`/
+      `filterAttachableExpenses`) and writes `{ groupId, memberIds: group.memberIds }`; attach an
+      event offers only ungrouped events whose `memberIds ⊆ group.memberIds`
+      (`isEventAttachable`/`filterAttachableEvents`) and writes `groupId` only (its own expenses
+      stay keyed by `eventId`). `repos.groups.attachExpenses`/`attachEvents` run one `batchWrite`
+      per call and then re-read every attempted row, returning `{ attached, skipped }` — a row the
+      batch didn't actually change is never reported as attached; `AttachRowsPanel`'s toast
+      summarizes both counts honestly instead of claiming every checked row succeeded.
+- [x] Delete group (`DeleteGroupDialog`, admin-only two-step confirm): `repos.groups.remove`
+      preflights BEFORE any write — the fresh-read caller must be in `adminIds`
+      (`GroupDeleteNotAllowedError` otherwise) and ungrouping must never leave a row whose other
+      members fail the no-group friendship invariant (`violatesNoGroupInvariant`, plan B10;
+      `GroupDeleteBlockedByFriendshipError`, surfaced as "This group can't be deleted yet: some of
+      its expenses include people you aren't friends with."). Then one `batchWrite` nulls
+      `groupId` on every group expense/event and deletes the group row. Then a re-read verifies
+      the group is actually gone: `batch_write`'s DELETE op is a silent no-op when denied or not
+      visible, so a reported "success" is never trusted on its own
+      (`GroupDeleteVerificationFailedError` otherwise, surfaced honestly rather than claiming the
+      delete worked). Tests (`src/lib/data/repos/groups.remove.test.ts`): a non-admin is denied and
+      nothing changes; the friendship-block case; the honest post-write-verification-failure case
+      (a mocked `batchWrite` that reports success without actually deleting); the happy path.
+- [x] Display-currency selector (`CurrencySelector`, already shipped) on the detail page, seeded
+      from `group.currency` (one-way seed, same pattern as every other detail island — never
+      written back to the group), with converted amounts and an "(Originally: …)" caption per
+      expense row.
+- [x] **Deviation from the plan text's `totalExpenses`-as-a-maintained-display-cache** (orchestrator
+      decision, ADR 0002 amendment): `totalExpenses` is written as `0` at create (the write-input
+      schema still requires the field) and then IGNORED by the UI — nothing keeps it in sync (B9's
+      expense delete and B10's expense create/attach don't touch it, and it carries no currency for
+      a multi-currency group), so a maintained-cache number would drift from day one. The detail
+      page instead shows the SUM OF THE CURRENTLY LOADED expense rows, converted to the viewer's
+      chosen display currency. Fixing `totalExpenses` for real (a trigger/RPC that maintains it
+      transactionally across every write path that touches `group_id`, or dropping the column
+      entirely) is deferred as a Track D/D1 question, named but not solved here. Legacy-kind logic
+      (`parseKind`) stays out of scope until Track D — this page has no kind logic.
+- [x] Tests: `src/domain/groups.test.ts` (create-payload derivation, member add/remove patches, the
+      removal/last-admin preflights, the attach filters); `src/lib/data/repos/groups.remove.test.ts`
+      and `groups.attach.test.ts` (against the in-memory adapter); hook wiring tests in
+      `src/lib/data/hooks/hooks.test.tsx` (`useGroups`, `useCreateGroup`, `useUpdateGroup`,
+      `useDeleteGroup`, `useAttachExpensesToGroup`, `useAttachEventsToGroup`); component tests for
+      `GroupForm`, `MembersSection`, `DeleteGroupDialog`, `AttachRowsPanel`, `GroupsListIsland` and
+      `GroupDetailView`; `AppRouterIsland.group-detail.test.tsx`; `/groups/list` and `/groups/new`
+      page-shell tests. No legacy groups tests existed to port (`origin/main`'s
+      `src/__tests__/expenseGroups.test.tsx` tests an unrelated, ungrouped-by-date helper; the
+      legacy `src/app/groups/new/page.tsx` is a local-only, free-text member-add form with no
+      analogue in the registered-users-only model here). `/groups/list` and `/groups/new` added to
+      `scripts/axe-smoke.mjs`.
 ### B13. Friends islands (list, add, view) — friendship request flow (`risk:high`)
 - [x] Decision (ADR `docs/decisions/0006-registered-participants.md`): participants/friends must
       be registered users found by exact email through `find_profile_by_email` (B2; the lookup is

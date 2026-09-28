@@ -1,0 +1,89 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import * as React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+/**
+ * `DeleteGroupDialog` (plan B12, risk:high) — the group detail island's
+ * two-step delete confirm. `repos.groups.remove`'s own preflights run
+ * underneath (admin-only, the no-group friendship-invariant check, honest
+ * post-write verification — ADR 0002 amendment); this component maps each
+ * typed error to an honest, specific message rather than one generic
+ * "something went wrong" for every case.
+ */
+function stubLocationAssign() {
+  const real = window.location;
+  const assign = vi.fn();
+  Object.defineProperty(window, 'location', { configurable: true, value: { ...real, assign } });
+  return { assign, restore: () => Object.defineProperty(window, 'location', { configurable: true, value: real }) };
+}
+
+const { notifySuccess, notifyError } = vi.hoisted(() => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
+vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
+
+const { useDeleteGroup } = vi.hoisted(() => ({ useDeleteGroup: vi.fn() }));
+vi.mock('@/lib/data/hooks/useDeleteGroup', () => ({ useDeleteGroup }));
+
+const { GroupDeleteBlockedByFriendshipError, GroupDeleteVerificationFailedError } = await import('@/lib/data/repos/groups');
+const { DeleteGroupDialog } = await import('./DeleteGroupDialog');
+
+let deleteMutateAsync: ReturnType<typeof vi.fn>;
+let location: ReturnType<typeof stubLocationAssign>;
+
+beforeEach(() => {
+  location = stubLocationAssign();
+  deleteMutateAsync = vi.fn().mockResolvedValue(undefined);
+  useDeleteGroup.mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false });
+});
+
+afterEach(() => {
+  location.restore();
+  vi.clearAllMocks();
+});
+
+async function openAndConfirm() {
+  await userEvent.click(screen.getByRole('button', { name: /delete group/i }));
+  await userEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+}
+
+describe('DeleteGroupDialog', () => {
+  it('calls useDeleteGroup and redirects to /groups/list on success', async () => {
+    render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
+    await openAndConfirm();
+
+    await waitFor(() => expect(deleteMutateAsync).toHaveBeenCalledWith('g1'));
+    await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/groups/list'));
+    expect(notifySuccess).toHaveBeenCalled();
+  });
+
+  it('shows the friendship-block message honestly, without redirecting', async () => {
+    deleteMutateAsync.mockRejectedValueOnce(new GroupDeleteBlockedByFriendshipError('g1'));
+    render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
+    await openAndConfirm();
+
+    await waitFor(() =>
+      expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/aren.t friends with/i)),
+    );
+    expect(location.assign).not.toHaveBeenCalled();
+  });
+
+  it('shows the honest post-write verification-failure message, without redirecting', async () => {
+    deleteMutateAsync.mockRejectedValueOnce(new GroupDeleteVerificationFailedError('g1'));
+    render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
+    await openAndConfirm();
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/ungrouped/i)));
+    expect(location.assign).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a generic message for an unrecognized failure', async () => {
+    deleteMutateAsync.mockRejectedValueOnce(new Error('network down'));
+    render(<DeleteGroupDialog groupId="g1" name="Roommates" />);
+    await openAndConfirm();
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not delete this group'));
+    expect(location.assign).not.toHaveBeenCalled();
+  });
+});

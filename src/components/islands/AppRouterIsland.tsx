@@ -16,6 +16,8 @@ const ExpenseDetailView = React.lazy(() => import('./routes/ExpenseDetailView'))
 const ExpenseEditView = React.lazy(() => import('./routes/ExpenseEditView'));
 /** Plan B13: the third dynamic route wired to a real view, same reasoning. */
 const FriendDetailView = React.lazy(() => import('./routes/FriendDetailView'));
+/** Plan B12: the fourth dynamic route wired to a real view, same reasoning. */
+const GroupDetailView = React.lazy(() => import('./routes/GroupDetailView'));
 
 /**
  * The router of the 404 app shell (spec D2, plan B2c). GitHub Pages serves
@@ -55,6 +57,12 @@ function routeContent(match: { name: Exclude<RouteName, 'not-found'>; id: string
       return (
         <React.Suspense fallback={<RouteFallback />}>
           <FriendDetailView id={match.id} />
+        </React.Suspense>
+      );
+    case 'group-detail':
+      return (
+        <React.Suspense fallback={<RouteFallback />}>
+          <GroupDetailView id={match.id} />
         </React.Suspense>
       );
     default:
