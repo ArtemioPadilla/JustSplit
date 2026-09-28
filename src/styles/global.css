@@ -348,3 +348,28 @@
     background-position: 50% 0;
   }
 }
+
+/* CurrencyExchangeTicker (plan B16) — CSS-only horizontal scroll. The list
+   underneath is real, un-duplicated DOM content (CurrencyExchangeTicker.tsx),
+   so this only ever moves pixels; it never re-announces or hides anything
+   from assistive tech. Pausing on hover/focus-within lets a sighted mouse
+   user read a rate before it scrolls away. */
+@keyframes justsplit-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.ticker-track {
+  animation: justsplit-ticker-scroll 30s linear infinite;
+}
+.ticker-track:hover,
+.ticker-track:focus-within {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The ticker's own overflow-x-auto (CurrencyExchangeTicker.tsx) keeps
+     every pair reachable by a plain horizontal scroll once the animation
+     is gone — nothing is lost, just the auto-scroll motion. */
+  .ticker-track {
+    animation: none;
+  }
+}
