@@ -31,6 +31,32 @@ export interface RelationalSupabaseAdapterConfig {
 }
 
 /**
+ * `subscribeToQuery`'s callback shape, extended with an optional trailing
+ * `error` argument (ADR 0004 amendment, plan B8b coordinator review): the
+ * `StorageAdapter` interface (`@cyber-eco/types`) only declares
+ * `(data: T[]) => void`, which cannot distinguish a genuine query failure
+ * (RLS denial, network error) from a legitimately empty result — a plain
+ * `catch(() => callback([]))` made the two indistinguishable, so a failed
+ * live screen looked identical to "no data" forever, with no error surfaced
+ * and no way to retry.
+ *
+ * **Rule for future `StorageAdapter` extensions** (formalized here, not
+ * ad-hoc): an extension is allowed ONLY as an optional TRAILING parameter
+ * (never a required one, never inserted before an existing parameter) —
+ * every existing caller that only knows the narrower interface type keeps
+ * working unchanged (TypeScript's own bivariant method-parameter check is
+ * what makes this assignable back to `StorageAdapter`). It must be recorded
+ * in ADR 0004 (the "amendment" section), and it must NEVER change the
+ * upstream `@cyber-eco/types` interface itself — that package is external
+ * (vendored, `vendor/cyber-eco-types-*.tgz`) and out of this repo's control;
+ * widening it for real is Track C' H2's job, not a local workaround's.
+ *
+ * `useLiveQuery` (`src/lib/data/hooks/useLiveQuery.ts`) is the only reader
+ * of this extra argument today.
+ */
+export type LiveQueryCallback<T> = (data: T[], error?: unknown) => void;
+
+/**
  * UUIDv4 without a static `node:crypto` import — this adapter runs in the
  * browser (copied from `cybereco-hub/packages/supabase/src/SupabaseStorageAdapter.ts`,
  * which explains why: bundlers cannot resolve `node:crypto` in that
@@ -336,18 +362,13 @@ export class RelationalSupabaseAdapter implements StorageAdapter {
    * adapter never evaluates the change payload against the filter — hub
    * adapter semantics (`storage-adapter-contract.md` §4,
    * `SupabaseStorageAdapter.subscribeToQuery`).
+   *
+   * `callback` is typed `LiveQueryCallback<T>` (see its doc comment above)
+   * rather than the bare `StorageAdapter` interface shape: a failed
+   * `query()` forwards its error as the second argument instead of being
+   * silently swallowed into an indistinguishable `callback([])`.
    */
-  /**
-   * `callback`'s second, optional `error` parameter is not part of the
-   * `StorageAdapter` interface's own `(data: T[]) => void` shape — it is an
-   * app-owned extension `useLiveQuery` (the only caller in this tree) reads
-   * to distinguish a genuine query failure (RLS denial, network error) from
-   * a legitimately empty result (coordinator review, plan B8b): a plain
-   * `catch(() => callback([]))` made the two indistinguishable, so a failed
-   * dashboard query looked identical to "you have no expenses" forever, with
-   * no error surfaced and no way to retry.
-   */
-  subscribeToQuery<T>(collection: string, filters: QueryFilter[], callback: (data: T[], error?: unknown) => void): Unsubscribe {
+  subscribeToQuery<T>(collection: string, filters: QueryFilter[], callback: LiveQueryCallback<T>): Unsubscribe {
     const mapping = this.mappingFor(collection);
     const client = this.ensureClient();
     let active = true;

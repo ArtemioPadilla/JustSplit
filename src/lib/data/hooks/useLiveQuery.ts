@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import type { QueryFilter } from '@cyber-eco/types';
 import { createDisposer } from '@/lib/disposer';
+import type { LiveQueryCallback } from '../relational-adapter';
 import { requireStorageAdapter } from '../require-adapter';
 
 export interface UseLiveQueryOptions {
@@ -67,21 +68,18 @@ export function useLiveQuery<T>(
     if (!enabled) return undefined;
     const disposer = createDisposer();
     const adapter = requireStorageAdapter();
-    const unsubscribe = adapter.subscribeToQuery<T>(
-      collection,
-      JSON.parse(filtersJson) as QueryFilter[],
-      // `error` is an app-owned extension of the StorageAdapter callback
-      // shape (relational-adapter.ts's doc comment) — real adapters only
-      // ever pass it on a genuine query failure.
-      ((rows: T[], error?: unknown) => {
-        if (error) {
-          setQueryError(error instanceof Error ? error : new Error('Failed to load data.'));
-          return;
-        }
-        setQueryError(null);
-        queryClient.setQueryData(queryKey, rows);
-      }) as (data: T[]) => void,
-    );
+    // `error` is `LiveQueryCallback`'s app-owned extension of the
+    // StorageAdapter callback shape (relational-adapter.ts's doc comment) —
+    // real adapters only ever pass it on a genuine query failure.
+    const callback: LiveQueryCallback<T> = (rows, error) => {
+      if (error) {
+        setQueryError(error instanceof Error ? error : new Error('Failed to load data.'));
+        return;
+      }
+      setQueryError(null);
+      queryClient.setQueryData(queryKey, rows);
+    };
+    const unsubscribe = adapter.subscribeToQuery<T>(collection, JSON.parse(filtersJson) as QueryFilter[], callback);
     disposer.add(unsubscribe);
     return disposer.dispose;
     // `queryKey`/`filters` are plain values rebuilt every render by the
