@@ -141,5 +141,5 @@ None.
   (Supabase via the CyberEco data layer — the "no server component"
   constraint this ADR inherits)
 - `src/domain/currency.ts`, `src/lib/currency/rates.ts`,
-  `src/components/features/currency/CurrencyExchangeTicker.tsx`
+  `src/components/islands/CurrencyExchangeTicker.tsx`
 - <https://www.exchangerate-api.com> (attribution target, free-tier terms)
