@@ -68,10 +68,14 @@ export function settlementsBetween<T extends { fromUserId: string; toUserId: str
 /**
  * Net balance per person over `expenses` and `settlements`, in the currency
  * `convert` returns, rounded to cents per person. Legacy settled expenses are
- * skipped. The payer is credited the whole amount and each split debited its
- * own share — never an equal division — so a payer outside the split is
- * credited without a debit (they paid for the others). Only people who appear
- * in a row get an entry.
+ * skipped. **Zero-sum by construction**: each split whose user is not the payer
+ * credits the payer and debits that user by the same converted amount, so the
+ * payer's own share nets out, a payer outside the split is credited exactly
+ * what the others are debited, and `expense.amount` is never read. (Crediting
+ * `amount` and debiting the splits left a phantom balance whenever they
+ * disagreed — an import, a legacy row, a rounding remainder, conversion
+ * rounding — and progress stuck below 100%.) Never an equal division. Only
+ * people who appear in a debt or a settlement get an entry.
  */
 export function netBalances(
   expenses: readonly LedgerExpense[],
@@ -82,9 +86,11 @@ export function netBalances(
 
   for (const expense of expenses) {
     if (isLegacySettled(expense)) continue;
-    balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + convert(expense.amount, expense.currency);
     for (const split of expense.splits) {
-      balances[split.userId] = (balances[split.userId] ?? 0) - convert(split.amount, expense.currency);
+      if (split.userId === expense.paidBy) continue; // the payer's own share is not a debt
+      const amount = convert(split.amount, expense.currency);
+      balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + amount;
+      balances[split.userId] = (balances[split.userId] ?? 0) - amount;
     }
   }
 

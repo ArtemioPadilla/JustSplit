@@ -156,9 +156,13 @@ export async function calculateSettlementsWithConversion(
     const amountInTargetCurrency = await toTarget(expense.amount, expense.currency);
     const conversionRatio = expense.amount === 0 ? 0 : amountInTargetCurrency / expense.amount;
 
-    balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + amountInTargetCurrency;
+    // Per-split pairing (zero-sum by construction, same as `ledger.netBalances`): the payer's own
+    // share nets out and `expense.amount` only supplies the conversion ratio.
     expense.splits.forEach((split) => {
-      balances[split.userId] = (balances[split.userId] ?? 0) - split.amount * conversionRatio;
+      if (split.userId === expense.paidBy) return;
+      const converted = split.amount * conversionRatio;
+      balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + converted;
+      balances[split.userId] = (balances[split.userId] ?? 0) - converted;
     });
   }
 

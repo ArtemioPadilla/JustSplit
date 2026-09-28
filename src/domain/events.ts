@@ -154,12 +154,12 @@ export function settlementProgressPercent(stats: Pick<EventStats, 'settledPercen
 
 /**
  * Per-user balance over the event's ledger, in the display currency (positive =
- * is owed, negative = owes): the payer is credited the whole amount and each
- * participant debited their own `splits[]` share — never an equal division (the
- * legacy page divided by the participant count, ignoring exact/percentage
- * splits) — minus the event's settlements (F to T for X raises F and lowers T).
- * A payer outside the split is credited without a debit, as they paid for the
- * others. Legacy settled expenses are skipped.
+ * is owed, negative = owes): each participant's own `splits[]` share is debited
+ * from them and credited to the payer — never an equal division (the legacy page
+ * divided by the participant count, ignoring exact/percentage splits) — minus the
+ * event's settlements (F to T for X raises F and lowers T). Zero-sum by
+ * construction; a payer outside the split is credited what the others owe.
+ * Legacy settled expenses are skipped.
  */
 export function eventBalances(expenses: Expense[], settlements: Settlement[], convert: Convert): Record<string, number> {
   return netBalances(expenses, settlements, convert);
