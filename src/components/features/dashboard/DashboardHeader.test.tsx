@@ -88,7 +88,7 @@ describe('DashboardHeader', () => {
     expect(onRefreshRates).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render quick-action links to pages that do not exist yet (/expenses/new, /events/new)', () => {
+  it('renders an "Add expense" link to /expenses/new now that plan B10 shipped it', () => {
     render(
       <DashboardHeader
         expenses={[]}
@@ -99,7 +99,20 @@ describe('DashboardHeader', () => {
         onRefreshRates={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('link', { name: /add expense/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /add expense/i })).toHaveAttribute('href', '/expenses/new');
+  });
+
+  it('still does not render "Create event" (/events/new is plan B11b, not shipped yet)', () => {
+    render(
+      <DashboardHeader
+        expenses={[]}
+        users={users}
+        events={events}
+        currency="USD"
+        onCurrencyChange={vi.fn()}
+        onRefreshRates={vi.fn()}
+      />,
+    );
     expect(screen.queryByRole('link', { name: /create event/i })).not.toBeInTheDocument();
   });
 });
