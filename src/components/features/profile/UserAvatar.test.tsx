@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
 /**
@@ -23,9 +23,38 @@ vi.mock('@/lib/data/storage', () => ({ signedUrl }));
 
 const { UserAvatar } = await import('./UserAvatar');
 
+/**
+ * Base UI's `Avatar.Image` only renders an `<img>` once a hidden probe
+ * `new window.Image()` fires `onload` (`useImageLoadingStatus.js`) — jsdom
+ * never loads real image bytes, so without this stub NO `<img>` a real
+ * browser would show ever appears in these tests, success cases included.
+ * This stub always succeeds; it is not what drives this suite's "falls
+ * back to initials" cases (those never even mount `<AvatarImage>` in the
+ * first place — `resolvedUrl` stays `null`).
+ */
+class ImmediateLoadImage {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  crossOrigin: string | null = null;
+  referrerPolicy = '';
+  private _src = '';
+  get src() {
+    return this._src;
+  }
+  set src(value: string) {
+    this._src = value;
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
 describe('UserAvatar', () => {
   beforeEach(() => {
     signedUrl.mockReset();
+    vi.stubGlobal('Image', ImmediateLoadImage);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('resolves an avatars/ storage path to a signed URL and renders it', async () => {
@@ -37,10 +66,10 @@ describe('UserAvatar', () => {
     expect(signedUrl).toHaveBeenCalledWith('avatars/u1/a.jpg', undefined);
   });
 
-  it('passes an https: URL through unchanged, without calling signedUrl', () => {
+  it('passes an https: URL through unchanged, without calling signedUrl', async () => {
     render(<UserAvatar src="https://lh3.googleusercontent.com/a/photo.jpg" name="Ana" />);
 
-    const img = screen.getByRole('img', { name: 'Ana' });
+    const img = await screen.findByRole('img', { name: 'Ana' });
     expect(img).toHaveAttribute('src', 'https://lh3.googleusercontent.com/a/photo.jpg');
     expect(signedUrl).not.toHaveBeenCalled();
   });
