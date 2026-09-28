@@ -33,7 +33,7 @@ function setLocalStorageFixture(entries: Record<string, string>) {
 describe('resetLocalData', () => {
   let registrations: { unregister: ReturnType<typeof vi.fn> }[];
   let getRegistrations: ReturnType<typeof vi.fn>;
-  let reload: ReturnType<typeof vi.fn>;
+  let reload: ReturnType<typeof vi.fn<(url: string) => void>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
