@@ -225,11 +225,65 @@ describe('EventTimeline — sr-only accessible alternative, never hover-only (ne
   });
 });
 
+describe('EventTimeline — expenses panel is focus-visible, not permanently invisible (a11y fix, coordinator review)', () => {
+  // The panel is `sr-only` (Tailwind) until focus enters it, then it becomes
+  // a real visible panel — a sighted keyboard user must never tab onto a
+  // control they cannot see (WCAG 2.4.7). Driven by an onFocus/onBlur state
+  // toggle rather than CSS `:focus-within`, because Tailwind isn't compiled
+  // in this test environment — a class-name assertion is the only thing
+  // that's actually testable here, and the review explicitly calls this out
+  // as the fallback when `:focus-within` isn't testable in jsdom.
+  it('starts sr-only (visually hidden) before anything inside it has focus', () => {
+    renderTimeline();
+    expect(screen.getByTestId('timeline-expenses-panel')).toHaveClass('sr-only');
+  });
+
+  it('drops sr-only while focus is inside it, and restores it once focus leaves', () => {
+    renderTimeline();
+    const panel = screen.getByTestId('timeline-expenses-panel');
+    const items = screen.getAllByTestId('timeline-sr-expense');
+
+    items[0].focus();
+    expect(panel).not.toHaveClass('sr-only');
+    expect(screen.getByText('Expenses in this event')).toBeInTheDocument();
+
+    items[0].blur();
+    expect(panel).toHaveClass('sr-only');
+  });
+
+  it('keeps each same-day grouped expense (exp3 and exp4) as its own naturally-focusable control in the panel — the dependable keyboard path into a merged marker', () => {
+    renderTimeline();
+    const items = screen.getAllByTestId('timeline-sr-expense');
+    const midEvent = items.find((item) => item.textContent?.includes('Mid-event expense'));
+    const sameDay = items.find((item) => item.textContent?.includes('Same day expense'));
+
+    expect(midEvent).toBeDefined();
+    expect(sameDay).toBeDefined();
+    expect(midEvent).not.toBe(sameDay);
+    // No explicit tabindex at all = a normal, natural tab stop (unlike the
+    // hover-card popup's buttons below, which opt OUT of the tab order).
+    expect(midEvent).not.toHaveAttribute('tabindex');
+    expect(sameDay).not.toHaveAttribute('tabindex');
+  });
+
+  it("removes the hover-card popup's expense buttons from the tab order (tabIndex -1) — the panel above is the single dependable keyboard path, the popup is a mouse/hover quick-preview only", async () => {
+    renderTimeline();
+    const grouped = screen.getAllByTestId('timeline-marker').find((m) => m.getAttribute('aria-label')?.includes('2 expenses'))!;
+
+    await userEvent.hover(grouped);
+    const detail = await screen.findByText('Mid-event expense');
+    const popupButton = detail.closest('button')!;
+
+    expect(popupButton).toHaveAttribute('tabindex', '-1');
+  });
+});
+
 describe('EventTimeline — empty / missing-data states', () => {
   it('renders no markers, legend or sr-only list when there are no expenses', () => {
     renderTimeline({ expenses: [] });
     expect(screen.queryAllByTestId('timeline-marker')).toHaveLength(0);
     expect(screen.queryAllByTestId('timeline-sr-expense')).toHaveLength(0);
+    expect(screen.queryByTestId('timeline-expenses-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('Settled')).not.toBeInTheDocument();
   });
 
