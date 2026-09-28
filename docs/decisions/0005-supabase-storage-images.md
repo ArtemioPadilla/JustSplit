@@ -360,6 +360,119 @@ every policy it relies on (`receipts_expenses_insert`/`_update`/`_delete`,
 | Other members of a shared expense | Any member can edit a shared expense (RLS: `expenses_update` = member) and add/remove its receipts (storage policies are member-wide by design, B10 relies on this — same as B9's amendment already noted). A removal failing between its two steps must not corrupt what every OTHER member sees. | `removeReceipt`'s patch-first order means the WORST case after a failure is a harmless orphaned object nobody's `images` points at — every member's gallery stays internally consistent (no broken thumbnails) even when a removal only half-completes. |
 | Orphaned objects / storage cost | Patch-before-delete accepts that a receipt removal can, on a genuine failure, leave one object in the `receipts` bucket with nothing referencing it — a real, if small, storage-cost and "silent garbage" concern over the product's lifetime. | Bounded in practice: it only happens on a removal-time failure (not the common path), the object is inert (unreachable except by the same member re-triggering cleanup), and it costs a few hundred KB at most (client-side resize already caps receipts at ≤ 1 MiB, ADR 0005 base text). Automated sweeping is an explicit Track D nice-to-have, not this issue's scope — recorded here so it isn't rediscovered as a surprise. |
 
+### Addendum (2026-09-28, plan B10 coordinator review): event participant resolution, the edit gap, and a known limitation
+
+#### Context
+
+`eventId` is a JustSplit-only overflow key with no column (spec D9) — the
+`expenses_insert`/`expenses_update` RLS policies
+(`db/migrations/20260928000004_rls_policies.sql`) know nothing about event
+membership at all. They only ever check one of two things, and the WITH
+CHECK is identical for insert and update except that update evaluates it
+against the **editor**, not the creator:
+
+- `group_id is not null`: `member_ids` must be a subset of the group's own
+  `member_ids`, and the caller must be a member of that group.
+- `group_id is null`: every member OTHER than the caller must be an
+  **accepted friend of the caller**.
+
+The form's first pass offered every one of an event's `memberIds` as a
+participant candidate, with no regard for either branch — a save was
+silently doomed whenever an event member wasn't the creator's (or, on
+edit, the editor's) accepted friend.
+
+#### Decision
+
+**`?event=` participant resolution** (`domain/expenseParticipants.ts#resolveEventParticipants`),
+in `src/schemas/event.ts`'s own field name, `Event.groupId`:
+
+- **Event has a `groupId`**: treated as a group expense, the identical rule
+  `?group=` already gets — `groupId = event.groupId`; candidates are the
+  event's members intersected with the group's members (falling back to
+  the whole group when that intersection is empty, e.g. the event's own
+  member list hasn't caught up with the group's yet); `memberIds` on
+  submit is the group's own `memberIds`, never a client-computed union.
+- **Event has no `groupId`**: candidates are the event's members
+  intersected with (accepted friends ∪ self). If any event members were
+  excluded, a count-only notice shows ("N people in this event aren't in
+  your friends yet, so they can't be added to this expense.") — a count,
+  never names, so this never confirms or denies a specific person's
+  friendship status to the caller. `memberIds` on submit is
+  participants ∪ paidBy ∪ self, same as the plain "no context" default.
+
+**Defensive invariant, every no-group submit** (create or edit):
+`domain/expenseParticipants.ts#violatesNoGroupInvariant` mirrors the
+`group_id is null` WITH CHECK directly and runs client-side before any
+mutation call — if `memberIds` contains anyone who is neither the caller
+nor an accepted friend of the caller, the submit is refused with a
+generic inline message instead of sending a request RLS was always going
+to deny. This catches stale client state the resolution logic above can't
+prevent by construction alone — e.g. a friendship revoked (a live query
+update) after a participant was already selected into form state, which
+nothing else auto-prunes.
+
+**Edit-mode notice for a no-group expense.** If the CURRENT editor isn't
+an accepted friend of every other member already on a no-group expense,
+`expenses_update` denies the save. `ExpenseForm` now checks this upfront
+(derived from `useFriends`, the same `violatesNoGroupInvariant` check) and
+disables Save with: "You can view this expense, but only someone who is
+friends with everyone on it can edit it here." This is UX only — RLS
+remains the sole authority either way — and is scoped to the edit form
+only; B9's own inline `Editable` renames on the detail view are
+unchanged and still surface a denied update as B9's existing generic
+error toast, not this upfront notice. Group expenses are entirely
+unaffected: any group member may edit one, matching the group RLS branch,
+which has no friendship clause at all.
+
+#### Known limitation — escalated, not fixed by this issue
+
+Because `eventId` has no column and RLS cannot see it, a **no-group event
+expense's visibility and editability are governed entirely by
+`member_ids`/friendship, not by "belongs to this event"**:
+
+- **Event-wide totals differ by viewer.** Two members of the same
+  no-group event can see different total spend for it, because each
+  expense's row is only visible to its own `member_ids` (D10's
+  `member_ids`-based RLS), and an event's expenses can have different
+  member subsets depending on who was friends with whom at the time each
+  one was created. There is no query that reconstructs "every expense
+  that belongs to event X," only "every expense I'm a member of that
+  happens to carry this `eventId` overflow key."
+- **A non-friend event member can never edit a no-group expense from
+  that event**, even one they're a legitimate participant in spending
+  terms, for as long as they and the editor aren't accepted friends —
+  the UX notice above makes this visible and honest, but does not fix it.
+
+**A real fix needs a schema/RLS change** — out of scope for this issue,
+recorded here as a **follow-up decision** for whoever picks it up next:
+an `event_id` column (instead of the current overflow key) with its own
+event-membership-aware RLS clauses, analogous to the `group_id`/
+`expense_groups` pattern; and/or an `expenses_update` WITH CHECK based on
+`created_by` or on the row's OLD `member_ids` (a "the set of people who
+could always see this expense never shrinks arbitrarily" invariant)
+rather than solely the CURRENT editor's friendships. Neither is decided
+here — this addendum only names the gap and its two candidate shapes so
+Track D (or a dedicated follow-up issue) doesn't have to rediscover it.
+
+#### Consequences
+
+**Positive** — the create form can no longer construct a payload the RLS
+policy was always going to reject for an event context; the edit form
+tells an affected editor why Save is unavailable instead of letting them
+discover it via a failed round trip; the defensive invariant closes the
+same class of gap for stale client state generically, not just for the
+event path that motivated it.
+
+**Negative** — an event now needs up to two extra queries to resolve
+fully (its own group, when it has one; the friends list, when it doesn't)
+before defaults or an accurate candidate list can render — the same
+"wait for it, don't guess" pattern every other async-resolved context in
+this form already uses, extended by one more branch.
+
+**Neutral** — no RLS policy or migration changes; every rule this
+addendum encodes client-side already existed in
+`db/migrations/20260928000004_rls_policies.sql` before this issue.
+
 ## References
 
 - Spec D10 "Images": `docs/superpowers/specs/2026-09-18-inceptor-migration-design.md`
@@ -383,3 +496,9 @@ every policy it relies on (`receipts_expenses_insert`/`_update`/`_delete`,
   (`npm run test:contract:live`), `src/lib/data/storage.test.ts`,
   `src/lib/data/repos/expenses.remove.test.ts`,
   `src/lib/data/repos/expenses.receipts.test.ts`
+- Coordinator-review addendum: `db/migrations/20260928000004_rls_policies.sql`
+  (`expenses_insert`/`expenses_update`, both branches), `src/schemas/event.ts`
+  (`groupId`), `src/domain/expenseParticipants.ts`
+  (`resolveEventParticipants`, `violatesNoGroupInvariant`) + `.test.ts`,
+  `src/components/features/expenses/ExpenseForm.tsx` (`eventGroupQuery`,
+  `editBlockedByFriendship`)
