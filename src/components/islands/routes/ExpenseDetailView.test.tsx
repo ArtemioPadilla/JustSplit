@@ -177,7 +177,7 @@ describe('ExpenseDetailView', () => {
     expect(screen.getAllByText('Ana').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Team Trip' })).toHaveAttribute('href', '/events/ev1');
     expect(screen.getByText('Settled')).toBeInTheDocument();
-    expect(screen.getByText(/100\.00/)).toBeInTheDocument();
+    expect(screen.getAllByText(/100\.00/).length).toBeGreaterThan(0);
   });
 
   it(
