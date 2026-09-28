@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
 import { RemoveFriendDialog } from '@/components/features/friends/RemoveFriendDialog';
-import { balancesWithUser } from '@/domain/dashboard';
+import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import { parseCalendarDate } from '@/domain/dates';
 import { otherUser } from '@/domain/friends';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
@@ -92,7 +92,9 @@ function FriendDetailContent({ friendId }: { friendId: string }) {
   const friendshipRow = friendsQuery.data.find((f: Friendship) => f.status === 'accepted' && otherUser(f, uid) === friendId);
   if (!friendshipRow) return <NotFoundView />;
 
-  return <FriendDetailLoaded friendId={friendId} friendshipId={friendshipRow.id} uid={uid} expenses={expensesQuery.data} />;
+  // ADR 0013: the query returns every row the viewer can see; "shared with this
+  // friend" and the balance are about the rows that name the viewer.
+  return <FriendDetailLoaded friendId={friendId} friendshipId={friendshipRow.id} uid={uid} expenses={involvingUser(expensesQuery.data, uid)} />;
 }
 
 function FriendDetailLoaded({

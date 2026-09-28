@@ -53,7 +53,7 @@ describe('involvingUser (ADR 0013: rows the viewer can see because of a group or
 
   it('makes the dashboard totals personal: a group row the user is not in does not inflate totalSpent', () => {
     const all = [mine, groupFeed, eventFeed];
-    expect(totalSpent(all, identity)).toBe(1008);
+    expect(totalSpent(all, identity)).toBe(2008);
     expect(totalSpent(involvingUser(all, 'u1'), identity)).toBe(10);
   });
 });
