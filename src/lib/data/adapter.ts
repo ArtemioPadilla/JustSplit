@@ -1,6 +1,6 @@
 import { SupabaseAuthAdapter, SupabaseProfileStore } from '@cyber-eco/supabase';
 import type { StorageAdapter } from '@cyber-eco/types';
-import type { JustSplitProfile } from '@/schemas/profile';
+import type { AuthProfile } from '@/schemas/profile';
 import { supabase } from './client';
 
 /**
@@ -21,7 +21,14 @@ export const storageAdapter: StorageAdapter | null = null; // B5a wires the rela
 /** Auth for `@cyber-eco/auth`'s `<AuthProvider>` (plan B4). */
 export const authAdapter: SupabaseAuthAdapter | null = supabase ? new SupabaseAuthAdapter(supabase) : null;
 
-/** Public profile rows (`public.profiles`, plan B2); never a source of identity. */
-export const profileStore: SupabaseProfileStore<JustSplitProfile> | null = supabase
-  ? new SupabaseProfileStore<JustSplitProfile>(supabase, 'profiles')
+/**
+ * Public profile rows (`public.profiles`, plan B2); never a source of
+ * identity. Typed `AuthProfile` (not the wider `JustSplitProfile`) because
+ * this is the exact instance handed to `<AuthProvider>`'s `config`
+ * (`AuthConfig<AuthProfile>` — see `src/lib/auth-context.ts`); every row it
+ * reads or writes went through `createJustSplitProfile`, which always stamps
+ * a `name`.
+ */
+export const profileStore: SupabaseProfileStore<AuthProfile> | null = supabase
+  ? new SupabaseProfileStore<AuthProfile>(supabase, 'profiles')
   : null;

@@ -1,6 +1,6 @@
 import { atom } from 'nanostores';
 import type { AuthUser } from '@cyber-eco/types';
-import type { JustSplitProfile } from '@/schemas/profile';
+import type { AuthProfile, JustSplitProfile } from '@/schemas/profile';
 import type { GuardUser } from '@/lib/route-guard';
 import { authAdapter, profileStore } from '@/lib/data/adapter';
 import { SupabaseDisabledError, signInWithOAuthRedirect } from '@/lib/data/client';
@@ -74,7 +74,7 @@ export async function updateDisplayProfile(update: { displayName?: string; photo
  * hence a freshly-created profile elsewhere — stay in sync), then refreshes
  * `$profile` from the store (plan B4).
  */
-export async function updateProfile(partial: Partial<JustSplitProfile>): Promise<void> {
+export async function updateProfile(partial: Partial<AuthProfile>): Promise<void> {
   const uid = $user.get()?.uid;
   if (!uid) throw new Error('updateProfile: no signed-in user');
   const store = requireProfileStore();

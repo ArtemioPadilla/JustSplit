@@ -1,36 +1,9 @@
 import { createAuthContext } from '@cyber-eco/auth';
 import type { AuthUser } from '@cyber-eco/types';
-import type { JustSplitProfile } from '@/schemas/profile';
+import type { AuthProfile } from '@/schemas/profile';
 import { $profile } from '@/stores/auth';
 
-/**
- * `createAuthContext<T>()`'s `T` must extend `BaseUserConstraint`
- * (`{ id: string; name: string; … }` — `name` non-nullable). The persisted
- * `profiles` row (`src/schemas/profile.ts`) allows a nullable `name` because
- * it describes what a row CAN contain (partial upserts, pre-existing rows),
- * which is wider than what the auth context ever produces:
- * `createJustSplitProfile` below always stamps a `name`. `AuthProfile`
- * narrows just that one field so the generic constraint is satisfied without
- * loosening the storage-layer schema; it is structurally a `JustSplitProfile`
- * (assignable to `$profile`'s wider type) with a guaranteed `name`.
- */
-/**
- * An intersection, not `Omit<JustSplitProfile, 'name'>`: the schema's
- * `.loose()` gives it an index signature, and `Omit`/`Pick` over a type with
- * an index signature collapses to the index signature itself, dropping every
- * other named property (a known TS quirk). Intersecting the narrower field
- * types instead keeps the rest of `JustSplitProfile` untouched — every one
- * of `BaseUserConstraint`'s optional fields is `string | null | undefined` on
- * the storage row (nullable DB columns) but `string | undefined` on the
- * constraint (no `null`); `T & U` drops `null` without an unsafe cast.
- */
-export type AuthProfile = JustSplitProfile & {
-  name: string;
-  email?: string;
-  avatarUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
-};
+export type { AuthProfile };
 
 const { AuthProvider, useAuth } = createAuthContext<AuthProfile>();
 export { AuthProvider, useAuth };
