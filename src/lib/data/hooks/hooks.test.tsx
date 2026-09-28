@@ -21,8 +21,19 @@ const expensesRepo = {
   get: vi.fn(async (id: string) => ({ id, description: 'Tacos' })),
   update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
   remove: vi.fn(async () => undefined),
+  createWithReceipts: vi.fn(async (id: string, input: unknown) => ({
+    expense: { id, ...(input as object) },
+    failedUploadCount: 0,
+  })),
+  addReceipts: vi.fn(async (id: string) => ({ expense: { id, images: ['expenses/e1/a.jpg'] }, failedUploadCount: 0 })),
+  removeReceipt: vi.fn(async (id: string) => ({ id, images: [] })),
 };
 vi.mock('../repos/expenses', () => expensesRepo);
+
+const friendshipsRepo = {
+  forUserFilters: vi.fn((uid: string) => [{ field: 'users', operator: 'array-contains', value: uid }]),
+};
+vi.mock('../repos/friendships', () => friendshipsRepo);
 
 const groupsRepo = { get: vi.fn(async (id: string) => ({ id, name: 'Group' })) };
 vi.mock('../repos/groups', () => groupsRepo);
@@ -49,6 +60,10 @@ const { useUpdateExpense } = await import('./useUpdateExpense');
 const { useDeleteExpense } = await import('./useDeleteExpense');
 const { useProfiles } = await import('./useProfiles');
 const { useSettlements } = await import('./useSettlements');
+const { useFriends } = await import('./useFriends');
+const { useCreateExpenseWithReceipts } = await import('./useCreateExpenseWithReceipts');
+const { useAddReceipts } = await import('./useAddReceipts');
+const { useRemoveReceipt } = await import('./useRemoveReceipt');
 
 function withClient(node: React.ReactElement, client = new QueryClient()) {
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
@@ -282,5 +297,96 @@ describe('useProfiles', () => {
     }
     withClient(<Probe />);
     expect(profilesRepo.byIds).not.toHaveBeenCalled();
+  });
+});
+
+describe('useFriends (plan B10 — B13\'s ADR hook, needed early by the expense form\'s participant picker)', () => {
+  it("useFriends(uid) subscribes 'friendships' with the users array-contains filter, persisted", () => {
+    function Probe() {
+      useFriends('u1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(liveQuerySpy).toHaveBeenCalledWith(['friendships', 'u1'], 'friendships', friendshipsRepo.forUserFilters('u1'), {
+      enabled: true,
+      persist: true,
+    });
+  });
+
+  it('useFriends(undefined) is disabled (no signed-in user yet)', () => {
+    function Probe() {
+      useFriends(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    const [, , , options] = liveQuerySpy.mock.calls[0]!;
+    expect((options as { enabled: boolean }).enabled).toBe(false);
+  });
+});
+
+describe('useCreateExpenseWithReceipts (plan B10)', () => {
+  it('calls repos.expenses.createWithReceipts and invalidates the affected query keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useCreateExpenseWithReceipts();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'e1', input: { groupId: 'g1' } as never, files: [] }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.createWithReceipts).toHaveBeenCalledWith('e1', { groupId: 'g1' }, []));
+    await waitFor(() => expect(mutateResult).toMatchObject({ expense: { id: 'e1' }, failedUploadCount: 0 }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['groups', 'g1'] });
+  });
+});
+
+describe('useAddReceipts (plan B10, edit flow)', () => {
+  it('calls repos.expenses.addReceipts and invalidates the expenses query key on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useAddReceipts();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'e1', files: [] }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.addReceipts).toHaveBeenCalledWith('e1', []));
+    await waitFor(() => expect(mutateResult).toMatchObject({ failedUploadCount: 0 }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+  });
+});
+
+describe('useRemoveReceipt (plan B10, edit flow)', () => {
+  it('calls repos.expenses.removeReceipt and invalidates the expenses query key on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useRemoveReceipt();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'e1', path: 'expenses/e1/a.jpg' }).then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.removeReceipt).toHaveBeenCalledWith('e1', 'expenses/e1/a.jpg'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
   });
 });
