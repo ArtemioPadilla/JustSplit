@@ -409,7 +409,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       arms the A3b `db-migrate.yml`); in Settings → Environments → `github-pages`, add `inceptor`
       to the allowed deployment branches (the default policy allows only `main`, and
       `actions/deploy-pages` fails with an environment-protection error otherwise)
-- [ ] `src/lib/data/client.ts`: guarded client following the `supabaseEnabled` snippet in
+- [x] `src/lib/data/client.ts`: guarded client following the `supabaseEnabled` snippet in
       Inceptor `docs/recipes/auth-supabase.md` §2 — `supabaseEnabled = Boolean(PUBLIC_SUPABASE_URL
       && PUBLIC_SUPABASE_KEY)`; `createClient(url, key, { auth: { persistSession: true,
       flowType: 'pkce', detectSessionInUrl: true } })`, `null` when disabled; islands render an
@@ -417,7 +417,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       `find_profile_by_email` / `find_profiles_by_ids` calls (B5a `repos.profiles`) stay inside
       this file's import boundary. `.env.example` with both keys + `PUBLIC_SUPABASE_LOCAL=true`
       (points the client at `supabase start`'s URL/anon key in dev)
-- [ ] `src/lib/data/adapter.ts`: the single place that constructs the `StorageAdapter`. Until
+- [x] `src/lib/data/adapter.ts`: the single place that constructs the `StorageAdapter`. Until
       relational mode (H2) is published it exports the contingency `RelationalSupabaseAdapter`
       (B5a); after H2 it becomes `new SupabaseStorageAdapter(() => client, { schemaMap })` — the
       constructor takes a client **getter** (`(getClient: () => SupabaseClient, config?)`; passing
@@ -428,11 +428,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       constructs the upstream adapter without a `schemaMap`. The same file exports the
       `SupabaseAuthAdapter` / `SupabaseProfileStore` pair (B4). Nothing else imports
       `@cyber-eco/supabase`
-- [ ] Workflows: `deploy.yml` (B1) and the new `deploy-staging.yml` pass `PUBLIC_SUPABASE_URL` /
+- [x] Workflows: `deploy.yml` (B1) and the new `deploy-staging.yml` pass `PUBLIC_SUPABASE_URL` /
       `PUBLIC_SUPABASE_KEY` from repository variables at build time; `ci.yml` builds **without**
       them on purpose (exercises the guarded `supabaseEnabled === false` path); a Vitest asserts
       each deploying workflow's build step has both and that `ci.yml` has neither
-- [ ] New `deploy-staging.yml` = Inceptor's `deploy.yml` with `on: push: branches: [inceptor]`,
+- [x] New `deploy-staging.yml` = Inceptor's `deploy.yml` with `on: push: branches: [inceptor]`,
       `concurrency: pages`, `permissions: pages: write, id-token: write`, the `NODE_AUTH_TOKEN`
       step, the `PUBLIC_SUPABASE_*` vars and `ASTRO_BASE: ${{ vars.ASTRO_BASE || '/JustSplit' }}`;
       it publishes the `inceptor` branch to **this repository's** Pages site with
@@ -441,11 +441,17 @@ backend decision; ADR numbers are allocation order, not merge order).
       `https://artemiopadilla.github.io/JustSplit/` is the B18/B19 target; the two deploy
       workflows never run concurrently because nothing pushes `main` before cutover. Document the
       staging origin and callback (`/JustSplit/auth/callback/`) in `docs/runbooks/staging.md`
-- [ ] ADR `docs/decisions/0011-supabase-via-cybereco-data-layer.md`: spec D1 verbatim (rationale,
+- [x] ADR `docs/decisions/0011-supabase-via-cybereco-data-layer.md`: spec D1 verbatim (rationale,
       rejected alternatives, the two identity contexts, gate C1 and the contingency adapter, the
       GitHub Packages access outcome from B1 — classic PAT, `cyber-eco` org, the vendoring
       fallback); Stakeholder Analysis (user data now lives in Supabase's `aws` region of choice;
       retention/erasure through RLS delete policies + a documented owner runbook)
+- Landed (code half): `src/lib/data/{env,client,adapter}.ts` + tests (`env.test.ts`,
+      `client.test.ts`, `src/tests/data-boundary.test.ts`, `src/tests/supabase-workflow-env.test.ts`);
+      `adapter.ts` exports `storageAdapter = null` until B5a wires the contingency adapter, plus
+      the auth adapter / profile store pair. `@cyber-eco/*@0.2.1` are **vendored** in `vendor/`
+      (`file:` tarballs + `overrides`, ADR 0011 §6) because `GH_PACKAGES_TOKEN` does not exist yet.
+      Owner actions and the staging acceptance stay open (deferred to the end by the owner).
 - [ ] Acceptance: `ci.yml`'s `supabaseEnabled === false` build passes; `gh secret list` shows
       `SUPABASE_DB_URL` and `gh variable list` shows `PUBLIC_SUPABASE_*`; the staging site serves
       the scaffold landing page under `https://artemiopadilla.github.io/JustSplit/`

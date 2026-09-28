@@ -1,0 +1,53 @@
+# Staging deploy (plan B2a, spec D2) — publishes the `inceptor` integration
+# branch to THIS repository's GitHub Pages site until cutover. Same site as
+# deploy.yml (which runs from `main`); nothing pushes `main` before cutover
+# (B22), so the two never compete, and the shared `pages` concurrency group
+# serialises them anyway. Owner action: Settings → Environments →
+# github-pages → allow the `inceptor` branch (SETUP.md §4), otherwise
+# actions/deploy-pages fails with an environment-protection error.
+# Staging origin + OAuth callback: docs/runbooks/staging.md.
+name: Deploy staging (inceptor → GitHub Pages)
+on:
+  push:
+    branches: [inceptor]
+  workflow_dispatch:
+concurrency:
+  group: pages
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          registry-url: https://npm.pkg.github.com
+          scope: '@cyber-eco'
+      - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      - run: npm run build
+        env:
+          ASTRO_BASE: ${{ vars.ASTRO_BASE || '/JustSplit' }}
+          PUBLIC_REPO_SLUG: ${{ github.repository }}
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+          PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_KEY: ${{ vars.PUBLIC_SUPABASE_KEY }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: ./dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
