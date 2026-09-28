@@ -51,6 +51,15 @@ describe('Timeline Utility Functions — date range (ported from the legacy Jest
   });
 
   describe('formatDateRange', () => {
+    // B11a follow-up (plan B11b): these two assertions only prove the
+    // calendar-date fix in a zone WEST of UTC (a bare `new Date('2023-06-01')`
+    // is 18:00 the previous day there), so the block pins its own zone instead
+    // of trusting the machine's. Without this guard the tests are green on a
+    // UTC laptop and CI even if the parsing regressed.
+    it('runs pinned to America/Mexico_City (UTC-6, no DST), whatever the machine zone', () => {
+      expect(new Date(2023, 5, 1).getTimezoneOffset()).toBe(360);
+    });
+
     it('formats a same-month range', () => {
       expect(formatDateRange('2023-06-01', '2023-06-15')).toBe('Jun 1-15, 2023');
     });

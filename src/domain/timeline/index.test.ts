@@ -81,6 +81,13 @@ describe('Timeline Calculations (ported from the legacy Jest suite, plan B11a)',
   });
 
   describe('formatTimelineDate', () => {
+    // B11a follow-up (plan B11b): see date-range.test.ts — a display-format
+    // assertion only guards the calendar-date fix west of UTC, so it pins its
+    // own zone.
+    it('runs pinned to America/Mexico_City (UTC-6, no DST), whatever the machine zone', () => {
+      expect(new Date(2025, 0, 1).getTimezoneOffset()).toBe(360);
+    });
+
     it('formats a calendar date string without shifting the day', () => {
       expect(formatTimelineDate('2025-01-01')).toBe('Jan 1, 2025');
     });
