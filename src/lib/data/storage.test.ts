@@ -182,16 +182,48 @@ describe('uploadAvatar (uid MUST come from the session, never a spoofable argume
 });
 
 describe('removeReceipts (spec D10: repos.expenses.remove calls this BEFORE the row delete)', () => {
-  it('lists then removes every object under expenses/{expenseId}/', async () => {
-    const { client, list, remove } = fakeStorageClient({
-      list: vi.fn().mockResolvedValue({ data: [{ name: 'a.jpg' }, { name: 'b.jpg' }], error: null }),
-    });
+  const objects = (n: number, from = 0) => Array.from({ length: n }, (_, i) => ({ name: `r${from + i}.jpg` }));
+  /** remove() that reports every requested path as deleted, like Storage does on success. */
+  const removeAll = () =>
+    vi.fn(async (paths: string[]) => ({ data: paths.map((name) => ({ name })), error: null }));
+
+  it('lists then removes every object under expenses/{expenseId}/, then confirms the folder is empty', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [{ name: 'a.jpg' }, { name: 'b.jpg' }], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    const { client, remove } = fakeStorageClient({ list, remove: removeAll() });
     requireSupabase.mockReturnValue(client);
 
     await removeReceipts('exp-1');
 
-    expect(list).toHaveBeenCalledWith('expenses/exp-1');
+    expect(list).toHaveBeenCalledWith('expenses/exp-1', expect.objectContaining({ limit: 100 }));
     expect(remove).toHaveBeenCalledWith(['expenses/exp-1/a.jpg', 'expenses/exp-1/b.jpg']);
+  });
+
+  it('pages past the 100-object listing limit so no receipt is left behind', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({ data: objects(100), error: null })
+      .mockResolvedValueOnce({ data: objects(30, 100), error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    const { client, remove } = fakeStorageClient({ list, remove: removeAll() });
+    requireSupabase.mockReturnValue(client);
+
+    await removeReceipts('exp-big');
+
+    const removed = remove.mock.calls.flatMap(([paths]) => paths as string[]);
+    expect(removed).toHaveLength(130);
+    expect(new Set(removed).size).toBe(130);
+  });
+
+  it('throws when Storage silently removes fewer objects than requested (a denied delete)', async () => {
+    const list = vi.fn().mockResolvedValue({ data: [{ name: 'a.jpg' }, { name: 'b.jpg' }], error: null });
+    const remove = vi.fn().mockResolvedValue({ data: [{ name: 'expenses/exp-1/a.jpg' }], error: null });
+    const { client } = fakeStorageClient({ list, remove });
+    requireSupabase.mockReturnValue(client);
+
+    await expect(removeReceipts('exp-1')).rejects.toThrow(/removed 1 of 2/);
   });
 
   it('is a no-op when the expense has no receipts (never calls remove([]))', async () => {
