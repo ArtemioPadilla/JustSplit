@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ExpenseGroupSchema } from './group';
 import { EventSchema } from './event';
 import { ExpenseSchema } from './expense';
+import { ExpenseGroupMemberSchema } from './group';
 
 /**
  * Plan B3 synthetic fixtures round-trip test: every fixture under
@@ -49,5 +50,24 @@ describe('synthetic fixtures round-trip (plan B3)', () => {
     expect(parsed).toEqual(fixture);
     expect(parsed.conceptId).toBe('fixture-concept-rent');
     expect(parsed.category).toBe('not-a-taxonomy-key');
+  });
+});
+
+/**
+ * `supabase/seed.sql` is the local dev fixture (`npm run db:seed`). Its group's
+ * `members[]` used a role the app does not know (`"user"`; the roles are
+ * owner/admin/moderator/member), so `repos.groups.get` rejected the seeded group
+ * and every page that opens it ("Casa", `/groups/<id>`, `/events/new?group=`)
+ * showed "Something went wrong loading this group" (plan B11b, found against a
+ * real stack).
+ */
+describe('supabase/seed.sql (local dev fixture)', () => {
+  it('seeds a group whose members[] parse as ExpenseGroupMember (known roles)', () => {
+    const seed = readFileSync(resolve(__dirname, '../../supabase/seed.sql'), 'utf-8');
+    const match = seed.match(/insert into public\.expense_groups[\s\S]*?'(\[[\s\S]*?\])',\s*array/);
+    expect(match, 'the seed inserts an expense_groups row with a members[] literal').not.toBeNull();
+    const members = JSON.parse(match![1]!) as unknown[];
+    expect(members.length).toBeGreaterThan(0);
+    for (const member of members) expect(ExpenseGroupMemberSchema.safeParse(member).success).toBe(true);
   });
 });
