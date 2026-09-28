@@ -187,9 +187,11 @@ lost three preflights and two notices; the friend-search enumeration is bounded.
 **Negative** — anyone added to a group or event sees its whole history (intended,
 recorded in the Stakeholder Analysis); any participant can still *un-group* a row
 they are named on (nulling is allowed, the foreign key does it) and thereby hide it
-from the group feed; an unfiltered `select *` now returns a whole visible feed, so
-the PostgREST `max_rows = 1000` cap can silently truncate a very busy account
-(pagination is a follow-up); an old app build writing `eventId` into `extra` after
+from the group feed; Realtime does not signal a row that *becomes invisible* to a
+subscriber (a group deleted, a member removed, an event deleted), so another
+member's open tab keeps the stale row until its next fetch; an unfiltered
+`select *` now returns a whole visible feed, so the PostgREST `max_rows = 1000`
+cap can silently truncate a very busy account (pagination is a follow-up); an old app build writing `eventId` into `extra` after
 the migration produces rows the column does not see until the idempotent backfill
 is re-run; the rate limit does not stop an attacker with many accounts (sign-ups are
 limited by Auth).

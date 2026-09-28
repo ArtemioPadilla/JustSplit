@@ -593,25 +593,25 @@ friend check, silent-no-op delete, dangling `group_id`) and ADR 0006 (the `find_
 rate-limit follow-up). Decided by the owner ("best engineering and best UX"); recorded in ADR
 `0013-membership-lifecycle`. Five dbmate migrations after `20260928000009`, each with a complete
 `-- migrate:down`:
-- [ ] **A. `expenses.event_id` (and `settlements.event_id`) become real columns.** `text` + index,
+- [x] **A. `expenses.event_id` (and `settlements.event_id`) become real columns.** `text` + index,
       backfilled from `extra->>'eventId'` (then the key is removed from `extra`; there is no
       production data, staging may have some). The SchemaMap maps `eventId` to the column, so the
       adapter's `eventId ==` filters hit it. `batch_write` needs no change (it validates keys
       against `information_schema.columns`); the RLS suite proves it
-- [ ] **B. Foreign keys, `ON DELETE SET NULL`:** `expenses.group_id`, `events.group_id`,
+- [x] **B. Foreign keys, `ON DELETE SET NULL`:** `expenses.group_id`, `events.group_id`,
       `settlements.group_id` → `expense_groups(id)`; `expenses.event_id`, `settlements.event_id`
       → `events(id)`. Orphans are nulled first, then the constraints are added `NOT VALID` and
       `VALIDATE`d. FK actions bypass RLS but still fire the BEFORE UPDATE guards, which allow a
       NULL-ing `group_id`/`event_id`. Deleting a group or event cleanly ungroups or unlinks its
       rows: no friendship check, no dangling id
-- [ ] **C. Visibility follows membership (select).** `SECURITY DEFINER`, `stable`, pinned
+- [x] **C. Visibility follows membership (select).** `SECURITY DEFINER`, `stable`, pinned
       `search_path` helpers `is_group_member(gid)`, `is_event_member(eid)`,
       `can_see_shared_row(member_ids, group_id, event_id)` and `can_see_expense(id)`; revoked from
       `public`/`anon`, granted to `authenticated`. `expenses_select` and `settlements_select` =
       `uid ∈ member_ids OR group member OR event member`; the `receipts_expenses_*` storage
       policies call the one helper `can_see_expense`. `find_profiles_by_ids` resolves anyone named
       on a row the caller can see
-- [ ] **D. Edits check only what changed.** `expenses_update` USING = the visibility predicate;
+- [x] **D. Edits check only what changed.** `expenses_update` USING = the visibility predicate;
       WITH CHECK keeps only what needs no OLD (actor still sees the row, `paid_by`/splits ⊆
       `member_ids`). The membership rules move into `guard_expenses` / `guard_events`: only ADDED
       members are checked (group member when `group_id` is set; otherwise event member or
@@ -619,12 +619,12 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
       group or event needs the actor to be a member of the target. `expenses_insert`: event
       expenses (no group) accept event members or friends. Removing someone from a group no
       longer locks old rows
-- [ ] **E. `find_profile_by_email` rate limit.** `public.profile_lookup_attempts(uid, at)`, RLS
+- [x] **E. `find_profile_by_email` rate limit.** `public.profile_lookup_attempts(uid, at)`, RLS
       enabled and no policy; the definer function counts the caller's attempts in the last hour
       (constant 30), raises SQLSTATE `P0429` / `rate_limited` at the limit, otherwise records the
       attempt and prunes rows older than a day. Client: `rpc()` maps it to a typed
       `LookupRateLimitedError`; `AddFriendForm` shows the fixed sentence, no generic toast
-- [ ] RLS suite (`src/tests/rls/`): event visibility and non-friend editing; group visibility
+- [x] RLS suite (`src/tests/rls/`): event visibility and non-friend editing; group visibility
       (a member added later sees old rows; a removed member keeps only rows that name them);
       removal does not lock old expenses; group delete nulls `group_id` on expenses, events and
       settlements, a non-admin delete changes nothing, event delete nulls `event_id`; the guard on
@@ -632,7 +632,7 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
       `rate_limited` and the attempts table is unreadable; a Realtime case for a group member who
       is not in `member_ids`; `coverage.test.ts` updated; `rls-mutation-check.mjs` gains function
       and foreign-key mutations
-- [ ] App: hooks stop filtering `memberIds array-contains uid` for expenses and settlements
+- [x] App: hooks stop filtering `memberIds array-contains uid` for expenses and settlements
       (visibility is RLS's job; the memory adapter emulates it, and `ON DELETE SET NULL`, so the
       contract suites do not lie); personal totals (dashboard, friend view) scope to rows the
       viewer participates in on the client. B10 `ExpenseForm`: `?event=` offers every event member
@@ -642,14 +642,28 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
       re-read kept; friend preflight and `GroupDeleteBlockedByFriendshipError` removed),
       `MembersSection` drops the "still part of N expenses" block (last-admin guard kept). B9
       `repos.expenses.remove` preflight stays (the row delete policy is unchanged)
-- [ ] ADR `docs/decisions/0013-membership-lifecycle.md` with a Stakeholder Analysis (group and
+- [x] ADR `docs/decisions/0013-membership-lifecycle.md` with a Stakeholder Analysis (group and
       event members, a removed member, a non-friend co-member, someone whose email is looked up,
       the admin, future contributors); the three earlier amendments are marked "Superseded by ADR
       0013"
+- Landed: migrations `20260928000010`–`…014` (`event_id_column`, `membership_foreign_keys`,
+      `membership_visibility`, `edit_checks_added_members`, `profile_lookup_rate_limit`), each with a
+      down section exercised by `db:rollback` → `db:migrate`; against `supabase start` the RLS suite
+      went from 12 files / 160 tests to 18 files / 234 (`event-id`, `fk-lifecycle`, `visibility`,
+      `realtime-visibility`, `membership-edit`, `lookup-rate-limit`, plus coverage guards), the live
+      contract suite has two new foreign-key cases (13 live / 10 memory), and
+      `npm run test:rls:mutation` kills 44/44 (helpers neutralised, each foreign key dropped, the
+      attempts table opened). Deviations recorded in ADR 0013: added event-expense members may be
+      friends on update as on insert; re-pointing a row needs the actor named on it and (for a
+      group) `member_ids ⊆ group`; `event_id` on insert needs the creator in the event; personal
+      totals scope to rows that name the viewer (`involvingUser`); the attempts table references
+      `auth.users on delete cascade`. Known limits: Realtime does not signal a row becoming
+      invisible (other tabs keep a stale row until their next fetch) and an unfiltered query is
+      capped by PostgREST `max_rows = 1000` (pagination is a follow-up)
 - [ ] **Deploy note (owner action):** run `db-migrate.yml --ref inceptor` against the real
       Supabase project once this merges, before any build that relies on the new columns is
       deployed; then `npm run db:audit` against the project must equal the local dump
-- [ ] Acceptance: `npm run check` green; the RLS suite green against `supabase start` and red when
+- [x] Acceptance: `npm run check` green; the RLS suite green against `supabase start` and red when
       any new policy, guard trigger, helper function or foreign key is dropped or neutralised
       (`npm run test:rls:mutation`); `npm run check:a11y` at 0 violations
 
