@@ -77,6 +77,62 @@ describe('RLS coverage guard', () => {
     for (const r of rows) expect(r).toMatch(/search_path=/);
   });
 
+  it('the only tables with RLS and no policy are the two closed to every Data API role (B2d)', () => {
+    const rows = sql(`select c.relname from pg_class c
+                       where c.relnamespace = 'public'::regnamespace and c.relkind = 'r' and c.relrowsecurity
+                         and not exists (select 1 from pg_policy p where p.polrelid = c.oid)
+                       order by 1`);
+    expect(rows).toEqual(['profile_lookup_attempts', 'schema_migrations']);
+  });
+
+  it('the membership helpers are executable by authenticated (policies run as that role) and never by anon or public', () => {
+    const rows = sql(`select p.proname || ' auth=' || has_function_privilege('authenticated', p.oid, 'execute')::text
+                                     || ' anon=' || has_function_privilege('anon', p.oid, 'execute')::text
+                        from pg_proc p
+                       where p.pronamespace = 'public'::regnamespace
+                         and p.proname in ('is_group_member', 'is_event_member', 'can_see_shared_row', 'can_see_expense')
+                       order by 1`);
+    expect(rows).toEqual([
+      'can_see_expense auth=true anon=false',
+      'can_see_shared_row auth=true anon=false',
+      'is_event_member auth=true anon=false',
+      'is_group_member auth=true anon=false',
+    ]);
+  });
+
+  it('expense/settlement visibility and receipt access each come from ONE shared helper, never a private member_ids clause (B2d)', () => {
+    const shared = sql(`select policyname from pg_policies
+                         where schemaname = 'public' and policyname in ('expenses_select', 'expenses_update', 'settlements_select')
+                           and coalesce(qual, '') ~ 'can_see_shared_row' order by 1`);
+    expect(shared).toEqual(['expenses_select', 'expenses_update', 'settlements_select']);
+
+    const receipts = sql(`select policyname || '|' || (coalesce(qual, '') || coalesce(with_check, '') ~ 'can_see_expense')::text
+                                            || '|' || (coalesce(qual, '') || coalesce(with_check, '') ~ 'member_ids')::text
+                            from pg_policies
+                           where schemaname = 'storage' and tablename = 'objects' and policyname like 'receipts_expenses_%' order by 1`);
+    expect(receipts).toEqual([
+      'receipts_expenses_delete|true|false',
+      'receipts_expenses_insert|true|false',
+      'receipts_expenses_select|true|false',
+      'receipts_expenses_update|true|false',
+    ]);
+  });
+
+  it('every group_id / event_id reference is a foreign key ON DELETE SET NULL (B2d)', () => {
+    const rows = sql(`select conrelid::regclass::text || '.' || a.attname
+                        from pg_constraint c
+                        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
+                       where c.contype = 'f' and c.connamespace = 'public'::regnamespace and c.confdeltype = 'n'
+                       order by 1`);
+    expect(rows).toEqual([
+      'events.group_id',
+      'expenses.event_id',
+      'expenses.group_id',
+      'settlements.event_id',
+      'settlements.group_id',
+    ]);
+  });
+
   it('public.documents does not exist and no migration creates it', () => {
     expect(sql(`select count(*) from pg_tables where schemaname = 'public' and tablename = 'documents'`)).toEqual(['0']);
     for (const f of readdirSync(MIGRATIONS)) {
