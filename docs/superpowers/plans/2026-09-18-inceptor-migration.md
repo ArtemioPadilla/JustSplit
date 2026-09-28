@@ -87,14 +87,14 @@ part of the migration's definition of done).
 |---|---|---|
 | `v0.2 - Inceptor workflow` | A | A1, A2, A3a, A3b, A4, A5, A6 |
 | `v0.3 - Foundation on Astro` | B, phase 1 | B1, B2a, B2, B2c, B2b, B3, B4, B5a, B5b, B6, B7, B16 |
-| `v0.4 - Feature islands` | B, phase 2 | B8a, B8b, B9–B15, B17a, B17b |
+| `v0.4 - Feature islands` | B, phase 2 | B8a, B8b, B9–B15, B2d, B17a, B17b |
 | `v0.5 - Cutover` | B, phase 3 | B18–B22 |
 | `v0.6 - Upstream to Inceptor` | C (lives in the `inceptor` repo) | C1–C3 |
 | `v0.6 - JustSplit consumer` | C' (lives in the `cybereco-hub` repo) | H1–H3 |
 | `v0.7 - Relationship kinds` | D, post-cutover (`phase-4`) | D1–D12 (+ D0 only if a migration ever constrains `extra`) |
 
 Track A issues carry `phase-0`. Labels created by A5 (17): `phase-0..phase-3`,
-`type:chore|feat|docs`, `track:workflow`, `track:stack`, `risk:high` (B2a, B2, B2b, B4, B5a, B5b,
+`type:chore|feat|docs`, `track:workflow`, `track:stack`, `risk:high` (B2a, B2, B2b, B2d, B4, B5a, B5b,
 B13, B16, B20, D2), `ai-approved` (claude.yml gate), `bug`, `enhancement`, `question`
 (issue-template defaults), `tdd-tier:strict`, `tdd-tier:smoke`, `tdd-tier:exempt` (centinela §3.1
 reads these; story.yml only offers them as a dropdown, a maintainer/prometeo applies the label).
@@ -115,7 +115,8 @@ ADR numbering (`docs/decisions/`): `0001-adopt-inceptor-workflow` (A2),
 `0010-relationship-kinds-and-conceptos` (D1, post-cutover),
 `0011-supabase-via-cybereco-data-layer` (B2a; records spec D1 incl. the gate-C1 contingency and
 the GitHub Packages fallback — numbered after 0010 because the list above was fixed before the
-backend decision; ADR numbers are allocation order, not merge order).
+backend decision; ADR numbers are allocation order, not merge order),
+`0013-membership-lifecycle` (B2d; supersedes the schema-question amendments of 0002, 0005, 0006).
 
 ---
 
@@ -584,6 +585,73 @@ backend decision; ADR numbers are allocation order, not merge order).
       `/JustSplit/expenses` forwards to `/JustSplit/expenses/list/`
 - [x] Acceptance: `npm run check` green; a deep link such as `/expenses/abc` on `npm run preview`
       renders the shell and the not-found view (islands arrive in Phase 2)
+
+### B2d. Membership lifecycle migration + email-lookup rate limit (`risk:high`, `tdd-tier:strict`, `v0.4`)
+Resolves the open schema question recorded in three places: ADR 0005's B10 addendum (event
+visibility, non-friend editing), ADR 0002's B12 amendment (member-removal lockout, delete-group
+friend check, silent-no-op delete, dangling `group_id`) and ADR 0006 (the `find_profile_by_email`
+rate-limit follow-up). Decided by the owner ("best engineering and best UX"); recorded in ADR
+`0013-membership-lifecycle`. Five dbmate migrations after `20260928000009`, each with a complete
+`-- migrate:down`:
+- [ ] **A. `expenses.event_id` (and `settlements.event_id`) become real columns.** `text` + index,
+      backfilled from `extra->>'eventId'` (then the key is removed from `extra`; there is no
+      production data, staging may have some). The SchemaMap maps `eventId` to the column, so the
+      adapter's `eventId ==` filters hit it. `batch_write` needs no change (it validates keys
+      against `information_schema.columns`); the RLS suite proves it
+- [ ] **B. Foreign keys, `ON DELETE SET NULL`:** `expenses.group_id`, `events.group_id`,
+      `settlements.group_id` → `expense_groups(id)`; `expenses.event_id`, `settlements.event_id`
+      → `events(id)`. Orphans are nulled first, then the constraints are added `NOT VALID` and
+      `VALIDATE`d. FK actions bypass RLS but still fire the BEFORE UPDATE guards, which allow a
+      NULL-ing `group_id`/`event_id`. Deleting a group or event cleanly ungroups or unlinks its
+      rows: no friendship check, no dangling id
+- [ ] **C. Visibility follows membership (select).** `SECURITY DEFINER`, `stable`, pinned
+      `search_path` helpers `is_group_member(gid)`, `is_event_member(eid)`,
+      `can_see_shared_row(member_ids, group_id, event_id)` and `can_see_expense(id)`; revoked from
+      `public`/`anon`, granted to `authenticated`. `expenses_select` and `settlements_select` =
+      `uid ∈ member_ids OR group member OR event member`; the `receipts_expenses_*` storage
+      policies call the one helper `can_see_expense`. `find_profiles_by_ids` resolves anyone named
+      on a row the caller can see
+- [ ] **D. Edits check only what changed.** `expenses_update` USING = the visibility predicate;
+      WITH CHECK keeps only what needs no OLD (actor still sees the row, `paid_by`/splits ⊆
+      `member_ids`). The membership rules move into `guard_expenses` / `guard_events`: only ADDED
+      members are checked (group member when `group_id` is set; otherwise event member or
+      accepted friend when `event_id` is set; otherwise accepted friend), and pointing a row at a
+      group or event needs the actor to be a member of the target. `expenses_insert`: event
+      expenses (no group) accept event members or friends. Removing someone from a group no
+      longer locks old rows
+- [ ] **E. `find_profile_by_email` rate limit.** `public.profile_lookup_attempts(uid, at)`, RLS
+      enabled and no policy; the definer function counts the caller's attempts in the last hour
+      (constant 30), raises SQLSTATE `P0429` / `rate_limited` at the limit, otherwise records the
+      attempt and prunes rows older than a day. Client: `rpc()` maps it to a typed
+      `LookupRateLimitedError`; `AddFriendForm` shows the fixed sentence, no generic toast
+- [ ] RLS suite (`src/tests/rls/`): event visibility and non-friend editing; group visibility
+      (a member added later sees old rows; a removed member keeps only rows that name them);
+      removal does not lock old expenses; group delete nulls `group_id` on expenses, events and
+      settlements, a non-admin delete changes nothing, event delete nulls `event_id`; the guard on
+      added members; receipt access follows visibility; the 31st lookup in an hour raises
+      `rate_limited` and the attempts table is unreadable; a Realtime case for a group member who
+      is not in `member_ids`; `coverage.test.ts` updated; `rls-mutation-check.mjs` gains function
+      and foreign-key mutations
+- [ ] App: hooks stop filtering `memberIds array-contains uid` for expenses and settlements
+      (visibility is RLS's job; the memory adapter emulates it, and `ON DELETE SET NULL`, so the
+      contract suites do not lie); personal totals (dashboard, friend view) scope to rows the
+      viewer participates in on the client. B10 `ExpenseForm`: `?event=` offers every event member
+      and writes `event_id`, the friend filter, the "N people aren't your friends" notice and the
+      edit-block notice are removed, `violatesNoGroupInvariant` becomes an added-members check that
+      mirrors the guard. B12: `repos.groups.remove` is a plain delete (admin preflight and post-delete
+      re-read kept; friend preflight and `GroupDeleteBlockedByFriendshipError` removed),
+      `MembersSection` drops the "still part of N expenses" block (last-admin guard kept). B9
+      `repos.expenses.remove` preflight stays (the row delete policy is unchanged)
+- [ ] ADR `docs/decisions/0013-membership-lifecycle.md` with a Stakeholder Analysis (group and
+      event members, a removed member, a non-friend co-member, someone whose email is looked up,
+      the admin, future contributors); the three earlier amendments are marked "Superseded by ADR
+      0013"
+- [ ] **Deploy note (owner action):** run `db-migrate.yml --ref inceptor` against the real
+      Supabase project once this merges, before any build that relies on the new columns is
+      deployed; then `npm run db:audit` against the project must equal the local dump
+- [ ] Acceptance: `npm run check` green; the RLS suite green against `supabase start` and red when
+      any new policy, guard trigger, helper function or foreign key is dropped or neutralised
+      (`npm run test:rls:mutation`); `npm run check:a11y` at 0 violations
 
 ### B2b. RLS test suite — every table × every command × member/non-member/anonymous (`risk:high`, blocks B3/B5a)
 - [x] `src/tests/rls/*.test.ts` Vitest suite (`// @vitest-environment node`) run against
@@ -2613,6 +2681,9 @@ A1 (done, 6a32c4d) → [Firebase workflows deleted in the docs PR #2, 0ba4348] �
                                           (serial, one PR each, ~1 week; A1–A3a by the main session; zero workflows run on main between #2 and A3b)
 B1 → B2a → B2 → B2b → B3 → B4 → B5a → B5b → B6 → B7   (foundation, serial; B2 migrations applied to the justsplit project via `--ref inceptor` before B2b; B2b RLS suite green before B3)
   B2c after B1 (parallel with B2a/B2/B2b)
+  B2d after B15 and before B11b/B14 (migrations C–D change who can see and edit expense rows; the
+   events islands (B11b) and settle-up (B14) are built against the new `event_id` columns and
+   visibility, so they must not land first; deployed with `db-migrate.yml --ref inceptor`)
   B5a: if relational mode (H2) is not published when B5a starts → ship the contingency adapter behind StorageAdapter (spec D1); never document mode
 B16 after B5b (needs $preferredCurrency/$rateCache from B5b, domain/currency from B3, combobox/editable/progress-bar from the B1 manifest); may run alongside B6/B7
 B17a after B7 (shared ExportCsvButton + /showcase entry; B8b/B9/B11b mount it)
