@@ -1492,32 +1492,93 @@ resolves other users' names through `useProfiles` (B5a).
       `ExpenseDetailView` contains the Recharts marker (`check-charts-bundle.mjs`'s existing
       `showcase`/`/` checks are unaffected; a direct grep of both chunks for the
       `recharts-responsive-container` marker found nothing).
-### B10. Expense form island (`/expenses/new`, `/expenses/edit`)
-- [ ] `ExpenseSplitter` rewritten without MUI over the universal `splitType` (equal / exact /
-      percentage) — the form edits shares, `materializeSplits` (B3) writes `splits[].amount`;
-      image upload via `FileUpload` + B5b storage helpers with a fixed order — the storage policy
-      for `expenses/{id}/…` requires the expense row to exist, so create is **insert the row
-      (client-generated id via `generateId`, `images: []` — the D10 insert policy is satisfied by
-      the row alone, images are not gated) → upload objects → `updateDocument(id, { images })`**
-      (a partial patch, RLS update = member); today's form collects images in state and sends them
-      with `addExpense` in one step, which would be denied. Edit uploads directly (the row exists).
-      Test: the memory adapter + a fake storage double that rejects uploads for unknown expense
-      ids proves the ordering. Category on create (new — today only edit has it), `DatePicker`
-      (`date-picker.tsx`)
-- [ ] Participant picker = registered users only (see B13 ADR): the group's members when
-      `?group=` is set, otherwise accepted friends (`friendships`) + self; no free-text participant
-      creation; `paidBy` ∈ `memberIds` always (not necessarily in `splits`, spec D10)
-- [ ] Category select reads its five options from the B3 `src/domain/categories.ts` stub; **add**
-      `?group=`/`?event=`/`?friend=` handling — today the links exist from the group, event and
-      friend detail pages but `/expenses/new` ignores them (no `useSearchParams`; the event is a
-      `<select>`): `?group=` pre-selects the group's members and currency and **writes `groupId` +
-      `memberIds` = the group's `memberIds`** (real columns since B2; this is how B12 lists group
-      expenses); `?event=` pre-selects the event's members and `preferredCurrency` and writes
-      `eventId` (an overflow key); `?friend=` pre-selects self + that friend as participants;
-      Track D issue D4 extends the defaults per kind
-- [ ] Edit re-materialises `splits[]` when amount or shares change; `settledAt` is preserved
-      (partial `updateDocument` — the overflow merge, B5a contract)
-- [ ] Port `src/components/ImageUploader/__tests__/ImageUploader.test.tsx`
+### B10. Expense form island (`/expenses/new`, `/expenses/edit`) (`risk:high`)
+- [x] **Tagged `risk:high` up front** (orchestrator): this issue writes expenses and uploads
+      receipt objects through `src/lib/data/`. Routes: `/expenses/new` is a real Astro page shell
+      (`src/pages/expenses/new.astro`, same `client:only="react"` + skeleton-fallback pattern as
+      B9's `list.astro`) mounting `ExpenseFormIsland`; `/expenses/edit/<id>` is the dynamic
+      `expense-edit` route (already named in `app-routes.ts` since B2c) — `AppRouterIsland`'s
+      `expense-edit` case now loads `ExpenseEditView` through its own `React.lazy` boundary,
+      the second dynamic route with a real view after B9's `expense-detail`. Both wrap the shared
+      `ExpenseForm` component (`mode="create" | "edit"`). An id that resolves to no row (missing or
+      RLS-hidden) renders the same `NotFoundView` as every other dynamic route (ADR 0002's
+      leaked-id reasoning). Added, now that the routes exist: an "Add expense" link on
+      `/expenses/list` (in the page's own header row, next to the `<h1>`) and in `DashboardHeader`
+      (restoring the CTA B8b dropped as a dead link; "Create event" stays dropped, `/events/new` is
+      still B11b), and an "Edit" link on the B9 detail view — shown to ANY member (RLS `update` =
+      member is the authority, no client-side gate), unlike Delete (creator/payer only). All via
+      `withBase`.
+- [x] `ExpenseSplitter` (`src/domain/expenseSplitter.ts` pure `validateSplit`/`buildSplits` +
+      `src/components/features/expenses/ExpenseSplitter.tsx`) rewritten without MUI over the
+      universal `splitType` (equal / exact / percentage) — the form edits shares,
+      `buildSplits` wraps `materializeSplits` (B3), never re-implementing its cent-rounding. A
+      single `role="status" aria-live="polite"` region announces balanced/remaining/over — never
+      color alone. Receipts via a new `ReceiptUploader` (`ui/file-upload.tsx` + object-URL
+      previews + a `maxImages` limit) + B5b storage helpers with the fixed order — the storage
+      policy for `expenses/{id}/…` requires the expense row to exist, so create is **insert the row
+      (client-generated id via `repos.expenses.generateId()`, `images: []` — the D10 insert policy
+      is satisfied by the row alone, images are not gated) → upload objects →
+      `updateDocument(id, { images })`** (a partial patch, RLS update = member), all inside one new
+      repo function, `repos.expenses.createWithReceipts` (never scattered in the component); a
+      same-id retry or a double submit never duplicates the row (`setDocument` upserts); a failed
+      upload is skipped, not thrown — `failedUploadCount` drives an honest partial-failure toast
+      ("Expense saved, but N receipt(s) couldn't be uploaded. You can add it again from Edit."),
+      the row still navigates to the detail page; only the insert step itself failing shows a
+      generic error and leaves the form's values intact. Edit uploads directly via
+      `repos.expenses.addReceipts` (the row exists); removing a receipt
+      (`repos.expenses.removeReceipt`) patches `images` BEFORE deleting the object — the mirror
+      order from the whole-expense delete path (B9's ADR 0005 amendment), documented as this
+      issue's own **ADR 0005 amendment "create/edit write ordering"** with Stakeholder Analysis
+      rows (creating user, other members, orphaned objects/storage cost). Test: the memory adapter
+      + a fake storage double whose `uploadReceipt` rejects unless the row already exists (looked
+      up through the SAME adapter) proves the ordering — `src/lib/data/repos/expenses.receipts.test.ts`.
+      Category on create (new — today only edit has it; `CreateExpenseInputSchema` no longer omits
+      it, it was never an overflow key), `DatePicker` (`date-picker.tsx`) + a new
+      `domain/dates.ts#formatCalendarDate` (the local-date inverse of `parseCalendarDate`).
+- [x] Participant picker (`ParticipantPicker.tsx`) = registered users only (pulled forward from
+      B13's own ADR, not yet written — this issue does not author `0006-registered-participants.md`,
+      B13 still owns its full scope): the group's members when `?group=` is set, the event's
+      members when `?event=` is set, self + that friend when `?friend=` resolves to an accepted
+      friend, otherwise accepted friends (a new `useFriends(uid)` hook, `friendships` repo filters)
+      + self; no free-text participant creation; `paidBy` ∈ the same candidate pool always (not
+      necessarily in `splits`/checked as a participant, spec D10) — the "Paid by" select and the
+      "Split with" checkboxes share one resolved candidate list, names via `useProfiles`.
+- [x] Category select reads its five options from the B3 `src/domain/categories.ts` stub, on create
+      too (see above). `?group=`/`?event=`/`?friend=` resolved through `useGroup`/`useEvent`/
+      `useFriends`: `?group=` pre-selects the group's members and currency and **writes `groupId` +
+      `memberIds` = the group's `memberIds`**; `?event=` pre-selects the event's members and
+      `preferredCurrency` and writes `eventId` (an overflow key) — `memberIds` for an event (or no
+      context at all) is `participants ∪ paidBy ∪ self`, per spec D10's "not the payer necessarily
+      in splits" note, since only the `?group=` case has the plan's own "writes memberIds = the
+      group's" instruction; `?friend=` pre-selects self + that friend. An id that doesn't resolve
+      (missing, RLS-hidden, or — for `?friend=` — not actually an accepted friend of the caller) is
+      ignored, with a small non-blocking notice ("We couldn't find that group/event/friend —
+      showing your friends instead.") that never reveals which of those three reasons applied.
+      Context defaults (currency/paidBy/participants) are applied exactly once, only while the user
+      hasn't touched the form yet. Default currency: the resolved group/event currency, otherwise
+      `$preferredCurrency`. Track D issue D4 still extends the defaults per kind later.
+- [x] Edit re-materialises `splits[]` when amount or shares change (`buildSplits` again); the
+      partial `updateDocument` patch never includes `settledAt` (preserved by the D9 overflow-merge
+      contract — the patch object simply never spells the key).
+- [x] Ported `src/components/ImageUploader/__tests__/ImageUploader.test.tsx` onto the new
+      `ReceiptUploader` (`ui/file-upload.tsx` over `File[]`, not base64 data-URLs — spec D1/D10:
+      base64 images are gone with the clean schema). Kept: empty state, add/remove a file, a
+      `maxImages` limit (generalised to also count an edit session's `existingCount`). Dropped: the
+      `FileReader`/base64 mocking (no encoding step exists anymore) and the "renders with existing
+      images" case (the form renders those via `ReceiptGallery`, B9, with its own remove action).
+      New: object-URL previews, and client-side rejection of a non-image file (drag-and-drop
+      bypasses the file picker's own `accept` filter). Form tests
+      (`ExpenseForm.test.tsx`): validation, the splitter sum gate blocking submit, query-param
+      defaults (including an unresolved id's fallback+notice), the create ordering (id generated
+      once, `createWithReceipts` called with it, navigation), honest partial-failure reporting, a
+      generic insert failure leaving the form's values intact, and edit mode never touching
+      `settledAt`. `/expenses/new` added to `scripts/axe-smoke.mjs`.
+- **Deviation, flagged for centinela**: `ExpenseEditView.tsx` was scaffolded alongside
+  `AppRouterIsland.expense-edit.test.tsx`'s routing-wiring red, which mocks the whole module and
+  never exercises its own content logic. `ExpenseEditView.test.tsx` (loading/error+retry/not-found/
+  loaded states) was added green, verified against the already-shipped implementation, not
+  red-then-green — documented inline in that test file's own doc comment. (`ExpenseFormIsland.tsx`
+  did get its own dedicated red-first suite, `ExpenseFormIsland.test.tsx`.)
 ### B11a. `EventTimeline` widget port + timeline suites
 - [ ] `src/components/features/events/EventTimeline.tsx` takes `users`, `onNavigate`, `convert`
       as props (no store access, no portal; positioning from Inceptor `hover-card`); named to
