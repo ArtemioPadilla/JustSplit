@@ -111,11 +111,22 @@ mount; the idb persister keeps a warm navigation fast without pretending to
 be an offline write queue.
 
 **Negative** — a local relational adapter and `SchemaMap` to maintain until
-H2 ships upstream; `useLiveQuery`'s read-then-merge write paths
-(`setDocument`/`updateDocument` with an overflow key) are not atomic under
-concurrent writers on the same row (`batchWrite`'s RPC is, for the ops that
-go through it) — an accepted trade-off already recorded for conceptos (spec
-D9) and settle-up attestations (ADR 0002).
+H2 ships upstream; every write, single or batched, is an RPC round trip to
+`batch_write` rather than a plain PostgREST call, and a `set` on an existing
+row the caller cannot see fails with a unique violation instead of a clearer
+error.
+
+Every write goes through the one atomic `batch_write` RPC
+(`db/migrations/20260928000008_batch_write.sql`): `setDocument`,
+`updateDocument` and `batchWrite` send the same pre-translated op. The server
+updates a visible row first and inserts only when none matched, and merges
+`extra` with `jsonb ||` in the same statement. Concurrent writers of different
+overflow keys therefore keep both changes, and a member who did not create a
+row can still replace it (a client upsert would be checked against the INSERT
+policy). The earlier client-side read-then-merge lost updates under
+concurrency; it was replaced test-first (`Tdd-Red: 15c2e8b`, fix `ece7804`),
+and the shared contract suite pins the concurrent case against the memory
+adapter and, as `test:contract:live`, the real one.
 
 **Neutral** — `useProfiles(ids)` and other non-live reads still go through
 plain `useQuery`, not `useLiveQuery`; nothing about this ADR requires every
@@ -127,7 +138,7 @@ read to be realtime.
 |---|---|---|
 | End users | The idb-persisted Query cache is a **copy of their data on the device** (every group, expense, settlement they've loaded) — a shared/borrowed device risk if left behind after sign-out. | `src/stores/auth.ts`'s `signOut()` calls `clearPersistedQueryCache()` (`src/lib/queryClient.ts`) — tested in `src/stores/auth.test.ts`. No offline writes in v1: a signed-out or offline visitor sees the last-fetched read-only data, never a queued mutation that could silently apply later under the wrong session. |
 | End users (multi-tab / multi-device) | `useLiveQuery`'s Realtime subscription is per-tab; a tab left open indefinitely holds one open Postgres Realtime connection per active collection key. | Torn down on unmount and on a `$user` change (listener-leak test); Realtime connections are cheap relative to the read they replace (no polling), and the app has no background/service-worker sync that would keep a subscription alive after the tab closes. |
-| Maintainer | Owns two write paths per collection (`setDocument`/`updateDocument`'s read-then-merge vs. `batchWrite`'s atomic RPC) that must stay in sync on the D9 overflow-merge invariant. | One shared `splitFields`/`toRow` translation function backs both paths in `relational-adapter.ts`; the invariant itself is pinned by a backend-agnostic contract test (`storage-adapter-contract.shared.ts`) that runs against the memory adapter always and the real adapter as `test:contract:live`. |
+| Maintainer | Owns the client-side translation (camelCase fields ↔ snake_case columns, overflow keys ↔ `extra`) that every write and read depends on; a mistake there corrupts rows for every collection. | One write path: `setDocument`/`updateDocument`/`batchWrite` all build the same op through one `toOp`/`splitFields` function and send it to the atomic `batch_write` RPC. The translation is pinned to the migrations by `schema-map.test.ts`, and the D9 overflow-merge invariant (including concurrent writers) by the backend-agnostic contract suite, run against the memory adapter always and the real adapter as `test:contract:live`. |
 | CyberEco hub | Gains a concrete, tested reference for the `island -> hook -> repo -> StorageAdapter` layering `tradepilot-pilot-integration.md` Seam 2 only prescribes in prose today. | `relational-adapter.ts` is written to the hub's own `SchemaMap` design on purpose, so upstreaming it (Track C' H2) is a move, not a rewrite. |
 
 ## Supersedes

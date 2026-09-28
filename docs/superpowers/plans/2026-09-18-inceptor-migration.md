@@ -1036,7 +1036,12 @@ backend decision; ADR numbers are allocation order, not merge order).
       value" invariant (kept so the `build` job's coverage of `client.ts`'s guarded/disabled path
       stays meaningful) — dropped it instead of relaxing that test. Verified locally against
       `supabase start` (migrations applied): `npm run test:rls` 159/159, `npm run test:contract:live`
-      8/8, both exit 0, 5/5 clean repeats on the Realtime-push case]
+      8/8, both exit 0, 5/5 clean repeats on the Realtime-push case; 9/9 after the orchestrator's
+      review fix below, 3/3 clean runs]
+      [Review fix: `setDocument`/`updateDocument` read `extra`, merged it client-side and wrote it
+      back (lost updates under concurrent writers, reproduced 3/3 live), and `setDocument` used a
+      client upsert (denied for a non-creator member by the INSERT policy check). Both now send
+      one op through the atomic `batch_write` RPC — red `15c2e8b`, fix `ece7804`; ADR 0004 updated]
 - [x] **Contingency (conditional — only if relational mode is not merged in `@cyber-eco/supabase`
       when this issue starts, spec D1):** `src/lib/data/relational-adapter.ts` implements
       `StorageAdapter` over `@supabase/supabase-js` per the `SchemaMap` design — a `toRow()` that
