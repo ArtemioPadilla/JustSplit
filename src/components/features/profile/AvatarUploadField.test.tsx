@@ -128,6 +128,36 @@ describe('AvatarUploadField', () => {
     expect(uploadAvatar).not.toHaveBeenCalled();
   });
 
+  it('shows the current avatar through the shared UserAvatar resolver, including an https: URL (e.g. Google OAuth photoURL) that is not a storage path', async () => {
+    // Base UI's Avatar.Image only mounts an <img> once a hidden probe Image
+    // fires onload (see UserAvatar.test.tsx's own doc comment) — stub it so
+    // the https: passthrough case actually renders in jsdom.
+    class ImmediateLoadImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      crossOrigin: string | null = null;
+      referrerPolicy = '';
+      private _src = '';
+      get src() {
+        return this._src;
+      }
+      set src(value: string) {
+        this._src = value;
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+    vi.stubGlobal('Image', ImmediateLoadImage);
+
+    render(<AvatarUploadField uid="u1" name="Ana" avatarPath="https://lh3.googleusercontent.com/a/photo.jpg" />);
+
+    const img = await screen.findByRole('img', { name: "Ana's profile photo" });
+    expect(img).toHaveAttribute('src', 'https://lh3.googleusercontent.com/a/photo.jpg');
+    // Never treated as a receipts-bucket object path — signedUrl is never called for it.
+    expect(signedUrl).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
   it('a "Remove selection" control clears the pending pick without uploading', () => {
     render(<AvatarUploadField uid="u1" name="Ana" avatarPath={null} />);
     selectFile();
