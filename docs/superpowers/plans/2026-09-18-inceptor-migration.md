@@ -1191,18 +1191,34 @@ backend decision; ADR numbers are allocation order, not merge order).
       (red `0a29db1`). B7 adds `/landing`, `/about` and `/help` to its `PUBLIC_PAGES`
 
 ### B7. Static pages
-- [ ] `/landing`, `/about`, `/help` as Astro pages with no route island; `motion/react` only where
+- [x] `/landing`, `/about`, `/help` as Astro pages with no route island; `motion/react` only where
       the old `framer-motion` animations are worth keeping (otherwise `tailwindcss-motion`)
-- [ ] Fix dead links: `/auth/register` → `/auth/signup` (landing ×2, about),
+      — deviation: none of the ported animations were worth a React island (about's
+      `whileInView` fades and help's `useState` fades/accordion were all decorative or
+      replaceable by native `<details>`), so all three pages ship `tailwindcss-motion`
+      (`motion-preset-fade`) only, zero `motion/react`, zero JS beyond `ThemeToggle`'s script.
+- [x] Fix dead links: `/auth/register` → `/auth/signup/` (landing ×2, about),
       `/auth/reset-password` → new page (B4); remove `/tos` `/privacy` `/contact` from the
-      public-path list (`ProtectedRoute` lines 8-16)
-- [ ] Acceptance: `dist/landing/index.html` contains no `<astro-island>` for a route island and
+      public-path list (`ProtectedRoute` lines 8-16) — deviation: `ProtectedRoute.tsx` was
+      already deleted in B1 (Next-tree file, replaced by `route-guard.tsx`/RouteGuard); the
+      actual action was not introducing links to those three non-existent routes in the ported
+      copy, which `src/tests/marketing-pages.test.ts` asserts.
+- [x] Acceptance: `dist/landing/index.html` contains no `<astro-island>` for a route island and
       references no chunk that includes `@supabase/` or `@cyber-eco/` (assert with a Vitest that
       greps the built HTML + `dist/_astro/*.js` manifest); layout-level JS (theme, FeedbackFAB, PWA islands) is
-      allowed and budgeted at ≤ 40 kB gz
-- [ ] Add `/landing` to the `PAGES` list in `scripts/axe-smoke.mjs` (`npm run check:a11y`, plan
+      allowed and budgeted at ≤ 40 kB gz — deviation: implemented as a post-build step in
+      `scripts/check-auth-bundle.mjs` (chained after `astro build` in `npm run check`, same
+      precedent as B2c's `check-dist.mjs` and this file's own B4 checks), not a Vitest — unit
+      tests run *before* the build in the `check` pipeline and can't grep `dist/`. Also required
+      making `/landing`, `/about`, `/help` ship literally zero React (BaseLayout's new
+      `marketing` prop skips both `UserMenuIsland` and `HydrationCanary`): the shared
+      `@astrojs/react` client runtime alone is ~66 kB gz, which blows the 40 kB budget on its own
+      regardless of `UserMenuIsland`'s own chunk size — see the B19 "Header weight" bullet below,
+      pulled forward into this issue. Measured: 1.18 kB gz layout JS on each of the three pages.
+- [x] Add `/landing` to the `PAGES` list in `scripts/axe-smoke.mjs` (`npm run check:a11y`, plan
       B6) — that check currently covers `/`, `/404`, `/auth/signin/`, `/showcase` only, because
-      `/landing` doesn't exist before this issue
+      `/landing` doesn't exist before this issue — also added `/about` and `/help`; `npm run
+      check:a11y` reports 0 violations on all seven pages.
 
 ### Phase 2 — Feature islands (one issue each; all `type:feat`, `phase-2`)
 
@@ -1521,12 +1537,26 @@ resolves other users' names through `useProfiles` (B5a).
       (`https://artemiopadilla.github.io/JustSplit/landing/`, `…/auth/signin/`, `…/`); `perf`
       script = `lhci collect && lhci assert` (no local build). `@lhci/cli` devDep (as in Inceptor's
       `package.json`); budgets are run in B18 against the live staging site, not in CI
-- [ ] Header weight (found in B6): `UserMenuIsland` is on every page and its chunk is ~48.6 kB gz
+- [x] Header weight (found in B6): `UserMenuIsland` is on every page and its chunk is ~48.6 kB gz
       (no Supabase or zod; most likely the Base UI dropdown menu and its positioning code), which
       puts `/auth/signin/` at ~236 kB gz, over the 195 kB `/auth/*` budget from B4 and Inceptor's
       150 kB page budget. Render the signed-out state (a plain link) without the menu and load the
       dropdown only when opened, or swap in a lighter menu; re-measure with `check:auth-bundle`
-      and do not raise the budgets to absorb it
+      and do not raise the budgets to absorb it — done, pulled forward into B7. Two changes:
+      (1) the dropdown menu + avatar (`UserAccountMenu.tsx`) load via `React.lazy` + `Suspense`,
+      only once `$authReady && $user`, with an accessible non-jumping fallback (real name text +
+      a decorative pulse circle); (2) `/landing`, `/about`, `/help` render a fully static header
+      (`SiteHeader`'s new `static` prop) with no `UserMenuIsland` mount at all, because those
+      pages never run a route island so `$user` can never leave `null` there — hydrating is dead
+      weight. Measured with `node scripts/check-auth-bundle.mjs` (statically-loaded gz, not the
+      informational full chunk-graph total which still counts the lazy chunk's worst case):
+      `/` 133.76 → 75.00 kB gz, `/auth/signin/` 237.00 → 190.32 kB gz, `/landing` 1.18 → 1.18 kB gz
+      (was already static-header-free — no `UserMenuIsland` mount there before or after this
+      specific fix; its own 40 kB budget is met by the B7 marketing-header change instead).
+      `/auth/signin/` remains over Inceptor's 150 kB page budget (dominated by
+      `@supabase/supabase-js` + `@cyber-eco/auth` + `zod`, ADR 0003's already-accepted fallback) —
+      not raising that budget, per this bullet's own instruction; the remainder is B4/ADR 0003
+      territory, not header weight.
 
 ### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
 - [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend
