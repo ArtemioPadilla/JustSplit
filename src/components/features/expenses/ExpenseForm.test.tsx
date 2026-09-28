@@ -9,14 +9,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // BEFORE stubbing are preserved) and must be restored before the next
 // test's own `history.replaceState` calls, or every later test silently
 // stops seeing URL changes.
+// Every stub is also restored in `afterEach`, so a test that fails before its own
+// `restore()` call cannot break the tests after it.
+const pendingLocationRestores: Array<() => void> = [];
 function stubLocationAssign() {
   const real = window.location;
   const assign = vi.fn();
   Object.defineProperty(window, 'location', { configurable: true, value: { ...real, assign } });
-  return {
-    assign,
-    restore: () => Object.defineProperty(window, 'location', { configurable: true, value: real }),
-  };
+  const restore = () => Object.defineProperty(window, 'location', { configurable: true, value: real });
+  pendingLocationRestores.push(restore);
+  return { assign, restore };
 }
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -30,7 +32,9 @@ import { $authReady, $profile, $user } from '@/stores/session';
  * falling back with a notice), the create write ordering (generateId once,
  * `createWithReceipts` called with it, honest partial-failure toast, a
  * generic failure leaving the form's values intact), and edit mode's
- * partial patch never touching `settledAt`. Not-found for an unknown edit id
+ * partial patch never touching `settledAt`. Plan B2d (ADR 0013): `?event=`
+ * offers every event member and writes `eventId`, and an edit no longer needs
+ * friendship with everyone on the row (only ADDED members are checked). Not-found for an unknown edit id
  * is `ExpenseEditView`'s own responsibility (`AppRouterIsland`'s route
  * view), not this shared form's.
  */
@@ -106,6 +110,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  for (const restore of pendingLocationRestores.splice(0)) restore();
   vi.clearAllMocks();
   window.history.replaceState(null, '', '/');
 });
@@ -219,14 +224,14 @@ describe('ExpenseForm — query-param defaults', () => {
     location.restore();
   });
 
-  it('?event= with no group excludes non-friend members, shows a count-only notice, and never sends a payload the RLS policy would reject (coordinator review)', async () => {
+  it('?event= with no group offers EVERY event member (friend or not) and writes eventId; no friend filter, no notice (ADR 0013)', async () => {
     window.history.replaceState(null, '', '/expenses/new?event=ev1');
     const location = stubLocationAssign();
     useEvent.mockReturnValue({
       data: { id: 'ev1', memberIds: ['u1', 'u2', 'u3'], groupId: null, preferredCurrency: 'MXN', name: 'Party' },
       isSuccess: true,
     });
-    // Only u2 is an accepted friend — u3 is not.
+    // Only u2 is an accepted friend — u3 is an event member but NOT a friend.
     useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' }], isSuccess: true });
 
     const user = userEvent.setup();
@@ -234,11 +239,9 @@ describe('ExpenseForm — query-param defaults', () => {
 
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ana' })).toBeChecked());
     expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked();
-    expect(screen.queryByRole('checkbox', { name: 'Caro' })).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Caro' })).toBeChecked();
     expect(screen.getByLabelText(/Currency/i)).toHaveValue('MXN');
-    // Count only — never names (never reveal who).
-    expect(screen.getByText(/1 person in this event isn't in your friends yet/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Caro/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aren't in your friends yet|isn't in your friends yet/i)).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/description/i), 'Tacos');
     await user.type(screen.getByLabelText(/^amount$/i), '100');
@@ -247,7 +250,52 @@ describe('ExpenseForm — query-param defaults', () => {
     await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
     const { input } = createMutateAsync.mock.calls[0]![0];
     expect(input.groupId).toBeNull();
-    expect(input.memberIds).not.toContain('u3');
+    expect(input.eventId).toBe('ev1');
+    expect(input.memberIds.slice().sort()).toEqual(['u1', 'u2', 'u3']);
+    location.restore();
+  });
+
+  it('?event= whose group the viewer cannot see falls back to an event expense with every member, no "couldn\'t find" notice', async () => {
+    window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    const location = stubLocationAssign();
+    useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2'], groupId: 'g-hidden', preferredCurrency: 'MXN', name: 'Trip' }, isSuccess: true });
+    useGroup.mockReturnValue({ data: null, isSuccess: true });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked());
+    expect(screen.queryByText(/couldn't find that event/i)).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+    const { input } = createMutateAsync.mock.calls[0]![0];
+    expect(input.groupId).toBeNull();
+    expect(input.eventId).toBe('ev1');
+    location.restore();
+  });
+
+  it('?event= in a group that a member of the event has left stays an event expense (member_ids must stay within a group expense\'s group)', async () => {
+    window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    const location = stubLocationAssign();
+    useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2', 'u3'], groupId: 'g1', name: 'Trip' }, isSuccess: true });
+    useGroup.mockReturnValue({ data: { id: 'g1', memberIds: ['u1', 'u2'], currency: 'EUR', members: [], name: 'Group', type: 'friends' }, isSuccess: true });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Caro' })).toBeChecked());
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+    const { input } = createMutateAsync.mock.calls[0]![0];
+    expect(input.groupId).toBeNull();
+    expect(input.eventId).toBe('ev1');
+    expect(input.memberIds.slice().sort()).toEqual(['u1', 'u2', 'u3']);
     location.restore();
   });
 });
@@ -277,18 +325,25 @@ describe('ExpenseForm — no-group RLS invariant (defensive pre-submit check)', 
   });
 });
 
-describe('ExpenseForm — edit mode blocked by the no-group friendship invariant', () => {
-  it('shows an upfront notice and disables Save when the editor is not friends with everyone on a no-group expense', async () => {
+describe('ExpenseForm — edit mode no longer needs friendship with everyone on the row (ADR 0013)', () => {
+  it('a no-group expense with a non-friend member is editable: no notice, Save enabled, existing members kept without re-validation', async () => {
+    const location = stubLocationAssign();
     // No accepted friendship with u2 at all.
     useFriends.mockReturnValue({ data: [], isSuccess: true });
     const expense = makeExpense({ groupId: null, memberIds: ['u1', 'u2'], paidBy: 'u1', createdBy: 'u1' });
 
+    const user = userEvent.setup();
     render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
 
-    expect(
-      await screen.findByText(/only someone who is friends with everyone on it can edit it here/i),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
+    expect(screen.queryByText(/only someone who is friends with everyone/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save changes/i })).not.toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
+    expect(updateMutateAsync.mock.calls[0]![0].patch.memberIds.slice().sort()).toEqual(['u1', 'u2']);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    location.restore();
   });
 
   it('never blocks a group expense, regardless of friendship', async () => {
@@ -300,6 +355,54 @@ describe('ExpenseForm — edit mode blocked by the no-group friendship invariant
 
     expect(screen.queryByText(/only someone who is friends with everyone/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save changes/i })).not.toBeDisabled();
+  });
+
+  it('an event expense offers every event member as a candidate on edit', async () => {
+    useFriends.mockReturnValue({ data: [], isSuccess: true });
+    useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2', 'u3'], groupId: null, name: 'Party' }, isSuccess: true });
+    const expense = makeExpense({ groupId: null, eventId: 'ev1', memberIds: ['u1', 'u2'] });
+
+    render(<ExpenseForm mode="edit" expense={expense} />);
+
+    expect(await screen.findByRole('checkbox', { name: 'Caro' })).not.toBeChecked();
+  });
+
+  it('editing a group expense keeps a member who has since left the group and does not pull in someone who joined later', async () => {
+    const location = stubLocationAssign();
+    // u3 left the group; u4 joined after the expense was written.
+    useGroup.mockReturnValue({ data: { id: 'g1', memberIds: ['u1', 'u2', 'u4'], currency: 'USD', members: [], name: 'Group', type: 'friends' }, isSuccess: true });
+    const expense = makeExpense({
+      groupId: 'g1',
+      memberIds: ['u1', 'u2', 'u3'],
+      splits: [{ userId: 'u1', amount: 34 }, { userId: 'u2', amount: 33 }, { userId: 'u3', amount: 33 }],
+      amount: 100,
+    });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Caro' });
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
+    expect(updateMutateAsync.mock.calls[0]![0].patch.memberIds.slice().sort()).toEqual(['u1', 'u2', 'u3']);
+    location.restore();
+  });
+
+  it('an event member who is not named on the expense edits it without being added to it', async () => {
+    const location = stubLocationAssign();
+    $user.set({ ...USER, uid: 'u9' });
+    useFriends.mockReturnValue({ data: [], isSuccess: true });
+    useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2', 'u9'], groupId: null, name: 'Party' }, isSuccess: true });
+    const expense = makeExpense({ groupId: null, eventId: 'ev1', memberIds: ['u1', 'u2'], paidBy: 'u1', createdBy: 'u1' });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
+    expect(updateMutateAsync.mock.calls[0]![0].patch.memberIds.slice().sort()).toEqual(['u1', 'u2']);
+    location.restore();
   });
 });
 
