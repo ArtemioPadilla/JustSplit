@@ -6,7 +6,8 @@ import { schemaMap } from './schema-map';
 
 /**
  * Plan B5a contingency adapter. Chainable mock of the supabase-js query
- * builder, mirroring the pattern the hub itself uses for
+ * builder — one shared builder returned by every `client.from()` call,
+ * mirroring the pattern the hub itself uses for
  * `SupabaseStorageAdapter.test.ts` (`cybereco-hub/packages/supabase/src/__tests__/`).
  */
 interface MockBuilder {
@@ -48,9 +49,9 @@ interface MockChannel {
   _handler?: (payload: unknown) => void;
 }
 
-function createMockClient(builderFactory: () => MockBuilder) {
-  let lastBuilder: MockBuilder = builderFactory();
-  const builders: MockBuilder[] = [lastBuilder];
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+function createMockClient(builder: MockBuilder) {
   const channel: MockChannel = {} as MockChannel;
   channel.on = vi.fn((_event: string, _filter: unknown, handler: (payload: unknown) => void) => {
     channel._handler = handler;
@@ -58,28 +59,24 @@ function createMockClient(builderFactory: () => MockBuilder) {
   });
   channel.subscribe = vi.fn(() => channel);
   const client = {
-    from: vi.fn(() => {
-      lastBuilder = builderFactory();
-      builders.push(lastBuilder);
-      return lastBuilder;
-    }),
+    from: vi.fn(() => builder),
     rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
     channel: vi.fn(() => channel),
     removeChannel: vi.fn(() => Promise.resolve('ok')),
   };
-  return { client, channel, builders };
+  return { client, channel };
 }
 
 describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
+  let builder: MockBuilder;
   let client: ReturnType<typeof createMockClient>['client'];
-  let builders: MockBuilder[];
   let channel: MockChannel;
   let adapter: RelationalSupabaseAdapter;
 
   beforeEach(() => {
-    const mocks = createMockClient(createMockBuilder);
+    builder = createMockBuilder();
+    const mocks = createMockClient(builder);
     client = mocks.client;
-    builders = mocks.builders;
     channel = mocks.channel;
     adapter = new RelationalSupabaseAdapter(() => client as unknown as SupabaseClient, { schemaMap });
   });
@@ -92,7 +89,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
 
   describe('getDocument', () => {
     it('selects by the real table and id column, and rehydrates real columns + extra overflow flat', async () => {
-      builders[0]!.singleResults.push({
+      builder.singleResults.push({
         data: {
           id: 'e1',
           description: 'Tacos',
@@ -107,13 +104,13 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       const doc = await adapter.getDocument<Record<string, unknown>>('expenses', 'e1');
 
       expect(client.from).toHaveBeenCalledWith('expenses');
-      expect(builders[0]!.select).toHaveBeenCalledWith('*');
-      expect(builders[0]!.eq).toHaveBeenCalledWith('id', 'e1');
+      expect(builder.select).toHaveBeenCalledWith('*');
+      expect(builder.eq).toHaveBeenCalledWith('id', 'e1');
       expect(doc).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, memberIds: ['a', 'b'], paidBy: 'a', eventId: 'trip-1' });
     });
 
     it('returns null when no row matches', async () => {
-      builders[0]!.singleResults.push({ data: null, error: null });
+      builder.singleResults.push({ data: null, error: null });
       expect(await adapter.getDocument('expenses', 'missing')).toBeNull();
     });
   });
@@ -128,8 +125,8 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         eventId: 'trip-1',
       });
 
-      expect(builders[0]!.upsert).toHaveBeenCalledTimes(1);
-      const [row] = builders[0]!.upsert.mock.calls[0] as [Record<string, unknown>];
+      expect(builder.upsert).toHaveBeenCalledTimes(1);
+      const [row] = builder.upsert.mock.calls[0] as [Record<string, unknown>];
       expect(row).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, member_ids: ['a'], paid_by: 'a' });
       expect(row.extra).toEqual({ eventId: 'trip-1' });
     });
@@ -140,7 +137,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         createdAt: adapter.serverTimestamp(),
         updatedAt: adapter.serverTimestamp(),
       });
-      const [row] = builders[0]!.upsert.mock.calls[0] as [Record<string, unknown>];
+      const [row] = builder.upsert.mock.calls[0] as [Record<string, unknown>];
       expect(row).not.toHaveProperty('created_at');
       expect(row).not.toHaveProperty('updated_at');
     });
@@ -148,32 +145,31 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
 
   describe('updateDocument (D9 overflow-merge invariant)', () => {
     it('a patch touching only a real column never reads or writes extra', async () => {
-      builders[0]!.result = { data: [{ id: 'e1' }], error: null };
+      builder.result = { data: [{ id: 'e1' }], error: null };
       const result = await adapter.updateDocument('expenses', 'e1', { amount: 50 });
 
       expect(result).toEqual({ id: 'e1', success: true });
-      // Exactly one builder was used: the update itself. No prior read of extra.
-      expect(builders).toHaveLength(1);
-      const [payload] = builders[0]!.update.mock.calls[0] as [Record<string, unknown>];
+      // No read of the existing row happened: maybeSingle was never called.
+      expect(builder.maybeSingle).not.toHaveBeenCalled();
+      const [payload] = builder.update.mock.calls[0] as [Record<string, unknown>];
       expect(payload).toEqual({ amount: 50 });
     });
 
     it('a patch with an overflow key merges into extra (extra = extra || patch), never replacing it — settledAt update leaves eventId intact', async () => {
-      // First builder: the read of the existing row's extra column. Second
-      // builder (created on the update's own .from() call): the update result.
-      builders[0]!.singleResults.push({ data: { extra: { eventId: 'trip-1' } }, error: null });
+      // The read of the existing row's extra column (maybeSingle), then the update's own result.
+      builder.singleResults.push({ data: { extra: { eventId: 'trip-1' } }, error: null });
+      builder.result = { data: [{ id: 'e1' }], error: null };
 
       const result = await adapter.updateDocument('expenses', 'e1', { settledAt: '2026-09-28T00:00:00.000Z' });
 
       expect(result).toEqual({ id: 'e1', success: true });
-      expect(builders.length).toBeGreaterThanOrEqual(2);
-      const updateBuilder = builders[1]!;
-      const [payload] = updateBuilder.update.mock.calls[0] as [Record<string, unknown>];
+      expect(builder.maybeSingle).toHaveBeenCalledTimes(1);
+      const [payload] = builder.update.mock.calls[0] as [Record<string, unknown>];
       expect(payload.extra).toEqual({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z' });
     });
 
     it('reports success: false when the update matches no visible row', async () => {
-      builders[0]!.result = { data: [], error: null };
+      builder.result = { data: [], error: null };
       const result = await adapter.updateDocument('expenses', 'e1', { amount: 50 });
       expect(result).toEqual({ id: 'e1', success: false });
     });
@@ -186,13 +182,13 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         { field: 'eventId', operator: '==', value: 'trip-1' },
       ]);
 
-      expect(builders[0]!.eq).toHaveBeenCalledWith('group_id', 'g1');
-      expect(builders[0]!.eq).toHaveBeenCalledWith('extra->>eventId', 'trip-1');
+      expect(builder.eq).toHaveBeenCalledWith('group_id', 'g1');
+      expect(builder.eq).toHaveBeenCalledWith('extra->>eventId', 'trip-1');
     });
 
     it('translates array-contains on a real column to .contains', async () => {
       await adapter.query('expenses', [{ field: 'memberIds', operator: 'array-contains', value: 'u1' }]);
-      expect(builders[0]!.contains).toHaveBeenCalledWith('member_ids', ['u1']);
+      expect(builder.contains).toHaveBeenCalledWith('member_ids', ['u1']);
     });
 
     it('throws on array-contains-any (spec D10: unsupported, unused)', async () => {
@@ -202,7 +198,7 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
     });
 
     it('rehydrates every result row flat (real columns + extra spread)', async () => {
-      builders[0]!.result = {
+      builder.result = {
         data: [{ id: 'e1', description: 'Tacos', member_ids: ['a'], extra: { eventId: 'trip-1' } }],
         error: null,
       };
@@ -237,38 +233,37 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
   });
 
   describe('subscribeToQuery (fetch-then-listen, hub adapter semantics)', () => {
-    it('emits the initial fetch immediately without a prior getDocument/query call from the consumer', () => {
-      builders[0]!.result = { data: [{ id: 'e1' }], error: null };
+    it('emits the initial fetch immediately without a prior getDocument/query call from the consumer', async () => {
+      builder.result = { data: [{ id: 'e1' }], error: null };
       const cb = vi.fn();
       adapter.subscribeToQuery('expenses', [], cb);
-      // The initial emission is async (a query round-trip); flush microtasks.
-      return Promise.resolve().then(() => {
-        expect(cb).toHaveBeenCalled();
-      });
+      // The initial emission is async (a query round-trip); flush the microtask queue.
+      await flush();
+      expect(cb).toHaveBeenCalled();
     });
 
     it('re-runs the query on ANY postgres_changes event — INSERT, UPDATE, and a PK-only DELETE — never evaluating the payload', async () => {
-      builders[0]!.result = { data: [], error: null };
+      builder.result = { data: [], error: null };
       const cb = vi.fn();
       const unsubscribe = adapter.subscribeToQuery('expenses', [], cb);
-      await Promise.resolve();
+      await flush();
       cb.mockClear();
 
       expect(channel.on).toHaveBeenCalledWith('postgres_changes', expect.objectContaining({ event: '*', table: 'expenses' }), expect.any(Function));
 
       // INSERT
       channel._handler!({ eventType: 'INSERT', new: { id: 'e1' }, old: {} });
-      await Promise.resolve();
+      await flush();
       expect(cb).toHaveBeenCalledTimes(1);
 
       // UPDATE
       channel._handler!({ eventType: 'UPDATE', new: { id: 'e1' }, old: { id: 'e1' } });
-      await Promise.resolve();
+      await flush();
       expect(cb).toHaveBeenCalledTimes(2);
 
       // DELETE — payload carries only the PK (no RLS applied to deletes, D10).
       channel._handler!({ eventType: 'DELETE', new: {}, old: { id: 'e1' } });
-      await Promise.resolve();
+      await flush();
       expect(cb).toHaveBeenCalledTimes(3);
 
       unsubscribe();
