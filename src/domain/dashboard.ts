@@ -1,0 +1,193 @@
+import type { Expense } from '@/schemas/expense';
+import type { Event } from '@/schemas/event';
+
+/**
+ * Pure dashboard selectors (plan B8a). Every selector takes domain objects
+ * (`src/schemas/*`) plus a **synchronous** `convert(amount, currency)`
+ * function that returns the amount in the caller's display currency —
+ * selectors never fetch. B8b builds `convert` from `fetchExchangeRate`
+ * (`src/lib/currency/rates.ts`) once per render and passes it down; tests
+ * pass a stub. Name resolution (`names: Record<id, string>`) stays a caller
+ * concern too, fed later from `useProfiles` — selectors fall back to
+ * 'Unknown' for an id with no entry.
+ */
+
+// ─── monthlyTotals ──────────────────────────────────────────────────────────
+
+export interface MonthlyTotal {
+  /** Stable sort/lookup key, e.g. '2026-03' — never shown to users. */
+  monthKey: string;
+  /** Display label, e.g. 'Mar 2026'. */
+  month: string;
+  /** Total spend in the display currency for this month. */
+  total: number;
+  /** Number of expenses that fell in this month. */
+  count: number;
+}
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Rounds to 2 decimal places — the same "money as cents" pattern
+ * `expenseCalculator.ts`'s `calculateSettlementsWithConversion` already uses
+ * (`Math.round(amount * 100) / 100`). `domain/formatters.ts` has no
+ * dedicated rounding helper (only display-time `toFixed(2)` inside
+ * `formatCurrency`), so selectors round their own sums here rather than
+ * invent a new shared helper for what is, so far, a single call site.
+ */
+function round2(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
+function monthKeyOf(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Monthly spend totals in the display currency, the last 6 months (this
+ * month inclusive) oldest first, **including months with zero expenses** —
+ * the dashboard shows a flat line for a quiet month rather than skipping it.
+ * `now` is injectable for tests; defaults to the real clock.
+ */
+export function monthlyTotals(
+  expenses: Expense[],
+  convert: (amount: number, currency: string) => number,
+  now: Date = new Date(),
+): MonthlyTotal[] {
+  const months: MonthlyTotal[] = [];
+  for (let i = 5; i >= 0; i -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ monthKey: monthKeyOf(d), month: `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`, total: 0, count: 0 });
+  }
+  const byKey = new Map(months.map((m) => [m.monthKey, m]));
+  const rawTotals = new Map<string, number>();
+
+  for (const expense of expenses) {
+    const date = new Date(expense.date);
+    if (Number.isNaN(date.getTime())) continue;
+    const key = monthKeyOf(date);
+    if (!byKey.has(key)) continue; // outside the 6-month window
+    rawTotals.set(key, (rawTotals.get(key) ?? 0) + convert(expense.amount, expense.currency));
+    byKey.get(key)!.count += 1;
+  }
+
+  for (const month of months) {
+    month.total = round2(rawTotals.get(month.monthKey) ?? 0);
+  }
+
+  return months;
+}
+
+// ─── categoryDistribution ───────────────────────────────────────────────────
+
+export interface CategoryTotal {
+  /** The raw `expense.category` string, or 'Uncategorized' when missing/empty. */
+  category: string;
+  /** Total spend in the display currency for this category. */
+  total: number;
+  /** Share of the grand total, 0-100. */
+  percentage: number;
+}
+
+/**
+ * Totals grouped by the raw `category` string (missing or empty → the
+ * `'Uncategorized'` bucket). `category` stays a free string forever (spec
+ * D9) — Track D issue D8 re-keys this selector against the global category
+ * taxonomy once it exists; until then it groups on the literal value.
+ * Sorted by total, descending.
+ */
+export function categoryDistribution(
+  expenses: Expense[],
+  convert: (amount: number, currency: string) => number,
+): CategoryTotal[] {
+  const totals = new Map<string, number>();
+  for (const expense of expenses) {
+    const category = expense.category?.trim() || 'Uncategorized';
+    totals.set(category, (totals.get(category) ?? 0) + convert(expense.amount, expense.currency));
+  }
+
+  const grandTotal = [...totals.values()].reduce((sum, v) => sum + v, 0);
+
+  return [...totals.entries()]
+    .map(([category, total]) => ({
+      category,
+      total: round2(total),
+      percentage: grandTotal > 0 ? round2((total / grandTotal) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+// ─── balancesWithUser ───────────────────────────────────────────────────────
+
+export interface PersonBalance {
+  userId: string;
+  name: string;
+  /** Signed, in the display currency: positive = they owe you, negative = you owe them. */
+  balance: number;
+}
+
+/**
+ * Net balance between `currentUserId` and every other person they share an
+ * *unsettled* expense with (`settledAt == null`), derived directly from
+ * `splits[]` (spec D10) rather than `calculateSettlements`'s greedy pairing:
+ * a settlement suggestion matches the largest debtor with the largest
+ * creditor globally, which is not necessarily the two people who actually
+ * shared an expense — it cannot answer "who owes whom" for a specific
+ * relationship. `paidBy` may be outside `splits[]` entirely (spec D10 lets
+ * the payer take no share); that case still resolves correctly here because
+ * the loop only ever looks at the two parties on each individual split.
+ * Relationships that round to exactly zero are dropped — there is nothing to
+ * render for them. Sorted by balance, descending (most owed to you first).
+ */
+export function balancesWithUser(
+  expenses: Expense[],
+  currentUserId: string,
+  names: Record<string, string>,
+  convert: (amount: number, currency: string) => number,
+): PersonBalance[] {
+  const raw = new Map<string, number>();
+
+  for (const expense of expenses) {
+    if (expense.settledAt != null) continue;
+    const { paidBy, splits, currency } = expense;
+
+    for (const split of splits) {
+      if (split.userId === paidBy) continue; // the payer's own share is not a debt
+      const converted = convert(split.amount, currency);
+
+      if (paidBy === currentUserId && split.userId !== currentUserId) {
+        // The other person owes the current user their share.
+        raw.set(split.userId, (raw.get(split.userId) ?? 0) + converted);
+      } else if (split.userId === currentUserId && paidBy !== currentUserId) {
+        // The current user owes the payer their own share.
+        raw.set(paidBy, (raw.get(paidBy) ?? 0) - converted);
+      }
+      // Neither party is the current user: irrelevant to this selector.
+    }
+  }
+
+  return [...raw.entries()]
+    .map(([userId, balance]) => ({ userId, name: names[userId] ?? 'Unknown', balance: round2(balance) }))
+    .filter((b) => b.balance !== 0)
+    .sort((a, b) => b.balance - a.balance);
+}
+
+// ─── upcomingEvents ─────────────────────────────────────────────────────────
+
+/**
+ * Events whose start (`startDate`, falling back to `date`) is today or
+ * later, soonest first, capped at 3. An event with neither field set is
+ * dropped — there is nothing to sort it by. `now` is injectable for tests.
+ */
+export function upcomingEvents(events: Event[], now: Date = new Date()): Event[] {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  return events
+    .map((event) => ({ event, start: event.startDate ?? event.date }))
+    .filter((e): e is { event: Event; start: string } => e.start != null)
+    .map(({ event, start }) => ({ event, startAt: new Date(start) }))
+    .filter(({ startAt }) => !Number.isNaN(startAt.getTime()) && startAt >= startOfToday)
+    .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+    .slice(0, 3)
+    .map(({ event }) => event);
+}
