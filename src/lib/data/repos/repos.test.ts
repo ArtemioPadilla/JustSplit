@@ -168,6 +168,36 @@ describe('repos.events', () => {
     expect(await events.get(created.id)).toMatchObject({ name: 'Cancun', kind: 'trip' });
   });
 
+  it('create + get roundtrip for a bare event: empty columns come back absent, not null (plan B11b)', async () => {
+    const created = await events.create({ name: 'Bare', memberIds: ['u1'], kind: 'event', createdBy: 'u1' });
+    const fetched = await events.get(created.id);
+    expect(fetched?.description).toBeUndefined();
+    expect(fetched?.endDate).toBeUndefined();
+  });
+
+  it('update() applies a partial patch and re-reads the row (plan B11b)', async () => {
+    const created = await events.create({ name: 'Before', description: 'Old', endDate: '2026-06-08', memberIds: ['u1'], kind: 'event', createdBy: 'u1' });
+    const updated = await events.update(created.id, { name: 'After' });
+    expect(updated).toMatchObject({ name: 'After', description: 'Old', endDate: '2026-06-08' });
+  });
+
+  it('update() clears a column with null and reads it back as absent', async () => {
+    const created = await events.create({ name: 'Clear me', description: 'Old', endDate: '2026-06-08', memberIds: ['u1'], kind: 'event', createdBy: 'u1' });
+    const updated = await events.update(created.id, { description: null, endDate: null });
+    expect(updated?.description).toBeUndefined();
+    expect(updated?.endDate).toBeUndefined();
+  });
+
+  it('update() refuses a key an edit must never send (createdBy is immutable) and leaves the row untouched', async () => {
+    const created = await events.create({ name: 'Keep', memberIds: ['u1'], kind: 'event', createdBy: 'u1' });
+    await expect(events.update(created.id, { createdBy: 'someone-else' } as never)).rejects.toThrow();
+    expect(await events.get(created.id)).toMatchObject({ createdBy: 'u1' });
+  });
+
+  it('update() throws EventNotFoundError when the row is gone or hidden, instead of reporting a write that never happened', async () => {
+    await expect(events.update('no-such-event', { name: 'Ghost' })).rejects.toBeInstanceOf(events.EventNotFoundError);
+  });
+
   it('listForGroup uses groupId == id', async () => {
     const e = await events.create({ name: 'Team offsite', groupId: 'g1', memberIds: ['u1'], kind: 'event', createdBy: 'u1' });
     const list = await events.listForGroup('g1');
