@@ -18,6 +18,7 @@ const expensesRepo = {
   forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]),
   forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
   create: vi.fn(async (input: unknown) => ({ id: 'e1', ...(input as object) })),
+  get: vi.fn(async (id: string) => ({ id, description: 'Tacos' })),
 };
 vi.mock('../repos/expenses', () => expensesRepo);
 
@@ -34,6 +35,7 @@ const settlementsRepo = { forUserFilters: vi.fn((uid: string) => [{ field: 'memb
 vi.mock('../repos/settlements', () => settlementsRepo);
 
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
+const { useExpense } = await import('./useExpense');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
 const { useCreateExpense } = await import('./useCreateExpense');
@@ -120,6 +122,31 @@ describe('useSettlements (plan B8b — same pattern as useExpenses/useEvents)', 
     withClient(<Probe />);
     const [, , , options] = liveQuerySpy.mock.calls[0]!;
     expect((options as { enabled: boolean }).enabled).toBe(false);
+  });
+});
+
+describe('useExpense (non-live detail query, plan B9)', () => {
+  it('fetches through repos.expenses.get, keyed by id', async () => {
+    function Probe({ onData }: { onData: (d: unknown) => void }) {
+      const { data } = useExpense('e1');
+      React.useEffect(() => {
+        if (data) onData(data);
+      }, [data, onData]);
+      return null;
+    }
+    const onData = vi.fn();
+    withClient(<Probe onData={onData} />);
+    await waitFor(() => expect(expensesRepo.get).toHaveBeenCalledWith('e1'));
+    await waitFor(() => expect(onData).toHaveBeenCalledWith({ id: 'e1', description: 'Tacos' }));
+  });
+
+  it('is disabled (never calls repos.expenses.get) while id is undefined', () => {
+    function Probe() {
+      useExpense(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    expect(expensesRepo.get).not.toHaveBeenCalled();
   });
 });
 
