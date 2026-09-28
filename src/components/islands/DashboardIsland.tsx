@@ -6,6 +6,8 @@ import { RecentExpenses } from '@/components/features/dashboard/RecentExpenses';
 import { RecentSettlements } from '@/components/features/dashboard/RecentSettlements';
 import { UpcomingEvents } from '@/components/features/dashboard/UpcomingEvents';
 import { WelcomeScreen } from '@/components/features/dashboard/WelcomeScreen';
+import { Button } from '@/components/ui/button';
+import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   balancesWithUser,
@@ -104,6 +106,20 @@ function DashboardContent() {
     return map;
   }, [profilesQuery.data]);
 
+  // Coordinator review fix: `dataLoading` (below) is `data === undefined`,
+  // which never resolves for a genuinely FAILED query — a failed live
+  // subscription never writes `data` (see relational-adapter.ts /
+  // useLiveQuery.ts), so relying on `dataLoading` alone rendered an endless
+  // skeleton with no explanation or way to recover from a real failure
+  // (RLS denial, network error). `isError` is checked BEFORE `dataLoading`.
+  const isError = Boolean(expensesQuery.isError || eventsQuery.isError || settlementsQuery.isError || profilesQuery.isError);
+  function handleRetry() {
+    expensesQuery.refetch();
+    eventsQuery.refetch();
+    settlementsQuery.refetch();
+    void profilesQuery.refetch();
+  }
+
   const handleCurrencyChange = React.useCallback(
     async (code: string) => {
       try {
@@ -120,6 +136,22 @@ function DashboardContent() {
     refresh();
     notifySuccess('Exchange rates refreshed');
   }, [refresh]);
+
+  if (isError) {
+    return (
+      <ErrorState
+        title="Something went wrong loading your dashboard"
+        // Generic on purpose (coordinator review): the underlying error may
+        // carry backend/RLS/SQL detail that must never reach the user.
+        hint="Please try again in a moment."
+        action={
+          <Button type="button" onClick={handleRetry}>
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
 
   if (dataLoading) {
     return <DashboardLoadingSkeleton />;
