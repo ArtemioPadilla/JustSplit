@@ -33,15 +33,19 @@ describe('CurrencySelector', () => {
     expect(screen.getByLabelText(/Convert to/i)).toBeInTheDocument();
   });
 
-  it('lists every SUPPORTED_CURRENCIES code as an option', async () => {
-    const user = userEvent.setup();
-    render(<CurrencySelector value="USD" onChange={vi.fn()} />);
+  it(
+    'lists every SUPPORTED_CURRENCIES code as an option',
+    async () => {
+      const user = userEvent.setup();
+      render(<CurrencySelector value="USD" onChange={vi.fn()} />);
 
-    await user.click(screen.getByLabelText(/Currency/i));
-    for (const currency of SUPPORTED_CURRENCIES) {
-      expect(await screen.findByRole('option', { name: new RegExp(`^${currency.code}\\b`) }, WAIT_OPTS)).toBeInTheDocument();
-    }
-  });
+      await user.click(screen.getByLabelText(/Currency/i));
+      for (const currency of SUPPORTED_CURRENCIES) {
+        expect(await screen.findByRole('option', { name: new RegExp(`^${currency.code}\\b`) }, WAIT_OPTS)).toBeInTheDocument();
+      }
+    },
+    TEST_TIMEOUT,
+  );
 
   it(
     'calls onChange with the new currency code when a different currency is selected',

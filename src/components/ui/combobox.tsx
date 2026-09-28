@@ -5,14 +5,40 @@ import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Combobox built on Base UI's Combobox primitive (NOT Radix). Typeahead select
-// with built-in filtering. High-level API: pass `items` (string[]) + value.
+// with built-in filtering. High-level API: pass `items` (string[] or
+// {code,symbol,name}[], plan B16 harvest check — CurrencySelector needs the
+// latter) + value.
+export interface ComboboxObjectItem {
+  code: string;
+  symbol: string;
+  name: string;
+}
+
+export type ComboboxItem = string | ComboboxObjectItem;
+
 interface ComboboxProps {
-  items: string[];
+  items: ComboboxItem[];
   value?: string | null;
   onValueChange?: (value: string | null) => void;
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
+  id?: string;
+  /** Custom list-item markup. Defaults to the plain string / "CODE — Name (Symbol)" text. */
+  renderItem?: (item: ComboboxItem) => React.ReactNode;
+}
+
+function isObjectItem(item: ComboboxItem): item is ComboboxObjectItem {
+  return typeof item !== 'string';
+}
+
+/** The item's identity as a plain string — what `value`/`onValueChange` traffic in. */
+function itemToCode(item: ComboboxItem): string {
+  return isObjectItem(item) ? item.code : item;
+}
+
+function defaultRenderItem(item: ComboboxItem): React.ReactNode {
+  return isObjectItem(item) ? `${item.code} — ${item.name} (${item.symbol})` : item;
 }
 
 function Combobox({
@@ -22,15 +48,30 @@ function Combobox({
   placeholder = 'Search…',
   emptyMessage = 'No results.',
   className,
+  id,
+  renderItem,
 }: ComboboxProps) {
+  // The public API traffics in plain string codes (backward compatible with
+  // the original string[]-only shape); Base UI's Root needs the actual
+  // list item (of `Value` type) as its controlled `value`/`onValueChange`
+  // payload, so resolve one to the other at the boundary.
+  const selectedItem = React.useMemo<ComboboxItem | null>(() => {
+    if (value == null) return null;
+    return items.find((item) => itemToCode(item) === value) ?? value;
+  }, [items, value]);
+
   return (
-    <BaseCombobox.Root
+    <BaseCombobox.Root<ComboboxItem>
       items={items}
-      value={value}
-      onValueChange={(v) => onValueChange?.((v as string | null) ?? null)}
+      value={selectedItem}
+      itemToStringLabel={itemToCode}
+      itemToStringValue={itemToCode}
+      isItemEqualToValue={(a, b) => itemToCode(a) === itemToCode(b)}
+      onValueChange={(v) => onValueChange?.(v == null ? null : itemToCode(v))}
     >
       <div className={cn('relative', className)}>
         <BaseCombobox.Input
+          id={id}
           placeholder={placeholder}
           className="h-10 w-full rounded-md border border-input bg-background px-3 pr-9 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
@@ -45,9 +86,9 @@ function Combobox({
               {emptyMessage}
             </BaseCombobox.Empty>
             <BaseCombobox.List>
-              {(item: string) => (
+              {(item: ComboboxItem) => (
                 <BaseCombobox.Item
-                  key={item}
+                  key={itemToCode(item)}
                   value={item}
                   className="relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                 >
@@ -56,7 +97,7 @@ function Combobox({
                       <CheckIcon className="h-4 w-4" />
                     </BaseCombobox.ItemIndicator>
                   </span>
-                  {item}
+                  {renderItem ? renderItem(item) : defaultRenderItem(item)}
                 </BaseCombobox.Item>
               )}
             </BaseCombobox.List>
