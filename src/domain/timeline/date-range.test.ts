@@ -1,9 +1,14 @@
 // Ported from the legacy Next tree's `src/__tests__/timelineCalculations.test.tsx`
-// (plan B3). Kept `describe.skip` on purpose — the original file documents a
-// real bug (`formatTimelineDate`/`formatDateRange` are off by one day, UTC
-// parsing of date-only strings) that plan issue B11a fixes together with
-// rewriting `EventTimeline` on fixed-TZ fixtures. No RTL render happens here
-// (the original only imported `@testing-library/jest-dom` for matchers it
+// (plan B3). B3 kept this file `describe.skip`'d on purpose, documenting a real bug
+// (`formatDateRange` is off by one day, UTC parsing of date-only strings) explicitly
+// deferred to plan issue B11a, which is THIS issue.
+//
+// What changed to un-skip it: `settled: boolean` → `settledAt: string | null` (the
+// module's real type now); every other assertion's expected VALUE is unchanged from the
+// legacy fixture (the legacy assertions already encoded the correct calendar day — only
+// the underlying `+1 day` hack in the production code was wrong; removing that hack and
+// parsing with `parseCalendarDate` makes these pass, in any timezone). No RTL render
+// happens here (the original only imported `@testing-library/jest-dom` for matchers it
 // never used), so this needs no jsdom pragma.
 import { describe, expect, it } from 'vitest';
 import {
@@ -14,13 +19,13 @@ import {
   type TimelineExpenseInput,
 } from './index';
 
-describe.skip('Timeline Utility Functions — date range (B11a fixes the underlying bugs, then un-skips)', () => {
+describe('Timeline Utility Functions — date range (ported from the legacy Jest suite, plan B11a)', () => {
   const mockExpenses: TimelineExpenseInput[] = [
-    { id: 'exp1', amount: 100, currency: 'USD', settled: true, date: '2023-05-20' },
-    { id: 'exp2', amount: 50, currency: 'USD', settled: false, date: '2023-06-01' },
-    { id: 'exp3', amount: 200, currency: 'USD', settled: true, date: '2023-06-05' },
-    { id: 'exp4', amount: 75, currency: 'EUR', settled: false, date: '2023-06-05' },
-    { id: 'exp5', amount: 25, currency: 'USD', settled: false, date: '2023-06-10' },
+    { id: 'exp1', amount: 100, currency: 'USD', settledAt: '2023-05-21T00:00:00.000Z', date: '2023-05-20' },
+    { id: 'exp2', amount: 50, currency: 'USD', settledAt: null, date: '2023-06-01' },
+    { id: 'exp3', amount: 200, currency: 'USD', settledAt: '2023-06-06T00:00:00.000Z', date: '2023-06-05' },
+    { id: 'exp4', amount: 75, currency: 'EUR', settledAt: null, date: '2023-06-05' },
+    { id: 'exp5', amount: 25, currency: 'USD', settledAt: null, date: '2023-06-10' },
   ];
 
   describe('calculateSettledPercentage', () => {

@@ -6,6 +6,7 @@ import CurrencyExchangeTicker from '@/components/islands/CurrencyExchangeTicker'
 import ShowcaseEditable from '@/components/islands/ShowcaseEditable';
 import ShowcaseExportCsvButton from '@/components/islands/ShowcaseExportCsvButton';
 import ShowcaseDashboardCharts from '@/components/islands/ShowcaseDashboardCharts';
+import ShowcaseEventTimeline from '@/components/islands/ShowcaseEventTimeline';
 import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
@@ -105,6 +106,21 @@ import { ProgressBar } from '@/components/ui/progress-bar';
       </p>
       <div class="rounded-md border border-border bg-card p-4">
         <ShowcaseDashboardCharts client:visible />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">EventTimeline <span class="text-sm font-normal text-muted-foreground">(B11a)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Percentage-positioned expense/event timeline (<code>features/events/EventTimeline.tsx</code>) over
+        a fictional 8-day trip. Markers open an Inceptor <code>ui/hover-card.tsx</code> (Base UI) on hover
+        <em>and</em> keyboard focus; every expense is also listed in a permanently-present
+        <code>sr-only</code> list below the visible track, so nothing here is reachable by hover alone.
+        Settlement status and pre-/post-event placement are conveyed by text (aria-label + the legend),
+        never marker color alone.
+      </p>
+      <div class="rounded-md border border-border bg-card p-4">
+        <ShowcaseEventTimeline client:visible />
       </div>
     </section>
   </main>

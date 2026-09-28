@@ -83,3 +83,18 @@ describe('/showcase (plan B8a)', () => {
     expect(islandSrc).not.toMatch(/^import\s+DashboardCharts\s+from/m);
   });
 });
+
+/**
+ * Plan B11a: EventTimeline is a new reusable widget (expense/event timeline
+ * with hover-card detail) — CLAUDE.md quality bar requires it in `/showcase`
+ * like every other reusable widget (B8a/B16/B17a). Wrapped in its own
+ * ErrorBoundary-mounted island (`mounted-island-error-boundary.test.ts`
+ * enforces this generically for every `.astro` mount site), fictional
+ * in-memory sample data, `client:visible` (no urgency — below the fold).
+ */
+describe('/showcase (plan B11a)', () => {
+  it('mounts ShowcaseEventTimeline live, hydrated only when scrolled into view', () => {
+    expect(src).toMatch(/import\s+ShowcaseEventTimeline\s+from\s+['"][^'"]*ShowcaseEventTimeline['"]/);
+    expect(src).toMatch(/<ShowcaseEventTimeline\s+client:visible/);
+  });
+});

@@ -1613,15 +1613,66 @@ resolves other users' names through `useProfiles` (B5a).
   red-then-green — documented inline in that test file's own doc comment. (`ExpenseFormIsland.tsx`
   did get its own dedicated red-first suite, `ExpenseFormIsland.test.tsx`.)
 ### B11a. `EventTimeline` widget port + timeline suites
-- [ ] `src/components/features/events/EventTimeline.tsx` takes `users`, `onNavigate`, `convert`
-      as props (no store access, no portal; positioning from Inceptor `hover-card`); named to
-      avoid colliding with Inceptor's `ui/timeline.tsx` (vertical feed)
-      - Alternative (lower priority): extend `ui/timeline.tsx` with expense/event item renderers
-        instead of a separate widget — only if its `items` API fits without forking
-- [ ] Port `src/__tests__/{timeline,timelineEvents,postEventExpenses,hoverCard,expenseGroups}.test.tsx`
-- [ ] Note (B8a review): `src/domain/timeline/*` parses calendar-date strings with a bare
+- [x] `src/components/features/events/EventTimeline.tsx` takes `event`, `expenses`, `users`,
+      `convert`/`currency` (a display-currency conversion pair, e.g. `useDisplayConversion`) and
+      `onNavigate` as props (no store access, no portal of its own — the Inceptor `ui/hover-card.tsx`
+      it composes does its own); named `EventTimeline`, not `Timeline`, to avoid colliding with
+      Inceptor's `ui/timeline.tsx` (vertical feed) — **deviation: `ui/timeline.tsx` does not exist in
+      this tree** (checked; Inceptor hasn't shipped it here yet), so the "lower-priority alternative"
+      of extending it was not applicable, not merely deprioritized. Positioning is 100% delegated to
+      the pure `domain/timeline` helpers (`groupNearbyExpenses`/`calculateTimelineProgress`) — the
+      component only turns `.position` into CSS. Every marker is a real `<button>`
+      (`HoverCardTrigger`'s `render` prop, not the default `<a>`) with an `aria-label`; the hover card
+      opens on hover AND keyboard focus (`delay={0}` — the default 600ms hover-intent delay is a poor
+      fit for a keyboard user tabbing onto an already-interactive marker); every expense is ALSO
+      listed in a permanently-present `sr-only` list wired to the same `onNavigate`, so nothing is
+      reachable by hover alone (CLAUDE.md a11y rule). Settlement status (settled/unsettled/mixed) and
+      pre-/post-event placement are conveyed by `aria-label` + a text legend, never marker color
+      alone. Added to `/showcase` (`ShowcaseEventTimeline`, `client:visible`, obviously fictional
+      sample data) per the quality bar; `src/tests/showcase.test.ts` extended.
+- [x] Ported `src/__tests__/{timeline,timelineEvents,postEventExpenses,hoverCard,expenseGroups}.test.tsx`
+      onto `src/components/features/events/EventTimeline.test.tsx`, against the REAL widget and the
+      REAL `domain/timeline` helpers — every legacy suite except `timeline.test.tsx` tested a
+      hand-rolled stand-in component instead of the real one, which this port replaces. Kept: the
+      10-day-event fixture shape, same-day grouping into one marker, settled/unsettled/mixed
+      distinction, pre-/post-event expenses shown distinctly, a hover card revealing per-expense
+      detail with a working navigate action. Dropped: `AppContext`/`next/navigation` mocking (this
+      tree has neither, spec D3 — `onNavigate` is a prop), MUI/CSS-module class assertions, and
+      `timeline.test.tsx`'s imprecise `expenseMarkers.length >= mockExpenses.length` assertion
+      (grouping intentionally produces FEWER markers than expenses when dates coincide; replaced with
+      an exact count). New: the permanently-present `sr-only` accessible-alternative suite (no legacy
+      equivalent existed) and a dedicated keyboard-focus-only test. Full kept/dropped/new breakdown in
+      the test file's own header comment.
+- [x] Note (B8a review): `src/domain/timeline/*` parsed calendar-date strings with a bare
       `new Date(...)`, the same UTC-midnight bug fixed in `dashboard.ts`/`csvExport.ts`/
-      `formatters.ts` (B8a) — adopt `src/domain/dates.ts#parseCalendarDate` here too
+      `formatters.ts` (B8a) — adopted `src/domain/dates.ts#parseCalendarDate` throughout, and removed
+      the `formatTimelineDate`/`formatDateRange` `+1 day` hack (a workaround for the same bug, not an
+      independent one — TZ-invariant noise once the underlying parsing is correct). Also gave the
+      module its deferred "real types" (B3's note): `TimelineExpenseInput`/`TimelineEventInput` are
+      now `Pick`s of the real `Expense`/`Event` schemas, `settled: boolean` → `settledAt: string |
+      null` (the project-wide `settledAt == null` convention), and `calculateTimelineProgress`/
+      `calculatePositionPercentage` gained an injectable `now` (dashboard.ts's own pattern) for
+      deterministic tests. Two genuine timezone divergences fixed and covered (TZ pinned to
+      America/Mexico_City, `src/domain/timeline/index.test.ts`): `calculateTimelineProgress` no
+      longer reports a "today"-started event as already underway before local midnight has passed,
+      and `calculatePositionPercentage`'s no-end-date fallback now measures elapsed time against the
+      correct local start. **Documented, not fixed as a "bug"**: two calendar-date-only strings
+      compared against each other can never diverge by timezone (`parseCalendarDate`'s local-midnight
+      offset is constant across the subtraction and cancels out) — only a comparison against a real
+      clock reading (`now`) can disagree, which is what the two divergence tests exercise; this is
+      recorded in the module's own header comment so a future maintainer doesn't go looking for a
+      bug that provably can't exist in the pure calendar-to-calendar paths.
+- [x] **Coordinator review fix**: the permanently-`sr-only` expense list let a sighted keyboard user
+      tab onto controls they couldn't see (WCAG 2.4.7 Focus Visible), and it was also the only
+      dependable keyboard path into a same-day grouped marker's individual expenses — a Base UI
+      `PreviewCard` isn't a reliable container for interactive content (tabbing out of the trigger
+      closes it). Fixed: the list is now an "Expenses in this event" panel that starts `sr-only` and
+      drops that class (a plain `onFocus`/`onBlur` React-state toggle, not CSS `:focus-within` — kept
+      testable without a real browser/compiled CSS) as soon as focus lands inside it, restoring it on
+      blur; every button keeps its default/focus-visible ring. The hover-card popup's own per-expense
+      buttons are now `tabIndex={-1}` (opted out of the tab order, still mouse-clickable) — the panel
+      is the one dependable keyboard path, the popup stays a hover/mouse quick preview only. Red test
+      commit first (`fcb771b`), fixed green (`c25fcee`).
 ### B11b. Events islands (list, new, view, edit)
 - [ ] `events` is the JustSplit-local table (spec D10, B2/B3): list = `events where memberIds
       array-contains uid`; creation writes `memberIds` (creator included — every other member an
