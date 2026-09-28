@@ -216,9 +216,15 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-medium text-muted-foreground">Events ({groupEvents.length})</h3>
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <h3 className="text-sm font-medium text-muted-foreground">Events ({groupEvents.length})</h3>
+          {/* Plan B11b: `?group=` is how a new event gets this group (the form offers its members, writes groupId). */}
+          <a href={withBase(`/events/new?group=${group.id}`)} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+            New event
+          </a>
+        </div>
         {groupEvents.length === 0 ? (
-          <EmptyState title="No events yet" description="Events attached to this group will appear here." />
+          <EmptyState title="No events yet" description="Create one for a trip or a dinner, or attach an existing event below." />
         ) : (
           <ul className="flex flex-col gap-2">
             {groupEvents.map((event) => (
