@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { formatCurrency, formatDate, formatPercentage, getCurrencySymbol, truncateText } from './formatters';
 
 /** New suite (plan B3): `domain/formatters.ts` had no dedicated Jest suite in the legacy tree. */
@@ -37,6 +37,30 @@ describe('formatDate', () => {
 
   it('passes garbage input through to `Date`\'s own "Invalid Date" string rather than throwing', () => {
     expect(formatDate('not-a-real-date')).toBe('Invalid Date');
+  });
+
+  /**
+   * Bug fix (found in B8a review): a calendar-date string (`YYYY-MM-DD`)
+   * parsed with plain `new Date(...)` is UTC midnight, which reads back as
+   * the PREVIOUS local day west of UTC — the user base is largely in Mexico
+   * (UTC-6). Pinned to America/Mexico_City so this fails for the right
+   * reason regardless of where/when the suite runs.
+   */
+  describe('timezone-safe calendar-date parsing (bug fix)', () => {
+    let originalTZ: string | undefined;
+
+    beforeAll(() => {
+      originalTZ = process.env.TZ;
+      process.env.TZ = 'America/Mexico_City';
+    });
+
+    afterAll(() => {
+      process.env.TZ = originalTZ;
+    });
+
+    it('shows the 1st for a 2026-03-01 calendar-date string, not the last day of February', () => {
+      expect(formatDate('2026-03-01')).toBe('Mar 1, 2026');
+    });
   });
 });
 

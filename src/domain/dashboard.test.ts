@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
 import { balancesWithUser, categoryDistribution, monthlyTotals, upcomingEvents } from './dashboard';
@@ -246,5 +246,48 @@ describe('upcomingEvents', () => {
     ];
     const result = upcomingEvents(events, now);
     expect(result.map((e) => e.id)).toEqual(['has-date']);
+  });
+});
+
+/**
+ * Bug fix (found in B8a review): `expense.date`/`event.startDate` are
+ * calendar-date strings (`YYYY-MM-DD`) from an `<input type="date">`, but
+ * `new Date('2026-03-01')` parses that as UTC midnight — anyone west of UTC
+ * (the user base is largely in Mexico, UTC-6) reads it back as the PREVIOUS
+ * local day. Pinned to America/Mexico_City so these fail for the right
+ * reason regardless of where/when the suite runs.
+ */
+describe('monthlyTotals / upcomingEvents — timezone-safe calendar-date parsing (bug fix)', () => {
+  let originalTZ: string | undefined;
+
+  beforeAll(() => {
+    originalTZ = process.env.TZ;
+    process.env.TZ = 'America/Mexico_City';
+  });
+
+  afterAll(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('monthlyTotals buckets an expense dated the 1st of the month into that month, not the previous one', () => {
+    const now = new Date(2026, 2, 15); // Mar 15 2026, local
+    const expenses = [makeExpense({ amount: 10, paidBy: 'user1', date: '2026-03-01' })];
+
+    const result = monthlyTotals(expenses, identity, now);
+    const march = result.find((m) => m.month === 'Mar 2026')!;
+    const february = result.find((m) => m.month === 'Feb 2026')!;
+
+    expect(march.total).toBe(10);
+    expect(march.count).toBe(1);
+    expect(february.total).toBe(0);
+    expect(february.count).toBe(0);
+  });
+
+  it('upcomingEvents includes an event starting today, not drops it as already past', () => {
+    const now = new Date(2026, 2, 15); // Mar 15 2026, local midnight
+    const events = [makeEvent({ id: 'today', name: 'Today', startDate: '2026-03-15' })];
+
+    const result = upcomingEvents(events, now);
+    expect(result.map((e) => e.id)).toEqual(['today']);
   });
 });
