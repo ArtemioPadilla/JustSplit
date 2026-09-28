@@ -42,7 +42,9 @@ import { calculateTimelineProgress, formatTimelineDate, groupNearbyExpenses, typ
  *    Visible fix): a sighted keyboard user must never tab onto a control
  *    they cannot see. Driven by a plain `onFocus`/`onBlur` state toggle,
  *    not CSS `:focus-within` — deliberately, so it's testable without a
- *    real browser/compiled CSS (jsdom has neither). The hover-card popup's
+ *    real browser/compiled CSS (jsdom has neither). `onBlur` only closes it
+ *    when focus actually LEAVES the panel (`relatedTarget` outside it); a move
+ *    between two controls inside it leaves it open. The hover-card popup's
  *    own per-expense buttons are `tabIndex={-1}` (opted OUT of the tab
  *    order): a Base UI `PreviewCard` isn't a reliable container for
  *    interactive content — tabbing out of the trigger closes it — so this
@@ -274,7 +276,14 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
         <div
           data-testid="timeline-expenses-panel"
           onFocus={() => setPanelFocused(true)}
-          onBlur={() => setPanelFocused(false)}
+          onBlur={(event) => {
+            // Focus moving to another control INSIDE the panel is not "leaving":
+            // `relatedTarget` is where focus is going (null when it leaves the
+            // document), so only a target outside the panel closes it.
+            const next = event.relatedTarget;
+            if (next instanceof Node && event.currentTarget.contains(next)) return;
+            setPanelFocused(false);
+          }}
           className={cn(panelFocused ? 'rounded-lg border border-border bg-card p-3' : 'sr-only')}
         >
           <p className="mb-2 text-sm font-medium text-foreground">Expenses in this event</p>
