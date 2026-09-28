@@ -2,24 +2,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JustSplitProfile } from '@/schemas/profile';
 
-const signInWithOAuthRedirect = vi.fn();
-vi.mock('@/lib/data/client', () => ({
-  signInWithOAuthRedirect: (...args: unknown[]) => signInWithOAuthRedirect(...args),
+// `vi.mock` factories are hoisted above imports/top-level statements, so the
+// mocked values must be created through `vi.hoisted` to avoid a TDZ error.
+const { signInWithOAuthRedirect, authAdapter, profileStore } = vi.hoisted(() => ({
+  signInWithOAuthRedirect: vi.fn(),
+  authAdapter: {
+    signIn: vi.fn().mockResolvedValue(undefined),
+    signUp: vi.fn().mockResolvedValue(undefined),
+    signOut: vi.fn().mockResolvedValue(undefined),
+    resetPassword: vi.fn().mockResolvedValue(undefined),
+    updatePassword: vi.fn().mockResolvedValue(undefined),
+    updateDisplayProfile: vi.fn().mockResolvedValue(undefined),
+  },
+  profileStore: {
+    get: vi.fn(),
+    set: vi.fn(),
+    update: vi.fn().mockResolvedValue(undefined),
+  },
 }));
-
-const authAdapter = {
-  signIn: vi.fn().mockResolvedValue(undefined),
-  signUp: vi.fn().mockResolvedValue(undefined),
-  signOut: vi.fn().mockResolvedValue(undefined),
-  resetPassword: vi.fn().mockResolvedValue(undefined),
-  updatePassword: vi.fn().mockResolvedValue(undefined),
-  updateDisplayProfile: vi.fn().mockResolvedValue(undefined),
-};
-const profileStore = {
-  get: vi.fn(),
-  set: vi.fn(),
-  update: vi.fn().mockResolvedValue(undefined),
-};
+vi.mock('@/lib/data/client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/data/client')>()),
+  signInWithOAuthRedirect,
+}));
 vi.mock('@/lib/data/adapter', () => ({ authAdapter, profileStore }));
 
 import {
