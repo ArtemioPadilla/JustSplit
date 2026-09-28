@@ -66,27 +66,33 @@ second finding below is about.
 The unit-test singleton only proves module identity within one Vitest
 worker; it says nothing about whether Vite's chunking duplicates
 `ui/toast.tsx` across independently-hydrated island entries in the real
-build. Verified directly against `npm run build`'s output:
+build. Verified directly against `npm run build`'s output (re-verified
+after the "cross-navigation toasts" amendment below, which made
+`notifications.ts` import `schemas/pending-toast.ts` — Rollup responded by
+merging `ui/toast.tsx` and `stores/notifications.ts` into ONE chunk, since
+every real importer already pulled in both; still exactly one chunk
+either way):
 
 ```
-$ grep -c "toastManager" dist/_astro/toast.D_g-1sJE.js
-2   # our own module code; no other dist/_astro/*.js file mentions it at all
+$ grep -c "toastManager" dist/_astro/notifications.DNis1yM8.js
+1   # our own module code; no other dist/_astro/*.js file mentions it at all
 
-$ grep -l 'toast\.D_g-1sJE\.js' dist/_astro/*.js
-AppRouterIsland.COw_rjrC.js   DashboardIsland.BMeDcYFb.js   ExpenseDetailView.o6tZYqJu.js
-ExpenseEditView.CdMA06EU.js   ExpenseFormIsland.PCYfKYMj.js  ExpenseListIsland.B-57gOUC.js
-FriendDetailView.B2C6R7Sx.js  FriendsIsland.IFJhJB3N.js      GroupDetailView.VAQSrEr3.js
-GroupFormIsland.DJXC-mRT.js   ShowcaseExportCsvButton.DWZhGz6A.js
-ToasterIsland.BsJnInjL.js     notifications.DxOKmm1r.js
+$ grep -l 'notifications\.DNis1yM8\.js' dist/_astro/*.js
+AppRouterIsland.Bn9xqRxc.js    DashboardIsland.CMI4YZAm.js     ExpenseDetailView.DCbsAmJv.js
+ExpenseEditView.Ds0fNFVd.js    ExpenseForm.BcslSLVS.js         ExpenseFormIsland.CAH4G8EW.js
+ExpenseListIsland.CK1VT9kf.js  ExportCsvButton.DWo_kcge.js     FriendDetailView.tk86h5BD.js
+FriendsIsland.DbndGiEh.js      GroupDetailView.D482VZ2_.js     GroupFormIsland.DcJNWPUQ.js
+RemoveFriendDialog.Yj8Wfigs.js ShowcaseExportCsvButton.CBL8rEDL.js
+ShowcaseResetLocalDataButton.CqSlOAAn.js  ToasterIsland.BV0nbJry.js
 ```
 
-Thirteen separate built chunks — every island that (transitively) imports
+Sixteen separate built chunks — every island that (transitively) imports
 `ui/toast.tsx` or `stores/notifications.ts` — all reference the *same*
-`toast.D_g-1sJE.js` chunk by its content hash. Vite's default code-splitting
-already deduplicates a shared module into one chunk referenced by every
-importer; nothing here needed a manual `manualChunks` override. This is the
-real-build confirmation the plan asked for: the singleton holds in
-production, not just inside one test file.
+`notifications.<hash>.js` chunk by its content hash. Vite's default
+code-splitting already deduplicates a shared module into one chunk
+referenced by every importer; nothing here needed a manual `manualChunks`
+override. This is the real-build confirmation the plan asked for: the
+singleton holds in production, not just inside one test file.
 
 ### Accessibility and timing
 
