@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { atom } from 'nanostores';
 
 /**
@@ -91,5 +92,46 @@ describe('CurrencyExchangeTicker', () => {
     unmount();
     await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
     expect(fetchExchangeRate.mock.calls.length).toBe(callsAfterOneRefresh);
+  });
+
+  it(
+    'a visible pause/play toggle button pauses and resumes the auto-scroll (WCAG 2.2.2)',
+    async () => {
+      const user = userEvent.setup();
+      fetchExchangeRate.mockImplementation(rateFor({ EUR: { rate: 0.9, isFallback: false } }));
+
+      render(<CurrencyExchangeTicker />);
+      await screen.findByText('USD/EUR');
+
+      const toggle = screen.getByRole('button', { name: /pause exchange-rate scrolling/i });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+      // Nothing keyboard/touch users can reach pauses the scroll before the
+      // toggle exists — the `<ul>`'s CSS-only animation carries a
+      // `data-paused` attribute the toggle controls (global.css keys
+      // `animation-play-state: paused` off it).
+      const track = document.querySelector('.ticker-track');
+      expect(track).not.toHaveAttribute('data-paused');
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(track).toHaveAttribute('data-paused', 'true');
+
+      await user.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(track).not.toHaveAttribute('data-paused');
+    },
+    15000,
+  );
+
+  it('the scrollable viewport is keyboard-focusable and labelled (axe scrollable-region-focusable)', async () => {
+    fetchExchangeRate.mockImplementation(rateFor({ EUR: { rate: 0.9, isFallback: false } }));
+
+    render(<CurrencyExchangeTicker />);
+    await screen.findByText('USD/EUR');
+
+    const viewport = document.querySelector('.ticker-viewport');
+    expect(viewport).toHaveAttribute('tabindex', '0');
+    expect(viewport).toHaveAttribute('aria-label');
   });
 });
