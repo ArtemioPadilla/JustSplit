@@ -1,4 +1,6 @@
+import * as React from 'react';
 import { Toaster } from '@/components/ui/toast';
+import { drainPendingToasts } from '@/stores/notifications';
 import ErrorBoundary from './ErrorBoundary';
 
 /**
@@ -24,8 +26,25 @@ import ErrorBoundary from './ErrorBoundary';
  * first-paint/first-interaction work (CLAUDE.md: "never client:idle` /
  * `client:visible` for non-critical islands" — this is the canonical
  * non-critical layout island).
+ *
+ * Cross-navigation toasts (plan B17b amendment, ADR 0008): `drainPendingToasts()`
+ * (`stores/notifications.ts`) runs once on mount, firing anything queued
+ * by a `{ afterNavigation: true }` call on the page THIS ONE navigated away
+ * from (a `location.assign`/`reload()` in this static MPA is a full page
+ * load — `sessionStorage` is the only thing that survives it within the
+ * same tab). This effect is defined on `ToasterIsland` itself — an
+ * ANCESTOR of `<Toaster/>` — so React's bottom-up effect-commit order on
+ * mount runs `Toaster`'s own flush effect (and `BaseToast.Provider`'s
+ * subscribe effect, a descendant of that) first; the manager already has a
+ * listener by the time this drain fires, so a drained toast renders
+ * immediately without even needing `toast()`'s own pre-hydration queue as
+ * a fallback.
  */
 export default function ToasterIsland() {
+  React.useEffect(() => {
+    drainPendingToasts();
+  }, []);
+
   return (
     <ErrorBoundary name="ToasterIsland">
       <Toaster />
