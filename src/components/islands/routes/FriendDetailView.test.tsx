@@ -2,11 +2,12 @@
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
 import type { Friendship } from '@/schemas/friendship';
+import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
 
 /**
@@ -55,14 +56,16 @@ const { authAdapter, profileStore, adapterState } = vi.hoisted(() => {
 });
 vi.mock('@/lib/data/adapter', () => ({ authAdapter, profileStore }));
 
-const { useFriends, useExpenses, useProfiles, useRemoveFriendship } = vi.hoisted(() => ({
+const { useFriends, useExpenses, useSettlements, useProfiles, useRemoveFriendship } = vi.hoisted(() => ({
   useFriends: vi.fn(),
   useExpenses: vi.fn(),
+  useSettlements: vi.fn(),
   useProfiles: vi.fn(),
   useRemoveFriendship: vi.fn(),
 }));
 vi.mock('@/lib/data/hooks/useFriends', () => ({ useFriends }));
 vi.mock('@/lib/data/hooks/useExpenses', () => ({ useExpenses }));
+vi.mock('@/lib/data/hooks/useSettlements', () => ({ useSettlements }));
 vi.mock('@/lib/data/hooks/useProfiles', () => ({ useProfiles }));
 vi.mock('@/lib/data/hooks/useRemoveFriendship', () => ({ useRemoveFriendship }));
 
@@ -102,6 +105,20 @@ function makeExpense(overrides: Partial<Expense> & Pick<Expense, 'id' | 'amount'
   };
 }
 
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  return {
+    id: 's1',
+    groupId: null,
+    currency: 'USD',
+    date: '2026-05-05',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: '2026-05-05T00:00:00.000Z',
+    eventId: null,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   adapterState.listeners = [];
   adapterState.profile = { id: 'u1', apps: ['justsplit'], permissions: [], preferences: { preferredCurrency: 'USD' } };
@@ -110,6 +127,7 @@ beforeEach(() => {
   $authReady.set(false);
 
   useRemoveFriendship.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+  useSettlements.mockReturnValue({ data: [], isError: false, isRetrying: false, refetch: vi.fn() });
 });
 
 afterEach(() => {
@@ -258,5 +276,82 @@ describe('FriendDetailView', () => {
     expect(await screen.findByText(/all settled up/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^remove$/i }));
     expect(await screen.findByRole('heading', { name: /remove beto\?/i })).toBeInTheDocument();
+  });
+
+  describe('the balance follows the ledger (plan B14a, ADR 0014)', () => {
+    function arrange(settlements: Settlement[]) {
+      useFriends.mockReturnValue({
+        data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+        isError: false,
+        isRetrying: false,
+        refetch: vi.fn(),
+      });
+      // Ana (u1) paid 90 for herself, Beto (u2) and Carla (u3).
+      useExpenses.mockReturnValue({
+        data: [
+          makeExpense({
+            id: 'e1',
+            description: 'Dinner',
+            amount: 90,
+            paidBy: 'u1',
+            date: '2026-05-01',
+            memberIds: ['u1', 'u2', 'u3'],
+            splits: [
+              { userId: 'u1', amount: 30 },
+              { userId: 'u2', amount: 30 },
+              { userId: 'u3', amount: 30 },
+            ],
+          }),
+        ],
+        isError: false,
+        isRetrying: false,
+        refetch: vi.fn(),
+      });
+      useSettlements.mockReturnValue({ data: settlements, isError: false, isRetrying: false, refetch: vi.fn() });
+      useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Beto', avatarUrl: null }] });
+    }
+
+    it('a partial payment lowers what the friend owes by exactly the paid amount', async () => {
+      arrange([makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 12.5 })]);
+      render(<FriendDetailView id="u2" />);
+      emit(USER);
+      expect(await screen.findByText('Beto owes you USD 17.50')).toBeInTheDocument();
+    });
+
+    it('once the friend paid in full, "all settled up" — the third person\'s debt is not part of this pair', async () => {
+      arrange([makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 30 })]);
+      render(<FriendDetailView id="u2" />);
+      emit(USER);
+      expect(await screen.findByText(/all settled up with beto/i)).toBeInTheDocument();
+    });
+
+    it('only settlements between the two count: a payment to or from anyone else is ignored', async () => {
+      arrange([
+        makeSettlement({ id: 's2', fromUserId: 'u3', toUserId: 'u1', amount: 30 }),
+        makeSettlement({ id: 's3', fromUserId: 'u2', toUserId: 'u3', amount: 30 }),
+      ]);
+      render(<FriendDetailView id="u2" />);
+      emit(USER);
+      expect(await screen.findByText('Beto owes you USD 30.00')).toBeInTheDocument();
+    });
+
+    it('shows a skeleton until the settlements have loaded, never a balance computed without them', async () => {
+      arrange([]);
+      useSettlements.mockReturnValue({ data: undefined, isError: false, isRetrying: false, refetch: vi.fn() });
+      render(<FriendDetailView id="u2" />);
+      emit(USER);
+      await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).not.toBeNull());
+      expect(screen.queryByText(/beto owes you/i)).not.toBeInTheDocument();
+    });
+
+    it('a failed settlements query shows the error state, and Retry refetches it', async () => {
+      arrange([]);
+      const refetch = vi.fn();
+      useSettlements.mockReturnValue({ data: undefined, isError: true, isRetrying: false, refetch });
+      render(<FriendDetailView id="u2" />);
+      emit(USER);
+      await userEvent.setup().click(await screen.findByRole('button', { name: /retry/i }));
+      expect(refetch).toHaveBeenCalled();
+    });
   });
 });

@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
-import { balancesWithUser, categoryDistribution, involvingUser, monthlyTotals, totalSpent, unsettledCount, upcomingEvents } from './dashboard';
+import type { Settlement } from '@/schemas/settlement';
+import { balancesWithUser, categoryDistribution, involvingUser, monthlyTotals, openBalanceCount, totalSpent, upcomingEvents } from './dashboard';
 
 /** New suite (plan B8a): pure dashboard selectors had no equivalent in the legacy tree (the
  * hand-rolled Dashboard components read `AppContext` and computed inline). */
@@ -20,6 +21,20 @@ function makeExpense(overrides: Partial<Expense> & Pick<Expense, 'amount' | 'pai
     createdBy: overrides.paidBy,
     createdAt: '2026-01-01T00:00:00.000Z',
     settledAt: null,
+    ...overrides,
+  };
+}
+
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  return {
+    id: 'set1',
+    groupId: null,
+    currency: 'USD',
+    date: '2026-01-05',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: '2026-01-05T00:00:00.000Z',
+    eventId: null,
     ...overrides,
   };
 }
@@ -141,7 +156,7 @@ describe('balancesWithUser', () => {
         ],
       }),
     ];
-    const result = balancesWithUser(expenses, 'you', { alex: 'Alex' }, identity);
+    const result = balancesWithUser(expenses, [], 'you', { alex: 'Alex' }, identity);
     expect(result).toEqual([{ userId: 'alex', name: 'Alex', balance: 50 }]);
   });
 
@@ -157,7 +172,7 @@ describe('balancesWithUser', () => {
         ],
       }),
     ];
-    const result = balancesWithUser(expenses, 'you', { alex: 'Alex' }, identity);
+    const result = balancesWithUser(expenses, [], 'you', { alex: 'Alex' }, identity);
     expect(result).toEqual([{ userId: 'alex', name: 'Alex', balance: -50 }]);
   });
 
@@ -174,7 +189,7 @@ describe('balancesWithUser', () => {
       }),
     ];
     // "you" owe the ghost payer your own share; "alex" is unrelated to "you" in this expense.
-    const result = balancesWithUser(expenses, 'you', { ghost: 'Ghost', alex: 'Alex' }, identity);
+    const result = balancesWithUser(expenses, [], 'you', { ghost: 'Ghost', alex: 'Alex' }, identity);
     expect(result).toEqual([{ userId: 'ghost', name: 'Ghost', balance: -50 }]);
   });
 
@@ -190,11 +205,11 @@ describe('balancesWithUser', () => {
         ],
       }),
     ];
-    const result = balancesWithUser(expenses, 'you', {}, identity);
+    const result = balancesWithUser(expenses, [], 'you', {}, identity);
     expect(result).toEqual([{ userId: 'mystery', name: 'Unknown', balance: 10 }]);
   });
 
-  it('converts mixed currencies before summing and ignores settled expenses', () => {
+  it('converts mixed currencies before summing and ignores legacy settled expenses (settledAt)', () => {
     const convert = (amount: number, currency: string) => (currency === 'EUR' ? amount * 2 : amount);
     const expenses = [
       makeExpense({
@@ -218,7 +233,7 @@ describe('balancesWithUser', () => {
         ],
       }),
     ];
-    const result = balancesWithUser(expenses, 'you', { alex: 'Alex' }, convert);
+    const result = balancesWithUser(expenses, [], 'you', { alex: 'Alex' }, convert);
     expect(result).toEqual([{ userId: 'alex', name: 'Alex', balance: 20 }]); // 10 EUR -> 20, settled expense ignored
   });
 
@@ -243,8 +258,113 @@ describe('balancesWithUser', () => {
         ],
       }),
     ];
-    const result = balancesWithUser(expenses, 'you', { alex: 'Alex' }, identity);
+    const result = balancesWithUser(expenses, [], 'you', { alex: 'Alex' }, identity);
     expect(result).toEqual([]);
+  });
+});
+
+describe('balancesWithUser — the ledger model (plan B14a, ADR 0014): a settlement is a payment', () => {
+  // You paid 90 for you, Alex and Carla.
+  const dinner = () =>
+    makeExpense({
+      amount: 90,
+      paidBy: 'you',
+      date: '2026-01-01',
+      memberIds: ['you', 'alex', 'carla'],
+      splits: [
+        { userId: 'you', amount: 30 },
+        { userId: 'alex', amount: 30 },
+        { userId: 'carla', amount: 30 },
+      ],
+    });
+  const names = { alex: 'Alex', carla: 'Carla' };
+
+  it('three-person expense, one pair settles: the third person\'s debt is intact', () => {
+    const paid = makeSettlement({ fromUserId: 'alex', toUserId: 'you', amount: 30 });
+    expect(balancesWithUser([dinner()], [paid], 'you', names, identity)).toEqual([{ userId: 'carla', name: 'Carla', balance: 30 }]);
+  });
+
+  it('a partial payment lowers the balance by exactly the paid amount', () => {
+    const paid = makeSettlement({ fromUserId: 'alex', toUserId: 'you', amount: 12.5 });
+    const result = balancesWithUser([dinner()], [paid], 'you', names, identity);
+    expect(result.find((b) => b.userId === 'alex')?.balance).toBe(17.5);
+    expect(result.find((b) => b.userId === 'carla')?.balance).toBe(30);
+  });
+
+  it('your own payment counts the other way: paying what you owe clears it, paying part leaves the rest', () => {
+    const theirs = makeExpense({ amount: 100, paidBy: 'alex', date: '2026-01-01', memberIds: ['you', 'alex'], splits: [{ userId: 'alex', amount: 50 }, { userId: 'you', amount: 50 }] });
+    expect(balancesWithUser([theirs], [makeSettlement({ fromUserId: 'you', toUserId: 'alex', amount: 50 })], 'you', names, identity)).toEqual([]);
+    expect(balancesWithUser([theirs], [makeSettlement({ fromUserId: 'you', toUserId: 'alex', amount: 20 })], 'you', names, identity)).toEqual([
+      { userId: 'alex', name: 'Alex', balance: -30 },
+    ]);
+  });
+
+  it('a settlement in another currency is converted like an expense amount', () => {
+    const convert = (amount: number, currency: string) => (currency === 'EUR' ? amount * 2 : amount);
+    const paid = makeSettlement({ fromUserId: 'alex', toUserId: 'you', amount: 5, currency: 'EUR' });
+    expect(balancesWithUser([dinner()], [paid], 'you', names, convert).find((b) => b.userId === 'alex')?.balance).toBe(20);
+  });
+
+  it('a settlement between two other people never touches your balances', () => {
+    const between = makeSettlement({ fromUserId: 'alex', toUserId: 'carla', amount: 30 });
+    const result = balancesWithUser([dinner()], [between], 'you', names, identity);
+    expect(result).toEqual([
+      { userId: 'alex', name: 'Alex', balance: 30 },
+      { userId: 'carla', name: 'Carla', balance: 30 },
+    ]);
+  });
+
+  it('the global scope counts every settlement that names you, whatever its eventId or groupId', () => {
+    const inEvent = makeSettlement({ id: 'a', fromUserId: 'alex', toUserId: 'you', amount: 10, eventId: 'ev1' });
+    const inGroup = makeSettlement({ id: 'b', fromUserId: 'alex', toUserId: 'you', amount: 5, groupId: 'g1' });
+    const loose = makeSettlement({ id: 'c', fromUserId: 'alex', toUserId: 'you', amount: 2.5 });
+    expect(balancesWithUser([dinner()], [inEvent, inGroup, loose], 'you', names, identity).find((b) => b.userId === 'alex')?.balance).toBe(12.5);
+  });
+
+  it('a legacy settled expense (settledAt) is excluded, so imported data stays correct', () => {
+    const legacy = { ...dinner(), settledAt: '2026-01-02T00:00:00.000Z' };
+    expect(balancesWithUser([legacy], [], 'you', names, identity)).toEqual([]);
+  });
+
+  it('an overpayment flips the direction', () => {
+    const paid = makeSettlement({ fromUserId: 'alex', toUserId: 'you', amount: 40 });
+    expect(balancesWithUser([dinner()], [paid], 'you', names, identity).find((b) => b.userId === 'alex')?.balance).toBe(-10);
+  });
+
+  it('a settlement with someone you share no expense with still shows (money moved)', () => {
+    expect(balancesWithUser([], [makeSettlement({ fromUserId: 'you', toUserId: 'alex', amount: 15 })], 'you', names, identity)).toEqual([
+      { userId: 'alex', name: 'Alex', balance: 15 },
+    ]);
+  });
+});
+
+describe('openBalanceCount (plan B14a: replaces unsettledCount — an honest figure, not a per-expense flag)', () => {
+  it('counts the people you have a non-zero balance with, in either direction', () => {
+    expect(
+      openBalanceCount([
+        { userId: 'a', name: 'A', balance: 30 },
+        { userId: 'b', name: 'B', balance: -12.5 },
+      ]),
+    ).toBe(2);
+  });
+
+  it('does not count a balance below one cent', () => {
+    expect(openBalanceCount([{ userId: 'a', name: 'A', balance: 0.004 }, { userId: 'b', name: 'B', balance: 0 }])).toBe(0);
+  });
+
+  it('is 0 when everyone is settled up', () => {
+    expect(openBalanceCount([])).toBe(0);
+  });
+
+  it('follows the ledger: after one of two debtors pays, one person is left', () => {
+    const dinner = makeExpense({
+      amount: 90,
+      paidBy: 'you',
+      date: '2026-01-01',
+      splits: [{ userId: 'you', amount: 30 }, { userId: 'alex', amount: 30 }, { userId: 'carla', amount: 30 }],
+    });
+    const paid = makeSettlement({ fromUserId: 'alex', toUserId: 'you', amount: 30 });
+    expect(openBalanceCount(balancesWithUser([dinner], [paid], 'you', {}, identity))).toBe(1);
   });
 });
 
@@ -274,7 +394,7 @@ describe('upcomingEvents', () => {
 });
 
 /**
- * Plan B8b: `totalSpent` and `unsettledCount` are the ONLY two figures the
+ * Plan B8b: `totalSpent` and (until B14a replaced it with `openBalanceCount`) `unsettledCount` were the ONLY two figures the
  * legacy `FinancialSummary` actually computed from real data — every other
  * prop it accepted (`compareWithLastMonth`, `avgPerDay`,
  * `mostExpensiveCategory`, `activeEvents`, `activeParticipants`,
@@ -301,27 +421,6 @@ describe('totalSpent', () => {
 
   it('is 0 for no expenses', () => {
     expect(totalSpent([], identity)).toBe(0);
-  });
-});
-
-describe('unsettledCount', () => {
-  it('counts expenses whose settledAt is null', () => {
-    const expenses = [
-      makeExpense({ amount: 10, paidBy: 'user1', date: '2026-01-01', settledAt: null }),
-      makeExpense({ amount: 20, paidBy: 'user1', date: '2026-01-02', settledAt: null }),
-      makeExpense({ amount: 30, paidBy: 'user1', date: '2026-01-03', settledAt: '2026-01-04T00:00:00.000Z' }),
-    ];
-    expect(unsettledCount(expenses)).toBe(2);
-  });
-
-  it('treats a missing settledAt (never written) the same as null — unsettled', () => {
-    const expenses = [makeExpense({ amount: 10, paidBy: 'user1', date: '2026-01-01' })];
-    delete (expenses[0] as { settledAt?: string | null }).settledAt;
-    expect(unsettledCount(expenses)).toBe(1);
-  });
-
-  it('is 0 for no expenses', () => {
-    expect(unsettledCount([])).toBe(0);
   });
 });
 
