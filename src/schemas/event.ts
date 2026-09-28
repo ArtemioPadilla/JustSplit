@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalColumn } from './nullable-column';
 
 /**
  * `events` (plan B3, spec D10) — JustSplit-local, not a universal
@@ -12,15 +13,6 @@ import { z } from 'zod';
  * column (an overflow key, spec D9 — the relationship-kinds `settings.budget`
  * feature; nobody writes it before Track D).
  */
-/**
- * A nullable column read back as `undefined` (plan B11b). The relational
- * adapter copies every mapped column into the document, so an empty one is
- * `null`, never absent; normalising it here keeps ONE "absent" shape
- * (`undefined`) for every caller and for `Event`'s inferred type.
- */
-const optionalColumn = () =>
-  z.preprocess((value) => (value === null ? undefined : value), z.string().optional());
-
 export const EventSchema = z
   .object({
     id: z.string(),

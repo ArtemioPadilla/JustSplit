@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalColumn } from './nullable-column';
 import type { Settlement as UniversalSettlement } from '@cyber-eco/types';
 
 /**
@@ -24,9 +25,9 @@ const SettlementShapeSchema = z.object({
   amount: z.number(),
   currency: z.string(),
   date: z.string(),
-  method: z.string().optional(),
-  notes: z.string().optional(),
-  transactionId: z.string().optional(),
+  method: optionalColumn(),
+  notes: optionalColumn(),
+  transactionId: optionalColumn(),
   memberIds: z.array(z.string()).min(1),
   createdBy: z.string(),
   createdAt: z.string(),
