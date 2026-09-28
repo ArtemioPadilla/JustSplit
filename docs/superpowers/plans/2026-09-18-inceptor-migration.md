@@ -457,7 +457,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       the scaffold landing page under `https://artemiopadilla.github.io/JustSplit/`
 
 ### B2. Bootstrap migrations: schema, RLS, guard triggers, Realtime, storage, functions (`risk:high`, reviewed together with B2b)
-- [ ] `db/migrations/` bootstrap (dbmate, `YYYYMMDDHHMMSS_name.sql`, `-- migrate:up` /
+- [x] `db/migrations/` bootstrap (dbmate, `YYYYMMDDHHMMSS_name.sql`, `-- migrate:up` /
       `-- migrate:down`) — **never** under the Supabase CLI's `supabase/migrations/`, which the
       CLI would execute whole on `start`/`db reset` (down section included, so every table would
       be created and dropped) while tracking them in its own `supabase_migrations` table — in this
@@ -533,7 +533,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       command=migrate` — the workflow already exists on `main` (A3b), there is no `ref` input, the
       ref is the dispatch branch and the run uses the migrations from `inceptor`. At cutover the
       `push` trigger on `main` re-runs `migrate`, which is idempotent
-- [ ] Local: `supabase/config.toml` with **both** `[db.migrations] enabled = false` and
+- [x] Local: `supabase/config.toml` with **both** `[db.migrations] enabled = false` and
       `[db.seed] enabled = false` (otherwise `supabase start`/`db reset` would run
       `supabase/seed.sql` against a blank database before dbmate has run, and fail);
       `npm run db:start` (`supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector`),
@@ -546,8 +546,17 @@ backend decision; ADR numbers are allocation order, not merge order).
       `pg_class.relrowsecurity`, `pg_trigger`, function grants and
       `information_schema.role_table_grants` for `public` from a given URL; B18 diffs the project
       against `supabase start`); document in `SETUP.md`
-- [ ] Open a small issue in `cyber-eco/cybereco-hub`: the hub has the same `schema_migrations`
+- [x] Open a small issue in `cyber-eco/cybereco-hub`: the hub has the same `schema_migrations`
       exposure through the same `db-migrate.yml`
+- Landed: nine dbmate files `db/migrations/20260928000001…000009` in the order above. Deviations,
+      recorded in ADR 0002: `batch_write` builds its column lists from `information_schema` for
+      the allowlisted table instead of one hand-written arm per table, and `set` updates a visible
+      row first and inserts only when none matched (an upsert evaluates the INSERT policy against
+      the proposed row even when it exists); calendar dates are `date` columns; no `check`
+      constraint reads `extra`. Hub issue: cyber-eco/cybereco-hub#31. Verified locally:
+      `supabase start` → `db:migrate` → `db:seed`, rollback of all nine files and re-apply, and
+      `npm run db:audit`. The `--ref inceptor` dispatch and the project audit wait for the owner's
+      `SUPABASE_DB_URL` (SETUP.md §4)
 - [ ] Acceptance: `supabase start && npm run db:migrate && npm run db:seed` applies the bootstrap
       cleanly and `dbmate rollback` reverts the last file; the `--ref inceptor` dispatch applied it
       to the `justsplit` project; `npm run db:audit` against the project equals the local dump;
@@ -569,7 +578,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       renders the shell and the not-found view (islands arrive in Phase 2)
 
 ### B2b. RLS test suite — every table × every command × member/non-member/anonymous (`risk:high`, blocks B3/B5a)
-- [ ] `src/tests/rls/*.test.ts` Vitest suite (`// @vitest-environment node`) run against
+- [x] `src/tests/rls/*.test.ts` Vitest suite (`// @vitest-environment node`) run against
       `supabase start`: `rls/fixtures.ts` creates three users through the local GoTrue admin API
       (member `A`, non-member `B`, `C` = A's accepted friend) and keeps an anonymous client; each
       test uses a `@supabase/supabase-js` client signed in as the actor (real JWTs, publishable
@@ -579,7 +588,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       wants the suite run remotely): a `remote` fixture provider with two pre-created accounts
       listed in `docs/runbooks/staging.md`, credentials in local env only, teardown through the
       actors' own RLS-permitted deletes and a final zero-leftover assertion
-- [ ] Runner mechanics: `vitest.config.ts` gets `exclude: [...configDefaults.exclude,
+- [x] Runner mechanics: `vitest.config.ts` gets `exclude: [...configDefaults.exclude,
       'src/tests/rls/**']` so `npm run check` (`Build & Check`, no database) never runs the suite;
       `vitest.rls.config.ts` (`include: ['src/tests/rls/**/*.test.ts']`, `environment: 'node'`) +
       `test:rls` = `vitest run --config vitest.rls.config.ts` (a CLI path filter alone would not
@@ -591,7 +600,7 @@ backend decision; ADR numbers are allocation order, not merge order).
       tarball, or `docker run --network host …` — the container must reach `127.0.0.1:54322`) →
       `npm run test:rls && PUBLIC_SUPABASE_LOCAL=true npm run test:contract:live`. The job is
       added to the required checks on `inceptor` (A3b protection) and, after cutover, on `main`
-- [ ] Per table (`expense_groups`, `expenses`, `settlements`, `events`, `friendships`,
+- [x] Per table (`expense_groups`, `expenses`, `settlements`, `events`, `friendships`,
       `profiles`) and per command (select / insert / update / delete): the spec D10 policy table
       is the oracle — one `it()` per cell asserting allowed for the member/party/owner and denied
       (`PGRST` error or empty result) for the non-member and for anonymous; the `with check`
@@ -604,11 +613,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       ungrouped expense/event/settlement with a non-friend uid in `member_ids` → denied, a group
       expense whose `member_ids ⊄ group.member_ids` → denied, an admin adding a non-friend to a
       group → denied, a second friendship request for the same pair → unique violation
-- [ ] Realtime: for each table, a subscription as `A` receives `A`'s insert and update; as `B`:
+- [x] Realtime: for each table, a subscription as `A` receives `A`'s insert and update; as `B`:
       receives no INSERT/UPDATE for `A`'s rows and at most `{ id }` for `A`'s DELETE (Supabase does
       not apply RLS to deletes) — the test asserts the DELETE payload carries no other column;
       asserts every `SchemaMap` table is in `supabase_realtime` (`pg_publication_tables`)
-- [ ] Coverage guard: every table in `pg_tables where schemaname = 'public'` has
+- [x] Coverage guard: every table in `pg_tables where schemaname = 'public'` has
       `relrowsecurity = true` (this covers `profiles` and `schema_migrations`, which are not in
       the `SchemaMap`); every `SchemaMap` table has ≥ 1 policy per command and a `guard_<table>`
       trigger; `schema_migrations` has RLS and zero grants to `anon`/`authenticated`
@@ -617,24 +626,24 @@ backend decision; ADR numbers are allocation order, not merge order).
       `public`); `public.documents` does not exist (`pg_tables`) and no file under
       `db/migrations/` creates a `documents` table (source grep); no policy body and no `check`
       constraint references the `extra` column (the Track D forward-compat guard, spec D9)
-- [ ] Storage: `receipts` policies — `A` uploads under `expenses/<A's expense>/`, `B` cannot read
+- [x] Storage: `receipts` policies — `A` uploads under `expenses/<A's expense>/`, `B` cannot read
       it; an upload to `expenses/<unknown-id>/…` is denied; `A` uploads `avatars/<A>/x.jpg`, `B`
       can read it, `B` cannot upload to `avatars/<A>/…` or overwrite it; the remove flow deletes
       the objects under a deleted expense before the row
-- [ ] Functions: anon cannot call `find_profile_by_email` (permission denied); a user who sets
+- [x] Functions: anon cannot call `find_profile_by_email` (permission denied); a user who sets
       `profiles.email = B's email` is not returned for B's email — B is; an unconfirmed email is
       not returned; `find_profiles_by_ids`: a co-member and an accepted friend resolve, a stranger
       returns no row, anon cannot call it, `B` cannot select `A`'s `profiles` row directly;
       `batch_write`: an op with `collection: 'schema_migrations'` (or any unmapped name) raises and
       applies nothing, anon cannot call the function, a partial `update` leaves untouched columns
       and unknown overflow keys intact
-- [ ] Track D forward-compat cases (tests only): a row of each table carrying the spec D9 fields
+- [x] Track D forward-compat cases (tests only): a row of each table carrying the spec D9 fields
       as overflow keys (`kind`/`settings`/`concepts`, `settings.budget`, `conceptId`/`settledAt`
       inside `extra`) is readable and writable by a member and denied to a non-member — the proof
       that Track D needs no migration
-- [ ] `batch_write` under RLS: a batch containing one denied operation writes nothing (atomic,
+- [x] `batch_write` under RLS: a batch containing one denied operation writes nothing (atomic,
       SECURITY INVOKER; `storage-adapter-contract.md` §3)
-- [ ] ADR `docs/decisions/0002-canonical-schema-and-rls.md`: the collection → table → policy →
+- [x] ADR `docs/decisions/0002-canonical-schema-and-rls.md`: the collection → table → policy →
       trigger inventory (the `SchemaMap` plus `profiles`), the `member_ids` array decision vs the
       junction-table + `is_member()` alternative and the membership mirror (spec D10; if the owner
       ever rejects the mirror the ADR records "authenticated ≠ trusted: any signed-in user can push
@@ -646,6 +655,11 @@ backend decision; ADR numbers are allocation order, not merge order).
       rows are attestations by `created_by`, not verified payments — B14 shows "marcado como
       pagado por <name>" and the ETHICS checklist for B14 and Track D issue D7 records it), and
       the statement that a missing policy fails CI (coverage guard)
+- Landed: 12 files / 159 tests under `src/tests/rls/`; fixtures read the stack's keys from the
+      environment or `supabase status` (no key is committed); the optional remote fixture provider
+      was not built. `test:contract:live` joins the CI job in B5a. `npm run test:rls:mutation`
+      (baseline-guarded) kills 33/33 mutations: every public and `receipts` storage policy and
+      every `guard_<table>` trigger
 - [ ] Acceptance: the suite is green in CI against `supabase start` and red when any single
       policy or any `guard_<table>` trigger is dropped (mutation check in the PR body); the ADR
       lists every table with its policies and triggers

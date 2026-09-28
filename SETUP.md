@@ -33,6 +33,29 @@ npm run check      # the umbrella gate: lint → type-check → test → build
 > (The frozen Next tree on `main`-before-cutover used `scripts/build-check.sh`
 > placeholders instead; that script left with the tree in B1.)
 
+### Local database (plan B2)
+
+Requires Docker, `psql` and the Supabase CLI (`brew install supabase/tap/supabase`,
+or any install that puts `supabase` on the `PATH`; CI pins 2.118.0). dbmate
+comes with `npm ci`.
+
+| Command | What it does |
+|---|---|
+| `npm run db:start` | `supabase start` without studio, mail, edge runtime and logging |
+| `npm run db:migrate` | applies `db/migrations/` with dbmate (`DATABASE_URL` overrides the local URL) |
+| `npm run db:seed` | two confirmed users (`ana@example.test` / `beto@example.test`, password `password123`), an accepted friendship and a shared group; always the local stack |
+| `npm run db:reset` | `supabase db reset` → `db:migrate` → `db:seed` |
+| `npm run db:env` | writes the local URL and key from `supabase status` into `.env.local` (git-ignored) so `npm run dev` uses the local stack |
+| `npm run db:audit [-- <url>]` | read-only dump of RLS, policies, triggers, function grants, table grants, Realtime and buckets; diff local against the project (B18) |
+| `npm run test:rls` | the B2b RLS suite against the running stack |
+| `npm run test:rls:mutation` | drops each policy and guard trigger in turn and requires the suite to fail |
+| `npm run db:rollback` / `db:status` / `db:stop` | dbmate rollback of the last file, status, stop the stack |
+
+Migrations live in `db/migrations/` and **never** in `supabase/migrations/`
+(the CLI would run the whole file on `start`, down section included).
+`supabase/config.toml` disables the CLI's own migrations and seed for that
+reason. The production project is migrated only by `db-migrate.yml`.
+
 ## 2. Secrets and tokens
 
 Repository → Settings → Secrets and variables → Actions.
@@ -73,6 +96,7 @@ token (see `vendor/README.md`). Once the token exists, contributors put it in
 | `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check`; actionlint + unpinned-action scan |
 | `deploy.yml` — `Deploy to GitHub Pages` | push to `main` (after cutover); `workflow_dispatch` | production build with `ASTRO_BASE` + `PUBLIC_SUPABASE_*` variables → `actions/deploy-pages` |
 | `deploy-staging.yml` — `Deploy staging (inceptor → GitHub Pages)` | push to `inceptor`; `workflow_dispatch` | same build from the integration branch to the same Pages site (`docs/runbooks/staging.md`) |
+| `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b); required on `inceptor` |
 | `db-migrate.yml` — `DB Migrate (Supabase)` | push to `main` touching `db/migrations/**`; `workflow_dispatch` (`migrate` / `status` / `rollback` / `rollback-all` with `confirm=TEARDOWN`) | dbmate in a pinned container against `SUPABASE_DB_URL`; warns and skips while the secret is missing |
 
 Branch protection (owner, once, after the first green run): Settings →
@@ -96,6 +120,8 @@ plan's acceptance lines stay verifiable.
 | B2a | Supabase Auth: Site URL = production origin; Redirect URLs += `https://artemiopadilla.github.io/JustSplit/auth/callback/` (and the custom domain's `/auth/callback/` later); same origins in the Google OAuth client | ☐ |
 | B2a | Variables `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_KEY`; secret `SUPABASE_DB_URL` (session pooler, `?sslmode=require`) | ☐ |
 | B2a | Settings → Environments → `github-pages`: allow the `inceptor` branch (staging deploy) | ☐ |
+| B2 | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` once `SUPABASE_DB_URL` exists; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
+| B2b | Add `RLS & contract (supabase start)` to the required checks on `inceptor` | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
 | B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
 | A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |
