@@ -135,7 +135,11 @@ export const groupNearbyExpenses = <T extends TimelineExpenseInput>(
 /** e.g. `formatTimelineDate('2023-06-01') === 'Jun 1, 2023'`. */
 export const formatTimelineDate = (dateString: string): string => format(parseCalendarDate(dateString), 'MMM d, yyyy');
 
-/** Percentage (0-100) of `expenses` that are settled (`settledAt != null`). */
+/**
+ * Percentage (0-100) of `expenses` that are settled (`settledAt != null`). LEGACY per-expense
+ * measure (plan B14a, ADR 0014): the events islands no longer use it — progress is derived from
+ * the ledger (`domain/ledger.ts#settlementProgress`). Kept, with its tests, for imported data.
+ */
 export const calculateSettledPercentage = (expenses: TimelineExpenseInput[]): number => {
   if (expenses.length === 0) return 0;
   return (expenses.filter((e) => e.settledAt != null).length / expenses.length) * 100;
@@ -150,7 +154,7 @@ export const calculateTotalByCurrency = (expenses: TimelineExpenseInput[]): Reco
   return totals;
 };
 
-/** Sum of the *unsettled* (`settledAt == null`) expenses' amounts, grouped by currency. */
+/** Sum of the *unsettled* (`settledAt == null`) expenses' amounts, grouped by currency. LEGACY per-expense measure, see `calculateSettledPercentage`. */
 export const calculateUnsettledAmount = (expenses: TimelineExpenseInput[]): Record<string, number> => {
   const unsettled: Record<string, number> = {};
   expenses.forEach((expense) => {

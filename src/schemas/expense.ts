@@ -61,6 +61,12 @@ const ExpenseShapeSchema = z.object({
   eventId: z.string().nullish(),
   // JustSplit-only top-level fields (overflow keys, no mapped column).
   conceptId: z.string().optional(),
+  // LEGACY and READ-ONLY (plan B14a, ADR 0014). Kept only because Track D's Firebase import may
+  // carry it: an expense with `settledAt != null` counts as fully settled and is excluded from
+  // every balance (`domain/ledger.ts`), so imported data stays correct. NOTHING in the Astro app
+  // writes it any more: settling up is a `settlements` row, a payment on a ledger, never a mark on
+  // an expense (a per-expense flag is wrong for any expense with three or more people, for partial
+  // payments and for debt-simplified suggestions).
   settledAt: z.string().nullable().optional(),
 });
 
@@ -94,8 +100,7 @@ export type _SplitTypeCovered = _ExpectTrue<UniversalSplitType extends SplitType
 /**
  * Write-input schema (plan B3): `.omit()`s the spec-D9 forward-compatible
  * `conceptId` field that nobody writes before Track D, plus `settledAt`
- * (only ever written later via a partial `repos.expenses.update` patch,
- * never at create time) and the server-assigned `id`/`createdAt`/
+ * (legacy and read-only since B14a, ADR 0014: nothing in the app writes it) and the server-assigned `id`/`createdAt`/
  * `updatedAt`. `eventId` stays writable: B10 writes it from `?event=` at
  * create time, so it predates Track D and is not one of the omitted fields.
  * `category` also stays writable as of plan B10 (the create form's category
