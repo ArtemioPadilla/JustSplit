@@ -8,9 +8,16 @@ import { removeReceipts, removeReceiptObject, uploadReceipt } from '../storage';
  * (literal collection names, StorageAdapter-only, Zod-validated).
  */
 
-/** ADR 0002 canonical query: a user's expenses. */
-export function forUserFilters(uid: string): QueryFilter[] {
-  return [{ field: 'memberIds', operator: 'array-contains', value: uid }];
+/**
+ * Every expense the signed-in user may see: NO filter. Since B2d (ADR 0013)
+ * an expense is visible to whoever is in its `memberIds` OR is a member of its
+ * group OR of its event, and only RLS knows that — a client-side
+ * `memberIds array-contains uid` filter would hide the group and event rows the
+ * user is allowed to see. (Superseded ADR 0002's canonical `memberIds` query
+ * for this collection; groups, events and friendships keep theirs.)
+ */
+export function visibleFilters(): QueryFilter[] {
+  return [];
 }
 
 /** A group's expenses (`group_id = id`, real column). */
@@ -28,8 +35,9 @@ export async function get(id: string): Promise<Expense | null> {
   return doc ? ExpenseSchema.parse(doc) : null;
 }
 
-export async function listForUser(uid: string): Promise<Expense[]> {
-  const { data } = await requireStorageAdapter().query('expenses', forUserFilters(uid));
+/** Every expense the signed-in user can see (see `visibleFilters`). */
+export async function listVisible(): Promise<Expense[]> {
+  const { data } = await requireStorageAdapter().query('expenses', visibleFilters());
   return data.map((doc) => ExpenseSchema.parse(doc));
 }
 

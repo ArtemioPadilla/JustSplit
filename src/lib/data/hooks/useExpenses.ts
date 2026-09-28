@@ -2,9 +2,15 @@ import type { Expense } from '@/schemas/expense';
 import * as expensesRepo from '../repos/expenses';
 import { useLiveQuery } from './useLiveQuery';
 
-/** A user's expenses (plan B5a): the collection query set is live and persisted. */
+/**
+ * Every expense the user can see (plan B5a; ADR 0013): live and persisted. The
+ * subscription carries no filter — RLS decides visibility (member_ids, group
+ * or event) — and `uid` only keys the cache per user and gates the query until
+ * someone is signed in. Personal totals (dashboard, friend balances) narrow to
+ * the rows that name the user themselves on the client.
+ */
 export function useExpenses(uid: string | undefined) {
-  return useLiveQuery<Expense>(['expenses', uid], 'expenses', uid ? expensesRepo.forUserFilters(uid) : [], {
+  return useLiveQuery<Expense>(['expenses', uid], 'expenses', expensesRepo.visibleFilters(), {
     enabled: Boolean(uid),
     persist: true,
   });

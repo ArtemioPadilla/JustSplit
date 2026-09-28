@@ -9,8 +9,14 @@ import { requireStorageAdapter } from '../require-adapter';
  * it, never patched.
  */
 
-export function forUserFilters(uid: string): QueryFilter[] {
-  return [{ field: 'memberIds', operator: 'array-contains', value: uid }];
+/**
+ * Every settlement the signed-in user may see: NO filter (plan B2d, ADR 0013).
+ * A settlement is visible to its two parties, to members of its group and to
+ * members of its event; only RLS knows that, so a `memberIds` filter would
+ * hide the group and event rows the user is allowed to see.
+ */
+export function visibleFilters(): QueryFilter[] {
+  return [];
 }
 
 export function forGroupFilters(groupId: string): QueryFilter[] {
@@ -26,8 +32,9 @@ export async function get(id: string): Promise<Settlement | null> {
   return doc ? SettlementSchema.parse(doc) : null;
 }
 
-export async function listForUser(uid: string): Promise<Settlement[]> {
-  const { data } = await requireStorageAdapter().query('settlements', forUserFilters(uid));
+/** Every settlement the signed-in user can see (see `visibleFilters`). */
+export async function listVisible(): Promise<Settlement[]> {
+  const { data } = await requireStorageAdapter().query('settlements', visibleFilters());
   return data.map((doc) => SettlementSchema.parse(doc));
 }
 
