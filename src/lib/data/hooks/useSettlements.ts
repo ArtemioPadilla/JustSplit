@@ -14,3 +14,15 @@ export function useSettlements(uid: string | undefined) {
     persist: true,
   });
 }
+
+/**
+ * An event's settlements (plan B14a, mirroring `useEventExpenses`): `eventId ==
+ * id`, live and persisted. The event scope counts ONLY these — a settlement
+ * with no event (or another) is not part of the event's balances or progress.
+ */
+export function useEventSettlements(eventId: string | undefined) {
+  return useLiveQuery<Settlement>(['settlements', 'event', eventId], 'settlements', eventId ? settlementsRepo.forEventFilters(eventId) : [], {
+    enabled: Boolean(eventId),
+    persist: true,
+  });
+}

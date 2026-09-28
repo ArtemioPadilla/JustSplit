@@ -10,10 +10,11 @@ import type { Settlement as UniversalSettlement } from '@cyber-eco/types';
  * membership mirror reads it on every row), the opposite of the universal
  * type's optionality for both fields. `expenseIds` is a JustSplit-only
  * top-level field with no mapped column (an overflow key) and `eventId` is
- * the `event_id` column (B2d, ADR 0013); both are written
- * at create time by the settle-up flow (plan B14), so — unlike `expense.ts`'s
- * `conceptId`/`settledAt` — neither is a spec-D9 forward-compatible field and
- * neither is omitted from the write-input schema.
+ * the `event_id` column (B2d, ADR 0013). Both stay writable on the generic
+ * create-input schema, but settle-up (plan B14a, ADR 0014) writes only
+ * `eventId`: a settlement is a payment on a ledger, not a receipt for a list
+ * of expenses, so `expenseIds` is legacy/informational and nothing may rely on
+ * it for balance maths.
  */
 // No `.passthrough()` here — see `expense.ts` for why the compile-time guard
 // below needs the plain (non-indexed) shape.
@@ -68,3 +69,34 @@ export const CreateSettlementInputSchema = SettlementSchema.omit({
   updatedAt: true,
 });
 export type CreateSettlementInput = z.infer<typeof CreateSettlementInputSchema>;
+
+const isWholeCents = (amount: number): boolean => Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-6;
+
+/**
+ * What a caller hands `repos.settlements.settle` (plan B14a, ADR 0014). The
+ * repo fills the rest: `createdBy` from the session (never the caller),
+ * `memberIds` as exactly the two parties (the RLS insert policy requires it)
+ * and `groupId` as `null` (the group scope is Track D D7). `amount` is whole
+ * cents — round with `round2` first — so a float never reaches a
+ * `numeric(14,2)` column to be rounded silently. `eventId` is set only when the
+ * scope is an event.
+ */
+export const SettleInputSchema = z
+  .object({
+    fromUserId: z.string().min(1),
+    toUserId: z.string().min(1),
+    amount: z
+      .number()
+      .positive()
+      .refine(isWholeCents, { message: 'amount must be a whole number of cents' }),
+    currency: z.string().regex(/^[A-Z]{3}$/, 'currency must be a three-letter uppercase code'),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+    eventId: z.string().min(1).optional(),
+    method: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .refine((input) => input.fromUserId !== input.toUserId, {
+    message: 'a settlement needs two different people',
+    path: ['toUserId'],
+  });
+export type SettleInput = z.infer<typeof SettleInputSchema>;
