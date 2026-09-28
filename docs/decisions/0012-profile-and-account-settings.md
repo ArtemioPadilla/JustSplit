@@ -133,9 +133,13 @@ uploadAvatar(uid, file)                 -- new object, new random path
   another user's `avatars/{other-uid}/…` path are never passed to
   `removeAvatar`.
 
-The avatar is displayed through `ReceiptImage`'s existing signed-URL
-resolution (same `receipts` bucket, `avatars/{uid}/` prefix, ADR 0005) — no
-new signed-URL logic was needed.
+The current avatar is displayed through `UserAvatar` — see this ADR's
+amendment below, added after coordinator review caught that the original
+version of this decision under-specified avatar DISPLAY (as opposed to
+upload/replace, which this section still covers unchanged): the original
+text here read the avatar through `ReceiptImage` directly, which is only
+correct for the `avatars/{uid}/` storage-path case, not for a user who has
+never uploaded a custom photo and is still on Google's `https:` `photoURL`.
 
 ### 3. "Sign out everywhere" (`AccountSettings`)
 
@@ -208,6 +212,101 @@ directly from an island.
 | A user whose `avatarUrl` was ever set to something else's path (a bug, a compromised session, manual devtools tampering) | Without the defensive check, a later legitimate avatar change by that account would attempt to delete a path it doesn't own — RLS denies it, but the code would still generate an error for something that could never have worked, and (in a differently-written implementation that didn't check this first) might leak information about what paths exist. | The path-prefix guard means `removeAvatar` is never even attempted for a path outside the caller's own `avatars/{uid}/` prefix — enforced by test, not just by trusting RLS as the only line of defense. |
 | Future contributors adding the next writer of `preferences` (Track D: budgets, categories, conceptos) | Without a named, tested helper, it's easy to reach for the working-but-fragile inline-spread pattern `DashboardIsland` used before this issue, or skip the spread entirely. | `buildPreferencesPatch` is the one documented, tested entry point; this ADR and its doc comment both state the invariant it exists to protect. |
 
+## Amendment (2026-09-28, plan B15 follow-up): `UserAvatar`, the one shared safe resolver
+
+### Context
+
+Coordinator review of this issue caught a regression this issue itself
+introduced, missed by the original decision above: before B15, `profiles
+.avatarUrl` (and the mirrored auth `photoURL`, `updateDisplayProfile`) only
+ever held a real `https:` URL — Google OAuth's `photoURL`, stamped by
+`createJustSplitProfile` at signup. B15's avatar upload made it sometimes
+hold a PRIVATE storage path instead (`avatars/{uid}/{uuid}.jpg`), which is
+not a fetchable URL on its own — it needs the same `signedUrl` resolution
+`ReceiptImage` already does for receipts. Every OTHER site that rendered an
+avatar straight from that field — `UserAccountMenu`'s header dropdown,
+`FriendsIsland`'s `PersonBadge` (friend requests/friends/sent-requests
+lists), `FriendDetailView` — fed the raw value into `<AvatarImage src=…>`
+unchanged, so any avatar actually uploaded through this issue's own
+`AvatarUploadField` would render broken everywhere else it's shown. A fourth
+site, found during the same audit and not one of the three named above:
+`AvatarUploadField`'s OWN "current avatar" display used `ReceiptImage`
+directly, which only knows how to resolve a receipts-bucket object path —
+so a user who had NEVER uploaded a custom photo (`avatarPath` still the
+`https:` Google `photoURL` from signup) would see "Image unavailable" on
+their own profile page. No group-members avatar render exists yet
+(`MembersSection`, plan B12, shows member names only, no avatar) — nothing
+to migrate there today.
+
+### Decision
+
+One shared resolver, `UserAvatar` (`src/components/features/profile/UserAvatar.tsx`),
+is now the ONLY way any code in the tree renders `profiles.avatarUrl` (or the
+auth `photoURL`) as an image. `src` is treated as untrusted input — it comes
+off a user-writable row — and is classified before it ever reaches an
+`<img>`:
+
+- **`avatars/…`** (this app's own upload path shape): resolved to a
+  short-lived signed URL through `useSignedUrl`
+  (`src/lib/data/hooks/useSignedUrl.ts`) — the exact resolution state
+  machine `ReceiptImage` already had, extracted out of it so both consumers
+  share ONE implementation instead of a second copy. `ReceiptImage` itself
+  is refactored onto the extracted hook (behavior-preserving; its own test
+  suite passes unmodified).
+- **an `https:` URL**: passed straight through. This is the ONLY other
+  scheme accepted, and deliberately narrower than "anything that isn't an
+  `avatars/` path": Google's `photoURL` (the one real case that needs this)
+  is always `https:`; accepting `http:` too would let a plain, unencrypted
+  URL load in an `<img>` embedded next to session-adjacent UI for no
+  addressable use case.
+- **anything else** — `http:`, `javascript:`, `data:`, a path that isn't
+  this app's own avatar shape (e.g. `settings/…`), or empty/null — renders
+  the initials fallback and NEVER reaches an `<img src>`, full stop. A
+  failed `signedUrl` resolution (RLS denial, network error, a deleted
+  object) falls back the same way. `profiles.avatarUrl` has no server-side
+  format check (RLS gates WHO may write the row, never the VALUE), so this
+  is a real safety guard — a `javascript:`/`data:` value there is exactly
+  the shape of a stored-XSS attempt, and this resolver is the one place in
+  the tree that decides what's safe to render, not four separate call
+  sites each re-deriving the same judgment (or failing to).
+
+Base UI's `Avatar.Fallback` already renders whenever no `Avatar.Image` is
+mounted (`AvatarRoot`'s default `imageLoadingStatus = 'idle'`) — `UserAvatar`
+relies on that rather than adding its own loading/error branches: it simply
+never renders `<AvatarImage>` until `src` classifies as safe AND (for a
+storage path) `useSignedUrl` reaches `'ready'`.
+
+**Migrated**: `UserAccountMenu`, `FriendsIsland`'s `PersonBadge`,
+`FriendDetailView`, and `AvatarUploadField`'s own current-avatar display —
+each site's local `initials()` helper is removed (`UserAvatar` owns that
+now). One assertion per site proves it renders through `UserAvatar` instead
+of a raw `AvatarImage`.
+
+### Consequences
+
+**Positive** — every avatar anywhere in the app (including the one this
+issue's own uploader lets a user set) renders correctly regardless of
+whether it's a storage path or a Google `https:` URL; the unsafe-scheme
+guard is enforced once, not re-derived per call site; `ReceiptImage` and
+`UserAvatar` share one resolution implementation, so a future fix to it
+(e.g. a shorter TTL, a retry) helps both automatically.
+
+**Negative** — a future avatar source that is a legitimate URL but not
+`https:` (there is no such case today) would need this resolver's allow-list
+extended deliberately, rather than "just working" — an intentional
+trade-off, not an oversight.
+
+**Neutral** — `MembersSection` (plan B12) still renders no avatars at all;
+this amendment does not add any.
+
+### Stakeholder Analysis (new row, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| Any user who uploads a custom avatar through this issue's own `AvatarUploadField` | Without this fix, their new photo would render broken (or not at all) everywhere else the app shows an avatar — the header menu, their friends' friend lists, their own friend-detail page — a visibly half-shipped feature. | `UserAvatar` migrated onto every render site found by an exhaustive grep for `AvatarImage`/`avatarUrl`/`photoURL` JSX usage; each migration is covered by its own red-then-green test. |
+| A user who never uploads a custom avatar (still on Google's `photoURL`) | `AvatarUploadField`'s own profile-page preview would show "Image unavailable" for their own, perfectly valid photo — confusing on the one page whose whole job is showing/editing it. | The `https:` passthrough branch; tested directly (`AvatarUploadField.test.tsx`'s Google-photoURL case). |
+| Any user, if `profiles.avatarUrl` were ever populated with a hostile value (compromised session, a future bug elsewhere, direct API tampering within what RLS's own-row policy allows) | An unguarded `<img src>` fed `javascript:`/`data:` is a stored-XSS vector rendered on every page that shows that user's avatar to OTHER signed-in users (the friends list, friend detail, the header for the attacker's own account). | The scheme allow-list (`avatars/` path or `https:` only) is enforced in the ONE shared resolver, not re-implemented (or forgotten) per render site; tested for `javascript:`, `data:`, `http:`, and an arbitrary other path shape. |
+
 ## Supersedes
 
 None.
@@ -231,8 +330,13 @@ None.
 - `src/lib/data/storage.ts` (`uploadAvatar`, `removeAvatar`, `avatarPath`,
   `resizeImage`), `db/migrations/20260928000007_receipts_storage.sql` (the
   avatar storage RLS policies this ADR's defensive check is redundant with)
-- `src/components/features/ReceiptImage.tsx` (reused, unmodified, for the
-  avatar's signed-URL display)
+- `src/components/features/profile/UserAvatar.tsx` + `.test.tsx` (the shared
+  safe resolver, this amendment), `src/lib/data/hooks/useSignedUrl.ts` (the
+  resolution state machine extracted out of `ReceiptImage.tsx`, which is
+  refactored onto it, `.test.tsx` unmodified)
+- `src/components/islands/FriendsIsland.tsx` (`PersonBadge`) +
+  `.test.tsx`, `src/components/islands/routes/FriendDetailView.tsx` +
+  `.test.tsx` (migrated onto `UserAvatar`, this amendment)
 - `src/components/features/settings/ResetLocalDataButton.tsx` (B17b, mounted
   here, not duplicated) and ADR 0008 (toast topology, the `afterNavigation`
   handoff this issue's sign-out flow relies on)

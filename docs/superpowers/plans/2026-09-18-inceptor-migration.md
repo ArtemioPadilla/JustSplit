@@ -1919,6 +1919,27 @@ resolves other users' names through `useProfiles` (B5a).
       authenticated, the copy states this), the "Sign out everywhere" button (`signOut()` +
       `withBase('/landing')` with the toast queued `{ afterNavigation: true }`, ADR 0008), and the
       already-built `ResetLocalDataButton` (B17b) — mounted, not duplicated.
+- [x] **Coordinator-review follow-up (regression this issue itself introduced)**: `profiles
+      .avatarUrl` (and the mirrored auth `photoURL`) only ever held an `https:` URL before this
+      issue; avatar upload made it sometimes hold a private `avatars/{uid}/…` storage path
+      instead, but no OTHER avatar render site was migrated to resolve it — every uploaded avatar
+      rendered broken everywhere else it was shown. Fixed with one shared resolver, `UserAvatar`
+      (`src/components/features/profile/UserAvatar.tsx`): an `avatars/…` path resolves to a
+      signed URL via the new `useSignedUrl` hook (`src/lib/data/hooks/useSignedUrl.ts`, extracted
+      out of `ReceiptImage.tsx` so both share one resolution implementation — `ReceiptImage` is
+      refactored onto it, behavior-preserving); an `https:` URL passes through unchanged (Google
+      OAuth's `photoURL`); anything else (`http:`, `javascript:`, `data:`, another path shape,
+      empty/null) or a failed signed-URL resolution renders the initials fallback, never placed in
+      an `<img src>` — `avatarUrl` is user-writable with no server-side format check, so this is a
+      real safety guard against a stored-XSS-shaped value, not just broken-image UX. Migrated every
+      render site an exhaustive grep found: `UserAccountMenu` (header dropdown), `FriendsIsland`'s
+      `PersonBadge` (friend requests/friends/sent-requests lists), `FriendDetailView`, and a fourth
+      site found during the same audit — `AvatarUploadField`'s own "current avatar" display, which
+      used `ReceiptImage` directly and so broke for any user still on the `https:` Google
+      `photoURL` (never uploaded a custom photo). No group-members avatar render exists yet
+      (`MembersSection`, B12, shows names only) — nothing to migrate there. One assertion per
+      migrated site proves it renders through `UserAvatar`. Recorded as an amendment to ADR 0012
+      with its own Stakeholder Analysis rows.
 ### B16. Currency exchange ticker + `CurrencySelector` + shared widgets (`risk:high`, `v0.3`)
 - [x] Sequenced in Phase 1 (after B5b, alongside B6/B7) because almost every Phase 2 island depends
       on it: `CurrencySelector` (dashboard header, expenses list/detail, events list/detail,
