@@ -2,6 +2,8 @@ import { SupabaseAuthAdapter, SupabaseProfileStore } from '@cyber-eco/supabase';
 import type { StorageAdapter } from '@cyber-eco/types';
 import type { AuthProfile } from '@/schemas/profile';
 import { supabase } from './client';
+import { RelationalSupabaseAdapter } from './relational-adapter';
+import { schemaMap } from './schema-map';
 
 /**
  * The single place that constructs data-layer adapters (plan B2a, spec D1/D3).
@@ -11,12 +13,15 @@ import { supabase } from './client';
  * Storage: the upstream `SupabaseStorageAdapter` is document mode only
  * (`public.documents`, owner-only RLS), which spec D1 forbids for shared
  * data. Until the hub publishes relational mode (plan H2) this exports the
- * contingency `RelationalSupabaseAdapter` (wired in B5a); afterwards it
+ * contingency `RelationalSupabaseAdapter` (plan B5a), always constructed with
+ * `{ schemaMap }` — never falling back to document mode; afterwards it
  * becomes `new SupabaseStorageAdapter(() => client, { schemaMap })`. The
- * boundary test fails if the upstream adapter is ever constructed here
- * without a `schemaMap`.
+ * boundary test fails if either adapter is ever constructed here without a
+ * `schemaMap`.
  */
-export const storageAdapter: StorageAdapter | null = null; // B5a wires the relational adapter.
+export const storageAdapter: StorageAdapter | null = supabase
+  ? new RelationalSupabaseAdapter(() => supabase!, { schemaMap })
+  : null;
 
 /** Auth for `@cyber-eco/auth`'s `<AuthProvider>` (plan B4). */
 export const authAdapter: SupabaseAuthAdapter | null = supabase ? new SupabaseAuthAdapter(supabase) : null;
