@@ -58,6 +58,18 @@ export function runStorageAdapterContractSuite(name: string, getHarness: () => P
       expect(doc).toMatchObject({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z' });
     });
 
+    it('concurrent updateDocument calls with different overflow keys both survive (no lost update)', async () => {
+      const id = harness.adapter.generateId(harness.collection);
+      await harness.adapter.setDocument(harness.collection, id, harness.makeExpense({ eventId: 'trip-1' }));
+      await Promise.all([
+        harness.adapter.updateDocument(harness.collection, id, { settledAt: '2026-09-28T00:00:00.000Z' }),
+        harness.adapter.updateDocument(harness.collection, id, { conceptId: 'k1' }),
+        harness.adapter.updateDocument(harness.collection, id, { description: 'Renamed' }),
+      ]);
+      const doc = await harness.adapter.getDocument<Record<string, unknown>>(harness.collection, id);
+      expect(doc).toMatchObject({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z', conceptId: 'k1', description: 'Renamed' });
+    });
+
     it('batchWrite is all-or-nothing: one op targeting an unmapped collection rolls back the whole batch', async () => {
       const id = harness.adapter.generateId(harness.collection);
       const result = await harness.adapter.batchWrite([

@@ -115,9 +115,9 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
     });
   });
 
-  describe('setDocument', () => {
-    it('upserts a translated row: camelCase fields become snake_case columns, unmodeled fields fold into extra', async () => {
-      await adapter.setDocument('expenses', 'e1', {
+  describe('setDocument (through batch_write: update-then-insert, atomic extra merge)', () => {
+    it('sends one translated set op to batch_write: camelCase → snake_case columns, unmodeled fields folded into extra', async () => {
+      const result = await adapter.setDocument('expenses', 'e1', {
         description: 'Tacos',
         amount: 100,
         memberIds: ['a'],
@@ -125,10 +125,26 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         eventId: 'trip-1',
       });
 
-      expect(builder.upsert).toHaveBeenCalledTimes(1);
-      const [row] = builder.upsert.mock.calls[0] as [Record<string, unknown>];
-      expect(row).toMatchObject({ id: 'e1', description: 'Tacos', amount: 100, member_ids: ['a'], paid_by: 'a' });
-      expect(row.extra).toEqual({ eventId: 'trip-1' });
+      expect(result).toEqual({ id: 'e1', success: true });
+      expect(client.rpc).toHaveBeenCalledTimes(1);
+      const [fn, args] = client.rpc.mock.calls[0] as unknown as [string, { ops: Array<Record<string, unknown>> }];
+      expect(fn).toBe('batch_write');
+      expect(args.ops).toHaveLength(1);
+      expect(args.ops[0]).toMatchObject({ type: 'set', collection: 'expenses', id: 'e1', merge: false });
+      expect(args.ops[0]!.data).toMatchObject({ description: 'Tacos', amount: 100, member_ids: ['a'], paid_by: 'a' });
+      expect((args.ops[0]!.data as Record<string, unknown>).extra).toEqual({ eventId: 'trip-1' });
+      // No client-side upsert: an INSERT … ON CONFLICT is checked against the
+      // INSERT policy even when the row exists, which denies a non-creator
+      // member's replace (ADR 0002).
+      expect(builder.upsert).not.toHaveBeenCalled();
+      expect(builder.maybeSingle).not.toHaveBeenCalled();
+    });
+
+    it('merge: true is passed to the server; extra is never read and merged client-side', async () => {
+      await adapter.setDocument('expenses', 'e1', { conceptId: 'k1' }, { merge: true });
+      const [, args] = client.rpc.mock.calls[0] as unknown as [string, { ops: Array<Record<string, unknown>> }];
+      expect(args.ops[0]).toMatchObject({ type: 'set', merge: true, data: { extra: { conceptId: 'k1' } } });
+      expect(builder.maybeSingle).not.toHaveBeenCalled();
     });
 
     it('never writes createdAt/updatedAt even when the caller passes serverTimestamp() (metadata.strategy: server)', async () => {
@@ -137,41 +153,43 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
         createdAt: adapter.serverTimestamp(),
         updatedAt: adapter.serverTimestamp(),
       });
-      const [row] = builder.upsert.mock.calls[0] as [Record<string, unknown>];
-      expect(row).not.toHaveProperty('created_at');
-      expect(row).not.toHaveProperty('updated_at');
+      const [, args] = client.rpc.mock.calls[0] as unknown as [string, { ops: Array<{ data: Record<string, unknown> }> }];
+      expect(args.ops[0]!.data).not.toHaveProperty('created_at');
+      expect(args.ops[0]!.data).not.toHaveProperty('updated_at');
+    });
+
+    it('throws with the database message when the write is rejected', async () => {
+      client.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'new row violates row-level security policy' } } as never);
+      await expect(adapter.setDocument('expenses', 'e1', { description: 'x' })).rejects.toThrow(/row-level security/);
     });
   });
 
-  describe('updateDocument (D9 overflow-merge invariant)', () => {
-    it('a patch touching only a real column never reads or writes extra', async () => {
-      builder.result = { data: [{ id: 'e1' }], error: null };
+  describe('updateDocument (D9 overflow-merge invariant, atomic on the server)', () => {
+    it('sends one update op; a column-only patch carries an empty extra (a no-op merge)', async () => {
       const result = await adapter.updateDocument('expenses', 'e1', { amount: 50 });
-
       expect(result).toEqual({ id: 'e1', success: true });
-      // No read of the existing row happened: maybeSingle was never called.
+      const [fn, args] = client.rpc.mock.calls[0] as unknown as [string, { ops: Array<Record<string, unknown>> }];
+      expect(fn).toBe('batch_write');
+      expect(args.ops[0]).toMatchObject({ type: 'update', collection: 'expenses', id: 'e1', data: { amount: 50, extra: {} } });
+      expect(builder.update).not.toHaveBeenCalled();
+    });
+
+    it('overflow keys go to the server as extra, merged there (extra = extra || patch) — never read-modify-written here', async () => {
+      await adapter.updateDocument('expenses', 'e1', { settledAt: '2026-09-28T00:00:00.000Z' });
+      const [, args] = client.rpc.mock.calls[0] as unknown as [string, { ops: Array<Record<string, unknown>> }];
+      expect(args.ops[0]).toMatchObject({ type: 'update', data: { extra: { settledAt: '2026-09-28T00:00:00.000Z' } } });
       expect(builder.maybeSingle).not.toHaveBeenCalled();
-      const [payload] = builder.update.mock.calls[0] as [Record<string, unknown>];
-      expect(payload).toEqual({ amount: 50 });
+      expect(builder.update).not.toHaveBeenCalled();
     });
 
-    it('a patch with an overflow key merges into extra (extra = extra || patch), never replacing it — settledAt update leaves eventId intact', async () => {
-      // The read of the existing row's extra column (maybeSingle), then the update's own result.
-      builder.singleResults.push({ data: { extra: { eventId: 'trip-1' } }, error: null });
-      builder.result = { data: [{ id: 'e1' }], error: null };
-
-      const result = await adapter.updateDocument('expenses', 'e1', { settledAt: '2026-09-28T00:00:00.000Z' });
-
-      expect(result).toEqual({ id: 'e1', success: true });
-      expect(builder.maybeSingle).toHaveBeenCalledTimes(1);
-      const [payload] = builder.update.mock.calls[0] as [Record<string, unknown>];
-      expect(payload.extra).toEqual({ eventId: 'trip-1', settledAt: '2026-09-28T00:00:00.000Z' });
+    it('reports success: false when no visible row matches (batch_write raises no_data_found)', async () => {
+      client.rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0002', message: 'batch_write: update target expenses/e1 does not exist (op 0)' } } as never);
+      expect(await adapter.updateDocument('expenses', 'e1', { amount: 50 })).toEqual({ id: 'e1', success: false });
     });
 
-    it('reports success: false when the update matches no visible row', async () => {
-      builder.result = { data: [], error: null };
-      const result = await adapter.updateDocument('expenses', 'e1', { amount: 50 });
-      expect(result).toEqual({ id: 'e1', success: false });
+    it('throws on any other database error', async () => {
+      client.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'new row violates row-level security policy' } } as never);
+      await expect(adapter.updateDocument('expenses', 'e1', { amount: 50 })).rejects.toThrow(/row-level security/);
     });
   });
 
