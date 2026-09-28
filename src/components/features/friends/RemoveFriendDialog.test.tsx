@@ -40,7 +40,7 @@ describe('RemoveFriendDialog', () => {
     const user = userEvent.setup();
     renderDialog();
     await user.click(screen.getByRole('button', { name: /^remove$/i }));
-    expect(await screen.findByText(/beto/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /remove beto\?/i })).toBeInTheDocument();
   });
 
   it('confirming removes the friendship and toasts success', async () => {
