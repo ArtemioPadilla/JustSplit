@@ -12,6 +12,9 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(__dirname, '../..');
 const SRC = resolve(ROOT, 'src');
 const DATA = resolve(SRC, 'lib', 'data') + sep;
+// Test code (the B2b RLS suite drives the database with real supabase-js
+// clients on purpose) is not app code and is exempt.
+const TESTS = resolve(SRC, 'tests') + sep;
 const RESTRICTED = ['@supabase/supabase-js', '@cyber-eco/supabase'];
 
 function walk(dir: string): string[] {
@@ -23,7 +26,7 @@ function walk(dir: string): string[] {
 }
 
 const importRe = /(?:from\s+|import\s*\(\s*|import\s+)['"]([^'"]+)['"]/g;
-const files = walk(SRC).filter((f) => !/\.test\.tsx?$/.test(f));
+const files = walk(SRC).filter((f) => !/\.test\.tsx?$/.test(f) && !f.startsWith(TESTS));
 
 describe('data-layer import boundary (CLAUDE.md rule 7)', () => {
   it('only src/lib/data/ imports the Supabase SDK or @cyber-eco/supabase', () => {
