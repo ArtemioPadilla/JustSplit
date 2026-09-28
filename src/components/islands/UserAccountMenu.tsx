@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { withBase } from '@/lib/href';
 
 /** First letters of up to two words — the Avatar fallback when there's no photo. */
 function initials(name: string): string {
@@ -63,6 +64,7 @@ export default function UserAccountMenu({ name, avatarUrl }: UserAccountMenuProp
         <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem render={<a href={withBase('/profile')}>Profile</a>} />
         <DropdownMenuItem disabled={signingOut} onClick={handleSignOut}>
           {signingOut ? 'Signing out…' : 'Sign out'}
         </DropdownMenuItem>
