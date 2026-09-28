@@ -29,3 +29,19 @@ export function parseCalendarDate(value: string): Date {
   }
   return new Date(value);
 }
+
+/**
+ * The inverse of `parseCalendarDate` (plan B10): formats a `Date` as a
+ * `YYYY-MM-DD` calendar-date string using LOCAL date parts
+ * (`getFullYear`/`getMonth`/`getDate`), never `toISOString()` (UTC) — the
+ * expense/event form's `DatePicker` hands back a local `Date`, and reading
+ * it back through UTC getters can land on a different calendar day than the
+ * one the user actually picked, the same class of bug this file's header
+ * documents for `parseCalendarDate`.
+ */
+export function formatCalendarDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
