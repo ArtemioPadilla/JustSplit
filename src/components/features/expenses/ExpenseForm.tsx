@@ -316,7 +316,10 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleValid)} noValidate className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
-        <h1 className="font-display text-2xl font-semibold text-foreground">{mode === 'create' ? 'New expense' : 'Edit expense'}</h1>
+        {/* Not an <h1> on purpose: the mounting island/route view (`ExpenseFormIsland`/`ExpenseEditView`) owns
+            the page's ONE <h1>, sr-only and OUTSIDE the auth-gated subtree (same as `ExpenseDetailView`'s
+            `Editable` heading), so axe's `page-has-heading-one` passes in every auth state, not just this one. */}
+        <p className="font-display text-2xl font-semibold text-foreground">{mode === 'create' ? 'New expense' : 'Edit expense'}</p>
 
         {resolved.ignored && (
           <p role="status" className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
