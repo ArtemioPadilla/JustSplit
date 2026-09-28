@@ -123,4 +123,52 @@ describe('createMemoryAdapter (plan B5a)', () => {
     const b = adapter.generateId('expenses');
     expect(a).not.toEqual(b);
   });
+
+  describe('foreign keys ON DELETE SET NULL (ADR 0013: mirrors migration B, so the contract suites do not lie)', () => {
+    it('deleting a group sets groupId to null on its expenses, events and settlements, and leaves other rows alone', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('expense_groups', 'g1', { name: 'Trip' });
+      await adapter.setDocument('expenses', 'e1', { groupId: 'g1', description: 'A' });
+      await adapter.setDocument('expenses', 'e2', { groupId: 'g2', description: 'B' });
+      await adapter.setDocument('events', 'ev1', { groupId: 'g1', name: 'Dinner' });
+      await adapter.setDocument('settlements', 's1', { groupId: 'g1', amount: 5 });
+
+      await adapter.deleteDocument('expense_groups', 'g1');
+
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', groupId: null, description: 'A' });
+      expect(await adapter.getDocument('expenses', 'e2')).toEqual({ id: 'e2', groupId: 'g2', description: 'B' });
+      expect(await adapter.getDocument('events', 'ev1')).toEqual({ id: 'ev1', groupId: null, name: 'Dinner' });
+      expect(await adapter.getDocument('settlements', 's1')).toEqual({ id: 's1', groupId: null, amount: 5 });
+    });
+
+    it('deleting an event sets eventId to null on its expenses and settlements', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('events', 'ev1', { name: 'Dinner' });
+      await adapter.setDocument('expenses', 'e1', { eventId: 'ev1' });
+      await adapter.setDocument('settlements', 's1', { eventId: 'ev1' });
+      await adapter.setDocument('expenses', 'e2', { eventId: 'ev2' });
+
+      await adapter.deleteDocument('events', 'ev1');
+
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', eventId: null });
+      expect(await adapter.getDocument('settlements', 's1')).toEqual({ id: 's1', eventId: null });
+      expect(await adapter.getDocument('expenses', 'e2')).toEqual({ id: 'e2', eventId: 'ev2' });
+    });
+
+    it('a batchWrite delete does the same, atomically with the rest of the batch, and notifies the touched collections', async () => {
+      const adapter = createMemoryAdapter();
+      await adapter.setDocument('expense_groups', 'g1', { name: 'Trip' });
+      await adapter.setDocument('expenses', 'e1', { groupId: 'g1' });
+      const cb = vi.fn();
+      const unsubscribe = adapter.subscribeToQuery('expenses', [], cb);
+      cb.mockClear();
+
+      const result = await adapter.batchWrite([{ type: 'delete', collection: 'expense_groups', id: 'g1' }]);
+
+      expect(result.success).toBe(true);
+      expect(await adapter.getDocument('expenses', 'e1')).toEqual({ id: 'e1', groupId: null });
+      expect(cb).toHaveBeenCalledWith([{ id: 'e1', groupId: null }]);
+      unsubscribe();
+    });
+  });
 });
