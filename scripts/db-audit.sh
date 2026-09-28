@@ -27,6 +27,9 @@ q "functions: security + execute grants" \
           || ' authenticated=' || has_function_privilege('authenticated', p.oid, 'execute')
           || ' config=' || coalesce(array_to_string(p.proconfig, ';'), '-')
      from pg_proc p where p.pronamespace = 'public'::regnamespace order by 1"
+q "foreign keys (B2d: group_id / event_id ON DELETE SET NULL)" \
+  "select conrelid::regclass || ' ' || conname || ' ' || pg_get_constraintdef(oid) || ' validated=' || convalidated::text
+     from pg_constraint where contype = 'f' and connamespace = 'public'::regnamespace order by 1"
 q "table grants to anon / authenticated" \
   "select table_name || ' ' || grantee || ' ' || string_agg(privilege_type, ',' order by privilege_type)
      from information_schema.role_table_grants
