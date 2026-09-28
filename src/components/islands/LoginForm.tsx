@@ -109,7 +109,7 @@ function LoginFormInner({
     <Form {...form}>
       {/* noValidate: cede all validation to zod/react-hook-form. */}
       <form onSubmit={form.handleSubmit(handleLogin)} noValidate className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">{heading}</h2>
+        <h1 className="text-lg font-semibold text-foreground">{heading}</h1>
 
         <FormField
           control={form.control}

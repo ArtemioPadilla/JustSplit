@@ -89,7 +89,7 @@ function SignUpFormInner({ heading = 'Create your account', signInHref }: SignUp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSignUp)} noValidate className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">{heading}</h2>
+        <h1 className="text-lg font-semibold text-foreground">{heading}</h1>
 
         <FormField
           control={form.control}
