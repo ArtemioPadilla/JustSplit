@@ -225,6 +225,21 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       });
     });
 
+    it('reports failure instead of throwing when an op targets an unmapped collection (client-side pre-translation must never throw)', async () => {
+      // Regression: batchWrite's own operations.map(...) used to call
+      // mappingFor() unguarded, so an unmapped collection threw synchronously
+      // out of batchWrite() instead of resolving { success: false, ... } like
+      // every other failure mode (storage-adapter-contract.md §3). Caught by
+      // storage-adapter-contract.live.test.ts against the real stack.
+      const result = await adapter.batchWrite([
+        { type: 'set', collection: 'expenses', id: 'e1', data: {} },
+        { type: 'set', collection: 'not_mapped', id: 'e2', data: {} },
+      ]);
+      expect(result.success).toBe(false);
+      expect(result.count).toBe(0);
+      expect(client.rpc).not.toHaveBeenCalled();
+    });
+
     it('reports failure without applying anything when the RPC rejects (transactional rollback)', async () => {
       (client.rpc as Mock).mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
       const result = await adapter.batchWrite([{ type: 'set', collection: 'expenses', id: 'e1', data: {} }]);
