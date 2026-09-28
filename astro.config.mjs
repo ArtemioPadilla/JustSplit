@@ -40,8 +40,10 @@ export default defineConfig({
         name: 'JustSplit',
         short_name: 'JustSplit',
         description: 'Fair expense splitting, made simple.',
-        // TODO(track-b): B6 maps the JustSplit palette; icons are Inceptor placeholders until then.
-        theme_color: '#10b981',
+        // JustSplit navy (plan B6) — matches --color-primary-600 in global.css
+        // and BaseLayout's <meta name="theme-color">. Icons are still
+        // Inceptor placeholders — no plan issue regenerates them yet.
+        theme_color: '#124d8c',
         background_color: '#0a0a0a',
         display: 'standalone',
         start_url: BASE,

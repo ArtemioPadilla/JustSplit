@@ -55,36 +55,97 @@
     color-scheme: dark;
   }
 
+  /*
+   * JustSplit palette → shadcn CSS vars (plan B6, spec D4).
+   *
+   * Sources, in the priority order plan B6 specifies:
+   *   1. `src/styles/theme.css` on `main` (74 custom properties, the primary
+   *      token source): `--color-primary` #102a49 "dark blue from logo",
+   *      `--color-secondary` #4CAF50 "green accent", `--color-accent`
+   *      #2196F3 "light blue accent from logo", plus the neutral/feedback
+   *      scale (`--color-background` #FFFFFF, `--color-surface` #F5F7FA,
+   *      `--color-text` #333333, `--color-text-secondary` #757575,
+   *      `--color-border` #E0E0E0, `--color-error` #F44336) and the
+   *      `.dark-theme` stub (#121212 / #1E1E1E / #E0E0E0 / #ABABAB — legacy
+   *      dark mode was never finished; those numbers are honored as the
+   *      dark-mode neutrals below).
+   *   2. `src/app/globals.css` (33 properties): re-imports theme.css and
+   *      defines `.btn`/`.btn-secondary` off the same primary/secondary
+   *      pair — no new hues, confirms the theme.css mapping above.
+   *   3. `docs/design/style-guide.md`: names green (#4CAF50) "Primary" and
+   *      orange (#FF9800) "Secondary" — the OPPOSITE of theme.css's own
+   *      `--color-primary`/`--color-secondary`. Deviation, resolved in
+   *      theme.css's favor per plan B6 ("primary token source"): the navy
+   *      from the actual logo is `--primary` below; the style guide's
+   *      "Secondary" orange becomes a chart hue only (no shadcn text/button
+   *      role needs a 6th brand color in this issue).
+   *
+   * Mapping decisions:
+   *   - `--primary`/`--primary-foreground`: JustSplit navy (#102a49-family,
+   *     hue 254) — the one color every legacy screenshot shows on buttons/
+   *     links. Lightness/foreground tuned in OKLCH so the light-mode fill
+   *     clears WCAG AA 4.5:1 against its white foreground (contrast ≈9:1;
+   *     verified with a standalone OKLCH→sRGB conversion, not by eye) and
+   *     the dark-mode tint clears AA against its own dark foreground text.
+   *   - `--secondary`/`--secondary-foreground` and `--muted`/`--input`:
+   *     shadcn spends these on low-emphasis chrome (ghost-button rest state,
+   *     badge fill, disabled inputs) across every copied `ui/` primitive —
+   *     they were already hue-agnostic gray in the scaffold and JustSplit's
+   *     theme.css never assigns a *neutral* role to any of its 3 brand hues,
+   *     so these stay gray. (JustSplit's own `--color-secondary` green is a
+   *     bold, filled button color in the legacy app — that's `--chart-2`
+   *     below and a candidate `Button` "success" variant for a future
+   *     issue, not this shadcn slot.)
+   *   - `--accent`/`--accent-foreground`: kept as shadcn's low-chroma
+   *     hover/highlight tint (dropdown item hover, etc.) but re-hued from
+   *     the scaffold's emerald (163) to JustSplit's primary navy (254), so
+   *     hover states read as "this site", not as leftover scaffold green.
+   *   - `--destructive`: unchanged from the scaffold — its hue (≈27°) is
+   *     already within 2° of JustSplit's own `--color-error` #F44336
+   *     (≈29°); no edit needed.
+   *   - `--border`/`--background`/`--foreground`/`--card`/`--popover`/
+   *     `--muted-foreground`: replaced with theme.css's literal neutrals
+   *     (#E0E0E0 border, #FFFFFF background, #333333 text, #F5F7FA
+   *     surface→card) converted to OKLCH; dark-mode neutrals use the
+   *     `.dark-theme` stub's numbers. `--muted-foreground` is darkened one
+   *     notch versus the literal #757575 (L 0.562→0.52) because #757575 on
+   *     the new `--card` tint (#F5F7FA, not pure white) lands at 4.29:1 —
+   *     under the 4.5:1 AA floor; L 0.52 restores ≈5.1:1.
+   *   - `--ring`: tied to `--primary`'s hue (was tied to the scaffold's
+   *     emerald), so the focus ring matches the brand button color.
+   *   - `--chart-1..5`: the only slots that get full-saturation brand color —
+   *     navy (`--primary`), JustSplit green, JustSplit light-blue (lightened
+   *     so it reads apart from navy in a chart), JustSplit warning orange,
+   *     JustSplit error red. No 6th JustSplit hue exists for a chart-6.
+   *   - `--sidebar-*`: unchanged scaffold defaults — no sidebar layout
+   *     exists in JustSplit yet; revisit if one is added.
+   */
   :root {
-    --background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
-    --foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
-    --card: light-dark(oklch(1 0 0), oklch(0.205 0 0));
-    --card-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
-    --popover: light-dark(oklch(1 0 0), oklch(0.205 0 0));
-    --popover-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
-    /* Brand: emerald is the primary action color (deep enough for white text
-       to clear WCAG AA 4.5:1 — see src/tests/ux-contrast.test.ts). Bright
-       emerald in dark mode reads as luminous on the near-black canvas; dark
-       text on it clears AA comfortably. */
-    --primary: light-dark(oklch(0.50 0.123 163), oklch(0.78 0.155 164));
-    --primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.2 0.03 165));
+    --background: light-dark(oklch(1 0 0), oklch(0.182 0 0));
+    --foreground: light-dark(oklch(0.321 0 0), oklch(0.907 0 0));
+    --card: light-dark(oklch(0.975 0.005 258), oklch(0.235 0 0));
+    --card-foreground: light-dark(oklch(0.321 0 0), oklch(0.907 0 0));
+    --popover: light-dark(oklch(0.975 0.005 258), oklch(0.235 0 0));
+    --popover-foreground: light-dark(oklch(0.321 0 0), oklch(0.907 0 0));
+    --primary: light-dark(oklch(0.40 0.11 254), oklch(0.78 0.13 254));
+    --primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.18 0.03 254));
     --secondary: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
     --secondary-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
     --muted: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
-    --muted-foreground: light-dark(oklch(0.49 0 0), oklch(0.715 0 0));
-    --accent: light-dark(oklch(0.96 0.02 163), oklch(0.28 0.04 165));
-    --accent-foreground: light-dark(oklch(0.3 0.06 163), oklch(0.92 0.05 165));
+    --muted-foreground: light-dark(oklch(0.52 0 0), oklch(0.741 0 0));
+    --accent: light-dark(oklch(0.96 0.02 254), oklch(0.28 0.04 254));
+    --accent-foreground: light-dark(oklch(0.3 0.06 254), oklch(0.92 0.05 254));
     --destructive: light-dark(oklch(0.577 0.245 27.325), oklch(0.704 0.191 22.216));
     --destructive-foreground: light-dark(oklch(0.985 0 0), oklch(0.145 0.02 25));
-    --border: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 12%));
-    --input: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 15%));
-    --ring: light-dark(oklch(0.6 0.13 163), oklch(0.78 0.155 164));
-    /* Cohesive palette — same hues across light/dark, only lightness shifts. */
-    --chart-1: light-dark(oklch(0.6 0.14 163), oklch(0.78 0.16 164));
-    --chart-2: light-dark(oklch(0.62 0.12 195), oklch(0.72 0.13 195));
-    --chart-3: light-dark(oklch(0.55 0.16 255), oklch(0.7 0.16 255));
-    --chart-4: light-dark(oklch(0.72 0.16 70), oklch(0.8 0.16 75));
-    --chart-5: light-dark(oklch(0.58 0.2 300), oklch(0.72 0.19 300));
+    --border: light-dark(oklch(0.907 0 0), oklch(1 0 0 / 12%));
+    --input: light-dark(oklch(0.907 0 0), oklch(1 0 0 / 15%));
+    --ring: light-dark(oklch(0.55 0.12 254), oklch(0.78 0.13 254));
+    /* Full-saturation brand hues — see the mapping comment above. */
+    --chart-1: light-dark(oklch(0.45 0.12 254), oklch(0.75 0.13 254));
+    --chart-2: light-dark(oklch(0.60 0.15 144), oklch(0.78 0.16 144));
+    --chart-3: light-dark(oklch(0.65 0.14 230), oklch(0.78 0.13 230));
+    --chart-4: light-dark(oklch(0.75 0.17 64), oklch(0.82 0.17 64));
+    --chart-5: light-dark(oklch(0.60 0.22 29), oklch(0.75 0.18 29));
     --radius: 0.625rem;
     --sidebar: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
     --sidebar-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
@@ -137,10 +198,15 @@
 }
 
 @theme {
-  --color-primary-400: #34d399;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
+  /* Discrete utility scale (bg-primary-50, text-primary-600, …) used by
+   * components that need a shade off the brand hue that `--primary` alone
+   * doesn't provide (e.g. FeedbackFAB.astro's icon/hover states). Re-derived
+   * from JustSplit's navy (hue 254, plan B6) — was the scaffold's emerald. */
+  --color-primary-50: #e9f3ff;
+  --color-primary-400: #4a88d2;
+  --color-primary-500: #2564ab;
+  --color-primary-600: #124d8c;
+  --color-primary-700: #0b3a6d;
 
   /* Type system — editorial serif display + grotesque body + mono for code.
      Loaded in BaseLayout via Google Fonts (preconnect + display=swap). */
