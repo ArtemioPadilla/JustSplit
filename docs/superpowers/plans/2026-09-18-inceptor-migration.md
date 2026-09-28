@@ -942,7 +942,7 @@ backend decision; ADR numbers are allocation order, not merge order).
         Phase-0 placeholder page); this becomes true once B8b wires it
 
 ### B5a. Repos over `StorageAdapter` + `SchemaMap` + Realtime → TanStack Query (`risk:high`)
-- [ ] `src/lib/data/schema-map.ts`: the `SchemaMap` of spec D10 (`expense_groups`, `expenses`,
+- [x] `src/lib/data/schema-map.ts`: the `SchemaMap` of spec D10 (`expense_groups`, `expenses`,
       `settlements`, `events`, `friendships` → table, `idColumn: 'id'`, `columnMap` camelCase →
       snake_case, `jsonbColumn: 'extra'`, `metadata: { createdAt: { field: 'createdAt', column:
       'created_at', strategy: 'server' }, updatedAt: … }`) per
@@ -955,7 +955,13 @@ backend decision; ADR numbers are allocation order, not merge order).
       `SupabaseProfileStore`, cross-user lookup through the B2 functions. A test asserts the map's
       table list equals the tables created by `db/migrations/` minus `profiles` and
       `schema_migrations`, and that the B2b coverage guard sees every one of them
-- [ ] `src/lib/data/repos/{groups,expenses,settlements,events,friendships}.ts`: plain async
+      [deviation: `CollectionMapping` gained a local-only `columns: readonly string[]` field —
+      the physical column allowlist per table, beyond `table`/`idColumn`/`columnMap`/`jsonbColumn`/
+      `metadata`. The contingency adapter needs it client-side to decide "real column vs `extra`
+      overflow" per field, a decision `batch_write` makes server-side via `information_schema.columns`
+      that the browser can't. Pinned to the migration by `schema-map.test.ts`; documented as a
+      JustSplit-only extension in `schema-map.ts` and ADR 0004 so it's dropped, not upstreamed, at H2]
+- [x] `src/lib/data/repos/{groups,expenses,settlements,events,friendships}.ts`: plain async
       functions over the `StorageAdapter` interface **only** (`getDocument`, `setDocument`,
       `updateDocument`, `deleteDocument`, `query`, `batchWrite`, `subscribeToQuery`,
       `generateId`; types from `@cyber-eco/types`), Zod-validated input (B3). Canonical queries
@@ -973,7 +979,10 @@ backend decision; ADR numbers are allocation order, not merge order).
       `BatchOperation.collection`, and asserts each is a key of `schemaMap`; `adapter.ts` is
       asserted (source grep) to pass `{ schemaMap }`; the memory adapter and the real/contingency
       adapter wrapper throw on an unmapped collection instead of falling back to document mode
-- [ ] `src/lib/data/hooks/`: `useExpenses(uid)`, `useGroup(id)`, … = `useQuery` with
+      [`settlements.ts` has no `update` export at all, not just an untested one — D10's RLS has no
+      update policy on `settlements` ("immutable; correct by delete + insert"), so there is no
+      partial-patch function to write]
+- [x] `src/lib/data/hooks/`: `useExpenses(uid)`, `useGroup(id)`, … = `useQuery` with
       `queryKey: [collection, scope]`, `staleTime` per collection; `useCreateExpense()` etc. =
       `useMutation` invalidating the affected keys; Realtime: `useLiveQuery(key, collection,
       filters)` is the **single network source** for a live key: it subscribes
@@ -996,10 +1005,20 @@ backend decision; ADR numbers are allocation order, not merge order).
       Tests: exactly one adapter `query()` call per mount of a live island; a source-text test
       asserts `QueryProvider` is imported only by route islands and never by a
       `src/components/common/*` or layout island
-- [ ] Listener-leak test: a Vitest fakes `$user` transitions `null → A → B → null` and asserts
+      [`src/lib/data/hooks/hooks.test.tsx` covers the wiring (useExpenses/useGroupExpenses/
+      useEventExpenses/useEvents/useGroupEvents/useGroup/useCreateExpense/useProfiles) against a
+      spied `useLiveQuery`; deferred to the feature-island issues that first need them (B10-B14):
+      useGroups, useSettlements, useFriendships and their mutations — same two-line pattern, not
+      worth adding unused now. No route island exists yet (Phase 2), so
+      `query-provider-boundary.test.ts`'s "importers exist" side is currently vacuous — a dedicated
+      case proves the regex itself works]
+- [x] Listener-leak test: a Vitest fakes `$user` transitions `null → A → B → null` and asserts
       exactly one live subscription per key at any time (the memory adapter counts channels);
       StrictMode double-mount leaves one
-- [ ] `src/tests/memory-adapter.ts`: in-memory `StorageAdapter` implementing every method
+      [`src/lib/data/hooks/useLiveQuery.test.tsx`, against a small counting fake adapter rather than
+      the memory adapter — the memory adapter's own subscription counting is exercised directly in
+      `memory-adapter.test.ts` instead]
+- [x] `src/tests/memory-adapter.ts`: in-memory `StorageAdapter` implementing every method
       (filters incl. `array-contains`, `batchWrite` atomicity, `subscribeToQuery` emitting on
       writes); the contract suite `src/tests/storage-adapter-contract.test.ts`
       (`storage-adapter-contract.md` §5: `batchWrite` atomicity, fetch-then-listen initial
@@ -1009,7 +1028,16 @@ backend decision; ADR numbers are allocation order, not merge order).
       unmapped collection throws) runs against the memory adapter always and against the real
       adapter as `test:contract:live` when `PUBLIC_SUPABASE_LOCAL=true` (the `RLS & contract
       (supabase start)` CI job, B2b)
-- [ ] **Contingency (conditional — only if relational mode is not merged in `@cyber-eco/supabase`
+      [deviation: `test:contract:live` doesn't read `PUBLIC_SUPABASE_LOCAL` at all — it reuses
+      `src/tests/rls/fixtures.ts`'s actor client (never `client.ts`), which discovers the local
+      stack's keys via `supabase status`, exactly like `test:rls` already does. Setting
+      `PUBLIC_SUPABASE_LOCAL=true` on the CI step broke
+      `src/tests/supabase-workflow-env.test.ts`'s "`ci.yml` builds without any `PUBLIC_SUPABASE_*`
+      value" invariant (kept so the `build` job's coverage of `client.ts`'s guarded/disabled path
+      stays meaningful) — dropped it instead of relaxing that test. Verified locally against
+      `supabase start` (migrations applied): `npm run test:rls` 159/159, `npm run test:contract:live`
+      8/8, both exit 0, 5/5 clean repeats on the Realtime-push case]
+- [x] **Contingency (conditional — only if relational mode is not merged in `@cyber-eco/supabase`
       when this issue starts, spec D1):** `src/lib/data/relational-adapter.ts` implements
       `StorageAdapter` over `@supabase/supabase-js` per the `SchemaMap` design — a `toRow()` that
       maps `columnMap` fields to snake_case columns and folds every other top-level field into an
@@ -1029,18 +1057,47 @@ backend decision; ADR numbers are allocation order, not merge order).
       `update` leaves untouched columns and unknown overflow keys intact. Same contract suite;
       `adapter.ts` selects it. Upstreamed as Track C' H2 when gate C1 clears; deleted here
       afterwards (B22)
-- [ ] Port `src/context/__tests__/AppContext.test.tsx` against the hooks + memory adapter
-- [ ] ADR `docs/decisions/0004-tanstack-query-over-storage-adapter.md` incl. Stakeholder Analysis
+      [confirmed at issue start: relational mode is not in `@cyber-eco/supabase@0.2.1`
+      (`node_modules/@cyber-eco/supabase/dist/index.d.ts` — document mode only, no `schemaMap`
+      config) — the contingency applies, per the D1 spec text and scope decision 1]
+- [x] Port `src/context/__tests__/AppContext.test.tsx` against the hooks + memory adapter
+      [`src/lib/data/hooks/app-context.port.test.tsx`; ported: default-empty state, "adds an
+      expense/event/settlement correctly" (the last at the repo level — no `useSettlements` hook
+      yet, deferred). Not ported, with reasons in the file header: "initializes with provided
+      initialState" (no TanStack Query equivalent to a component-prop initial state),
+      "adds/updates a user" (no generic `users` collection in the target schema — identity is
+      `profiles` + `repos.profiles`), "throws when used outside a provider" (no Context to be
+      outside of, CLAUDE.md rule 2)]
+- [x] ADR `docs/decisions/0004-tanstack-query-over-storage-adapter.md` incl. Stakeholder Analysis
       (Query cache persisted to IndexedDB = user data on the device; cleared on sign-out; no
       offline writes in v1): layering per `tradepilot-pilot-integration.md` Seam 2, no
       `DataLayerService` and no `createDataLayer` call (so the doctrine's `permissions: { enabled:
       false }` is met structurally — a Vitest greps `src/` for `createDataLayer(` and
       `DataLayerService`), Realtime → refetch → `setQueryData`, one `QueryProvider` per page, the
       contingency adapter and its upstreaming
-- [ ] Acceptance: an island using `useExpenses` shows live rows from the local seed and updates
+- [x] Acceptance: an island using `useExpenses` shows live rows from the local seed and updates
       when a second client inserts; contract suite green against the memory adapter and the real
       one; listener-leak test green; `grep -rn "@cyber-eco/supabase\|@supabase/supabase-js" src
       --include=*.ts --include=*.tsx` hits only `src/lib/data/{client,adapter,relational-adapter}.ts`
+      [no route island/page exists yet (Track B's feature islands are Phase 2), so "an island using
+      `useExpenses`" is proved at the hooks level instead, split across two tests for an
+      environment reason: `src/lib/data/hooks/hooks.test.tsx` proves the wiring (useExpenses calls
+      useLiveQuery with the right collection/filters) against a spied useLiveQuery, and
+      `src/tests/storage-adapter-contract.live.test.ts`'s "subscribeToQuery Realtime push" case
+      proves — against a real `supabase start` stack, under `environment: 'node'` — that
+      `adapter.subscribeToQuery` (the exact call `useLiveQuery` makes) shows the local seed AND
+      re-emits when a second client (the service-role admin connection, a distinct
+      `SupabaseClient`/session) inserts a row. A THIRD, React-rendered version of this under jsdom
+      was written and dropped: `@supabase/realtime-js`'s WebSocket client and jsdom's own
+      `Event`/`WebSocket` globals are different realms in this Vitest/Node combo, so any Realtime
+      message arriving while jsdom is active crashes inside undici's `dispatchEvent`
+      ("the 'event' argument must be an instance of Event. Received an instance of Event") — an
+      environment incompatibility (reproduces even for the fetch-only half), not a
+      `RelationalSupabaseAdapter` defect. The grep command's raw output additionally hits comment-only
+      mentions (`repos/groups.ts`'s doc comment, `storage-adapter-contract.live.test.ts`'s doc
+      comment) and test files that legitimately import the SDK under `src/lib/data/` or
+      `src/tests/rls/` (already-allowed exceptions); the automated, comment-aware check
+      (`src/tests/data-boundary.test.ts`) is what actually enforces the invariant and is green]
 
 ### B5b. Supabase Storage helpers + `preferences.ts` + `notifications.ts` (store only) (`risk:high`)
 - [ ] ADR `docs/decisions/0005-supabase-storage-images.md`: private bucket `receipts` with the
