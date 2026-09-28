@@ -20,6 +20,11 @@ import { requireSupabase } from './client';
  */
 export const RECEIPTS_BUCKET = 'receipts';
 
+/** Storage list() page size (its default cap). */
+const LIST_PAGE_SIZE = 100;
+/** Upper bound on list/remove rounds in removeReceipts (100 × 100 objects). */
+const MAX_REMOVE_ROUNDS = 100;
+
 // ── id generation ────────────────────────────────────────────────────────
 // Mirrors `relational-adapter.ts`'s `randomUUID`: no static `node:crypto`
 // import, since this module ships to the browser.
@@ -205,13 +210,25 @@ export async function uploadAvatar(uid: string, file: Blob, deps: UploadDeps = {
  */
 export async function removeReceipts(expenseId: string): Promise<void> {
   const client = requireSupabase();
+  const bucket = client.storage.from(RECEIPTS_BUCKET);
   const prefix = `expenses/${expenseId}`;
-  const { data, error } = await client.storage.from(RECEIPTS_BUCKET).list(prefix);
-  if (error) throw error;
-  if (!data || data.length === 0) return;
-  const paths = data.map((object) => `${prefix}/${object.name}`);
-  const { error: removeError } = await client.storage.from(RECEIPTS_BUCKET).remove(paths);
-  if (removeError) throw removeError;
+  // list() returns at most `limit` objects, so re-list until the folder is
+  // empty. Each round must remove everything it listed: Storage reports a
+  // path it was not allowed to delete by leaving it out of `data`, not as an
+  // error, and a folder that never empties would otherwise loop forever.
+  for (let round = 0; round < MAX_REMOVE_ROUNDS; round++) {
+    const { data, error } = await bucket.list(prefix, { limit: LIST_PAGE_SIZE });
+    if (error) throw error;
+    if (!data || data.length === 0) return;
+    const paths = data.map((object) => `${prefix}/${object.name}`);
+    const { data: removed, error: removeError } = await bucket.remove(paths);
+    if (removeError) throw removeError;
+    const removedCount = removed?.length ?? 0;
+    if (removedCount < paths.length) {
+      throw new Error(`removeReceipts(${expenseId}): removed ${removedCount} of ${paths.length} objects; refusing to continue`);
+    }
+  }
+  throw new Error(`removeReceipts(${expenseId}): folder not empty after ${MAX_REMOVE_ROUNDS} rounds`);
 }
 
 /**
