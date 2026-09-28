@@ -66,7 +66,13 @@ function Editable({
       onValueCommit?.(details.value);
     },
   });
-  sendRef.current = service.send;
+  // react-hooks/refs (React Compiler lint) forbids writing a ref during
+  // render — `useLayoutEffect` (not `useEffect`) so `sendRef` is populated
+  // before the browser paints and before any user interaction can reach
+  // the input's event handlers.
+  React.useLayoutEffect(() => {
+    sendRef.current = service.send;
+  });
   const api = editable.connect(service, normalizeProps);
 
   return (
