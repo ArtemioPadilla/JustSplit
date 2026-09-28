@@ -1764,11 +1764,19 @@ resolves other users' names through `useProfiles` (B5a).
       `guard_friendships` trigger shipped in the **B2 migration** and asserted by the B2b suite
       (`cardinality(users) = 2`, `requested_by = uid` on insert, `users`/`requested_by` immutable,
       `status` changes only by the recipient, one row per pair). This issue adds no migration.
-      **Recorded limitation (ADR 0006)**: `friendships_pair_uniq` has no partial predicate, so a
-      `status: 'rejected'` row (which `partitionFriendships` shows in none of the three sections)
-      permanently blocks a fresh request for that pair — unlike a removed (deleted) row, which frees
-      it. No page calls the reject path's "undo" today; flagged as a follow-up in the ADR, not fixed
-      here.
+      **Resolved (coordinator review; ADR 0006)**: `friendships_pair_uniq` has no partial predicate,
+      so a `status: 'rejected'` row permanently blocks a fresh request for that pair unless it is
+      deleted — kept as-is on purpose (it's what stops the requester re-spamming a pair the recipient
+      already declined), but the recipient is not left stuck: `partitionFriendships` gained a fourth
+      bucket, `declined` — populated ONLY for the recipient (`requestedBy !== uid`) — rendered as
+      `/friends`' own "Declined requests" section with an **Undo** button
+      (`useRemoveFriendship` — a delete, never a status change) that frees the pair whenever the
+      recipient decides they're ready. The original requester's view of the same row stays in NO
+      bucket at all (recipient privacy: no "declined" indicator ever reaches their side); retrying
+      gets the existing generic "You already have a request or friendship with this person" message,
+      which ADR 0006 now names as its own small, accepted enumeration leak ("a row exists for this
+      pair," never which status). The dead end this bullet used to flag as a follow-up is resolved,
+      not deferred.
 - [x] Friends list and friend detail render names/avatars through `useProfiles(ids)` (B5a;
       `friendships.users` carries bare uids; the "other user in a 2-person `users[]`" logic is one
       pure helper, `src/domain/friends.ts#otherUser`, shared with B10's `ExpenseForm` via a pure
@@ -1792,9 +1800,13 @@ resolves other users' names through `useProfiles` (B5a).
       email path, self-email local refusal (no RPC call), and the duplicate-pair mapping
       (`AddFriendForm.test.tsx`); not-found hiding existence (`FriendDetailView.test.tsx`); the
       detail balance using the selector; `ExpenseForm.test.tsx`'s existing 16 cases stayed green
-      after the `domain/friends.ts` refactor. The `friendships` RLS suite in `src/tests/rls/` is
-      unchanged by this issue (no migration) and stays green in its own CI job — not runnable here.
-      `/friends` added to `scripts/axe-smoke.mjs`.
+      after the `domain/friends.ts` refactor. `domain/friends.test.ts` covers the `declined` bucket's
+      asymmetry test-first (a rejected row lands there only for the recipient, never the requester);
+      `FriendsIsland.test.tsx` covers the Declined requests section rendering with the requester's
+      name and an Undo button, Undo calling `useRemoveFriendship` and toasting, and the requester's
+      own view showing nothing at all for the same row. The `friendships` RLS suite in
+      `src/tests/rls/` is unchanged by this issue (no migration) and stays green in its own CI job —
+      not runnable here. `/friends` added to `scripts/axe-smoke.mjs`.
 ### B14. Settlements island (`/settlements`, reads `?event=` from `location.search`)
 - [ ] Tabs pending / balance / history (port from `settlements/page.tsx`); display-currency
       selector (`CurrencySelector`, B16) + the exchange-rates table with every amount converted;
