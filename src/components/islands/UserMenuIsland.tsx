@@ -7,23 +7,16 @@ import { useStore } from '@nanostores/react';
 // SDK up front.
 import { $authReady, $profile, $user } from '@/stores/session';
 import { withBase } from '@/lib/href';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import ErrorBoundary from './ErrorBoundary';
 
-/** First letters of up to two words — the Avatar fallback when there's no photo. */
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  const first = words[0]?.[0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
+// The dropdown menu + avatar (Base UI's Menu + Avatar primitives) are ~48.6
+// kB gz (plan B6/B19 "Header weight") and only ever render for a signed-in
+// user — every signed-out visitor (most page loads: anonymous traffic, and
+// every load of a page with no route island to populate $user at all) never
+// needs this chunk. `React.lazy` + this dynamic import() is what gets Vite
+// to code-split it out of UserMenuIsland's own chunk (see
+// src/components/ui/field-type/lazy-date-picker.tsx for the same pattern).
+const UserAccountMenu = React.lazy(() => import('./UserAccountMenu'));
 
 /**
  * UserMenuIsland — layout island mounted from `SiteHeader.astro` on every
@@ -52,7 +45,6 @@ function UserMenuInner() {
   const user = useStore($user);
   const profile = useStore($profile);
   const authReady = useStore($authReady);
-  const [signingOut, setSigningOut] = React.useState(false);
 
   if (!authReady || !user) {
     return (
@@ -68,36 +60,29 @@ function UserMenuInner() {
   const name = profile?.name || user.displayName || user.email || 'Account';
   const avatarUrl = profile?.avatarUrl || user.photoURL || undefined;
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      const { signOut } = await import('@/stores/auth');
-      await signOut();
-      // AuthBridge's own onAuthStateChanged listener (in whichever route
-      // island mounted AuthIsland) sets $user back to null; this component
-      // re-renders to the signed-out link on its own — no navigation here.
-    } finally {
-      setSigningOut(false);
-    }
-  }
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Account menu for ${name}`}
-      >
-        <Avatar className="h-7 w-7">
-          {avatarUrl && <AvatarImage src={avatarUrl} alt="" />}
-          <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
-        </Avatar>
-        <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled={signingOut} onClick={handleSignOut}>
-          {signingOut ? 'Signing out…' : 'Sign out'}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <React.Suspense fallback={<AccountMenuFallback name={name} />}>
+      <UserAccountMenu name={name} avatarUrl={avatarUrl} />
+    </React.Suspense>
+  );
+}
+
+/**
+ * Suspense fallback while the lazy dropdown chunk loads — a non-jumping
+ * placeholder the same size/shape as UserAccountMenu's real trigger. The
+ * name is real, accessible text (not aria-hidden): it's already known
+ * synchronously from $profile/$user, so there's no reason to hide it while
+ * only the avatar image and dropdown behavior are still loading.
+ * `aria-busy` tells assistive tech the control isn't interactive yet.
+ */
+function AccountMenuFallback({ name }: { name: string }) {
+  return (
+    <span
+      className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm text-foreground"
+      aria-busy="true"
+    >
+      <span className="h-7 w-7 shrink-0 animate-pulse rounded-full bg-muted" aria-hidden="true" />
+      <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
+    </span>
   );
 }

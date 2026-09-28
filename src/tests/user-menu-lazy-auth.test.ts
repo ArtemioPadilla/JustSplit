@@ -19,8 +19,13 @@ describe('UserMenuIsland keeps the Supabase SDK off the first paint', () => {
     expect(src).toMatch(/from\s+['"]@\/stores\/session['"]/);
   });
 
-  it('loads the auth actions lazily for sign-out', () => {
-    expect(src).toMatch(/import\(\s*['"]@\/stores\/auth['"]\s*\)/);
+  it('loads the auth actions lazily for sign-out (directly, or transitively via the lazy UserAccountMenu chunk)', () => {
+    const accountMenuSrc = readFileSync(
+      resolve(__dirname, '../components/islands/UserAccountMenu.tsx'),
+      'utf8',
+    );
+    const AUTH_DYNAMIC_IMPORT_RE = /import\(\s*['"]@\/stores\/auth['"]\s*\)/;
+    expect(AUTH_DYNAMIC_IMPORT_RE.test(src) || AUTH_DYNAMIC_IMPORT_RE.test(accountMenuSrc)).toBe(true);
   });
 });
 
