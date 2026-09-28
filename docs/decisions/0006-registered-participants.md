@@ -124,21 +124,36 @@ the authoritative defense against a genuine race between two
 near-simultaneous requests for the same pair — an extremely narrow window
 that, if hit in production, surfaces as the generic insert-failure toast
 instead of this specific message. This is a known, accepted gap, not
-silently claimed to be fully closed.
+silently claimed to be fully closed. **This message itself is a small,
+accepted enumeration leak**: "You already have a request or friendship
+with this person" tells the requester that SOME `friendships` row exists
+for that pair — pending, accepted, or rejected — without saying which. A
+requester who was rejected and tries again therefore learns "a row exists"
+(not "you were rejected," which stays hidden per the leaked-id reasoning
+below) — a strictly narrower disclosure than the legacy directory search
+this ADR already drops, and considered acceptable for the same reason a
+duplicate-request error is acceptable at all: the requester already knows
+they've interacted with this email before.
 
-**A rejected row is a known dead end today.** `partitionFriendships`
-(`src/domain/friends.ts`) only buckets a row into Friend Requests
-(`pending`, received), Friends (`accepted`), or Sent Requests (`pending`,
-sent) — a `status: 'rejected'` row lands in none of them, so `/friends`
-has nothing to show it as. Because `friendships_pair_uniq` has no partial
-predicate, that row also permanently blocks a fresh request for the same
-pair — there is no user-facing path back from a rejection today, on
-EITHER side (the recipient cannot "un-reject," and the original requester
-cannot re-request). This is scoped out of B13 deliberately (no page ever
-called `updateFriendshipStatus(id, 'rejected')`'s counterpart before), and
-recorded here as a follow-up: either surface rejected rows with their own
-"remove/re-request" affordance, or drop `status: 'rejected'` in favor of a
-plain delete (matching Cancel's own semantics) in a later issue.
+**Reject is a recipient-only `status` update, not a delete — the row is
+kept on purpose, and the recipient gets an Undo, not a dead end.**
+`partitionFriendships` (`src/domain/friends.ts`) buckets a `status:
+'rejected'` row ASYMMETRICALLY: into a new `declined` bucket ONLY for the
+RECIPIENT (`requestedBy !== uid`) — `/friends`' "Declined requests"
+section, one row per declined request, an **Undo** button
+(`useRemoveFriendship`, the same delete Cancel/Remove already use — never a
+status change) that frees the pair for a future request from either side.
+For the ORIGINAL REQUESTER (`requestedBy === uid`) the same row lands in NO
+bucket at all — their pending item simply disappears from Sent Requests,
+with no "declined" indicator anywhere on their side (recipient privacy: the
+leaked-id reasoning extends to "were you rejected," not just "does this
+account exist"). Keeping the row (rather than Reject deleting it outright)
+is the point, not an oversight: it is what stops the requester from
+re-spamming a pair the recipient already said no to (`friendships_pair_uniq`
+has no partial predicate — ANY existing row, including a rejected one,
+blocks a fresh insert) — Undo is the recipient's own, deliberate choice to
+lift that block, not something that happens automatically or from the
+requester's side.
 
 ## Alternatives considered
 
@@ -161,6 +176,17 @@ plain delete (matching Cancel's own semantics) in a later issue.
   `.code` instead of collapsing it into a message string — a change to
   shared data-layer code beyond this issue's stated scope ("no migration").
   Recorded above as the accepted gap this ADR leaves open.
+- **Make Reject a delete, matching Cancel's own semantics**, instead of a
+  `status: 'rejected'` update. This was the leading alternative for
+  resolving the rejected-row dead end (coordinator review). Rejected in
+  favor of keeping `status: 'rejected'` (per the plan) plus a recipient-only
+  Undo: a plain delete on Reject would let the ORIGINAL REQUESTER re-send
+  immediately (the pair frees the moment the row is gone), which is exactly
+  the re-spam a recipient who just said no would not want. Keeping the row
+  and giving the RECIPIENT (not the requester) the only path back to a
+  clean slate keeps the requester's ability to try again entirely in the
+  recipient's hands, matching who `guard_friendships` already trusts with
+  the `status` field.
 
 ## Consequences
 
@@ -172,8 +198,9 @@ needs its own authorization logic beyond UX-only button visibility.
 
 **Negative** — User enumeration is inherent to "does this email have an
 account?" (see Stakeholder Analysis) and there is no server-side rate limit
-on `find_profile_by_email` today; a rejected friendship is a genuine dead
-end with no user-facing recovery (above).
+on `find_profile_by_email` today; the duplicate-pair message also leaks a
+narrower fact — "some row exists for this pair" — to a requester retrying
+after a rejection (above).
 
 **Neutral** — The unregistered-email invite is a plain mailto/link, not a
 tracked invitation system; nothing is measured about whether an invite
@@ -183,8 +210,8 @@ converts.
 
 | Stakeholder | Impact | Mitigation |
 |---|---|---|
-| The requester | Sends a request that either lands as a pending row the recipient sees, or (unregistered email) gets an invite path instead of silence. A duplicate attempt gets a specific, honest message instead of a confusing generic failure. | `existsForPair` pre-check + `FriendshipAlreadyExistsError`; the unregistered branch never claims the request was "sent" — it's explicit that no account exists. |
-| The recipient, including an unwanted request | Anyone who has their email can send a request; the recipient can Reject it, which is enforced server-side (`guard_friendships`: only the recipient may change `status`) so the requester cannot self-accept. **What Reject does NOT do**: a rejected pair cannot re-request (the unique index has no partial predicate, above) — the recipient has silenced that pair permanently, which is arguably the right outcome for an unwanted request, but the requester also gets no explanation if they try again (a generic "already have a request" message, never "they rejected you" — that would reveal the rejection, which spec's leaked-id reasoning treats the same as revealing account existence). A removed (not rejected) friendship, by contrast, DOES allow a future request from either side — `friendships_delete` frees the pair. |
+| The requester | Sends a request that either lands as a pending row the recipient sees, or (unregistered email) gets an invite path instead of silence. A duplicate attempt gets a specific, honest message instead of a confusing generic failure — but if that duplicate is because the recipient rejected them, the message is the SAME generic "already have a request or friendship with this person," never "they rejected you." The requester learns only that some row exists for the pair, not its status; if the recipient later hits Undo, the requester gets no notification either — they simply CAN send a fresh request the next time they try, with no explanation of why it started working. | `existsForPair` pre-check + `FriendshipAlreadyExistsError` (the message's own narrow enumeration leak — "a row exists" — is named and accepted above, not hidden); the unregistered branch never claims the request was "sent" — it's explicit that no account exists; nothing on the requester's side ever renders "declined" (`partitionFriendships`: their own view of a rejected row has no bucket at all). |
+| The recipient, including an unwanted request | Anyone who has their email can send a request; the recipient can Reject it, which is enforced server-side (`guard_friendships`: only the recipient may change `status`) so the requester cannot self-accept. **Resolved (coordinator review, B13 follow-up)**: Reject keeps the row (protecting the recipient from re-spam — the pair-unique index blocks a fresh request as long as ANY row exists) but the recipient is not stuck with it forever — a "Declined requests" section (`partitionFriendships`'s `declined` bucket, recipient-only) shows the requester's name with an Undo button that DELETES the row, freeing the pair for either side to request again whenever the recipient decides they're ready, entirely on the recipient's own timeline. A removed (not rejected) friendship works the same way — `friendships_delete` allows either party and always frees the pair. |
 | A person whose email is looked up (enumeration) | The lookup result — registered vs. not — is inherently revealing: a registered email creates a visible pending row; an unregistered one gets an invite path. This is authenticated-only (never reachable by an anonymous caller — `find_profile_by_email` is `revoke`d from `public, anon`) and exact-match (no partial/fuzzy search widens the blast radius to "anyone whose email starts with..."). There is no server-side rate limit on this function today, so an authenticated user could enumerate many candidate emails in a script. | Recorded as an open follow-up for the function owner: add a rate limit either inside `find_profile_by_email` (e.g. a per-caller counter table checked before the query) or at an edge/proxy layer in front of Supabase RPC calls. Not built in this issue — a decision for whoever owns that infrastructure, not something the client can enforce on itself. |
 | An unregistered invitee | Their email never reaches JustSplit's servers as a matter of app behavior beyond the lookup call itself (which only checks existence, stores nothing about the query) — the mailto opens the REQUESTER's own mail client with the invitee's address as the `to`, and JustSplit's own storage/logs gain no new record of that email. The invite body carries no personal data beyond the requester's own display name (optional). | No token, no invite record, no expiry to manage — there is nothing stored to leak. If the requester chooses not to send the mailto and instead pastes the copied link elsewhere, that's the requester's own action, outside this app's control (same as sharing any public URL). |
 
