@@ -15,19 +15,20 @@
  *   - i18n es/en
  */
 
+import { SITE } from '@/lib/site-meta';
+
 interface Props {
   lang?: 'es' | 'en';
 }
 
 const { lang = 'es' } = Astro.props;
 
-// Where the feedback issues get filed. To use this scaffold for your own
-// project, set PUBLIC_REPO_SLUG in .env (or your deploy host's env settings)
-// to `<owner>/<repo>` — e.g. `acme/storefront`. Falls back to the template
-// repo only as a sanity default during development.
-const repoSlug =
-  (import.meta.env.PUBLIC_REPO_SLUG as string | undefined) ??
-  'ArtemioPadilla/JustSplit';
+// Where the feedback issues get filed — single-sourced from site-meta.ts
+// (plan B6), which already reads PUBLIC_REPO_SLUG with the same default
+// repo fallback. This used to duplicate that same fallback string as its
+// own independent literal here — correct by coincidence, not by
+// construction (the two could silently drift on a re-brand).
+const repoSlug = SITE.repoSlug;
 const buildSha = import.meta.env.PUBLIC_BUILD_SHA || 'dev';
 const appVersion = import.meta.env.PUBLIC_VERSION || 'dev';
 
