@@ -301,6 +301,15 @@
     opacity: 0;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  /* Toasts still enter/exit (Base UI drives visibility via its own
+     data-starting-style/data-ending-style, not this transition), but the
+     slide/scale-in-place stacking motion is removed — an instant
+     appearance/reflow instead of the animated card stack (plan B17b). */
+  .bui-toast {
+    transition: none;
+  }
+}
 
 /* Staggered hero entrance — CSS-only, respects reduced-motion. */
 @keyframes justsplit-rise {

@@ -65,7 +65,10 @@ function ToastList() {
                 </BaseToast.Description>
               )}
             </div>
-            <BaseToast.Close className="absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100">
+            <BaseToast.Close
+              aria-label="Dismiss notification"
+              className="absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100"
+            >
               <XIcon className="h-4 w-4" />
             </BaseToast.Close>
           </BaseToast.Root>
@@ -81,6 +84,28 @@ interface ToasterProps {
 
 // Toaster mounts the Provider+Viewport pair. Place once in your layout.
 export function Toaster({ className }: ToasterProps) {
+  // `createToastManager()` (Base UI) is a pure emit/subscribe pair — `add()`
+  // synchronously calls whatever listeners are subscribed AT THAT MOMENT and
+  // holds no buffer of its own (@base-ui-components/react/toast/createToastManager.js).
+  // A toast fired before ANY <Toaster/> has mounted — e.g. a `client:only`
+  // route island reacting to a user action before the layout's `<ToasterIsland
+  // client:idle />` has hydrated — would otherwise be silently dropped. Flush
+  // `pendingToasts` (queued by `toast()` below) here: `BaseToast.Provider`'s
+  // own subscribe effect is in a DESCENDANT of this component and therefore
+  // commits before this effect (React fires child effects before parent
+  // effects on mount), so by the time this runs the manager already has a
+  // listener to receive the flushed toasts.
+  React.useEffect(() => {
+    toasterMounted = true;
+    if (pendingToasts.length > 0) {
+      const queued = pendingToasts.splice(0, pendingToasts.length);
+      queued.forEach((queuedOptions) => toastManager.add(queuedOptions));
+    }
+    return () => {
+      toasterMounted = false;
+    };
+  }, []);
+
   return (
     <BaseToast.Provider toastManager={toastManager}>
       <BaseToast.Viewport
@@ -96,8 +121,27 @@ export function Toaster({ className }: ToasterProps) {
   );
 }
 
+// Pre-hydration queue (plan B17b) — see the doc comment on `Toaster`'s
+// flush effect above. `toasterMounted` starts false; any `toast()` call
+// before the first `<Toaster/>` mount is buffered here instead of being
+// silently dropped by the manager's listener-less `add()`.
+let toasterMounted = false;
+const pendingToasts: Parameters<typeof toastManager.add>[0][] = [];
+let queuedIdCounter = 0;
+
+/** Fallback id generator for a queued toast — mirrors Base UI's own `generateId('toast')` shape closely enough to be unique and stable across the queue-then-flush hop (the same id is passed to the eventual `toastManager.add()` call, so a caller's returned id stays valid). */
+function generateQueuedToastId(): string {
+  queuedIdCounter += 1;
+  return `toast-queued-${Date.now()}-${queuedIdCounter}`;
+}
+
 // Convenience function to add a toast imperatively from anywhere in the app.
 export function toast(options: Parameters<typeof toastManager.add>[0]) {
+  if (!toasterMounted) {
+    const id = options.id ?? generateQueuedToastId();
+    pendingToasts.push({ ...options, id });
+    return id;
+  }
   return toastManager.add(options);
 }
 

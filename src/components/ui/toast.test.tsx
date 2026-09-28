@@ -102,11 +102,18 @@ describe('Toaster topology — one shared manager across independent React roots
     await screen.findByText('Dismiss me');
     // Base UI's own Close primitive sets `aria-hidden={!expanded}` — the
     // collapsed toast stack (the default, unfocused state) intentionally
-    // hides individual close buttons from assistive tech, and un-hides them
-    // once the region is expanded (hover, or a keyboard user tabbing into
-    // it — ToastViewport's own focus handler). `hidden: true` bypasses that
-    // filter here because this test only asserts the button itself carries
-    // an accessible name, not that it's reachable in the collapsed state.
-    expect(screen.getByRole('button', { name: /dismiss/i, hidden: true })).toBeInTheDocument();
+    // hides individual close buttons from assistive tech until the region
+    // is expanded (hover, or a keyboard user tabbing into it — Toast
+    // Viewport's own focus handler); `computeAccessibleName` (and so
+    // `getByRole`'s `name` matcher, even with `hidden: true`) returns '' for
+    // an `aria-hidden="true"` element regardless of its `aria-label`. That
+    // expand/collapse gating is Base UI's own, deliberate behavior and out
+    // of scope here — this asserts directly on the DOM that the close
+    // button element itself (whatever its current aria-hidden state) always
+    // carries the `aria-label` this issue adds, so it has a real accessible
+    // name once expanded.
+    const closeButton = document.querySelector('button[aria-label]');
+    expect(closeButton).not.toBeNull();
+    expect(closeButton?.getAttribute('aria-label')).toMatch(/dismiss/i);
   });
 });
