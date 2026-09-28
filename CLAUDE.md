@@ -49,6 +49,8 @@ Target (spec §4): `src/pages/` (Astro shells, one route island each),
 | `npm run test` | Vitest (Jest on the frozen Next tree) |
 | `npm run type-check` | `tsc --noEmit` |
 | `npm run format` | Prettier |
+| `npm run db:start` / `db:migrate` / `db:seed` | local Supabase stack + dbmate migrations + seed (`SETUP.md` §1) |
+| `npm run test:rls` | the RLS suite against the local stack (its own CI job; never part of `check`) |
 | `npm run doctor` | preflight: node ≥ 22, gh auth, clean tree, branch naming, config present |
 | `npm run monday` | open PRs, recent merges, top issues, local branches |
 | `npm run ship` | `check` → push → open PR (refuses from `main` or a dirty tree) |
