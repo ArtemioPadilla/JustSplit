@@ -1,5 +1,6 @@
 import { SupabaseAuthAdapter, SupabaseProfileStore } from '@cyber-eco/supabase';
 import type { StorageAdapter } from '@cyber-eco/types';
+import type { JustSplitProfile } from '@/schemas/profile';
 import { supabase } from './client';
 
 /**
@@ -21,6 +22,6 @@ export const storageAdapter: StorageAdapter | null = null; // B5a wires the rela
 export const authAdapter: SupabaseAuthAdapter | null = supabase ? new SupabaseAuthAdapter(supabase) : null;
 
 /** Public profile rows (`public.profiles`, plan B2); never a source of identity. */
-export const profileStore: SupabaseProfileStore | null = supabase
-  ? new SupabaseProfileStore(supabase, 'profiles')
+export const profileStore: SupabaseProfileStore<JustSplitProfile> | null = supabase
+  ? new SupabaseProfileStore<JustSplitProfile>(supabase, 'profiles')
   : null;

@@ -4,8 +4,7 @@ import * as React from 'react';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import type { AuthAdapter, AuthUser, ProfileStore } from '@cyber-eco/types';
-import { AuthProvider, createJustSplitProfile, onProfileLoaded } from '@/lib/auth-context';
-import type { JustSplitProfile } from '@/schemas/profile';
+import { AuthProvider, createJustSplitProfile, onProfileLoaded, type AuthProfile } from '@/lib/auth-context';
 import { $authReady, $profile, $user } from '@/stores/auth';
 import AuthBridge from './AuthBridge';
 
@@ -46,22 +45,22 @@ class MemoryAuthAdapter implements AuthAdapter {
 }
 
 /** Records every call so the test can assert "exactly one `set`". */
-class MemoryProfileStore implements ProfileStore<JustSplitProfile> {
+class MemoryProfileStore implements ProfileStore<AuthProfile> {
   calls: Array<{ method: 'get' | 'set' | 'update'; args: unknown[] }> = [];
-  private rows = new Map<string, JustSplitProfile>();
+  private rows = new Map<string, AuthProfile>();
 
-  async get(uid: string): Promise<JustSplitProfile | null> {
+  async get(uid: string): Promise<AuthProfile | null> {
     this.calls.push({ method: 'get', args: [uid] });
     return this.rows.get(uid) ?? null;
   }
-  async set(uid: string, profile: JustSplitProfile): Promise<void> {
+  async set(uid: string, profile: AuthProfile): Promise<void> {
     this.calls.push({ method: 'set', args: [uid, profile] });
     this.rows.set(uid, profile);
   }
-  async update(uid: string, partial: Partial<JustSplitProfile>): Promise<void> {
+  async update(uid: string, partial: Partial<AuthProfile>): Promise<void> {
     this.calls.push({ method: 'update', args: [uid, partial] });
     const existing = this.rows.get(uid);
-    this.rows.set(uid, { ...existing, ...partial } as JustSplitProfile);
+    this.rows.set(uid, { ...existing, ...partial } as AuthProfile);
   }
 }
 
@@ -99,7 +98,7 @@ describe('AuthBridge (plan B4 test 1)', () => {
 
     const setCalls = profileStore.calls.filter((c) => c.method === 'set');
     expect(setCalls).toHaveLength(1);
-    const [, written] = setCalls[0]!.args as [string, JustSplitProfile];
+    const [, written] = setCalls[0]!.args as [string, AuthProfile];
     expect(written.apps).toEqual(['justsplit']);
     expect(written.preferences).toEqual({ preferredCurrency: 'USD' });
     expect($profile.get()).toEqual(written);
