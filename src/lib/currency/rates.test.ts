@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanTestStorage, useTestStorageEngine as enableTestPersistentStorage } from '@nanostores/persistent';
+import { useTestStorageEngine as enableTestPersistentStorage } from '@nanostores/persistent';
+import { createRateCache } from '@/domain/currency';
+import { $rateCache, setRateCacheEntry } from '@/stores/preferences';
+import { fetchExchangeRate } from './rates';
 
 /**
  * Plan B16: `fetchExchangeRate` is the single call site every widget in this
@@ -11,6 +14,20 @@ import { cleanTestStorage, useTestStorageEngine as enableTestPersistentStorage }
  * — a fresh rate must reach `setRateCacheEntry` (the only thing that survives
  * a reload / notifies subscribers), and a still-valid cached rate must not
  * trigger a network call at all.
+ *
+ * NOTE: this deliberately does NOT use `@nanostores/persistent`'s
+ * `cleanTestStorage()` between tests. `$rateCache.get()` (called by
+ * `fetchExchangeRate` itself) is a flash subscribe/unsubscribe
+ * (`atom.get()` momentarily mounts the store when it has no listener yet —
+ * `nanostores/atom`), and a mounted `persistentAtom`'s real unmount (which
+ * detaches its storage-event listener) is deferred by nanostores'
+ * `STORE_UNMOUNT_DELAY` (1000ms real wall-clock time, not fake-timer
+ * driven). `cleanTestStorage()` synchronously replays a `newValue:
+ * undefined` storage event to every still-attached listener — including one
+ * from a previous test's not-yet-unmounted flash subscribe — which crashes
+ * `$rateCache`'s custom `decode` (`JSON.parse(undefined)`). Resetting the
+ * atom directly with `.set()` (a real, supported store API) sidesteps the
+ * storage-event replay entirely.
  */
 enableTestPersistentStorage();
 
@@ -19,7 +36,7 @@ function jsonResponse(body: unknown, ok = true): Response {
 }
 
 beforeEach(() => {
-  cleanTestStorage();
+  $rateCache.set(createRateCache());
   vi.unstubAllGlobals();
 });
 
@@ -32,9 +49,6 @@ describe('fetchExchangeRate', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ result: 'success', rates: { EUR: 0.9 } }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const { fetchExchangeRate } = await import('./rates');
-    const { $rateCache } = await import('@/stores/preferences');
-
     const result = await fetchExchangeRate('USD', 'EUR');
 
     expect(result).toEqual({ rate: 0.9, isFallback: false });
@@ -44,13 +58,11 @@ describe('fetchExchangeRate', () => {
   });
 
   it('does not call fetch when a valid cached entry already covers the pair', async () => {
-    const { setRateCacheEntry } = await import('@/stores/preferences');
     setRateCacheEntry('USD', { rates: { EUR: 0.85 }, timestamp: Date.now() });
 
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const { fetchExchangeRate } = await import('./rates');
     const result = await fetchExchangeRate('USD', 'EUR');
 
     expect(result).toEqual({ rate: 0.85, isFallback: false });
