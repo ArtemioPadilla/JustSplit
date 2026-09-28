@@ -2,26 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { $user } from '@/stores/session';
 
 /**
- * Plan B12 (risk:high, ADR 0002 amendment "group membership lifecycle"):
- * `repos.groups.remove` deletes a group by ungrouping every one of its
- * expenses/events (`groupId = null`) and deleting the row itself in ONE
- * `batchWrite`, same "one atomic batch" contract B14's settle-up will use.
+ * Plan B12 (risk:high), rewritten for plan B2d (ADR 0013): `repos.groups.remove`
+ * is a PLAIN delete. `group_id` is a foreign key ON DELETE SET NULL
+ * (`db/migrations/20260928000011_membership_foreign_keys.sql`), so the database
+ * ungroups every expense, event and settlement itself, atomically — including
+ * rows the admin cannot see and rows naming people the admin is not friends
+ * with. The old friendship preflight, the read-everything-then-ungroup batch and
+ * `GroupDeleteBlockedByFriendshipError` are gone.
  *
- * Preflights BEFORE any write (mirrors `expenses.remove.test.ts`'s own
- * "delete ordering preflight" pattern, ADR 0005 amendment — client-side
- * safety checks against a destructive PARTIAL operation, never
- * authorization; RLS is still the sole authority, CLAUDE.md rule 8):
- *   (a) the caller must be a fresh-read admin of the group;
- *   (b) ungrouping must never leave an expense/event whose OTHER members
- *       (per `violatesNoGroupInvariant`) are not accepted friends of the
- *       acting admin — the no-group `expenses_update`/`events_update` WITH
- *       CHECK would reject it row by row otherwise, leaving the group
- *       half-ungrouped and undeletable.
- *
- * Post-write: `batch_write`'s DELETE op is a silent no-op when denied
- * (`db/migrations/20260928000008_batch_write.sql`) — this suite proves
- * `remove()` re-reads the group afterwards and reports failure honestly
- * when it is still there, rather than claiming success.
+ * Kept (client-side safety, never authorization; RLS is the authority, CLAUDE.md
+ * rule 8): the fresh-read admin preflight, and the post-delete re-read —
+ * `expense_groups_delete` denies a non-admin as a silent 0-row delete, so "the
+ * call didn't error" is never proof the group is gone.
  */
 vi.mock('@/lib/data/adapter', async () => {
   const { createMemoryAdapter } = await import('@/tests/memory-adapter');
@@ -31,7 +23,6 @@ vi.mock('@/lib/data/adapter', async () => {
 const groups = await import('./groups');
 const expenses = await import('./expenses');
 const events = await import('./events');
-const friendships = await import('./friendships');
 const { storageAdapter } = await import('@/lib/data/adapter');
 
 const NOW = '2026-09-28T00:00:00.000Z';
@@ -103,11 +94,11 @@ describe('repos.groups.remove', () => {
     expect(await groups.get(group.id)).toBeNull();
   });
 
-  it('ungroups every group expense/event and deletes the group, when the actor is friends with every other member', async () => {
+  it('deletes the group and leaves every expense and event ungrouped (the foreign key does it), with no friendship needed', async () => {
     const group = await groups.create(groupBase());
     const expense = await expenses.create(expenseBase({ groupId: group.id, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 50 }, { userId: 'u2', amount: 50 }] }));
     const event = await events.create(eventBase({ groupId: group.id, memberIds: ['u1', 'u2'] }));
-    await friendships.create({ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' });
+    // No friendships row at all between u1 and u2.
     signIn('u1');
 
     await groups.remove(group.id);
@@ -115,6 +106,22 @@ describe('repos.groups.remove', () => {
     expect(await groups.get(group.id)).toBeNull();
     expect((await expenses.get(expense.id))?.groupId).toBeNull();
     expect((await events.get(event.id))?.groupId).toBeNull();
+  });
+
+  it('is a single delete: it never reads the group\'s rows or the admin\'s friendships and never sends a batch', async () => {
+    const group = await groups.create(groupBase());
+    await expenses.create(expenseBase({ groupId: group.id, memberIds: ['u1', 'u2'] }));
+    signIn('u1');
+    const querySpy = vi.spyOn(storageAdapter!, 'query');
+    const batchSpy = vi.spyOn(storageAdapter!, 'batchWrite');
+    const deleteSpy = vi.spyOn(storageAdapter!, 'deleteDocument');
+
+    await groups.remove(group.id);
+
+    expect(deleteSpy).toHaveBeenCalledTimes(1);
+    expect(deleteSpy).toHaveBeenCalledWith('expense_groups', group.id);
+    expect(batchSpy).not.toHaveBeenCalled();
+    expect(querySpy).not.toHaveBeenCalled();
   });
 
   it('denies a non-admin, and nothing is deleted or changed', async () => {
@@ -128,30 +135,34 @@ describe('repos.groups.remove', () => {
     expect((await expenses.get(expense.id))?.groupId).toBe(group.id);
   });
 
-  it('blocks deletion when ungrouping would leave a row whose other members are not the admin\'s accepted friends', async () => {
+  it('deletes a group whose rows name people the admin is not friends with, and ungroups a row the admin is not on (the old friendship block is gone)', async () => {
     const group = await groups.create(groupBase({ memberIds: ['u1', 'u2', 'u3'], adminIds: ['u1'] }));
-    const expense = await expenses.create(
+    const withStranger = await expenses.create(
       expenseBase({ groupId: group.id, memberIds: ['u1', 'u3'], paidBy: 'u1', splits: [{ userId: 'u1', amount: 50 }, { userId: 'u3', amount: 50 }] }),
     );
-    // u1 and u3 are NOT accepted friends — no friendships row at all.
+    const notOnAdmin = await expenses.create(
+      expenseBase({ groupId: group.id, memberIds: ['u2', 'u3'], paidBy: 'u2', createdBy: 'u2', splits: [{ userId: 'u2', amount: 50 }, { userId: 'u3', amount: 50 }] }),
+    );
     signIn('u1');
 
-    await expect(groups.remove(group.id)).rejects.toMatchObject({ name: 'GroupDeleteBlockedByFriendshipError' });
+    await groups.remove(group.id);
 
-    expect(await groups.get(group.id)).not.toBeNull();
-    expect((await expenses.get(expense.id))?.groupId).toBe(group.id);
+    expect(await groups.get(group.id)).toBeNull();
+    expect((await expenses.get(withStranger.id))?.groupId).toBeNull();
+    expect((await expenses.get(notOnAdmin.id))?.groupId).toBeNull();
   });
 
   it('reports failure honestly when the delete op is a silent no-op and the group is still there after the batch', async () => {
     const group = await groups.create(groupBase({ memberIds: ['u1'], adminIds: ['u1'], members: [groupBase().members[0]] }));
     signIn('u1');
-    // Simulate batch_write's own "delete is a silent no-op when denied"
-    // contract: the RPC reports success, but the row never actually left.
-    const batchSpy = vi.spyOn(storageAdapter!, 'batchWrite').mockResolvedValue({ success: true, count: 1 });
+    // Simulate RLS's silent 0-row delete (`expense_groups_delete` denies a
+    // non-admin without an error): the call reports success, but the row never
+    // actually left.
+    const deleteSpy = vi.spyOn(storageAdapter!, 'deleteDocument').mockResolvedValue({ id: group.id, success: true });
 
     await expect(groups.remove(group.id)).rejects.toMatchObject({ name: 'GroupDeleteVerificationFailedError' });
 
-    batchSpy.mockRestore();
+    deleteSpy.mockRestore();
   });
 
   it('throws a typed not-found error for an unknown id', async () => {
