@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import { parseCalendarDate } from '@/domain/dates';
+import { isLegacySettled } from '@/domain/ledger';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvents } from '@/lib/data/hooks/useEvents';
 import { useExpenses } from '@/lib/data/hooks/useExpenses';
@@ -117,9 +118,11 @@ function ExpenseListContent() {
   }, [expenses, eventFilter]);
   const selectedEvent = events.find((event) => event.id === eventFilter);
 
+  // Only a legacy (imported) settledAt is a per-expense status (ADR 0014); without one the column would be blank.
+  const showStatus = React.useMemo(() => expenses.some(isLegacySettled), [expenses]);
   const columns = React.useMemo<ColumnDef<Expense>[]>(
-    () => buildColumns({ names: userNames, events, convert, displayCurrency }),
-    [userNames, events, convert, displayCurrency],
+    () => buildColumns({ names: userNames, events, convert, displayCurrency, showStatus }),
+    [userNames, events, convert, displayCurrency, showStatus],
   );
 
   const csvUsers = React.useMemo(() => Object.entries(userNames).map(([id, name]) => ({ id, name })), [userNames]);
@@ -199,10 +202,11 @@ interface BuildColumnsArgs {
   events: Event[];
   convert: (amount: number, currency: string) => number;
   displayCurrency: string;
+  showStatus: boolean;
 }
 
-function buildColumns({ names: userNames, events, convert, displayCurrency }: BuildColumnsArgs): ColumnDef<Expense>[] {
-  return [
+function buildColumns({ names: userNames, events, convert, displayCurrency, showStatus }: BuildColumnsArgs): ColumnDef<Expense>[] {
+  const columns: ColumnDef<Expense>[] = [
     {
       id: 'description',
       accessorKey: 'description',
@@ -259,15 +263,15 @@ function buildColumns({ names: userNames, events, convert, displayCurrency }: Bu
         );
       },
     },
-    {
+  ];
+
+  if (showStatus) {
+    columns.push({
       id: 'status',
       header: 'Status',
-      cell: ({ row }) =>
-        row.original.settledAt != null ? (
-          <Badge>Settled</Badge>
-        ) : (
-          <Badge variant="outline">Unsettled</Badge>
-        ),
-    },
-  ];
+      cell: ({ row }) => (isLegacySettled(row.original) ? <Badge>Settled</Badge> : null),
+    });
+  }
+
+  return columns;
 }

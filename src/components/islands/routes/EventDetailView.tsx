@@ -320,6 +320,7 @@ function EventFigures({ event, expenses, settlements, names, avatars, displayCur
             users={names}
             convert={convert}
             currency={displayCurrency}
+            showSettlementStatus={false}
             onNavigate={(expenseId) => window.location.assign(withBase(`/expenses/${expenseId}`))}
           />
         ) : (

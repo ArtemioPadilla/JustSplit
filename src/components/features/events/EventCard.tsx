@@ -89,6 +89,7 @@ export function EventCard({ event, expenses, settlements, names, avatars, displa
           users={names}
           convert={convert}
           currency={displayCurrency}
+          showSettlementStatus={false}
           onNavigate={(expenseId) => window.location.assign(withBase(`/expenses/${expenseId}`))}
         />
       ) : (

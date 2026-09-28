@@ -85,10 +85,19 @@ export interface EventTimelineProps {
   currency: string;
   /** Called when the caller should navigate to an expense's detail page. */
   onNavigate: (expenseId: string) => void;
+  /**
+   * Whether markers, legend and labels state a per-expense settled / unsettled
+   * status (default `true`). The events islands pass `false` since plan B14a
+   * (ADR 0014): settling up is a payment on a ledger, so no per-expense state can
+   * be derived honestly, and a widget that called every unpaid expense
+   * "unsettled" would contradict the event's own progress figure. Markers are
+   * then neutral and nothing claims a settlement state.
+   */
+  showSettlementStatus?: boolean;
   className?: string;
 }
 
-type SettlementStatus = 'settled' | 'unsettled' | 'mixed';
+type SettlementStatus = 'settled' | 'unsettled' | 'mixed' | 'neutral';
 
 function isSettled(expense: EventTimelineExpense): boolean {
   return expense.settledAt != null;
@@ -105,25 +114,27 @@ const STATUS_LABEL: Record<SettlementStatus, string> = {
   settled: 'settled',
   unsettled: 'unsettled',
   mixed: 'partially settled',
+  neutral: '',
 };
 
 const STATUS_MARKER_CLASSES: Record<SettlementStatus, string> = {
   settled: 'bg-chart-2',
   unsettled: 'bg-destructive',
   mixed: 'bg-chart-4',
+  neutral: 'bg-primary',
 };
 
 function paidByName(users: Record<string, string>, paidBy: string): string {
   return users[paidBy] ?? 'Unknown';
 }
 
-function expenseAriaLabel(expense: EventTimelineExpense, convert: EventTimelineProps['convert'], currency: string): string {
+function expenseAriaLabel(expense: EventTimelineExpense, convert: EventTimelineProps['convert'], currency: string, showStatus: boolean): string {
   const amount = formatCurrency(convert(expense.amount, expense.currency), currency);
-  const status = isSettled(expense) ? 'Settled' : 'Unsettled';
-  return `View expense: ${expense.description}, ${amount}, ${status}, ${formatTimelineDate(expense.date)}`;
+  const status = showStatus ? `${isSettled(expense) ? 'Settled' : 'Unsettled'}, ` : '';
+  return `View expense: ${expense.description}, ${amount}, ${status}${formatTimelineDate(expense.date)}`;
 }
 
-export function EventTimeline({ event, expenses, users, convert, currency, onNavigate, className }: EventTimelineProps) {
+export function EventTimeline({ event, expenses, users, convert, currency, onNavigate, showSettlementStatus = true, className }: EventTimelineProps) {
   const [panelFocused, setPanelFocused] = React.useState(false);
   const startDate = event.startDate ?? event.date;
 
@@ -135,9 +146,9 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
   const groups = groupNearbyExpenses(expenses, event);
   const hasPreEvent = groups.some((group) => group.position < 0);
   const hasPostEvent = groups.some((group) => group.position > 100);
-  const hasSettled = expenses.some(isSettled);
-  const hasUnsettled = expenses.some((expense) => !isSettled(expense));
-  const hasMixedGroup = groups.some((group) => group.expenses.length > 1 && groupStatus(group.expenses) === 'mixed');
+  const hasSettled = showSettlementStatus && expenses.some(isSettled);
+  const hasUnsettled = showSettlementStatus && expenses.some((expense) => !isSettled(expense));
+  const hasMixedGroup = showSettlementStatus && groups.some((group) => group.expenses.length > 1 && groupStatus(group.expenses) === 'mixed');
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
@@ -154,14 +165,17 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
             const isPreEvent = group.position < 0;
             const isPostEvent = group.position > 100;
             const clampedLeft = isPreEvent ? 0 : isPostEvent ? 100 : group.position;
-            const status = groupStatus(group.expenses);
+            const status: SettlementStatus = showSettlementStatus ? groupStatus(group.expenses) : 'neutral';
             const isGrouped = group.expenses.length > 1;
 
+            const placement = isPreEvent ? ', before the event' : isPostEvent ? ', after the event' : '';
             const label = isGrouped
-              ? `${group.expenses.length} expenses (${STATUS_LABEL[status]}) — ${group.expenses.filter(isSettled).length} settled, ${
-                  group.expenses.filter((e) => !isSettled(e)).length
-                } unsettled${isPreEvent ? ', before the event' : isPostEvent ? ', after the event' : ''}`
-              : `${expenseAriaLabel(group.expenses[0], convert, currency)}${
+              ? showSettlementStatus
+                ? `${group.expenses.length} expenses (${STATUS_LABEL[status]}) — ${group.expenses.filter(isSettled).length} settled, ${
+                    group.expenses.filter((e) => !isSettled(e)).length
+                  } unsettled${placement}`
+                : `${group.expenses.length} expenses${placement}`
+              : `${expenseAriaLabel(group.expenses[0], convert, currency, showSettlementStatus)}${
                   isPreEvent ? ' (before the event)' : isPostEvent ? ' (after the event)' : ''
                 }`;
 
@@ -189,7 +203,7 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
                       <p className="text-sm font-medium text-popover-foreground">
                         {isGrouped ? `${group.expenses.length} expenses` : 'Expense details'}
                       </p>
-                      {isGrouped && (
+                      {isGrouped && showSettlementStatus && (
                         <p className="text-xs text-muted-foreground">
                           {group.expenses.filter(isSettled).length} settled, {group.expenses.filter((e) => !isSettled(e)).length} unsettled
                         </p>
@@ -202,12 +216,12 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
                             type="button"
                             tabIndex={-1}
                             onClick={() => onNavigate(expense.id)}
-                            aria-label={expenseAriaLabel(expense, convert, currency)}
+                            aria-label={expenseAriaLabel(expense, convert, currency, showSettlementStatus)}
                             className="flex w-full flex-col gap-0.5 rounded-md p-2 text-left text-xs hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
                           >
                             <span className="flex items-center justify-between gap-2 font-medium text-popover-foreground">
                               <span>{expense.description}</span>
-                              <span>{isSettled(expense) ? 'Settled' : 'Unsettled'}</span>
+                              {showSettlementStatus && <span>{isSettled(expense) ? 'Settled' : 'Unsettled'}</span>}
                             </span>
                             <span className="flex items-center justify-between gap-2 text-muted-foreground">
                               <span>{formatTimelineDate(expense.date)}</span>
@@ -296,7 +310,7 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
                   onClick={() => onNavigate(expense.id)}
                   className="w-full rounded-md p-2 text-left text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {expenseAriaLabel(expense, convert, currency)}
+                  {expenseAriaLabel(expense, convert, currency, showSettlementStatus)}
                 </button>
               </li>
             ))}

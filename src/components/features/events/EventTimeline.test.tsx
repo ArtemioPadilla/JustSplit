@@ -142,7 +142,8 @@ describe('EventTimeline — showSettlementStatus={false} (plan B14a, ADR 0014: n
       expect(entry.textContent).not.toMatch(/settled/i);
     }
     // Still names the expense and its amount.
-    expect(screen.getByRole('button', { name: /View expense: Start date expense, \$50\.00, Jun 1, 2023/ })).toBeInTheDocument();
+    // Once as the marker, once in the text alternative.
+    expect(screen.getAllByRole('button', { name: /View expense: Start date expense, \$50\.00, Jun 1, 2023/ })).toHaveLength(2);
   });
 
   it('keeps the pre-/post-event legend and every expense reachable', () => {

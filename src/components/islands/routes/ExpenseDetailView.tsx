@@ -10,6 +10,7 @@ import { DeleteExpenseDialog } from '@/components/features/expenses/DeleteExpens
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import { ReceiptGallery } from '@/components/features/expenses/ReceiptGallery';
 import { parseCalendarDate } from '@/domain/dates';
+import { isLegacySettled } from '@/domain/ledger';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvent } from '@/lib/data/hooks/useEvent';
 import { useExpense } from '@/lib/data/hooks/useExpense';
@@ -190,7 +191,8 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
           onValueCommit={handleDescriptionCommit}
           className="font-display text-2xl font-semibold text-foreground"
         />
-        {expense.settledAt != null ? <Badge>Settled</Badge> : <Badge variant="outline">Unsettled</Badge>}
+        {/* Only a legacy (imported) settledAt: nothing per-expense is derivable from the ledger (ADR 0014). */}
+        {isLegacySettled(expense) && <Badge>Settled</Badge>}
       </div>
 
       <div className="flex flex-col gap-2">
