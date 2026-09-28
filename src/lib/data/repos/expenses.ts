@@ -18,7 +18,7 @@ export function forGroupFilters(groupId: string): QueryFilter[] {
   return [{ field: 'groupId', operator: '==', value: groupId }];
 }
 
-/** An event's expenses (`eventId` has no column; the adapter resolves it to `extra->>'eventId'`). */
+/** An event's expenses (`eventId` is the `event_id` column since B2d, ADR 0013). */
 export function forEventFilters(eventId: string): QueryFilter[] {
   return [{ field: 'eventId', operator: '==', value: eventId }];
 }

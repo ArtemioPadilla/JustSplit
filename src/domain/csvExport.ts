@@ -54,7 +54,7 @@ export const expensesToCSV = (expenses: Expense[], users: CsvNamedUser[], events
 
   const getUserName = (userId: string): string => users.find((u) => u.id === userId)?.name ?? 'Unknown';
 
-  const getEventName = (eventId?: string): string => {
+  const getEventName = (eventId?: string | null): string => {
     if (!eventId) return 'No Event';
     return events.find((e) => e.id === eventId)?.name ?? 'Unknown Event';
   };

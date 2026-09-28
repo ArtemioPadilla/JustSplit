@@ -171,7 +171,7 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
       candidateIds: Array.from(new Set([...base, ...(expense?.memberIds ?? [])])),
       groupId: expense?.groupId ?? undefined,
       groupMemberIds: expense?.groupId ? groupQuery.data?.memberIds : undefined,
-      eventId: expense?.eventId,
+      eventId: expense?.eventId ?? undefined,
       excludedNonFriendCount: 0,
     };
   }, [
