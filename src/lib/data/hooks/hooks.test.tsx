@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  * filters, `persist: true`, mutation invalidation), not the subscription
  * mechanics again.
  */
-const liveQuerySpy = vi.fn(() => ({ data: undefined }));
+const liveQuerySpy = vi.fn((..._args: unknown[]) => ({ data: undefined }));
 vi.mock('./useLiveQuery', () => ({ useLiveQuery: liveQuerySpy }));
 
 const expensesRepo = {
@@ -27,8 +27,12 @@ vi.mock('../repos/groups', () => groupsRepo);
 const profilesRepo = { byIds: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: id, avatarUrl: null }))) };
 vi.mock('../repos/profiles', () => profilesRepo);
 
+const eventsRepo = { forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]) };
+vi.mock('../repos/events', () => eventsRepo);
+
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
 const { useGroup } = await import('./useGroup');
+const { useGroupEvents } = await import('./useEvents');
 const { useCreateExpense } = await import('./useCreateExpense');
 const { useProfiles } = await import('./useProfiles');
 
@@ -71,6 +75,20 @@ describe('useExpenses / useGroupExpenses', () => {
     }
     withClient(<Probe />);
     expect(liveQuerySpy).toHaveBeenCalledWith(['expenses', 'group', 'g1'], 'expenses', expensesRepo.forGroupFilters('g1'), {
+      enabled: true,
+      persist: true,
+    });
+  });
+});
+
+describe('useGroupEvents', () => {
+  it("subscribes 'events' with the groupId==id filter (plan text explicitly names this hook)", () => {
+    function Probe() {
+      useGroupEvents('g1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(liveQuerySpy).toHaveBeenCalledWith(['events', 'group', 'g1'], 'events', eventsRepo.forGroupFilters('g1'), {
       enabled: true,
       persist: true,
     });
