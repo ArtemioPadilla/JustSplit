@@ -1105,10 +1105,10 @@ backend decision; ADR numbers are allocation order, not merge order).
       (`src/tests/data-boundary.test.ts`) is what actually enforces the invariant and is green]
 
 ### B5b. Supabase Storage helpers + `preferences.ts` + `notifications.ts` (store only) (`risk:high`)
-- [ ] ADR `docs/decisions/0005-supabase-storage-images.md`: private bucket `receipts` with the
+- [x] ADR `docs/decisions/0005-supabase-storage-images.md`: private bucket `receipts` with the
       spec D10 object-path layout and `storage.objects` policies (B2 migration) vs base64 in
       `extra` (zero backend surface, row bloat). Default: Storage, as below
-- [ ] `src/lib/data/storage.ts`: `uploadReceipt(expenseId, file)` →
+- [x] `src/lib/data/storage.ts`: `uploadReceipt(expenseId, file)` →
       `expenses/{expenseId}/{uuid}.jpg` — the expense row must already exist (the storage policy
       checks `public.expenses` for the folder id), so callers insert the row first (B10);
       `uploadAvatar(uid, file)` → `avatars/{uid}/{uuid}.jpg` (a flat `avatars/{uid}.jpg` has no
@@ -1119,18 +1119,30 @@ backend decision; ADR numbers are allocation order, not merge order).
       before upload (`fileUtils`); `signedUrl(path, 3600)` with a small in-memory cache;
       `Expense.images[]` and `profiles."avatarUrl"` store the object path; an `<ReceiptImage path>`
       component resolves it. Policies are tested in the B2b suite
-- [ ] `src/stores/preferences.ts`: `$preferredCurrency` derived from
+      — **deviations**: (1) `resizeImage` lives in `storage.ts` itself, not `fileUtils.ts` — it
+      needs injectable `createImageBitmap`/canvas parameters to be unit-testable, which would pull
+      a browser-API-shaped dependency into `fileUtils.ts`'s otherwise framework-free, Node-safe
+      surface (today just `ensureCSVExtension`); `fileUtils.ts` is unchanged. (2) `uploadAvatar`
+      uploads only — it does not itself call the profile-update-then-remove-old-avatar sequence,
+      since no caller (profile-edit UI) exists yet to own that ordering; `removeAvatar(path)` is
+      exported as the building block, documented as "call only after the profile update succeeds,"
+      for that future caller (plan B10+) to use. `uploadAvatar`'s `uid` is a parameter, not read
+      from `$user` directly (avoids a `src/lib/data/` -> `src/stores/` dependency): it is
+      re-verified against the live session's `auth.getUser()` and refused on a mismatch, tested in
+      `storage.test.ts`, per the RLS invariant `(storage.foldername(name))[2] = auth.uid()`.
+- [x] `src/stores/preferences.ts`: `$preferredCurrency` derived from
       `$profile.preferences.preferredCurrency` (`profiles.preferences` is the source of truth),
       mirrored for first paint with `@nanostores/persistent` (added in B1; the `stores/theme.ts`
       `onMount` + `localStorage` pattern is the alternative) and `$rateCache` (6 h exchange-rate
       cache under `justsplit:rates`)
-- [ ] `src/stores/notifications.ts` (toast queue): thin wrapper over Inceptor's `toast()`;
+- [x] `src/stores/notifications.ts` (toast queue): thin wrapper over Inceptor's `toast()`;
       B8–B16 fire toasts via `notifications.ts` only, so the topology decided in B17b can change
       without touching feature islands
-- [ ] Tests: `$preferredCurrency` follows `$profile`; storage helper path layout and resize;
+- [x] Tests: `$preferredCurrency` follows `$profile`; storage helper path layout and resize;
       signed-URL cache expiry
-- [ ] Acceptance: an upload against `supabase start` lands under `receipts/expenses/…` and renders
-      through a signed URL; the B2b storage cases stay green
+- [x] Acceptance: an upload against `supabase start` lands under `receipts/expenses/…` and renders
+      through a signed URL (`src/tests/storage.live.test.ts`, `npm run test:contract:live`); the
+      B2b storage cases stay green (`npm run test:rls`, `src/tests/rls/storage.test.ts`, unchanged)
 
 ### B6. Layout, header, theme, FeedbackFAB
 - [ ] `BaseLayout.astro` re-branded (title, JSON-LD `WebApplication`, description); `Header.astro`
