@@ -18,6 +18,9 @@ const expensesRepo = {
   forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]),
   forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
   create: vi.fn(async (input: unknown) => ({ id: 'e1', ...(input as object) })),
+  get: vi.fn(async (id: string) => ({ id, description: 'Tacos' })),
+  update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
+  remove: vi.fn(async () => undefined),
 };
 vi.mock('../repos/expenses', () => expensesRepo);
 
@@ -27,16 +30,23 @@ vi.mock('../repos/groups', () => groupsRepo);
 const profilesRepo = { byIds: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, name: id, avatarUrl: null }))) };
 vi.mock('../repos/profiles', () => profilesRepo);
 
-const eventsRepo = { forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]) };
+const eventsRepo = {
+  forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
+  get: vi.fn(async (id: string) => ({ id, name: 'Trip' })),
+};
 vi.mock('../repos/events', () => eventsRepo);
 
 const settlementsRepo = { forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]) };
 vi.mock('../repos/settlements', () => settlementsRepo);
 
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
+const { useExpense } = await import('./useExpense');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
+const { useEvent } = await import('./useEvent');
 const { useCreateExpense } = await import('./useCreateExpense');
+const { useUpdateExpense } = await import('./useUpdateExpense');
+const { useDeleteExpense } = await import('./useDeleteExpense');
 const { useProfiles } = await import('./useProfiles');
 const { useSettlements } = await import('./useSettlements');
 
@@ -123,6 +133,56 @@ describe('useSettlements (plan B8b — same pattern as useExpenses/useEvents)', 
   });
 });
 
+describe('useExpense (non-live detail query, plan B9)', () => {
+  it('fetches through repos.expenses.get, keyed by id', async () => {
+    function Probe({ onData }: { onData: (d: unknown) => void }) {
+      const { data } = useExpense('e1');
+      React.useEffect(() => {
+        if (data) onData(data);
+      }, [data, onData]);
+      return null;
+    }
+    const onData = vi.fn();
+    withClient(<Probe onData={onData} />);
+    await waitFor(() => expect(expensesRepo.get).toHaveBeenCalledWith('e1'));
+    await waitFor(() => expect(onData).toHaveBeenCalledWith({ id: 'e1', description: 'Tacos' }));
+  });
+
+  it('is disabled (never calls repos.expenses.get) while id is undefined', () => {
+    function Probe() {
+      useExpense(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    expect(expensesRepo.get).not.toHaveBeenCalled();
+  });
+});
+
+describe('useEvent (non-live detail query, plan B9)', () => {
+  it('fetches through repos.events.get, keyed by id', async () => {
+    function Probe({ onData }: { onData: (d: unknown) => void }) {
+      const { data } = useEvent('ev1');
+      React.useEffect(() => {
+        if (data) onData(data);
+      }, [data, onData]);
+      return null;
+    }
+    const onData = vi.fn();
+    withClient(<Probe onData={onData} />);
+    await waitFor(() => expect(eventsRepo.get).toHaveBeenCalledWith('ev1'));
+    await waitFor(() => expect(onData).toHaveBeenCalledWith({ id: 'ev1', name: 'Trip' }));
+  });
+
+  it('is disabled (never calls repos.events.get) while id is undefined', () => {
+    function Probe() {
+      useEvent(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    expect(eventsRepo.get).not.toHaveBeenCalled();
+  });
+});
+
 describe('useGroup (non-live detail query)', () => {
   it('fetches through repos.groups.get, keyed by id', async () => {
     function Probe({ onData }: { onData: (d: unknown) => void }) {
@@ -158,6 +218,50 @@ describe('useCreateExpense', () => {
     await waitFor(() => expect(expensesRepo.create).toHaveBeenCalled());
     await waitFor(() => expect(mutateResult).toMatchObject({ id: 'e1' }));
     expect(invalidateSpy).toHaveBeenCalled();
+  });
+});
+
+describe('useUpdateExpense (plan B9)', () => {
+  it('calls repos.expenses.update and invalidates the affected query keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useUpdateExpense();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'e1', patch: { description: 'Pizza' } }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.update).toHaveBeenCalledWith('e1', { description: 'Pizza' }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'e1', description: 'Pizza' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+  });
+});
+
+describe('useDeleteExpense (plan B9)', () => {
+  it('calls repos.expenses.remove and invalidates the affected query keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useDeleteExpense();
+      React.useEffect(() => {
+        void mutation.mutateAsync('e1').then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.remove).toHaveBeenCalledWith('e1'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
   });
 });
 

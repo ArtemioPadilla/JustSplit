@@ -53,6 +53,21 @@ describe('expenses/{expenseId}/…', () => {
     expect((await upload(B.db, path, { upsert: true })).error).not.toBeNull();
   });
 
+  it(
+    'a member who is neither the creator nor the payer may still delete the object ' +
+      '(receipts_expenses_delete is member-wide by design, plan B9/ADR 0005 amendment — ' +
+      'narrower than expenses_delete itself, see expenses.test.ts "delete" describe block)',
+    async () => {
+      const e = await seed('expenses', expenseRow(A, [C])); // A: creator/payer, C: member only
+      const path = `expenses/${e.id}/${uuid()}.jpg`;
+      expect((await upload(A.db, path)).error).toBeNull();
+
+      const removed = await bucket(C).remove([path]);
+      expect(removed.error).toBeNull();
+      expect(removed.data).toHaveLength(1);
+    },
+  );
+
   it('a non-member cannot upload under someone else’s expense', async () => {
     const e = await seed('expenses', expenseRow(A, [C]));
     expect((await upload(B.db, `expenses/${e.id}/${uuid()}.jpg`)).error).not.toBeNull();

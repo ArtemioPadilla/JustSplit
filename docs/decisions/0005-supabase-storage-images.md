@@ -125,14 +125,124 @@ None.
 | Maintainer | A signed-URL cache that fails to expire correctly could either leak a URL past its real validity (security) or serve a caller a URL the server has already invalidated (breakage). | The cache margin (10% of the TTL, capped at 60s) is tested with fake timers on both sides of the boundary — one test asserts a cache hit just before the margin, another asserts a forced refetch just after it (`src/lib/data/storage.test.ts`). |
 | Maintainer / on-call | A partially-failed delete (objects removed, row delete fails; or the reverse) could either orphan unreachable storage bytes or leave a row with dead image references. | The order is fixed (objects, then row) and enforced by a test that fails the row delete when the storage call rejects (`src/lib/data/repos/expenses.remove.test.ts`) — a failure here surfaces as a normal thrown error the caller can retry, never a silent partial state. |
 
+## Amendment (2026-09-28, plan B9): delete ordering preflight
+
+### Context
+
+Building the expenses detail island's delete flow (plan B9, tagged
+`risk:high` because it touches `src/lib/data/repos/expenses.ts`) surfaced a
+data-loss gap in `repos.expenses.remove` as originally shipped by this ADR:
+it called `removeReceipts(id)` (deletes every object under
+`expenses/{id}/`) BEFORE the row delete, in that fixed order, with no check
+of who was calling. The two RLS policies guarding those two steps are
+deliberately asymmetric:
+
+- `storage.objects`'s `receipts_expenses_delete` (`db/migrations/20260928000007_receipts_storage.sql`)
+  allows **any member** (`uid = any(e.member_ids)`) — intentionally wide,
+  because plan B10 lets any member edit/replace a receipt photo on a shared
+  expense, which needs the same breadth for `update`/`delete` as `insert`.
+- `public.expenses`'s `expenses_delete` policy allows only the **creator or
+  payer** (`db/migrations/20260928000004_rls_policies.sql`).
+
+A member who is neither the creator nor the payer could therefore call
+`remove()`, succeed at `removeReceipts(id)` (member-wide), and then have the
+row delete silently denied by RLS (Postgres returns 0 rows affected, no
+error) — every receipt permanently gone, the row still there with no way to
+recover the images on a retry. This is exactly the kind of asymmetric,
+two-step destructive operation this ADR's own "Consequences" section
+already flagged in the abstract ("a partially-failed delete... could orphan
+unreachable storage bytes or leave a row with dead image references") —
+this amendment is the concrete instance the abstract worry predicted, plus
+the fix.
+
+### Decision
+
+`remove(id)` fetches the fresh row via `get(id)` and checks the caller
+BEFORE touching storage, throwing a typed error instead of running
+`removeReceipts`:
+
+- `id` resolves to no row → `ExpenseNotFoundError` (already deleted, or
+  never existed — a stale detail-page open, a double-click).
+- `(row.createdBy ?? '') !== uid && row.paidBy !== uid` → `ExpenseDeleteNotAllowedError`.
+
+`uid` comes from `require-adapter.ts`'s new `requireUid()`, which reads the
+`$user` session store (`src/stores/session.ts`) — never a function argument
+a caller could pass incorrectly, the same identity-source rule CLAUDE.md's
+auth-gating section already applies to `toGuardUser()`, extended to this
+side of the data-layer boundary for the first time.
+
+**This is a client-side safety preflight against a destructive PARTIAL
+operation, explicitly NOT authorization** (CLAUDE.md rule 8, restated here
+because it is easy to misread a permission-shaped `if` as one): the
+`expenses_delete` RLS policy independently denies the row delete for a
+non-creator/payer regardless of whether this check exists — a user who
+bypassed the client entirely (a hand-crafted request) would still be denied
+by Postgres, just after `removeReceipts` already ran, which is the exact bug
+this closes. The storage policy stays member-wide; this amendment does not
+touch it.
+
+### Alternatives considered
+
+- **Tighten `receipts_expenses_delete` to creator-or-payer, matching the
+  row.** Rejected: B10 depends on any member being able to replace/delete a
+  receipt image on a shared expense (e.g. re-uploading a clearer photo);
+  narrowing the policy would break that feature for every member except the
+  creator/payer, a much larger regression than the bug being fixed.
+- **Delete the row first, then the receipts.** Rejected: once the row is
+  gone, no `storage.objects` policy clause can match it (every one of them
+  joins back to `public.expenses` by id), so a storage failure after a
+  successful row delete would orphan the objects unreachable forever —
+  trading one class of data loss (receipts survive a denied row delete) for
+  a strictly worse one (receipts become permanently unreachable garbage,
+  with the row already gone so there's nothing left to retry against).
+- **A `SECURITY DEFINER` RPC that deletes both atomically, gated on
+  creator-or-payer inside the function body.** The structurally cleanest
+  fix (single transaction, no ordering question at all) but a new migration
+  and a new class of privileged function this codebase doesn't have yet for
+  writes (`db/migrations`' existing `SECURITY DEFINER` functions are narrow
+  lookups — `find_profile_by_email` etc. — not mutations). Deferred: the
+  client-side preflight closes the actual data-loss window today without
+  new backend surface; revisit if a similar two-policy-asymmetry bug shows
+  up elsewhere and a shared RPC pattern becomes worth the migration cost.
+
+### Consequences
+
+**Positive** — the data-loss window is closed for every future caller of
+`repos.expenses.remove` (the B9 detail island's delete-with-confirm, and
+any future caller), not just the one that happened to trigger this write-up;
+the fix required no migration, no policy change, and no change to B10's
+member-wide image editing.
+
+**Negative** — `remove()` now makes one extra read (`get(id)`) before the
+first write, on every call, even for the common creator/payer case that was
+already going to succeed. Accepted: a single indexed point read against one
+call graders throughput.
+
+**Neutral** — the row-delete-only RLS suite (`src/tests/rls/expenses.test.ts`,
+"a member who is neither creator nor payer... cannot") already proved the
+server-side half of this before this amendment; what was missing was the
+client-side ordering that let a doomed row delete run AFTER an unrecoverable
+storage delete. This amendment adds no new RLS policy or RLS test for the
+row side — the coverage already existed and is unchanged.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| A member who is neither the expense's creator nor its payer | Before this fix, opening the delete flow on a shared expense they don't own could silently destroy every receipt on it (permanent — no undo), while the row itself stayed behind looking untouched. | `remove()` now refuses before `removeReceipts` ever runs; the UI (plan B9's `ExpenseDetailView`) additionally only shows the Delete button to the creator/payer at all, though that's UX only — this ADR's fix is what actually stops the destructive call. |
+| The creator or payer | No behavior change for the case that was always supposed to work — one extra read before the same two writes, in the same order. | Covered by `src/lib/data/repos/expenses.remove.test.ts`'s "the payer (not the creator) may also delete, in the same order" case. |
+| Future contributors | The next person adding a delete flow over two asymmetric RLS policies (a shared object plus a narrower-owned row) has no prior written precedent for the "fetch and check before the first destructive call" pattern, or for where the identity it checks against should come from. | This amendment documents both: the pattern (fetch fresh, check first) and the identity source (`requireUid()` / `$user`, never a prop) — the next repo needing the same shape has a citation instead of a fresh design decision. |
+
 ## References
 
 - Spec D10 "Images": `docs/superpowers/specs/2026-09-18-inceptor-migration-design.md`
-- Plan B2 (migration), B5b: `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
+- Plan B2 (migration), B5b, B9 (amendment): `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
 - ADR 0002 (canonical schema and RLS), ADR 0004 (TanStack Query over
   StorageAdapter), ADR 0011 (Supabase via the CyberEco data layer)
-- `db/migrations/20260928000007_receipts_storage.sql`
+- `db/migrations/20260928000007_receipts_storage.sql`,
+  `db/migrations/20260928000004_rls_policies.sql` (`expenses_delete`)
 - `src/lib/data/storage.ts`, `src/lib/data/repos/expenses.ts`,
+  `src/lib/data/require-adapter.ts` (`requireUid`),
   `src/components/features/ReceiptImage.tsx`
 - `src/tests/rls/storage.test.ts` (`npm run test:rls`), `src/tests/storage.live.test.ts`
   (`npm run test:contract:live`), `src/lib/data/storage.test.ts`,

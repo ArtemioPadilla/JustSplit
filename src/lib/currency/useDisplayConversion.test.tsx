@@ -149,6 +149,26 @@ describe('useDisplayConversion', () => {
     expect(renders.slice(beforeSwitch).some((r) => r.ready && r.converted === 20)).toBe(false);
   });
 
+  it('plan B9: an explicit target override wins over $preferredCurrency, without changing the no-override callers', async () => {
+    // $preferredCurrency stays USD (default) — the override alone must
+    // drive which currency is the identity ("no conversion needed") and
+    // which rate fetchExchangeRate is asked for.
+    fetchExchangeRate.mockResolvedValue({ rate: 0.8, isFallback: false });
+
+    function OverrideHarness({ currencies, target }: { currencies: string[]; target: string }) {
+      const { convert, ready } = useDisplayConversion(currencies, target);
+      return <span data-testid="converted">{ready ? convert(10, 'GBP') : 'n/a'}</span>;
+    }
+
+    render(<OverrideHarness currencies={['GBP', 'EUR']} target="EUR" />);
+
+    await waitFor(() => expect(screen.getByTestId('converted')).toHaveTextContent('8'));
+    // Only GBP needed a rate (against EUR, the override target) — EUR itself
+    // is the identity currency for this call, never fetched against itself.
+    expect(fetchExchangeRate).toHaveBeenCalledTimes(1);
+    expect(fetchExchangeRate).toHaveBeenCalledWith('GBP', 'EUR');
+  });
+
   it('does not throw on an unmount before the fetch resolves (cancelled flag)', async () => {
     let resolve!: (v: { rate: number; isFallback: boolean }) => void;
     fetchExchangeRate.mockReturnValue(new Promise((r) => (resolve = r)));

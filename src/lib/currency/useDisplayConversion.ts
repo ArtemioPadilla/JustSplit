@@ -27,6 +27,13 @@ export interface DisplayConversion {
  * labelled with its own currency instead. `convert` still returns a safe
  * (unconverted) fallback value even when called too early, so a caller that
  * forgets to gate on `ready` degrades to "wrong number" rather than a crash.
+ *
+ * `targetOverride` (plan B9): a caller with its OWN local display-currency
+ * selector (the expenses list/detail islands — initialised from
+ * `$preferredCurrency` but never written back to the profile) passes it
+ * here to convert against THAT currency instead. Omit it — the B8b
+ * dashboard still does — and this behaves exactly as before, against
+ * `$preferredCurrency`.
  */
 interface ResolvedRates {
   /** The exact request these rates answer — see `currentKey` below. */
@@ -34,8 +41,9 @@ interface ResolvedRates {
   rates: Record<string, { rate: number; isFallback: boolean }>;
 }
 
-export function useDisplayConversion(currencies: string[]): DisplayConversion {
-  const target = useStore($preferredCurrency);
+export function useDisplayConversion(currencies: string[], targetOverride?: string): DisplayConversion {
+  const preferredCurrency = useStore($preferredCurrency);
+  const target = targetOverride ?? preferredCurrency;
   const [resolved, setResolved] = React.useState<ResolvedRates | null>(null);
   const [nonce, setNonce] = React.useState(0);
 
