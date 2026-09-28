@@ -110,3 +110,30 @@ describe('no fabricated social proof (ethics checklist items 2 and 4)', () => {
     expect(PAGES.landing!).not.toMatch(/testimonial|What our users say|<blockquote/i);
   });
 });
+
+describe('marketing copy matches the shipped product (no inaccurate claims)', () => {
+  const all = Object.values(PAGES).join('\n');
+
+  it('pricing: says it is free without implying a paid tier ("basic")', () => {
+    expect(all).not.toMatch(/free for basic/i);
+    expect(PAGES.landing).toMatch(/no paid plan/i);
+    expect(PAGES.help).toMatch(/no paid plan/i);
+  });
+
+  it('split types: only the ones the expense form offers (equal, exact, percentage)', () => {
+    expect(all).not.toMatch(/share-based/i);
+  });
+
+  it('participants are registered users only (ADR 0006) — no "non-registered participant" promise', () => {
+    expect(all).not.toMatch(/non-registered participant/i);
+  });
+
+  it('names the real "Add expense" control, not an invented "+" action', () => {
+    expect(PAGES.help).not.toMatch(/"\+" action/);
+    expect(PAGES.help).toMatch(/Add expense/);
+  });
+
+  it('does not promise a "zero balance first" member-removal rule the app does not have', () => {
+    expect(all).not.toMatch(/zero balance first/i);
+  });
+});
