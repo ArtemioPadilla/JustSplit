@@ -231,6 +231,12 @@ export async function removeReceipts(expenseId: string): Promise<void> {
   throw new Error(`removeReceipts(${expenseId}): folder not empty after ${MAX_REMOVE_ROUNDS} rounds`);
 }
 
+/** Shared single-path removal — `removeAvatar`/`removeReceiptObject` differ only in name/doc, not behavior. */
+async function removeObject(path: string): Promise<void> {
+  const { error } = await requireSupabase().storage.from(RECEIPTS_BUCKET).remove([path]);
+  if (error) throw error;
+}
+
 /**
  * Deletes a single avatar object. The caller (a future avatar-upload
  * feature, plan B10+) is responsible for calling this only AFTER the
@@ -239,8 +245,20 @@ export async function removeReceipts(expenseId: string): Promise<void> {
  * `avatarUrl` pointing at a deleted object.
  */
 export async function removeAvatar(path: string): Promise<void> {
-  const { error } = await requireSupabase().storage.from(RECEIPTS_BUCKET).remove([path]);
-  if (error) throw error;
+  await removeObject(path);
+}
+
+/**
+ * Deletes a single receipt object (plan B10's edit-flow "remove this
+ * receipt" action) — never the whole `expenses/{id}/` folder, which is
+ * `removeReceipts` (used only by the whole-expense delete path,
+ * `repos.expenses.remove`). `repos.expenses.removeReceipt` calls this AFTER
+ * patching `images` to drop the path (ADR 0005 amendment, plan B10): if the
+ * patch succeeds but this delete fails, only an unreferenced object
+ * remains — never a dangling reference in `images`.
+ */
+export async function removeReceiptObject(path: string): Promise<void> {
+  await removeObject(path);
 }
 
 // ── signed URLs ──────────────────────────────────────────────────────────
