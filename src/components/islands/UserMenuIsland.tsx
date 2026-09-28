@@ -1,5 +1,15 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
+// OPEN QUESTION for plan B7 (flagged, not fixed here — out of B6's scope):
+// this static import pulls src/lib/data/client.ts's @supabase/supabase-js
+// into EVERY page's bundle via SiteHeader → UserMenuIsland, because this
+// island is mounted on every page including the future marketing pages.
+// That conflicts with spec D3 / B7's acceptance ("marketing pages ... no
+// @supabase/supabase-js / @cyber-eco/* chunk"). check:auth-bundle (plan B4)
+// only measures /auth/signin/ today, so nothing catches this yet. B7 needs
+// to either lazy-load this import (dynamic `import('@/stores/auth')` in a
+// useEffect) or extend check:auth-bundle to /landing and confirm the
+// resulting HTML has no static reference to the chunk.
 import { $authReady, $profile, $user, signOut } from '@/stores/auth';
 import { withBase } from '@/lib/href';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
