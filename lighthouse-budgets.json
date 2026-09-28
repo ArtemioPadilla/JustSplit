@@ -21,5 +21,28 @@
       { "metric": "interactive",         "budget": 3500 },
       { "metric": "first-contentful-paint","budget": 2000 }
     ]
+  },
+  {
+    "path": "/auth/*",
+    "resourceSizes": [
+      { "resourceType": "script",     "budget": 195 },
+      { "resourceType": "stylesheet", "budget": 50  },
+      { "resourceType": "image",      "budget": 200 },
+      { "resourceType": "font",       "budget": 100 },
+      { "resourceType": "document",   "budget": 30  },
+      { "resourceType": "total",      "budget": 545 }
+    ],
+    "resourceCounts": [
+      { "resourceType": "script",     "budget": 8  },
+      { "resourceType": "stylesheet", "budget": 6  },
+      { "resourceType": "image",      "budget": 20 },
+      { "resourceType": "font",       "budget": 4  },
+      { "resourceType": "third-party","budget": 5  },
+      { "resourceType": "total",      "budget": 62 }
+    ],
+    "timings": [
+      { "metric": "interactive",         "budget": 3500 },
+      { "metric": "first-contentful-paint","budget": 2000 }
+    ]
   }
 ]
