@@ -19,6 +19,8 @@ const expensesRepo = {
   forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]),
   create: vi.fn(async (input: unknown) => ({ id: 'e1', ...(input as object) })),
   get: vi.fn(async (id: string) => ({ id, description: 'Tacos' })),
+  update: vi.fn(async (id: string, patch: object) => ({ id, ...patch })),
+  remove: vi.fn(async () => undefined),
 };
 vi.mock('../repos/expenses', () => expensesRepo);
 
@@ -39,6 +41,8 @@ const { useExpense } = await import('./useExpense');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
 const { useCreateExpense } = await import('./useCreateExpense');
+const { useUpdateExpense } = await import('./useUpdateExpense');
+const { useDeleteExpense } = await import('./useDeleteExpense');
 const { useProfiles } = await import('./useProfiles');
 const { useSettlements } = await import('./useSettlements');
 
@@ -185,6 +189,50 @@ describe('useCreateExpense', () => {
     await waitFor(() => expect(expensesRepo.create).toHaveBeenCalled());
     await waitFor(() => expect(mutateResult).toMatchObject({ id: 'e1' }));
     expect(invalidateSpy).toHaveBeenCalled();
+  });
+});
+
+describe('useUpdateExpense (plan B9)', () => {
+  it('calls repos.expenses.update and invalidates the affected query keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let mutateResult: unknown;
+    function Probe() {
+      const mutation = useUpdateExpense();
+      React.useEffect(() => {
+        void mutation.mutateAsync({ id: 'e1', patch: { description: 'Pizza' } }).then((r) => {
+          mutateResult = r;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.update).toHaveBeenCalledWith('e1', { description: 'Pizza' }));
+    await waitFor(() => expect(mutateResult).toMatchObject({ id: 'e1', description: 'Pizza' }));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
+  });
+});
+
+describe('useDeleteExpense (plan B9)', () => {
+  it('calls repos.expenses.remove and invalidates the affected query keys on success', async () => {
+    const client = new QueryClient();
+    const invalidateSpy = vi.spyOn(client, 'invalidateQueries');
+    let settled = false;
+    function Probe() {
+      const mutation = useDeleteExpense();
+      React.useEffect(() => {
+        void mutation.mutateAsync('e1').then(() => {
+          settled = true;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+      return null;
+    }
+    withClient(<Probe />, client);
+    await waitFor(() => expect(expensesRepo.remove).toHaveBeenCalledWith('e1'));
+    await waitFor(() => expect(settled).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['expenses'] });
   });
 });
 
