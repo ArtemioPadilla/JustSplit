@@ -1521,6 +1521,13 @@ resolves other users' names through `useProfiles` (B5a).
       (`https://artemiopadilla.github.io/JustSplit/landing/`, `…/auth/signin/`, `…/`); `perf`
       script = `lhci collect && lhci assert` (no local build). `@lhci/cli` devDep (as in Inceptor's
       `package.json`); budgets are run in B18 against the live staging site, not in CI
+- [ ] Header weight (found in B6): `UserMenuIsland` is on every page and its chunk is ~48.6 kB gz
+      (no Supabase or zod; most likely the Base UI dropdown menu and its positioning code), which
+      puts `/auth/signin/` at ~236 kB gz, over the 195 kB `/auth/*` budget from B4 and Inceptor's
+      150 kB page budget. Render the signed-out state (a plain link) without the menu and load the
+      dropdown only when opened, or swap in a lighter menu; re-measure with `check:auth-bundle`
+      and do not raise the budgets to absorb it
+
 ### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
 - [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend
       is connected to this repo, disconnect it (or it auto-builds `main` after the merge);
