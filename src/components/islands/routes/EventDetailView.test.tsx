@@ -450,7 +450,8 @@ describe('EventDetailView — figures cover ALL of the event\'s expenses (ADR 00
       });
       render(<EventDetailView id="e1" />);
       expect(screen.getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '100');
-      expect(screen.getByText(/^settled up$/i)).toBeInTheDocument();
+      // Scoped to the progress section: every balance row also reads "settled up".
+      expect(within(screen.getByRole('region', { name: /event timeline/i })).getByText(/^settled up$/i)).toBeInTheDocument();
     });
 
     it('reads "Nothing to settle" (no bar, not 0% and not 100%) when nothing is owed and nothing was settled', () => {

@@ -1,8 +1,9 @@
 import type { CreateEventInput, Event, EventPatch } from '@/schemas/event';
 import type { EventFormValues } from '@/schemas/event-form';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 import { formatCalendarDate, parseCalendarDate } from './dates';
-import { calculateSettledPercentage } from './timeline';
+import { netBalances, round2, settlementProgress } from './ledger';
 
 /**
  * Pure events selectors and payload builders (plan B11b). Pulled out of the
@@ -12,7 +13,10 @@ import { calculateSettledPercentage } from './timeline';
  *
  * ADR 0013: every member of an event sees every expense of it, so the
  * figures here are computed over ALL of an event's expenses and are identical
- * for every viewer — nothing takes a viewer id. Everything is UX/wiring only:
+ * for every viewer — nothing takes a viewer id. Plan B14a (ADR 0014): they are
+ * a ledger — the event's expenses minus the event's settlements
+ * (`eventId == id`; a settlement with no event, or another, is not part of
+ * this scope) — never a per-expense settled flag. Everything is UX/wiring only:
  * `events_insert`/`events_update` and `guard_events` are the authority
  * (CLAUDE.md rule 8).
  *
@@ -20,11 +24,6 @@ import { calculateSettledPercentage } from './timeline';
  * `null` at runtime on a live-query row (the hooks hand rows over unparsed),
  * so every reader here treats `null` and `undefined` alike.
  */
-
-/** Rounds to cents and never returns `-0` (which `toEqual` and `toFixed` both distinguish from `0`). */
-function round2(amount: number): number {
-  return Math.round(amount * 100) / 100 + 0;
-}
 
 type Convert = (amount: number, currency: string) => number;
 type EventDates = Pick<Event, 'startDate' | 'date'>;
@@ -101,47 +100,69 @@ export function expensesByEvent(expenses: Expense[]): Map<string, Expense[]> {
   return grouped;
 }
 
-export interface EventStats {
-  count: number;
-  /** Settled and unsettled, in the display currency. */
-  total: number;
-  /** Expenses with no `settledAt`, in the display currency. */
-  unsettled: number;
-  /** 0-100, the share of expenses (by count) that are settled — the same measure the legacy progress bar used. */
-  settledPercentage: number;
+/** Settlements grouped by `eventId`; a settlement with no event (null/undefined) is left out — the event scope counts only its own. */
+export function settlementsByEvent(settlements: Settlement[]): Map<string, Settlement[]> {
+  const grouped = new Map<string, Settlement[]>();
+  for (const settlement of settlements) {
+    if (!settlement.eventId) continue;
+    const list = grouped.get(settlement.eventId);
+    if (list) list.push(settlement);
+    else grouped.set(settlement.eventId, [settlement]);
+  }
+  return grouped;
 }
 
-/** Totals over all of an event's expenses (ADR 0013), converted into the display currency. */
-export function eventStats(expenses: Expense[], convert: Convert): EventStats {
+export interface EventStats {
+  count: number;
+  /** Every expense (legacy settled included), in the display currency. */
+  total: number;
+  /** Still to be paid: the sum of the positive net balances, in the display currency. */
+  outstanding: number;
+  /** Already paid: the event's settlements plus what its legacy settled expenses had owed, in the display currency. */
+  settled: number;
+  /** 0-100 = settled / (settled + outstanding), or `null` for "nothing to settle" (nothing owed and nothing settled). */
+  settledPercentage: number | null;
+  /** Every net balance is within a cent of zero. */
+  settledUp: boolean;
+}
+
+/** Totals and progress over all of an event's expenses and settlements (ADR 0013, 0014), converted into the display currency. */
+export function eventStats(expenses: Expense[], settlements: Settlement[], convert: Convert): EventStats {
   let total = 0;
-  let unsettled = 0;
-  for (const expense of expenses) {
-    const amount = convert(expense.amount, expense.currency);
-    total += amount;
-    if (expense.settledAt == null) unsettled += amount;
-  }
-  return { count: expenses.length, total: round2(total), unsettled: round2(unsettled), settledPercentage: calculateSettledPercentage(expenses) };
+  for (const expense of expenses) total += convert(expense.amount, expense.currency);
+  const progress = settlementProgress(expenses, settlements, convert);
+  return {
+    count: expenses.length,
+    total: round2(total),
+    outstanding: progress.outstanding,
+    settled: progress.settled,
+    settledPercentage: progress.percentage,
+    settledUp: progress.settledUp,
+  };
 }
 
 /**
- * Per-user balance over the UNSETTLED expenses, in the display currency
- * (positive = is owed, negative = owes): the payer is credited the whole
- * amount and each participant debited their own `splits[]` share — never an
- * equal division (the legacy page divided by the participant count, ignoring
- * exact/percentage splits). A payer outside the split is credited without a
- * debit, as they paid for the others.
+ * The whole percentage the progress bar shows, or `null` for "nothing to
+ * settle" (no bar: not 0% and not 100%). 100 only when actually settled up — a
+ * balance still open never rounds up to 100.
  */
-export function eventBalances(expenses: Expense[], convert: Convert): Record<string, number> {
-  const balances: Record<string, number> = {};
-  for (const expense of expenses) {
-    if (expense.settledAt != null) continue;
-    balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + convert(expense.amount, expense.currency);
-    for (const split of expense.splits) {
-      balances[split.userId] = (balances[split.userId] ?? 0) - convert(split.amount, expense.currency);
-    }
-  }
-  for (const userId of Object.keys(balances)) balances[userId] = round2(balances[userId]!);
-  return balances;
+export function settlementProgressPercent(stats: Pick<EventStats, 'settledPercentage' | 'settledUp'>): number | null {
+  if (stats.settledPercentage === null) return null;
+  if (stats.settledUp) return 100;
+  return Math.min(99, Math.round(stats.settledPercentage));
+}
+
+/**
+ * Per-user balance over the event's ledger, in the display currency (positive =
+ * is owed, negative = owes): the payer is credited the whole amount and each
+ * participant debited their own `splits[]` share — never an equal division (the
+ * legacy page divided by the participant count, ignoring exact/percentage
+ * splits) — minus the event's settlements (F to T for X raises F and lowers T).
+ * A payer outside the split is credited without a debit, as they paid for the
+ * others. Legacy settled expenses are skipped.
+ */
+export function eventBalances(expenses: Expense[], settlements: Settlement[], convert: Convert): Record<string, number> {
+  return netBalances(expenses, settlements, convert);
 }
 
 /**
