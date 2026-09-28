@@ -82,3 +82,16 @@ describe('help.astro content', () => {
     expect(src).toMatch(/<details/);
   });
 });
+
+describe('support contact (no invented channels)', () => {
+  it('no marketing page links an email address nobody monitors', () => {
+    for (const [name, src] of Object.entries(PAGES)) {
+      expect(src, name).not.toMatch(/mailto:/);
+    }
+  });
+
+  it("help sends people to the repository's issue tracker, single-sourced from site-meta", () => {
+    expect(PAGES.help!).toMatch(/REPO_URL/);
+    expect(PAGES.help!).toMatch(/\/issues/);
+  });
+});
