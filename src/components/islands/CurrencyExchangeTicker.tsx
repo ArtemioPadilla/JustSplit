@@ -6,6 +6,7 @@ import { SUPPORTED_CURRENCIES } from '@/domain/currency';
 import { fetchExchangeRate } from '@/lib/currency/rates';
 import { createDisposer } from '@/lib/disposer';
 import { cn } from '@/lib/utils';
+import ErrorBoundary from './ErrorBoundary';
 
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 const ATTRIBUTION_URL = 'https://www.exchangerate-api.com';
@@ -30,7 +31,15 @@ interface TickerRate {
  * — is omitted entirely rather than shown as if 1:1 parity were a real
  * exchange rate.
  */
-export default function CurrencyExchangeTicker({ className }: { className?: string }) {
+export default function CurrencyExchangeTicker(props: { className?: string }) {
+  return (
+    <ErrorBoundary name="CurrencyExchangeTicker">
+      <CurrencyExchangeTickerInner {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function CurrencyExchangeTickerInner({ className }: { className?: string }) {
   const base = useStore($preferredCurrency);
   const [rates, setRates] = React.useState<TickerRate[]>([]);
   const [loading, setLoading] = React.useState(true);

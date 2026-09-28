@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import ErrorBoundary from './ErrorBoundary';
 
 /**
  * /showcase-only wrapper: CurrencySelector's `value`/`onChange` are fully
@@ -9,6 +10,14 @@ import { CurrencySelector } from '@/components/features/currency/CurrencySelecto
  * here is a multi-island compound composition.
  */
 export default function ShowcaseCurrencySelector() {
+  return (
+    <ErrorBoundary name="ShowcaseCurrencySelector">
+      <ShowcaseCurrencySelectorInner />
+    </ErrorBoundary>
+  );
+}
+
+function ShowcaseCurrencySelectorInner() {
   const [value, setValue] = React.useState('USD');
 
   return (

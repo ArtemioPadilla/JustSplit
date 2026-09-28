@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Editable } from '@/components/ui/editable';
+import ErrorBoundary from './ErrorBoundary';
 
 /**
  * /showcase-only wrapper: demonstrates a controlled `Editable` (the shared
@@ -9,6 +10,14 @@ import { Editable } from '@/components/ui/editable';
  * opening devtools.
  */
 export default function ShowcaseEditable() {
+  return (
+    <ErrorBoundary name="ShowcaseEditable">
+      <ShowcaseEditableInner />
+    </ErrorBoundary>
+  );
+}
+
+function ShowcaseEditableInner() {
   const [value, setValue] = React.useState('Weekend trip to Tulum');
 
   return (
