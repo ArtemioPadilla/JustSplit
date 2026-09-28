@@ -121,3 +121,21 @@ export function onPasswordRecovery(
   });
   return () => data.subscription.unsubscribe();
 }
+
+export interface SessionWaitResult {
+  signedIn: boolean;
+  error: Error | null;
+}
+
+/**
+ * Resolves once supabase-js has finished initializing, including the PKCE
+ * code exchange it starts from the URL on `/auth/callback/`
+ * (`detectSessionInUrl: true`): `getSession()` awaits that initialization.
+ * The callback page must not navigate before this resolves, or the exchange
+ * request is aborted and the sign-in is lost (plan B4).
+ */
+export async function waitForSession(client: SupabaseClient | null = supabase): Promise<SessionWaitResult> {
+  if (!client) return { signedIn: false, error: new SupabaseDisabledError() };
+  const { data, error } = await client.auth.getSession();
+  return { signedIn: Boolean(data.session), error: error ?? null };
+}

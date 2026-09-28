@@ -3,7 +3,7 @@ import type { AuthUser } from '@cyber-eco/types';
 import type { AuthProfile, JustSplitProfile } from '@/schemas/profile';
 import type { GuardUser } from '@/lib/route-guard';
 import { authAdapter, profileStore } from '@/lib/data/adapter';
-import { SupabaseDisabledError, signInWithOAuthRedirect } from '@/lib/data/client';
+import { SupabaseDisabledError, signInWithOAuthRedirect, waitForSession } from '@/lib/data/client';
 import { safeNext, withBase } from '@/lib/href';
 
 /**
@@ -147,4 +147,17 @@ export function consumeGoogleNext(): string {
 export function toGuardUser(user: AuthUser | null, _profile: JustSplitProfile | null): GuardUser | null {
   if (!user) return null;
   return { id: user.uid, roles: ['user'], flags: {} };
+}
+
+/**
+ * `/auth/callback/` (plan B4): waits for supabase-js to finish the PKCE
+ * exchange, then returns where to go. On success that is the stashed `next`
+ * (through `safeNext`); when the exchange failed it is the sign-in page, so
+ * the visitor can try again instead of landing signed-out on a guarded page.
+ * The stash is consumed either way.
+ */
+export async function completeOAuthSignIn(): Promise<string> {
+  const { signedIn } = await waitForSession();
+  const next = consumeGoogleNext();
+  return signedIn ? next : '/auth/signin/';
 }
