@@ -177,6 +177,27 @@ export function balancesWithUser(
     .sort((a, b) => b.balance - a.balance);
 }
 
+// ─── totalSpent / unsettledCount ───────────────────────────────────────────
+
+/**
+ * The two figures `FinancialSummary` actually computed from real data (plan
+ * B8b) — every other prop the legacy component accepted
+ * (`compareWithLastMonth`, `avgPerDay`, `mostExpensiveCategory`,
+ * `activeEvents`, `activeParticipants`, `highestExpense`) was fed a
+ * hardcoded default by `page.tsx` and never reflected real state, so those
+ * are dropped, not ported.
+ */
+
+/** Sum of every expense (settled and unsettled) in the display currency. */
+export function totalSpent(expenses: Expense[], convert: (amount: number, currency: string) => number): number {
+  return round2(expenses.reduce((sum, expense) => sum + convert(expense.amount, expense.currency), 0));
+}
+
+/** Count of expenses with no `settledAt` (never settled, or not yet written at all). */
+export function unsettledCount(expenses: Expense[]): number {
+  return expenses.filter((expense) => expense.settledAt == null).length;
+}
+
 // ─── upcomingEvents ─────────────────────────────────────────────────────────
 
 /**

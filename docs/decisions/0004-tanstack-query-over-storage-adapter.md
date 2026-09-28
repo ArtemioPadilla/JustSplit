@@ -141,6 +141,110 @@ read to be realtime.
 | Maintainer | Owns the client-side translation (camelCase fields ↔ snake_case columns, overflow keys ↔ `extra`) that every write and read depends on; a mistake there corrupts rows for every collection. | One write path: `setDocument`/`updateDocument`/`batchWrite` all build the same op through one `toOp`/`splitFields` function and send it to the atomic `batch_write` RPC. The translation is pinned to the migrations by `schema-map.test.ts`, and the D9 overflow-merge invariant (including concurrent writers) by the backend-agnostic contract suite, run against the memory adapter always and the real adapter as `test:contract:live`. |
 | CyberEco hub | Gains a concrete, tested reference for the `island -> hook -> repo -> StorageAdapter` layering `tradepilot-pilot-integration.md` Seam 2 only prescribes in prose today. | `relational-adapter.ts` is written to the hub's own `SchemaMap` design on purpose, so upstreaming it (Track C' H2) is a move, not a rewrite. |
 
+## Amendment (2026-09-28, plan B8b): live-query failure surfacing
+
+### Context
+
+Building the `/` dashboard island (plan B8b) surfaced a gap this ADR's
+original `useLiveQuery` design didn't address: a failed subscription had no
+way to tell the caller. `RelationalSupabaseAdapter.subscribeToQuery`'s
+`fetchAndEmit` caught any `query()` rejection (an RLS denial, a network
+error, a transient Postgres error) and called `callback([])` — the exact
+same shape as "the collection genuinely has zero rows." `useLiveQuery`'s own
+wrapped `useQuery` runs with `enabled: false` by design (this ADR's "FETCH-
+THEN-LISTEN first emission IS the fetch" decision), so its `queryFn` never
+runs and its native `isError`/`error`/`refetch` were permanently inert —
+there was no code path, anywhere in the `island -> hook -> repo ->
+StorageAdapter` layering, that could turn a real failure into anything a
+route island could show the user. `DashboardIsland` (the first consumer)
+rendered a skeleton keyed off `data === undefined`, which — for exactly this
+reason — never resolved for a failed query: a permanent loading spinner,
+no explanation, no way to recover, on every live-query screen this layering
+produces from B9 onward.
+
+### Decision
+
+**A typed, optional trailing parameter on the `subscribeToQuery` callback.**
+`src/lib/data/relational-adapter.ts` exports `LiveQueryCallback<T> = (data:
+T[], error?: unknown) => void`. `RelationalSupabaseAdapter.subscribeToQuery`
+forwards a `query()` rejection as that second argument instead of
+swallowing it; a later successful re-run (any `postgres_changes` event)
+clears it by simply not passing one. This is an app-owned extension of the
+`StorageAdapter` interface's own `(data: T[]) => void` shape, never a
+change to the vendored `@cyber-eco/types` package — assignable back to the
+narrower interface type via TypeScript's own method-parameter bivariance,
+so every other reader of that interface's callback shape is unaffected.
+
+**`useLiveQuery` owns real `isError`/`error`/`refetch`/`isRetrying`.**
+`isError`/`error` reflect the adapter's forwarded failure (never shown to
+the user verbatim — every caller renders a generic message). `refetch()`
+bumps an internal generation counter that tears down and re-opens the
+subscription from scratch (the underlying disabled `useQuery`'s own
+`refetch` would just re-resolve whatever's cached, not retry anything).
+`refetch()` is bounded to **one in-flight retry**: a call while the
+previous one hasn't resolved yet is a no-op, tracked via a ref (not just
+`isRetrying` state) so two calls landing in the same tick or two different
+render cycles are both bounded the same way — no automatic retry loop, no
+stacked re-subscriptions wasting an unresolved round trip. `isRetrying` is
+exposed so a caller can disable its own Retry control for that exact
+window (`DashboardIsland`'s Retry button: `disabled`/`aria-busy` from the
+click until the next emission).
+
+**Rule for future `StorageAdapter` extensions**, stated in
+`LiveQueryCallback`'s doc comment and repeated here: an extension is
+allowed ONLY as an optional TRAILING parameter (never required, never
+inserted before an existing one); it must be recorded as an amendment to
+this ADR; it must NEVER change the upstream `@cyber-eco/types` interface —
+that is Track C' H2's job (widening the real, published interface once
+relational mode upstreams), not a local workaround's.
+
+### Alternatives considered
+
+- **Keep swallowing (status quo).** Rejected: this is the bug being fixed —
+  every live-query screen would keep showing an indistinguishable "no data"
+  for a real backend failure, with no error and no recovery.
+- **Throw from the hook instead of returning an error state.** Rejected: a
+  thrown error inside a `useEffect` is uncatchable by the component tree in
+  the normal React sense (effects don't participate in render-phase error
+  boundaries the way a thrown render does) and would either crash silently
+  or require a second, parallel mechanism just to route it back into state
+  — strictly more complexity than returning `isError`/`error` directly.
+- **Change the upstream `@cyber-eco/types` `StorageAdapter` interface** to
+  formally include an error parameter. Rejected for now: that package is
+  vendored (`vendor/cyber-eco-types-0.2.1.tgz`) and this repo does not own
+  it; the real fix belongs to Track C' H2 (relational mode upstreaming),
+  where the hub's own interface can be revisited with full context. The
+  optional-trailing-parameter extension here is the deliberately narrow,
+  local-only stand-in until then.
+
+### Consequences
+
+**Positive** — every future `useLiveQuery` consumer (B9 onward) gets a real
+error state and a working, bounded retry for free, not something each
+island has to reinvent; the extension is narrow enough to upstream or drop
+without touching call sites that only know the base interface.
+
+**Negative** — `RelationalSupabaseAdapter.subscribeToQuery`'s callback type
+is now adapter-specific rather than the bare interface type, a small
+documentation burden for the next person implementing `StorageAdapter`
+against a different backend (they must know this convention exists, hence
+recording it here rather than only in a code comment).
+
+**Neutral** — the memory adapter (`src/tests/memory-adapter.ts`) keeps its
+existing synchronous-throw-on-unmapped-collection behavior unchanged (a
+programmer error, not a runtime data condition) — this amendment only
+changes how a genuine async query failure is reported, not that class of
+error.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| End users | Now see a visible failure state (generic message + Retry) instead of a silent, indistinguishable-from-empty screen or an endless skeleton. | `ErrorState`'s copy never includes the raw error, SQL, or policy text — a title plus one honest, non-specific hint. Retry is disabled/`aria-busy` for exactly the in-flight window, so it cannot be double-fired into a stuck state. |
+| End users facing a non-recoverable denial | A genuine, permanent RLS denial (e.g. a revoked membership) cannot be fixed by Retry — retrying forever would look like the app is broken. | The error state's second line names the FeedbackFAB ("Report an issue", already on every page) as the path forward, instead of inventing a support email/channel that doesn't exist or implying Retry will eventually succeed. |
+| Supabase / the provider | A user stuck on a failing screen could otherwise hammer Retry, or a naive auto-retry could loop against a denied/rate-limited endpoint. | No automatic retry loop exists anywhere in this layering — retry is always a deliberate user click, and `useLiveQuery` bounds it to exactly one in-flight re-subscribe per click regardless of how many times the (disabled) button is clicked. |
+| Future contributors | The next person extending `StorageAdapter` (a new field, a new backend) has no prior written precedent for how to do that without touching the vendored interface. | The optional-trailing-parameter rule is written once, in `LiveQueryCallback`'s doc comment and here — the next extension is a documented pattern to follow, not a fresh design decision. |
+
 ## Supersedes
 
 None.
@@ -148,12 +252,16 @@ None.
 ## References
 
 - Spec D1, D3, D9, D10: `docs/superpowers/specs/2026-09-18-inceptor-migration-design.md`
-- Plan B3, B5a: `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
+- Plan B3, B5a, B8b (amendment): `docs/superpowers/plans/2026-09-18-inceptor-migration.md`
 - `src/lib/data/{schema-map,relational-adapter,require-adapter}.ts`,
   `src/lib/data/repos/*`, `src/lib/data/hooks/*`, `src/lib/queryClient.ts`
 - `src/tests/{storage-adapter-contract.shared,storage-adapter-contract,
   collections-mapped,data-boundary,query-provider-boundary,
   no-data-layer-service}.test.ts`, `src/tests/storage-adapter-contract.live.test.ts`
+- Amendment: `src/lib/data/relational-adapter.ts` (`LiveQueryCallback<T>`),
+  `src/lib/data/hooks/useLiveQuery.ts` (`isError`/`error`/`refetch`/
+  `isRetrying`), `src/components/islands/DashboardIsland.tsx` (the first
+  consumer), and their `.test.ts(x)` files
 - ADR 0002 (canonical schema and RLS), ADR 0011 (Supabase via the CyberEco
   data layer)
 - `cyber-eco/cybereco-hub`: `docs/design/schema-map-strategy.md`,

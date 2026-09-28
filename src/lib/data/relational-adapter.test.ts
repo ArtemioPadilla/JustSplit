@@ -302,6 +302,35 @@ describe('RelationalSupabaseAdapter (plan B5a contingency, spec D10)', () => {
       unsubscribe();
       expect(client.removeChannel).toHaveBeenCalledWith(channel);
     });
+
+    it('forwards a query failure as the callback\'s second (error) argument instead of silently emitting [] (coordinator review, plan B8b)', async () => {
+      builder.result = { data: null, error: { message: 'permission denied for table expenses' } };
+      const cb = vi.fn();
+      adapter.subscribeToQuery('expenses', [], cb);
+      await flush();
+
+      expect(cb).toHaveBeenCalledTimes(1);
+      const [rows, error] = cb.mock.calls[0]!;
+      expect(rows).toEqual([]);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toMatch(/permission denied/);
+    });
+
+    it('recovers on the next postgres_changes event once the underlying query succeeds again', async () => {
+      builder.result = { data: null, error: { message: 'boom' } };
+      const cb = vi.fn();
+      adapter.subscribeToQuery('expenses', [], cb);
+      await flush();
+      expect(cb.mock.calls[0]![1]).toBeInstanceOf(Error);
+
+      builder.result = { data: [{ id: 'e1' }], error: null };
+      channel._handler!({ eventType: 'INSERT', new: { id: 'e1' }, old: {} });
+      await flush();
+
+      const [rows, error] = cb.mock.calls[1]!;
+      expect(error).toBeUndefined();
+      expect(rows).toEqual([{ id: 'e1' }]);
+    });
   });
 
   it('generateId returns a fresh id per call', () => {

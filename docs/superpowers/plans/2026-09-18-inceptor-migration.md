@@ -1240,7 +1240,7 @@ resolves other users' names through `useProfiles` (B5a).
 | `src/app/client-layout-wrapper.test.tsx` | B4 |
 | `src/context/__tests__/AppContext.test.tsx` | B5a |
 | `src/components/Header/__tests__/Header.test.tsx` | B6 |
-| `src/components/Dashboard/__tests__/*` (10; 2 chart tests) | B8a (charts) / B8b (widgets; `UserSummary`'s test follows that component's decision) |
+| `src/components/Dashboard/__tests__/*` (10; 2 chart tests) | B8a (`MonthlyTrendsChart`, `ExpenseDistribution`, `BalanceOverview`) / B8b (`DashboardHeader`, `FinancialSummary`, `RecentExpenses`, `RecentSettlements`, `UpcomingEvents`, `WelcomeScreen`; `UserSummary`'s test dropped with the component — unused by any page, no equivalent selector) |
 | `src/app/__tests__/page.test.tsx` (Home) | B8b |
 | `src/app/expenses/__tests__/ExpenseDetail.test.tsx` | B9 |
 | `src/components/ImageUploader/__tests__/ImageUploader.test.tsx` | B10 |
@@ -1298,20 +1298,109 @@ resolves other users' names through `useProfiles` (B5a).
       mixed currencies through `convert`, a payer outside the participants, past-vs-upcoming events)
       + `DashboardCharts.lazy.test.tsx` (composition wiring).
 ### B8b. Dashboard island (`/`)
-- [ ] `DashboardIsland` composing the 9 non-chart widgets of the 11 dashboard components
-      (`UserSummary` is unused by any page — keep or drop, its test follows); `DashboardHeader`
-      mounts `ExportCsvButton` (B17a; all expenses, `all-expenses.csv`), keeps the
-      preferred-currency `CurrencySelector` (B16) and refresh-rates (`clearExchangeRateCache` from
-      `domain/currency.ts`), and drops the `isConvertingCurrencies` prop/state plumbing (the flag
-      is hard-coded `true` today and no toggle is rendered anywhere — conversion is always on);
-      `CurrencyExchangeTicker` (B16) on `/`; financial summary fed real selectors
-- [ ] `src/pages/index.astro` = shell with a static `DashboardSkeleton` in the island's
-      `slot="fallback"` + `<DashboardIsland client:only="react" />` wrapped by `AuthGate`; the
-      island redirects to `/landing` when `$authReady && !$user` (B4). Landing content lives
-      only in `landing.astro`
-- [ ] Port the 8 non-chart dashboard tests + `page.test.tsx` (Home part)
-- [ ] Acceptance: anonymous visit to `/` lands on `/landing` within one navigation; `/landing`
-      HTML contains no supabase-js / `@cyber-eco` chunk
+- [x] **Tagged `risk:high` after the fact** (centinela review): the coordinator-review round below
+      touched `src/lib/data/relational-adapter.ts` and `src/lib/data/hooks/useLiveQuery.ts` (a
+      `src/lib/data/*` change trips the risk:high trigger) to fix live-query failure surfacing.
+      Documented as an amendment to ADR 0004 (`docs/decisions/0004-tanstack-query-over-storage-adapter.md`,
+      "Amendment (2026-09-28, plan B8b): live-query failure surfacing"), not a new ADR, since it
+      extends 0004's own `useLiveQuery`/`StorageAdapter` decision rather than a new layering choice.
+- [x] `DashboardIsland` (`ErrorBoundary > AuthIsland > AuthGate > Content`, the same composition as
+      the B4 auth pages) composes `DashboardHeader`, `CurrencyExchangeTicker` (B16),
+      `FinancialSummary`, `RecentExpenses`, `RecentSettlements`, `UpcomingEvents`, `WelcomeScreen`
+      and the B8a lazy chart bundle — **`UserSummary` is dropped**, per B8a's "keep or drop": no
+      page ever rendered it, and its `AppContext`-derived `users[].balance` has no equivalent
+      selector, so its legacy test is not ported either (recorded in the Jest-suite table's notes
+      column). `DashboardHeader` mounts `ExportCsvButton` (B17a; all expenses, `all-expenses.csv`)
+      and the preferred-currency `CurrencySelector` (B16); refresh-rates is a separate "Refresh
+      rates" button (**deviation**: `domain/currency.ts` has no `clearExchangeRateCache` — the
+      plan text's guess was wrong; the real cache lives in `src/stores/preferences.ts`'s
+      `$rateCache`, so this issue adds `clearRateCache()` there instead, paired with
+      `useDisplayConversion`'s `refresh()`); `isConvertingCurrencies` prop/state plumbing is
+      dropped entirely — conversion is always on. `DashboardHeader` also drops the legacy "Add
+      Expense"/"Create Event" quick-action links: their targets (`/expenses/new`, `/events/new`)
+      don't exist until B10/B11b, and adding them now would be new dead links (same reasoning B6
+      already applied to the header nav). `WelcomeScreen` is the decided exception for those two
+      CTAs — it is the dashboard's OWN empty state (no expenses AND no events), not the legacy
+      marketing landing page (that content lives only in `landing.astro`, B7).
+      `src/domain/dashboard.ts` gains two selectors, `totalSpent`/`unsettledCount` — the only two
+      figures the legacy `FinancialSummary` actually computed from real data (spec §6); every
+      other legacy prop (`compareWithLastMonth`, `avgPerDay`, `mostExpensiveCategory`,
+      `activeEvents`/`activeParticipants`, `highestExpense`) was fed a hardcoded default by
+      `page.tsx` and is **not ported**.
+- [x] Data: `useExpenses(uid)`/`useEvents(uid)`/`useProfiles(ids)` (B5a) plus a new
+      `useSettlements(uid)` (`src/lib/data/hooks/useSettlements.ts`) mirroring the exact
+      `useLiveQuery` wiring of `useExpenses`/`useEvents` — `settlements` had a repo (B5a) but no
+      hook until this issue's "recent settlements" widget needed one.
+- [x] Display-currency conversion: `src/lib/currency/useDisplayConversion.ts` resolves a rate per
+      distinct expense currency (via B16's `fetchExchangeRate`, already coalesced per base) against
+      `$preferredCurrency` and returns a synchronous `convert`, `ready`, `approximate` (the ticker's
+      honesty marker: "\* Some amounts use approximate rates") and `refresh()`. Every
+      conversion-dependent widget is gated on `ready` — a skeleton renders until then, never a
+      converted number computed too early.
+- [x] `src/pages/index.astro` = shell wrapping `<DashboardIsland client:only="react" />` in a
+      `<main id="main-content">` (axe `landmark-one-main`/`region` — every other page in the tree
+      already had one, this page didn't at first) with a static skeleton + no-JS `<noscript>`
+      message in the island's `slot="fallback"`. The redirect-to-`/landing` behavior for
+      `$authReady && !$user` is `AuthGate`'s own generic logic (plan B4, unchanged) — `DashboardIsland`
+      doesn't reimplement it, only composes `AuthGate` like every other protected route island.
+      The `<h1>` ("Dashboard", screen-reader-only) lives in `DashboardIsland` itself, OUTSIDE the
+      auth-gated subtree, so it is present in every auth state (not-ready skeleton, the
+      unconfigured-build "Sign-in is not configured" Alert, or real content) — needed for axe's
+      `page-has-heading-one` rule to pass regardless of which state a given build/environment
+      renders.
+- [x] Ported the 6 non-chart, non-`UserSummary`, non-`BalanceOverview` dashboard tests
+      (`DashboardHeader`, `FinancialSummary`, `RecentExpenses`, `RecentSettlements`,
+      `UpcomingEvents`, `WelcomeScreen`) rewritten onto props (no `AppContext`) — `BalanceOverview`
+      was already ported in B8a (its own light suite); `UserSummary`'s test is dropped with the
+      component (see above). Plus `src/components/islands/DashboardIsland.test.tsx`, the "Home
+      part" of the legacy `src/app/__tests__/page.test.tsx`: skeleton while not ready, the redirect
+      for an unauthenticated visit (driven through the real `AuthProvider`/`AuthBridge` wiring, a
+      test double `AuthAdapter`/`ProfileStore` — not a mocked `AuthGate`), no redirect for a
+      signed-in user, `WelcomeScreen` for a signed-in user with no data, and the composed content
+      once data arrives. Dropped rather than ported: the loading-spinner and 8-column raw-table
+      assertions (`RecentExpenses`/`RecentSettlements` — conversion is synchronous once `ready`,
+      so there is no per-widget loading state), the locale-formatted-date assertion in the legacy
+      `RecentSettlements` test (already marked failing/skipped since A3a), and every MUI-styled
+      assertion.
+- [x] `scripts/check-charts-bundle.mjs` extended to also assert `dist/index.html` never statically
+      loads Recharts (alongside `dist/showcase/index.html`) — verified genuinely red by temporarily
+      replacing `DashboardIsland`'s `React.lazy` call with a static import, rebuilding, and
+      confirming the script failed with the expected message, then reverting.
+      `scripts/check-auth-bundle.mjs`'s public-pages check drops `index.html`: `/` is now the first
+      AUTHENTICATED route island and is expected to load `@supabase/supabase-js` up front, same as
+      `/auth/signin/` — that script's section 2 now measures and prints `/`'s own static-only chunk
+      graph (informational, no budget yet: 253.46 kB gz across 33 chunks, verified against a real
+      build) the same way it already measured `/auth/signin/`; `/landing`, `/about`, `/help`, `/404`
+      stay enforced.
+- [x] Acceptance: `npm run check:a11y` reports 0 violations on all 7 pages including `/`.
+      `/landing` HTML still contains no supabase-js / `@cyber-eco` chunk (unchanged, B7's
+      `MARKETING_PAGES` check). What axe actually scans for `/` in this environment (CI has no
+      `PUBLIC_SUPABASE_*` vars, same as every other `npm run check` build): `AuthIsland`'s "Sign-in
+      is not configured for this build" `Alert` — `AuthGate`'s redirect is never reached in that
+      state, but it is still a real, deterministic, accessible page (the sr-only `<h1>` plus the
+      `<main>` landmark added by this issue are exactly what make it pass 0 violations). Against a
+      configured build, an anonymous visit reaches `AuthGate`'s existing redirect and lands on
+      `/landing` within one `location.replace` (no new history entry) — the same behavior
+      `AuthGate.test.tsx` already covered generically, exercised here again end-to-end through
+      `DashboardIsland.test.tsx`.
+- [x] **Coordinator/centinela review round** (two defects, then a risk:high re-review with two more
+      concerns): (1) `useDisplayConversion` could show `ready: true` with the PREVIOUS target's
+      resolved rates for one render after a currency change — fixed by keying `resolved` to the
+      exact request (`target|distinctCurrencies|nonce`) it answers, `ready` derived by comparing
+      that key during render, never from a separate state flag. (2) a failed live query
+      (`useExpenses`/`useEvents`/`useSettlements`) was silently indistinguishable from a
+      legitimately empty result (`RelationalSupabaseAdapter.subscribeToQuery`'s catch swallowed the
+      error into `callback([])`), so `DashboardIsland`'s `dataLoading` (`data === undefined`) never
+      resolved and rendered an endless skeleton — fixed end to end: `LiveQueryCallback<T>` forwards
+      the error, `useLiveQuery` exposes real `isError`/`error`/`refetch`, `DashboardIsland` checks
+      `isError` before `dataLoading` and renders `ErrorState` + Retry, generic message only (never
+      raw error/RLS/SQL text). Re-review (centinela `NEEDS_HUMAN`, risk:high — see the `risk:high`
+      bullet above) added: `refetch()` bounded to one in-flight retry (`isRetrying`, ref-tracked so
+      two clicks across separate render cycles never stack a second re-subscribe) with the Retry
+      button disabled/`aria-busy` for that window; a second line in the error state naming the
+      FeedbackFAB ("Report an issue") as the path forward for a failure Retry can't fix, without
+      inventing a support channel; the `LiveQueryCallback<T>` extension formalized as a named,
+      documented, exported type instead of an inline widened signature.
 ### B9. Expense list + detail islands (`/expenses/list`, `/expenses/view`)
 - [ ] List: `data-table` with URL-state sort/filter (Inceptor `use-data-table-url-state`; the full
       import closure was grafted in B1, or is added here if B1 chose the alternative); event filter

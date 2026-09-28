@@ -30,11 +30,15 @@ vi.mock('../repos/profiles', () => profilesRepo);
 const eventsRepo = { forGroupFilters: vi.fn((groupId: string) => [{ field: 'groupId', operator: '==', value: groupId }]) };
 vi.mock('../repos/events', () => eventsRepo);
 
+const settlementsRepo = { forUserFilters: vi.fn((uid: string) => [{ field: 'memberIds', operator: 'array-contains', value: uid }]) };
+vi.mock('../repos/settlements', () => settlementsRepo);
+
 const { useExpenses, useGroupExpenses } = await import('./useExpenses');
 const { useGroup } = await import('./useGroup');
 const { useGroupEvents } = await import('./useEvents');
 const { useCreateExpense } = await import('./useCreateExpense');
 const { useProfiles } = await import('./useProfiles');
+const { useSettlements } = await import('./useSettlements');
 
 function withClient(node: React.ReactElement, client = new QueryClient()) {
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
@@ -92,6 +96,30 @@ describe('useGroupEvents', () => {
       enabled: true,
       persist: true,
     });
+  });
+});
+
+describe('useSettlements (plan B8b — same pattern as useExpenses/useEvents)', () => {
+  it("subscribes 'settlements' with the memberIds array-contains filter, persisted", () => {
+    function Probe() {
+      useSettlements('u1');
+      return null;
+    }
+    withClient(<Probe />);
+    expect(liveQuerySpy).toHaveBeenCalledWith(['settlements', 'u1'], 'settlements', settlementsRepo.forUserFilters('u1'), {
+      enabled: true,
+      persist: true,
+    });
+  });
+
+  it('useSettlements(undefined) is disabled (no signed-in user yet)', () => {
+    function Probe() {
+      useSettlements(undefined);
+      return null;
+    }
+    withClient(<Probe />);
+    const [, , , options] = liveQuerySpy.mock.calls[0]!;
+    expect((options as { enabled: boolean }).enabled).toBe(false);
   });
 });
 

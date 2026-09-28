@@ -99,4 +99,16 @@ describe('$rateCache', () => {
     const entry = fresh.$rateCache.get().get('USD');
     expect(entry).toEqual({ rates: { EUR: 0.9 }, timestamp: 1000 });
   });
+
+  it('clearRateCache empties the cache and persists the empty state (plan B8b: "Refresh rates")', async () => {
+    const { $rateCache, setRateCacheEntry, clearRateCache } = await reimportPreferences('rate-cache-3');
+    setRateCacheEntry('USD', { rates: { EUR: 0.9 }, timestamp: 1000 });
+    expect($rateCache.get().size).toBe(1);
+
+    clearRateCache();
+    expect($rateCache.get().size).toBe(0);
+
+    const fresh = await reimportPreferences('rate-cache-3-reload');
+    expect(fresh.$rateCache.get().size).toBe(0);
+  });
 });

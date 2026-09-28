@@ -50,7 +50,15 @@ $profile.listen((profile) => {
  */
 export const $rateCache = persistentAtom<RateCache>(RATE_CACHE_KEY, createRateCache(), {
   encode: (cache) => JSON.stringify(Array.from(cache.entries())),
-  decode: (raw) => new Map(JSON.parse(raw) as [string, RateCacheEntry][]),
+  // Guards a falsy `raw` (bug found writing B8b's `clearRateCache` test):
+  // a real browser's `storage` event reports a deleted key as `newValue:
+  // null`, which `persistentAtom`'s own listener special-cases to the
+  // store's `initial` value WITHOUT calling `decode` at all — but
+  // `@nanostores/persistent`'s test engine (`cleanTestStorage`) reports a
+  // deleted key as `newValue: undefined` instead, which does NOT match that
+  // `=== null` check and falls through to `decode(undefined)`. `JSON.parse`
+  // coerces its argument to the string `"undefined"`, which is invalid JSON.
+  decode: (raw) => (raw ? new Map(JSON.parse(raw) as [string, RateCacheEntry][]) : createRateCache()),
 });
 
 /**
@@ -64,4 +72,15 @@ export function setRateCacheEntry(key: string, entry: RateCacheEntry): void {
   const next = new Map($rateCache.get());
   next.set(key, entry);
   $rateCache.set(next);
+}
+
+/**
+ * Empties the persisted rate cache (plan B8b: the dashboard's "Refresh
+ * rates" button). `fetchExchangeRate` (`src/lib/currency/rates.ts`) always
+ * checks the cache first, so a caller that wants a genuinely fresh rate
+ * clears it here before re-invoking whatever triggers the next fetch (e.g.
+ * `useDisplayConversion`'s `refresh()`).
+ */
+export function clearRateCache(): void {
+  $rateCache.set(createRateCache());
 }
