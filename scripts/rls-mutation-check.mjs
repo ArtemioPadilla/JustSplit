@@ -7,8 +7,10 @@
 // Plan B2d adds the mutations the membership lifecycle introduced: each
 // membership helper function is replaced by `select false`, each ON DELETE
 // SET NULL foreign key is dropped, and the lookup-attempts table has RLS
-// disabled / is granted to `authenticated`. A mutation is killed when ANY of
-// its files goes red.
+// disabled / is granted to `authenticated`. The B2d review adds clause-level
+// mutations: the event_id check of settlements_insert, and both halves of the
+// "leaving a group/event" guard (the check itself, and the pg_trigger_depth()
+// cascade exemption). A mutation is killed when ANY of its files goes red.
 //
 // Local stack only (DATABASE_URL defaults to `supabase start`). Usage:
 //   npm run test:rls:mutation
@@ -30,6 +32,7 @@ const FILES = {
   profiles: [`${dir}profiles.test.ts`],
   objects: [`${dir}storage.test.ts`, `${dir}visibility.test.ts`],
   profile_lookup_attempts: [`${dir}lookup-rate-limit.test.ts`],
+  ungroup: [`${dir}ungroup-guard.test.ts`, `${dir}fk-lifecycle.test.ts`],
 };
 
 const psql = (sql) =>
@@ -116,6 +119,36 @@ const attemptsMutations = [
   },
 ];
 
+// B2d review: clause-level mutations (the whole policy/trigger still exists).
+const settlementInsert = rows(`select with_check as check from pg_policies where policyname = 'settlements_insert'`)[0].check;
+const EVENT_CLAUSE = '((event_id IS NULL) OR is_event_member(event_id))';
+if (!settlementInsert.includes(EVENT_CLAUSE)) throw new Error('settlements_insert has no event_id clause to mutate');
+const clauseMutations = [
+  {
+    label: 'policy settlements_insert without its event_id membership clause',
+    table: 'settlements',
+    files: FILES.settlements,
+    drop: `alter policy settlements_insert on public.settlements with check (${settlementInsert.replace(EVENT_CLAUSE, 'true')})`,
+    restore: `alter policy settlements_insert on public.settlements with check (${settlementInsert})`,
+  },
+];
+for (const fn of ['guard_expenses', 'guard_events']) {
+  const original = psql(`select pg_get_functiondef('public.${fn}'::regproc)`).trim();
+  if (!original.includes('pg_trigger_depth() <= 1')) throw new Error(`${fn} has no pg_trigger_depth() check to mutate`);
+  for (const [what, replacement] of [
+    ['leave check removed', 'false'],
+    ['cascade exemption removed (the check also runs for ON DELETE SET NULL)', 'true'],
+  ]) {
+    clauseMutations.push({
+      label: `function ${fn}: ${what}`,
+      table: 'ungroup',
+      files: FILES.ungroup,
+      drop: original.replaceAll('pg_trigger_depth() <= 1', replacement),
+      restore: original,
+    });
+  }
+}
+
 const runFile = (file) =>
   spawnSync('npx', ['vitest', 'run', '--config', 'vitest.rls.config.ts', file], { stdio: 'ignore', env: process.env })
     .status;
@@ -132,7 +165,7 @@ for (const file of new Set(Object.values(FILES).flat())) {
 console.log('baseline green for every table file.');
 
 const results = [];
-for (const m of [...policies, ...triggers, ...helperMutations, ...fkMutations, ...attemptsMutations]) {
+for (const m of [...policies, ...triggers, ...helperMutations, ...fkMutations, ...attemptsMutations, ...clauseMutations]) {
   const files = filesOf(m);
   if (!files) {
     results.push({ ...m, outcome: 'NO TEST FILE' });
