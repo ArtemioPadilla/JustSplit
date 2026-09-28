@@ -19,3 +19,39 @@ export function withBase(path: string): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
   return `${base}${clean}`;
 }
+
+/**
+ * Route families the app actually serves a `?next=` redirect into (plan B4).
+ * Keep in sync with `src/lib/app-routes.ts`'s dynamic-route prefixes plus the
+ * static list pages/detail routes that live under the same first segment.
+ */
+const NEXT_ROUTE_FAMILIES: ReadonlySet<string> = new Set([
+  'expenses',
+  'events',
+  'groups',
+  'friends',
+  'settlements',
+  'profile',
+]);
+
+/** Same-origin path, optionally with a query string, no dot-dot, no scheme. */
+const SAFE_NEXT_RE = /^\/(?!\/)[A-Za-z0-9_\-/]*(\?[A-Za-z0-9_\-=&%.]*)?$/;
+
+/**
+ * Validates a redirect target read from an untrusted source (the auth pages'
+ * `?next=` query param, or the value round-tripped through `sessionStorage`
+ * for the Google OAuth redirect flow). With `ASTRO_BASE` unset,
+ * `withBase('//evil.example')` is a protocol-relative URL that leaves the
+ * site — a classic open redirect the subpath deploy would otherwise mask —
+ * so this returns `'/'` unless `next` is a same-origin path (no scheme, no
+ * protocol-relative `//`, no backslashes) whose first segment is one of the
+ * app's route families. The caller still passes the result through
+ * `withBase()` before navigating.
+ */
+export function safeNext(next: string | null | undefined): string {
+  if (!next || !SAFE_NEXT_RE.test(next)) return '/';
+  const pathname = next.split('?')[0] ?? '';
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  if (!firstSegment || !NEXT_ROUTE_FAMILIES.has(firstSegment)) return '/';
+  return next;
+}
