@@ -95,7 +95,7 @@ export function useDisplayConversion(currencies: string[]): DisplayConversion {
   const ready = resolved?.key === currentKey;
   // Memoized (not a bare ternary): an inline `{}` fallback would get a new
   // identity every render while `!ready`, defeating the `useCallback` below.
-  const emptyRates = React.useMemo(() => ({}), []);
+  const emptyRates = React.useMemo<Record<string, { rate: number; isFallback: boolean }>>(() => ({}), []);
   const rates = ready ? resolved!.rates : emptyRates;
 
   const convert = React.useCallback(
