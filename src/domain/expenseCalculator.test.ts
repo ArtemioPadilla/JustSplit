@@ -168,6 +168,16 @@ describe('calculateSettlements (plan B3, spec D10 — consumes splits[])', () =>
       expect(result).toEqual([expect.objectContaining({ fromUser: 'beto', toUser: 'ana', amount: 70 })]);
     });
 
+    it('an expense whose splits add up to more than its amount still asks each debtor for their whole split', () => {
+      const odd = makeExpense({ amount: 50, paidBy: 'ana', participantIds: ['beto', 'carla'] });
+      odd.splits = [{ userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }];
+      const result = calculateSettlements([odd], [], ['ana', 'beto', 'carla']);
+      expect(result.map((s) => [s.fromUser, s.toUser, s.amount])).toEqual([
+        ['beto', 'ana', 30],
+        ['carla', 'ana', 30],
+      ]);
+    });
+
     it('an overpayment makes the payer a creditor: the third person then owes both', () => {
       const result = calculateSettlements([dinner()], [makeSettlement({ fromUserId: 'beto', toUserId: 'ana', amount: 40 })], ['ana', 'beto', 'carla']);
       // Beto paid 10 more than he owed, so he is now owed 10; Ana is still owed 20; Carla owes 30.
@@ -232,6 +242,16 @@ describe('calculateSettlementsWithConversion', () => {
 
       const recorded = makeSettlement({ fromUserId: 'ana', toUserId: 'carla', amount: suggestion[0]!.amount });
       expect(await calculateSettlementsWithConversion(expenses, [recorded], users, 'USD', doubleEur)).toEqual([]);
+    });
+
+    it('an expense whose splits add up to more than its amount still asks each debtor for their whole split', async () => {
+      const odd = makeExpense({ amount: 50, paidBy: 'ana', participantIds: ['beto', 'carla'] });
+      odd.splits = [{ userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }];
+      const result = await calculateSettlementsWithConversion([odd], [], ['ana', 'beto', 'carla'], 'USD', doubleEur);
+      expect(result.map((s) => [s.fromUser, s.toUser, s.amount])).toEqual([
+        ['beto', 'ana', 30],
+        ['carla', 'ana', 30],
+      ]);
     });
 
     it('excludes a legacy settled expense and scopes to the event\'s own settlements', async () => {

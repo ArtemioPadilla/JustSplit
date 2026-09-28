@@ -122,6 +122,80 @@ describe('netBalances', () => {
   });
 });
 
+describe('netBalances is zero-sum by construction (per-split pairing, not amount)', () => {
+  const total = (balances: Record<string, number>) => Object.values(balances).reduce((sum, b) => sum + b, 0);
+
+  it('an expense whose splits sum to LESS than its amount still yields balances that sum to 0', () => {
+    const short = expense({
+      id: 'short',
+      paidBy: 'ana',
+      amount: 100,
+      splits: [{ userId: 'ana', amount: 30 }, { userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }],
+    });
+    const balances = netBalances([short], [], identity);
+    expect(Math.abs(total(balances))).toBeLessThan(0.01);
+    expect(balances).toEqual({ ana: 60, beto: -30, carla: -30 });
+  });
+
+  it('an expense whose splits sum to MORE than its amount still yields balances that sum to 0', () => {
+    const long = expense({
+      id: 'long',
+      paidBy: 'ana',
+      amount: 80,
+      splits: [{ userId: 'ana', amount: 30 }, { userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }],
+    });
+    const balances = netBalances([long], [], identity);
+    expect(Math.abs(total(balances))).toBeLessThan(0.01);
+    expect(balances).toEqual({ ana: 60, beto: -30, carla: -30 });
+  });
+
+  it('a payer outside the split is credited exactly what the split users are debited', () => {
+    const gift = expense({ id: 'gift', paidBy: 'ana', amount: 45, splits: [{ userId: 'beto', amount: 20 }, { userId: 'carla', amount: 20 }] });
+    const balances = netBalances([gift], [], identity);
+    expect(balances).toEqual({ ana: 40, beto: -20, carla: -20 });
+  });
+
+  it('a two-currency scope sums to 0 even when a foreign expense\'s splits do not add up to its amount', () => {
+    const eurToUsd = (amount: number, currency: string) => (currency === 'EUR' ? amount * 1.1 : amount);
+    const usd = expense({ id: 'usd', paidBy: 'ana', amount: 90, splits: [{ userId: 'ana', amount: 30 }, { userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }] });
+    const eur = expense({
+      id: 'eur',
+      paidBy: 'beto',
+      amount: 10,
+      currency: 'EUR',
+      splits: [{ userId: 'ana', amount: 3.3 }, { userId: 'beto', amount: 3.3 }, { userId: 'carla', amount: 3.3 }],
+    });
+    const pay = settlement({ id: 'p', fromUserId: 'carla', toUserId: 'beto', amount: 2, currency: 'EUR' });
+    expect(Math.abs(total(netBalances([usd, eur], [pay], eurToUsd)))).toBeLessThan(0.01);
+  });
+
+  it('a mismatched expense does not leave a phantom "still owed" once its real debts are paid', () => {
+    const short = expense({
+      id: 'short',
+      paidBy: 'ana',
+      amount: 100,
+      splits: [{ userId: 'ana', amount: 30 }, { userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }],
+    });
+    const payments = [
+      settlement({ id: 's1', fromUserId: 'beto', toUserId: 'ana', amount: 30 }),
+      settlement({ id: 's2', fromUserId: 'carla', toUserId: 'ana', amount: 30 }),
+    ];
+    expect(isSettledUp(netBalances([short], payments, identity))).toBe(true);
+    expect(settlementProgress([short], payments, identity)).toEqual({ settled: 60, outstanding: 0, percentage: 100, settledUp: true });
+  });
+
+  it('a legacy settled expense counts as settled value from its non-payer splits (already per-split, so consistent)', () => {
+    const legacy = expense({
+      id: 'legacy',
+      paidBy: 'ana',
+      amount: 100,
+      settledAt: '2026-01-01T00:00:00.000Z',
+      splits: [{ userId: 'ana', amount: 30 }, { userId: 'beto', amount: 30 }, { userId: 'carla', amount: 30 }],
+    });
+    expect(settlementProgress([legacy], [], identity)).toEqual({ settled: 60, outstanding: 0, percentage: 100, settledUp: true });
+  });
+});
+
 describe('isSettledUp', () => {
   it('is true when every balance is below one cent, including an empty scope', () => {
     expect(isSettledUp({})).toBe(true);
