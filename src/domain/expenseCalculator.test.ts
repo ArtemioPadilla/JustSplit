@@ -167,4 +167,39 @@ describe('materializeSplits (plan B3, spec D10 — the only writer of splits[].a
   it('equal: returns an empty array for no participants', () => {
     expect(materializeSplits(100, { splitType: 'equal', participantIds: [], payerId: 'user1' })).toEqual([]);
   });
+
+  // spec D10: paidBy must be in member_ids but NOT necessarily in splits (a
+  // payer who covers others without taking a share). The remainder cents
+  // must still land somewhere, or the splits no longer sum to the amount.
+  const sumCents = (splits: { amount: number }[]) => splits.reduce((s, x) => s + Math.round(x.amount * 100), 0);
+
+  it('equal: a payer outside the participants still yields splits that sum to the amount', () => {
+    const splits = materializeSplits(100, { splitType: 'equal', participantIds: ['a', 'b', 'c'], payerId: 'payer' });
+    expect(sumCents(splits)).toBe(10000);
+    expect(splits.map((s) => s.amount)).toEqual([33.34, 33.33, 33.33]);
+  });
+
+  it('percentage: a payer outside the participants still yields splits that sum to the amount', () => {
+    const splits = materializeSplits(10, {
+      splitType: 'percentage',
+      shares: { a: 33.333, b: 33.333, c: 33.334 },
+      payerId: 'payer',
+    });
+    expect(sumCents(splits)).toBe(1000);
+  });
+
+  it('equal and percentage always sum to the amount across awkward totals', () => {
+    for (const amount of [0.01, 0.1, 1, 9.99, 100, 123.45, 1000.01]) {
+      for (const n of [1, 2, 3, 6, 7]) {
+        const ids = Array.from({ length: n }, (_, i) => `u${i}`);
+        for (const payerId of ['u0', 'outsider']) {
+          const eq = materializeSplits(amount, { splitType: 'equal', participantIds: ids, payerId });
+          expect(sumCents(eq), `equal ${amount}/${n}/${payerId}`).toBe(Math.round(amount * 100));
+          const shares = Object.fromEntries(ids.map((id) => [id, 100 / n]));
+          const pct = materializeSplits(amount, { splitType: 'percentage', shares, payerId });
+          expect(sumCents(pct), `percentage ${amount}/${n}/${payerId}`).toBe(Math.round(amount * 100));
+        }
+      }
+    }
+  });
 });
