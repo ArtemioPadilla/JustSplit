@@ -19,6 +19,7 @@ const {
   receiptPath,
   removeAvatar,
   removeReceipts,
+  removeReceiptObject,
   resizeImage,
   signedUrl,
   uploadAvatar,
@@ -263,6 +264,24 @@ describe('removeAvatar', () => {
     await removeAvatar('avatars/user-1/old.jpg');
 
     expect(remove).toHaveBeenCalledWith(['avatars/user-1/old.jpg']);
+  });
+});
+
+describe('removeReceiptObject (plan B10: removing one receipt from an expense, never the whole expenses/{id}/ folder)', () => {
+  it('removes exactly the given path', async () => {
+    const { client, remove } = fakeStorageClient();
+    requireSupabase.mockReturnValue(client);
+
+    await removeReceiptObject('expenses/exp-1/old.jpg');
+
+    expect(remove).toHaveBeenCalledWith(['expenses/exp-1/old.jpg']);
+  });
+
+  it('throws the underlying error rather than swallowing it', async () => {
+    const { client } = fakeStorageClient({ remove: vi.fn().mockResolvedValue({ data: null, error: new Error('denied') }) });
+    requireSupabase.mockReturnValue(client);
+
+    await expect(removeReceiptObject('expenses/exp-1/old.jpg')).rejects.toThrow('denied');
   });
 });
 
