@@ -10,6 +10,13 @@ vi.mock('@/stores/auth', () => ({ signUp }));
 
 import SignUpForm from './SignUpForm';
 
+describe('SignUpForm — accessibility (plan B6, axe smoke)', () => {
+  it('renders its heading as an h1', () => {
+    render(<SignUpForm />);
+    expect(screen.getByRole('heading', { level: 1, name: /create your account/i })).toBeInTheDocument();
+  });
+});
+
 describe('SignUpForm — validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();

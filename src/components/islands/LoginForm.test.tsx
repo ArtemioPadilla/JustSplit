@@ -13,6 +13,13 @@ vi.mock('@/stores/auth', () => ({ signIn, signInWithGoogle }));
 
 import LoginForm from './LoginForm';
 
+describe('LoginForm — accessibility (plan B6, axe smoke)', () => {
+  it('renders its heading as an h1 (axe page-has-heading-one on /auth/signin/)', () => {
+    render(<LoginForm />);
+    expect(screen.getByRole('heading', { level: 1, name: /welcome back/i })).toBeInTheDocument();
+  });
+});
+
 describe('LoginForm — validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
