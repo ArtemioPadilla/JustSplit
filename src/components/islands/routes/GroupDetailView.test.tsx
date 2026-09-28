@@ -200,4 +200,24 @@ describe('GroupDetailView', () => {
       undefined,
     );
   });
+
+  it('links "New event" to /events/new?group=<id> (plan B11b: the entry point of the events form\'s ?group= context), and offers it in the empty events state too', () => {
+    useGroup.mockReturnValue({ data: makeGroup(), isLoading: false, isError: false, refetch: vi.fn() });
+    useGroupEvents.mockReturnValue({ data: [] });
+    render(<GroupDetailView id="g1" />);
+
+    const links = screen.getAllByRole('link', { name: /new event/i });
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    for (const link of links) expect(link).toHaveAttribute('href', '/events/new?group=g1');
+    expect(screen.getByText(/no events yet/i)).toBeInTheDocument();
+  });
+
+  it('still links "New event" once the group has events', () => {
+    useGroup.mockReturnValue({ data: makeGroup(), isLoading: false, isError: false, refetch: vi.fn() });
+    useGroupEvents.mockReturnValue({ data: [{ id: 'ev1', name: 'Dinner', memberIds: ['u1'], kind: 'event', createdBy: 'u1', createdAt: NOW }] });
+    render(<GroupDetailView id="g1" />);
+
+    expect(screen.getByRole('link', { name: /new event/i })).toHaveAttribute('href', '/events/new?group=g1');
+    expect(screen.getByRole('link', { name: 'Dinner' })).toHaveAttribute('href', '/events/ev1');
+  });
 });
