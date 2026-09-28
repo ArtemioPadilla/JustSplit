@@ -11,7 +11,9 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     // The RLS suite needs `supabase start`; it runs through `npm run test:rls`
     // (vitest.rls.config.ts) in its own CI job, never inside `npm run check`.
-    exclude: [...configDefaults.exclude, 'src/tests/rls/**'],
+    // Same for the real-adapter half of the storage-adapter contract suite
+    // (plan B5a): `npm run test:contract:live` (vitest.contract.config.ts).
+    exclude: [...configDefaults.exclude, 'src/tests/rls/**', 'src/tests/storage-adapter-contract.live.test.ts'],
     // Globals: true gives RTL automatic afterEach cleanup (it hooks via
     // global `afterEach`). Without this, multiple `render()` calls in the
     // same test file leak DOM into each other.

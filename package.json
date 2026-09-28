@@ -26,6 +26,7 @@
     "ship": "bash scripts/ship.sh",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "test:rls:mutation": "node scripts/rls-mutation-check.mjs",
+    "test:contract:live": "vitest run --config vitest.contract.config.ts",
     "db:start": "supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector",
     "db:stop": "supabase stop",
     "db:migrate": "dbmate --no-dump-schema --migrations-dir db/migrations --url \"${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable}\" migrate",
