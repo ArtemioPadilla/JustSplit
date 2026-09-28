@@ -18,7 +18,7 @@ This repo is mid-migration (ADR 0001). The canonical documents are:
 
 Two trees coexist in the plan's timeline; check which one you are in:
 
-| | Now (Track A, `main`) | Target (Track B, branch `inceptor` → `main`) |
+| | `main` until cutover (Next, frozen) | `inceptor` branch → `main` at cutover (Astro, **this tree from B1**) |
 |---|---|---|
 | Framework | Next.js 15 App Router, React 18 | Astro 5 `output: 'static'` + React 19 islands |
 | Styling | MUI 7 + CSS Modules | Tailwind v4 (`@tailwindcss/vite`) + shadcn on Base UI |
@@ -27,8 +27,8 @@ Two trees coexist in the plan's timeline; check which one you are in:
 | Tests | Jest + Testing Library | Vitest + Testing Library; RLS suite against `supabase start` |
 | Hosting | Firebase Hosting (untouched until cutover) | GitHub Pages via Inceptor's `deploy.yml` |
 
-**Track A rule**: no app code changes. Only workflow, CI, docs and hygiene.
-`next.config.js` present ⇒ you are in the Next tree.
+`next.config.js` present ⇒ the frozen Next tree on `main` (no app-code changes there);
+`astro.config.mjs` present ⇒ the Astro tree (Track B, PRs target `inceptor`).
 
 ## File organization
 
@@ -44,9 +44,9 @@ Target (spec §4): `src/pages/` (Astro shells, one route island each),
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | dev server (port 4000 now; 4321 after B1) |
-| `npm run check` | **the umbrella gate**: lint + type-check + test + build. Its body changes in B1; its name never does (`ship.sh`, `centinela`, `ci.yml` call it) |
-| `npm run test` | test runner (Jest now, Vitest after B1) |
+| `npm run dev` | dev server (4321 on the Astro tree; 4000 on the frozen Next tree) |
+| `npm run check` | **the umbrella gate**: `astro check` + type-check + Vitest + ESLint + pragma check, then the production build (`ship.sh`, `centinela`, `ci.yml` call it) |
+| `npm run test` | Vitest (Jest on the frozen Next tree) |
 | `npm run type-check` | `tsc --noEmit` |
 | `npm run format` | Prettier |
 | `npm run doctor` | preflight: node ≥ 22, gh auth, clean tree, branch naming, config present |
@@ -124,8 +124,8 @@ Data-layer rules (spec D3, D10; from `cybereco-hub/docs/design/`):
     overflow column. The app never sees the column.
 
 The machine-readable list of banned imports is
-`.claude/checklists/forbidden-imports.json` (rules under `suspended` are
-restored in B1, when the Next tree is gone).
+`.claude/checklists/forbidden-imports.json` (enforced whole-tree by `centinela`
+and `src/tests/forbidden-imports.test.ts` since B1).
 
 ## Auth gating rules
 

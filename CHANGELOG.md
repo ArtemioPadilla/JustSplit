@@ -7,6 +7,10 @@ plan's milestones.
 ## [Unreleased]
 
 ### Added
+- **Astro tree (Track B, branch `inceptor`)**: Inceptor scaffold grafted — Astro 5 + React 19 islands +
+  Tailwind v4 + Base UI/shadcn, TanStack Query, Nano Stores, PWA, GitHub Pages deploy workflow,
+  the Inceptor component/lib manifest with its tests, `/showcase`, `/llms.txt`; `npm run check` is
+  now `astro check` + tsc + Vitest + ESLint + pragma check + build (B1).
 - Inceptor workflow: `CLAUDE.md`, `prometeo` / `forja` / `centinela` sub-agents, ethics /
   governance / forbidden-imports checklists, `doctor` / `monday` / `ship` commands, ADR 0001 (#3).
 - CI quality gate `Build & Check` + actionlint, and the Supabase migrations workflow (#5).
@@ -21,6 +25,7 @@ plan's milestones.
 - Migration spec and plan re-platformed on Supabase via the CyberEco data layer (#2).
 
 ### Removed
+- The Next.js tree (`src/`, Jest, `next.config.js`) on the `inceptor` branch; `main` keeps it frozen until cutover (B1).
 - Firebase Hosting deploy workflows; committed junk files, shadow pages and duplicate modules (#2).
 
 ### Known

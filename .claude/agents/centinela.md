@@ -76,31 +76,27 @@ Skip on `tdd-tier:smoke` (a `?raw` source assertion is enough) and
 
 These are non-negotiable; they enforce CLAUDE.md's warnings:
 
-Scan ONLY the files this branch changed (the Next tree still carries imports
-that Track B removes; a whole-tree scan would reject every Track A PR):
+Whole-tree scan (the Next tree is gone since B1; `src/tests/forbidden-imports.test.ts`
+reads the same JSON):
 
 ```bash
-CHANGED="$(git diff --name-only main...HEAD -- src package.json)"
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "from ['\"]@astrojs/tailwind['\"]" && echo "FAIL: @astrojs/tailwind banned" || true
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "\bcreateContext\s*[<(]"           && echo "FAIL: React Context across islands banned (use Nano Stores)" || true
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "from ['\"]@radix-ui/"             && echo "FAIL: Radix banned (use Base UI)" || true
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "from ['\"]radix-ui['\"]"          && echo "FAIL: radix-ui (unscoped) banned (use Base UI)" || true
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "from ['\"]@tremor/react['\"]"     && echo "FAIL: @tremor/react banned (use Tremor Raw)" || true
-[ -n "$CHANGED" ] && echo "$CHANGED" | xargs grep -nE "from ['\"]@ark-ui/react['\"]"     && echo "FAIL: @ark-ui/react banned (use @zag-js/<component> only)" || true
-# TODO(track-b): restore in B1, once src/ is the Astro tree — mirrors `suspended` in forbidden-imports.json:
-#   framer-motion (use motion/react) · @mui/ (use Base UI/shadcn) · firebase (use @cyber-eco/supabase via src/lib/data/)
-# B1 also restores the whole-tree scan (`grep -rE … src/`) once src/tests/forbidden-imports.test.ts reads the JSON.
+grep -rE "from ['\"]@astrojs/tailwind['\"]"   src/  package.json && echo "FAIL: @astrojs/tailwind banned" || true
+grep -rE "\bcreateContext\s*[<(]"              src/                && echo "FAIL: React Context across islands banned (use Nano Stores)" || true
+grep -rE "from ['\"]@radix-ui/"               src/                && echo "FAIL: Radix banned (use Base UI)" || true
+grep -rE "from ['\"]radix-ui['\"]"            src/                && echo "FAIL: radix-ui (unscoped) banned (use Base UI)" || true
+grep -rE "from ['\"]@tremor/react['\"]"       src/                && echo "FAIL: @tremor/react banned (use Tremor Raw)" || true
+grep -rE "from ['\"]framer-motion['\"]"       src/                && echo "FAIL: framer-motion banned (use motion/react)" || true
+grep -rE "from ['\"]@ark-ui/react['\"]"       src/                && echo "FAIL: @ark-ui/react banned (use @zag-js/<component> only)" || true
+grep -rE "from ['\"]@mui/"                    src/                && echo "FAIL: MUI banned (Base UI/shadcn)" || true
+grep -rE "from ['\"]firebase(/|['\"])"        src/                && echo "FAIL: firebase banned (backend retired, spec D1; use @cyber-eco/supabase via src/lib/data/)" || true
+grep -rE "from ['\"]@supabase/supabase-js['\"]" src/components src/stores && echo "FAIL: supabase-js only inside src/lib/data/ (CLAUDE.md rule 7)" || true
 ```
 
-> The `createContext` pattern is wider than Inceptor's (`React\\.createContext`)
-> on purpose: JustSplit's contexts use the named import
-> (`import { createContext } from 'react'`). Safe in Track A because no Track A
-> issue touches `src/context/*`.
-
-> This block is a duplicate, hand-maintained view of
-> `.claude/checklists/forbidden-imports.json` (the actual single source of
-> truth — see its `purpose` field). If you add or change a rule, edit the
-> JSON first, then mirror the change here.
+> This block is a hand-maintained mirror of `.claude/checklists/forbidden-imports.json`
+> (the single source of truth). Edit the JSON first, then this block. The
+> `createContext` pattern catches both `React.createContext` and the named import;
+> `<AuthProvider>` from `@cyber-eco/auth` is the one sanctioned Context and lives
+> inside a single island tree (spec D3).
 
 If any FAIL appears, REJECT.
 

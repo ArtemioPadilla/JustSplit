@@ -1,0 +1,284 @@
+@import "tailwindcss";
+/* CSS-only animation utilities — zero JS runtime cost. Activates on element
+ * mount via CSS keyframes. See https://rombo.co/tailwind/ for the full API. */
+@plugin "tailwindcss-motion";
+
+/* Native cross-document View Transitions — Baseline Newly Available Oct 2025.
+ * No-op in older browsers; supporting browsers (Chromium 126+, Safari 18.2+,
+ * Firefox 144+) get cross-page fade-through. Page-level transitions can be
+ * customized further via ::view-transition-old/new pseudo-elements. */
+@view-transition {
+  navigation: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* Dark applies under `.dark` — but NOT inside a `.light` island. This lets the
+   gallery render a true light preview and a true dark preview side-by-side on
+   the same page (a `.light` container re-declares the light tokens below AND
+   opts its subtree out of `dark:` utilities). */
+@variant dark (&:where(.dark, .dark *):not(:where(.light, .light *)));
+
+@layer base {
+  /* `.light` shares :root's values, so a `.light` container forces light tokens
+     even when nested under `html.dark`. No duplication — one source of truth.
+
+     Epic 25 (Generative theming): every themed token below is declared
+     ONCE via the native `light-dark(<light>, <dark>)` CSS function instead
+     of hand-duplicated `:root`/`.dark` blocks — same authoring surface Chakra
+     (semantic tokens), Astryx (`defineTheme()`), MUI (CSS-variables mode),
+     and Ant Design (Seed→Map→Alias) all converged on independently. Nothing
+     here needs a build step: `light-dark()` resolves per the `color-scheme`
+     in effect at the point of use, which is exactly what `:root`/`.light`
+     vs. `.dark` still toggle below — so the *existing* class-based, zero-
+     flash dark-mode script in BaseLayout.astro (sets `.dark` before first
+     paint) keeps working unchanged, and every CSS var name + resolved value
+     is unchanged. Browser support: Chromium 123+, Firefox 120+, Safari
+     17.5+ (broadly available well before this repo's supported baseline). */
+  :root,
+  .light {
+    /* Tells native controls (selects, scrollbars, inputs) to render in
+       light mode when under this scope, and is what `light-dark()` reads
+       to pick its first argument for every var() below. */
+    color-scheme: light;
+  }
+
+  .dark {
+    /* Tells native controls to render in dark mode, and is what
+       `light-dark()` reads to pick its second argument for every var()
+       below (inherited scoping — same mechanism as color-scheme itself). */
+    color-scheme: dark;
+  }
+
+  :root {
+    --background: light-dark(oklch(1 0 0), oklch(0.145 0 0));
+    --foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+    --card: light-dark(oklch(1 0 0), oklch(0.205 0 0));
+    --card-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+    --popover: light-dark(oklch(1 0 0), oklch(0.205 0 0));
+    --popover-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+    /* Brand: emerald is the primary action color (deep enough for white text
+       to clear WCAG AA 4.5:1 — see src/tests/ux-contrast.test.ts). Bright
+       emerald in dark mode reads as luminous on the near-black canvas; dark
+       text on it clears AA comfortably. */
+    --primary: light-dark(oklch(0.50 0.123 163), oklch(0.78 0.155 164));
+    --primary-foreground: light-dark(oklch(0.99 0 0), oklch(0.2 0.03 165));
+    --secondary: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+    --secondary-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
+    --muted: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+    --muted-foreground: light-dark(oklch(0.49 0 0), oklch(0.715 0 0));
+    --accent: light-dark(oklch(0.96 0.02 163), oklch(0.28 0.04 165));
+    --accent-foreground: light-dark(oklch(0.3 0.06 163), oklch(0.92 0.05 165));
+    --destructive: light-dark(oklch(0.577 0.245 27.325), oklch(0.704 0.191 22.216));
+    --destructive-foreground: light-dark(oklch(0.985 0 0), oklch(0.145 0.02 25));
+    --border: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 12%));
+    --input: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 15%));
+    --ring: light-dark(oklch(0.6 0.13 163), oklch(0.78 0.155 164));
+    /* Cohesive palette — same hues across light/dark, only lightness shifts. */
+    --chart-1: light-dark(oklch(0.6 0.14 163), oklch(0.78 0.16 164));
+    --chart-2: light-dark(oklch(0.62 0.12 195), oklch(0.72 0.13 195));
+    --chart-3: light-dark(oklch(0.55 0.16 255), oklch(0.7 0.16 255));
+    --chart-4: light-dark(oklch(0.72 0.16 70), oklch(0.8 0.16 75));
+    --chart-5: light-dark(oklch(0.58 0.2 300), oklch(0.72 0.19 300));
+    --radius: 0.625rem;
+    --sidebar: light-dark(oklch(0.985 0 0), oklch(0.205 0 0));
+    --sidebar-foreground: light-dark(oklch(0.145 0 0), oklch(0.985 0 0));
+    --sidebar-primary: light-dark(oklch(0.205 0 0), oklch(0.488 0.243 264.376));
+    --sidebar-primary-foreground: light-dark(oklch(0.985 0 0), oklch(0.985 0 0));
+    --sidebar-accent: light-dark(oklch(0.97 0 0), oklch(0.269 0 0));
+    --sidebar-accent-foreground: light-dark(oklch(0.205 0 0), oklch(0.985 0 0));
+    --sidebar-border: light-dark(oklch(0.922 0 0), oklch(1 0 0 / 10%));
+    --sidebar-ring: light-dark(oklch(0.708 0 0), oklch(0.556 0 0));
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@theme {
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+
+  /* Type system — editorial serif display + grotesque body + mono for code.
+     Loaded in BaseLayout via Google Fonts (preconnect + display=swap). */
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  /* Faint engineering grid — sits behind the hero, fades toward edges. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  /* Emerald aurora glow used as hero atmosphere. */
+  .glow-emerald {
+    background:
+      radial-gradient(60% 50% at 50% 0%, color-mix(in oklch, var(--primary) 28%, transparent), transparent 70%);
+  }
+  /* SVG fractal-noise grain overlay — adds tactile depth over flat fills. */
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* Radial fade mask for the grid so it dissolves at the edges. */
+  .mask-fade-b {
+    mask-image: radial-gradient(120% 100% at 50% 0%, black 35%, transparent 80%);
+  }
+  /* Top/bottom gradient mask for scrollable containers (e.g. ChatThread) —
+     signals "more content above/below" the visible viewport. Fixed to the
+     element's own box, not the scrolled content, so it reads as an edge
+     vignette rather than clipping messages. */
+  .scroll-fade-y {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black 24px,
+      black calc(100% - 24px),
+      transparent
+    );
+  }
+}
+
+/* Base UI Toast stacking. Toasts are absolutely positioned inside the fixed
+ * Viewport and stacked with the --toast-index / --toast-offset-y variables
+ * Base UI sets on each Root (canonical pattern — no Toast.Positioner, no flex
+ * on the viewport). On hover/focus (data-expanded) they fan out vertically. */
+@layer components {
+  .bui-toast {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: 100%;
+    z-index: calc(1000 - var(--toast-index));
+    transform:
+      translateX(var(--toast-swipe-movement-x))
+      translateY(calc(var(--toast-swipe-movement-y) + var(--toast-index) * -18px))
+      scale(calc(1 - 0.04 * var(--toast-index)));
+    transition:
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.3s ease;
+  }
+  .bui-toast[data-expanded] {
+    transform:
+      translateX(var(--toast-swipe-movement-x))
+      translateY(calc(var(--toast-offset-y) * -1 + var(--toast-swipe-movement-y)));
+  }
+  /* Enter from / exit to below the viewport edge. */
+  .bui-toast[data-starting-style],
+  .bui-toast[data-ending-style] {
+    opacity: 0;
+    transform: translateY(150%);
+  }
+  /* Only the three frontmost toasts stay visible in the collapsed stack. */
+  .bui-toast[data-index='3'],
+  .bui-toast[data-index='4'] {
+    opacity: 0;
+  }
+}
+
+/* Staggered hero entrance — CSS-only, respects reduced-motion. */
+@keyframes justsplit-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes justsplit-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+@keyframes justsplit-spin-slow {
+  to { transform: rotate(360deg); }
+}
+.rise {
+  animation: justsplit-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.float-slow { animation: justsplit-float 7s ease-in-out infinite; }
+.spin-slow { animation: justsplit-spin-slow 40s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .rise, .float-slow, .spin-slow { animation: none; }
+}
+
+/* Shimmer sweep — subtle gradient-band animation for AI "thinking"/loading
+   states (streaming-text.tsx's ThinkingIndicator). A moving highlight reads
+   as "still working" without implying literal, measurable progress. */
+@keyframes justsplit-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 35%,
+    color-mix(in oklch, var(--foreground) 14%, transparent) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  animation: justsplit-shimmer 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Degrade to a static gradient — no motion, but still visually distinct
+     from the resting state so the affordance isn't lost entirely. */
+  .shimmer {
+    animation: none;
+    background-position: 50% 0;
+  }
+}

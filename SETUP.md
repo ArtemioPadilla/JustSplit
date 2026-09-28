@@ -22,9 +22,16 @@ npm run doctor     # preflight: node, gh auth, clean tree, branch naming, config
 npm run check      # the umbrella gate: lint → type-check → test → build
 ```
 
-`npm run check` needs no secret: the Next-era build gate exports placeholder
-`NEXT_PUBLIC_FIREBASE_*` values when they are unset (`scripts/build-check.sh`).
-Nothing built by that script is ever deployed.
+`npm run check` needs no secret on the Astro tree: the Supabase client is guarded
+(`PUBLIC_SUPABASE_*` unset ⇒ the app renders a "not configured" notice, B2a).
+
+> **npm 10.9.x bug.** `npm install` without a lockfile can abort with
+> `Cannot read properties of null (reading 'edgesOut')` while resolving peer sets.
+> `npm ci` (lockfile present) is unaffected, which is what CI runs. To regenerate the
+> lockfile use **`npx npm@latest install`** (npm ≥ 11). Do not use `--legacy-peer-deps`:
+> the lockfile it writes omits peer resolutions and a strict `npm ci` then rejects it.
+> (The frozen Next tree on `main`-before-cutover used `scripts/build-check.sh`
+> placeholders instead; that script left with the tree in B1.)
 
 ## 2. Secrets and tokens
 
@@ -64,6 +71,7 @@ plan's acceptance lines stay verifiable.
 | Plan issue | Action | Done |
 |---|---|---|
 | A3b | Enable branch protection on `main` (`Build & Check` required) | ☐ |
+| B1 | Set repository variable `ASTRO_BASE` (`/JustSplit`, or `/` with a custom domain) and enable GitHub Pages (Source: GitHub Actions) | ☐ |
 | A4 | Delete the `FIREBASE_SERVICE_ACCOUNT*` secrets | ☐ |
 | A4 | Create `GH_PACKAGES_TOKEN` (classic PAT, `read:packages`, `cyber-eco` member) | ☐ |
 | A5 | Create `ANTHROPIC_API_KEY` | ☐ |

@@ -1,0 +1,38 @@
+---
+import '../styles/global.css';
+import FeedbackFAB from '../components/common/FeedbackFAB.astro';
+import SiteHeader from '../components/common/SiteHeader.astro';
+import SiteFooter from '../components/common/SiteFooter.astro';
+import { withBase } from '../lib/href';
+interface Props { title?: string; description?: string; lang?: 'es' | 'en'; }
+const { title = 'JustSplit', description = '', lang = 'en' } = Astro.props;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <script is:inline>
+      (function () {
+        try {
+          const s = localStorage.getItem('theme');
+          const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (s === 'dark' || (s === null && d)) document.documentElement.classList.add('dark');
+        } catch (_) {}
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <meta name="theme-color" content="#10b981" />
+  </head>
+  <body class="relative min-h-screen bg-background text-foreground antialiased">
+    <SiteHeader />
+    <slot />
+    <SiteFooter />
+    <FeedbackFAB lang={lang} />
+  </body>
+</html>

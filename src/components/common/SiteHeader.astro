@@ -1,0 +1,18 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+import { withBase } from '@/lib/href';
+const nav: { href: string; label: string }[] = [];
+---
+<header class="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-md">
+  <nav class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-2.5">
+    <a href={withBase('/')} class="font-display text-lg font-semibold tracking-tight text-foreground">
+      JustSplit
+    </a>
+    <div class="ml-auto flex items-center gap-1 font-mono text-xs sm:text-sm">
+      {nav.map((n) => (
+        <a href={withBase(n.href)} class="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-primary">{n.label}</a>
+      ))}
+      <span class="ml-1"><ThemeToggle /></span>
+    </div>
+  </nav>
+</header>
