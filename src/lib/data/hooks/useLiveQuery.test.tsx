@@ -134,8 +134,8 @@ describe('useLiveQuery (plan B5a, spec D3: single network source)', () => {
   it('writes every emission into the Query cache under the given key (setQueryData), never running its own queryFn', async () => {
     const rows = [{ id: 'e1' }];
     const adapter: Partial<StorageAdapter> = {
-      subscribeToQuery: (_collection, _filters, callback) => {
-        queueMicrotask(() => callback(rows));
+      subscribeToQuery: <T,>(_collection: string, _filters: unknown, callback: (data: T[]) => void) => {
+        queueMicrotask(() => callback(rows as unknown as T[]));
         return () => {};
       },
     };
