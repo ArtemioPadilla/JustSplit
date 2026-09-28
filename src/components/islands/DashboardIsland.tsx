@@ -113,6 +113,13 @@ function DashboardContent() {
   // skeleton with no explanation or way to recover from a real failure
   // (RLS denial, network error). `isError` is checked BEFORE `dataLoading`.
   const isError = Boolean(expensesQuery.isError || eventsQuery.isError || settlementsQuery.isError || profilesQuery.isError);
+  // Orchestrator review: each `useLiveQuery`-backed query already bounds its
+  // OWN `refetch()` to one in-flight retry; this just surfaces that state so
+  // the Retry button can disable itself for the same window (belt-and-braces
+  // — a disabled button also stops a human from generating extra clicks in
+  // the first place). `useProfiles` is a plain `useQuery`, whose native
+  // `isFetching` already reflects an in-flight `refetch()` the same way.
+  const isRetrying = Boolean(expensesQuery.isRetrying || eventsQuery.isRetrying || settlementsQuery.isRetrying || profilesQuery.isFetching);
   function handleRetry() {
     expensesQuery.refetch();
     eventsQuery.refetch();
@@ -142,10 +149,15 @@ function DashboardContent() {
       <ErrorState
         title="Something went wrong loading your dashboard"
         // Generic on purpose (coordinator review): the underlying error may
-        // carry backend/RLS/SQL detail that must never reach the user.
-        hint="Please try again in a moment."
+        // carry backend/RLS/SQL detail that must never reach the user, and
+        // this never claims a specific cause. The second sentence (added per
+        // orchestrator review) is the honest path forward when Retry doesn't
+        // help — it names the FeedbackFAB (rendered on every page by
+        // BaseLayout, `src/components/common/FeedbackFAB.astro`) rather than
+        // inventing a support email/channel that doesn't exist.
+        hint='Please try again in a moment. If this keeps happening, you can report it with the "Report an issue" button.'
         action={
-          <Button type="button" onClick={handleRetry}>
+          <Button type="button" onClick={handleRetry} disabled={isRetrying} aria-busy={isRetrying}>
             Retry
           </Button>
         }
