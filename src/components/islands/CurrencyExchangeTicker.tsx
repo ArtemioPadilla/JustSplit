@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
+import { Pause, Play } from 'lucide-react';
 
 import { $preferredCurrency } from '@/stores/preferences';
 import { SUPPORTED_CURRENCIES } from '@/domain/currency';
@@ -43,6 +44,13 @@ function CurrencyExchangeTickerInner({ className }: { className?: string }) {
   const base = useStore($preferredCurrency);
   const [rates, setRates] = React.useState<TickerRate[]>([]);
   const [loading, setLoading] = React.useState(true);
+  // WCAG 2.2.2 (Pause, Stop, Hide): the CSS-only auto-scroll (global.css
+  // .ticker-track) previously only paused on :hover/:focus-within with
+  // nothing inside the list focusable — a keyboard or touch user could
+  // never pause it. This toggle is the explicit, always-reachable control;
+  // `data-paused` on the track is what the CSS keys `animation-play-state:
+  // paused` off (see global.css).
+  const [paused, setPaused] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -108,6 +116,21 @@ function CurrencyExchangeTickerInner({ className }: { className?: string }) {
             *
           </span>
         )}
+        {rates.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setPaused((p) => !p)}
+            aria-pressed={paused}
+            // Hidden under prefers-reduced-motion: the animation is already
+            // off there (global.css), so a pause toggle for it would be a
+            // no-op control — nothing is lost, since overflow-x-auto already
+            // keeps the list reachable by a plain scroll either way.
+            className="ticker-pause-toggle ml-auto flex size-6 shrink-0 items-center justify-center rounded hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+          >
+            {paused ? <Play aria-hidden="true" className="size-3.5" /> : <Pause aria-hidden="true" className="size-3.5" />}
+            <span className="sr-only">Pause exchange-rate scrolling</span>
+          </button>
+        )}
       </div>
 
       {hasFallback && (
@@ -117,7 +140,18 @@ function CurrencyExchangeTickerInner({ className }: { className?: string }) {
       )}
 
       {rates.length > 0 ? (
-        <div className="ticker-viewport overflow-x-auto">
+        // Documented exception (eslint-plugin-jsx-a11y's own rule docs,
+        // "Case: Shouldn't I add a tabindex..."): a scrollable container
+        // needs tabIndex={0} so keyboard users can actually scroll it
+        // (axe's scrollable-region-focusable rule; WCAG 2.1.1). This is a
+        // real, necessary content region, not a non-interactive `<article>`
+        // or `<li>` the rule is meant to guard against.
+        <div
+          className="ticker-viewport overflow-x-auto"
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          aria-label={`Exchange rates versus ${base}, scrollable`}
+        >
           {/* Not a live region on purpose: a 30-min refresh must not make a
               screen reader re-announce this list every time it changes
               (CLAUDE.md island-lifecycle discipline extended to a11y). The
@@ -127,8 +161,16 @@ function CurrencyExchangeTickerInner({ className }: { className?: string }) {
               scroll animation applied to it (global.css `.ticker-track`,
               disabled under `prefers-reduced-motion`, at which point
               `overflow-x-auto` above keeps every pair reachable by a plain
-              horizontal scroll). */}
-          <ul className="ticker-track flex w-max gap-6 whitespace-nowrap px-3 py-2">
+              horizontal scroll). `tabIndex={0}` + `aria-label` make this
+              viewport itself keyboard-focusable (axe
+              scrollable-region-focusable) and its `:focus-within` is what
+              global.css also uses to pause the animation for a keyboard
+              user, alongside the explicit toggle button above and plain
+              `:hover`. */}
+          <ul
+            className="ticker-track flex w-max gap-6 whitespace-nowrap px-3 py-2"
+            data-paused={paused ? 'true' : undefined}
+          >
             <TickerItems base={base} rates={rates} />
           </ul>
         </div>
