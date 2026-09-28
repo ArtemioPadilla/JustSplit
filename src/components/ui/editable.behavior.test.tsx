@@ -72,4 +72,44 @@ describe('Editable (behavior)', () => {
     },
     TEST_TIMEOUT,
   );
+
+  it(
+    'blurring the input commits the new value (ported: EditableText "calls onSave when input loses focus")',
+    async () => {
+      const user = userEvent.setup();
+      const onValueCommit = vi.fn();
+      render(
+        <>
+          <Editable defaultValue="Untitled" onValueCommit={onValueCommit} />
+          <button type="button">elsewhere</button>
+        </>,
+      );
+      await user.click(screen.getByText('Untitled'));
+      const input = await screen.findByRole('textbox', {}, WAIT_OPTS);
+      await user.clear(input);
+      await user.type(input, 'Renamed via blur');
+      await waitFor(() => expect(input).toHaveValue('Renamed via blur'), WAIT_OPTS);
+      await user.click(screen.getByText('elsewhere'));
+      expect(await screen.findByText('Renamed via blur', {}, WAIT_OPTS)).toBeInTheDocument();
+      expect(onValueCommit).toHaveBeenCalledWith('Renamed via blur');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'rejects an empty commit and reverts to the previous value (ported: EditableText "does not save when input is empty")',
+    async () => {
+      const user = userEvent.setup();
+      const onValueCommit = vi.fn();
+      render(<Editable defaultValue="Untitled" onValueCommit={onValueCommit} />);
+      await user.click(screen.getByText('Untitled'));
+      const input = await screen.findByRole('textbox', {}, WAIT_OPTS);
+      await user.clear(input);
+      await waitFor(() => expect(input).toHaveValue(''), WAIT_OPTS);
+      await user.type(input, '{Enter}');
+      expect(await screen.findByText('Untitled', {}, WAIT_OPTS)).toBeInTheDocument();
+      expect(onValueCommit).not.toHaveBeenCalled();
+    },
+    TEST_TIMEOUT,
+  );
 });

@@ -1449,20 +1449,56 @@ resolves other users' names through `useProfiles` (B5a).
       "sign out everywhere" is the plain button; a single-device sign-out would need
       `client.auth.signOut({ scope: 'local' })` directly and is not built
 ### B16. Currency exchange ticker + `CurrencySelector` + shared widgets (`risk:high`, `v0.3`)
-- [ ] Sequenced in Phase 1 (after B5b, alongside B6/B7) because almost every Phase 2 island depends
+- [x] Sequenced in Phase 1 (after B5b, alongside B6/B7) because almost every Phase 2 island depends
       on it: `CurrencySelector` (dashboard header, expenses list/detail, events list/detail,
       settlements, group detail, profile), `CurrencyExchangeTicker` (`/`), `Editable` (expense,
       event and group detail), `ProgressBar` (event detail); islands never re-invent or stub them
-- [ ] Harvest check: `src/components/ui/combobox.tsx` is in the B1 manifest (not in the
+      — landed immediately after B7 (still Phase 1, before any Phase 2 island starts), not
+      literally "alongside" B6/B7 in the same PR.
+- [x] Harvest check: `src/components/ui/combobox.tsx` is in the B1 manifest (not in the
       create-inceptor-app core set; `select` is); extend `items` to `{code,symbol,name}` with a
-      `renderItem`
-- [ ] Ticker reads `$rateCache`/`$preferredCurrency` (B5b) and `domain/currency.ts` (B3)
-- [ ] Shared widgets: `ProgressBar` (`progress-bar.tsx`), `Editable` (`editable.tsx`) replacing
+      `renderItem` — done: `items` widens to `string[] | {code,symbol,name}[]`, resolved to/from
+      plain string codes at the public `value`/`onValueChange` boundary via
+      `itemToStringLabel`/`itemToStringValue`/`isItemEqualToValue`; plain string-item callers are
+      unaffected (no caller exists yet either way).
+- [x] Ticker reads `$rateCache`/`$preferredCurrency` (B5b) and `domain/currency.ts` (B3) —
+      through one new call site, `src/lib/currency/rates.ts#fetchExchangeRate(from, to)`, added by
+      this issue: hands `getExchangeRate` a COPY of `$rateCache`'s Map (mutating the atom's own Map
+      in place would neither notify subscribers nor persist) and persists a fresh entry through
+      `setRateCacheEntry`. Every widget in this issue, and every later Phase 2 island, is expected
+      to use this helper rather than reaching into `domain/currency.ts` directly.
+- [x] Shared widgets: `ProgressBar` (`progress-bar.tsx`), `Editable` (`editable.tsx`) replacing
       `EditableText` (inline rename in 6 pages); port
       `src/components/ui/__tests__/{CurrencySelector,EditableText}.test.tsx` and
-      `src/__tests__/progressBar.test.tsx` against them; all three in `/showcase`
-- [ ] Tag `risk:high` (non-same-origin fetch to the exchange-rate API); ADR
-      `docs/decisions/0007-exchange-rate-provider.md` with Stakeholder Analysis
+      `src/__tests__/progressBar.test.tsx` against them; all three in `/showcase` — deviations:
+      `CurrencySelector`'s port drops the legacy `compact`/`showRefreshButton`/`onRefresh`/
+      `isRefreshing` assertions (this issue's prop list is `value`, `onChange`, optional
+      `label`/`id` only — no caller needs the rest); `EditableText`'s port drops the `as`
+      (polymorphic element)/`maxLength`/custom-`className`/placeholder-display assertions (no
+      plan consumer needs them) and keeps only the four behaviors actually named in the issue
+      (Enter saves, Escape cancels, blur saves, empty commit rejected+reverted) — the first three
+      already passed against `editable.tsx` (B1); only the empty-commit case was a real gap
+      (zag-js's machine has no concept of rejecting an empty SUBMIT), fixed with a `sendRef`-based
+      guard that reverts via `VALUE.SET` instead of propagating `''`. `ProgressBar`'s port drops
+      the legacy `variant`/`height`/`showPercentage` assertions (`progress-bar.tsx`, B1, never grew
+      those props) — every assertion the issue actually names (clamp 0–100, `role="progressbar"` +
+      aria-valuenow/min/max, label) already passed with zero production changes. `CurrencySelector`
+      and `CurrencyExchangeTicker` (not ported — new, no legacy `__tests__` file for the ticker)
+      live under `src/components/islands/` rather than `src/components/features/currency/`:
+      `src/tests/mounted-island-error-boundary.test.ts` (whole-tree rule since B6) requires every
+      component mounted with a `client:*` directive from an `.astro` file to live under
+      `components/islands/` and wrap `<ErrorBoundary>`; `CurrencySelector` itself (never mounted
+      directly — only composed inside `ShowcaseCurrencySelector`/future feature islands) stays
+      under `components/features/currency/`. The ticker's CSS-only auto-scroll
+      (`global.css` `.ticker-track`) renders its rate list exactly once (no duplicated/aria-hidden
+      copy for a seamless loop, unlike the legacy CSS) — simpler, and avoids a screen reader or a
+      `getByText` query ever seeing the same pair twice; `overflow-x-auto` keeps every pair
+      reachable by a plain scroll with the animation on OR disabled under `prefers-reduced-motion`.
+- [x] Tag `risk:high` (non-same-origin fetch to the exchange-rate API); ADR
+      `docs/decisions/0007-exchange-rate-provider.md` with Stakeholder Analysis — the attribution
+      link text is unchanged ("Rates By Exchange Rate API") but its href moved to
+      `https://www.exchangerate-api.com` (the `www` host, matching the issue's spec text; the
+      legacy component linked the bare apex domain).
 ### B17a. CSV export (shared button, before Phase 2)
 - [ ] `domain/csvExport` wired to a `download-trigger` as one `ExportCsvButton` (props `expenses`,
       `users` from `useProfiles`, `events`, `filename`) + `/showcase` entry; mounted by the islands

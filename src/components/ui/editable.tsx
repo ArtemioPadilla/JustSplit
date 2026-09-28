@@ -35,6 +35,18 @@ function Editable({
   activationMode = 'click',
 }: EditableProps) {
   const id = React.useId();
+  // Ported behavioral gap (legacy EditableText "does not save when input is
+  // empty"): the zag-js machine has no concept of rejecting an empty SUBMIT
+  // — it always exits edit mode and fires onValueCommit with whatever value
+  // is in the input, even ''. `lastValidValueRef` tracks the last non-empty
+  // value; `sendRef` lets the onValueCommit callback (defined once, at
+  // machine construction) reach the machine's `send` from `useMachine`'s
+  // return value, which does not exist yet at that point in the render —
+  // it is populated synchronously right after, before any user interaction
+  // can fire the callback.
+  const lastValidValueRef = React.useRef(value ?? defaultValue ?? '');
+  const sendRef = React.useRef<editable.Service['send'] | null>(null);
+
   const service = useMachine(editable.machine, {
     id,
     value,
@@ -43,7 +55,23 @@ function Editable({
     placeholder,
     activationMode,
     onValueChange: (details) => onValueChange?.(details.value),
-    onValueCommit: (details) => onValueCommit?.(details.value),
+    onValueCommit: (details) => {
+      if (details.value.trim() === '') {
+        // Revert the display (and the machine's internal value) instead of
+        // persisting/propagating an empty rename.
+        sendRef.current?.({ type: 'VALUE.SET', value: lastValidValueRef.current, src: 'setValue' });
+        return;
+      }
+      lastValidValueRef.current = details.value;
+      onValueCommit?.(details.value);
+    },
+  });
+  // react-hooks/refs (React Compiler lint) forbids writing a ref during
+  // render — `useLayoutEffect` (not `useEffect`) so `sendRef` is populated
+  // before the browser paints and before any user interaction can reach
+  // the input's event handlers.
+  React.useLayoutEffect(() => {
+    sendRef.current = service.send;
   });
   const api = editable.connect(service, normalizeProps);
 

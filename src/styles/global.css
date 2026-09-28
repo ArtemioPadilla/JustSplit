@@ -348,3 +348,37 @@
     background-position: 50% 0;
   }
 }
+
+/* CurrencyExchangeTicker (plan B16) — CSS-only horizontal scroll. The list
+   underneath is real, un-duplicated DOM content (CurrencyExchangeTicker.tsx),
+   so this only ever moves pixels; it never re-announces or hides anything
+   from assistive tech. WCAG 2.2.2 (Pause, Stop, Hide): three independent
+   ways to pause an indefinitely-repeating animation — a sighted mouse user
+   hovering the viewport, a keyboard user focusing it (`.ticker-viewport`
+   has `tabIndex={0}`, CurrencyExchangeTicker.tsx), and the explicit
+   `.ticker-pause-toggle` button (any input method) toggling `data-paused`
+   on the track itself. */
+@keyframes justsplit-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+.ticker-track {
+  animation: justsplit-ticker-scroll 30s linear infinite;
+}
+.ticker-viewport:hover .ticker-track,
+.ticker-viewport:focus-within .ticker-track,
+.ticker-track[data-paused='true'] {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The ticker's own overflow-x-auto (CurrencyExchangeTicker.tsx) keeps
+     every pair reachable by a plain horizontal scroll once the animation
+     is gone — nothing is lost, just the auto-scroll motion. The pause
+     toggle is redundant once there is no motion to pause, so it hides too. */
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-pause-toggle {
+    display: none;
+  }
+}
