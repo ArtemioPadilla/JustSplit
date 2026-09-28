@@ -32,3 +32,30 @@ describe('BaseLayout.astro re-brand (plan B6)', () => {
     expect(src).toMatch(/<HydrationCanary\s+client:idle/);
   });
 });
+
+/**
+ * Plan B7 / B19 "Header weight": marketing pages (/landing, /about, /help,
+ * spec D3) get a `marketing` prop that (a) tells SiteHeader to render its
+ * `static` (unhydrated) header and (b) skips HydrationCanary — with zero
+ * React islands on the page there is no hydration to mismatch, so the
+ * detector has nothing to detect; mounting it anyway would drag in the
+ * ~66 kB gz @astrojs/react client runtime for no benefit, blowing the
+ * 40 kB layout-JS budget on its own.
+ */
+describe('BaseLayout.astro marketing prop (plan B7)', () => {
+  it('declares a `marketing` prop', () => {
+    expect(src).toMatch(/marketing\s*\??:\s*boolean/);
+  });
+
+  it('passes `static` through to SiteHeader when marketing is set', () => {
+    expect(src).toMatch(/<SiteHeader[^>]*static[^>]*\/?>/);
+  });
+
+  it('the HydrationCanary mount is conditional on `marketing`, not unconditional', () => {
+    const mountLine = src.split('\n').find((l) => l.includes('<HydrationCanary') && l.includes('client:idle'));
+    expect(mountLine, 'expected an <HydrationCanary client:idle mount').toBeTruthy();
+    const idx = src.indexOf(mountLine!);
+    const before = src.slice(Math.max(0, idx - 200), idx);
+    expect(before).toMatch(/marketing/);
+  });
+});

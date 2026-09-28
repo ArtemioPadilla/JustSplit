@@ -27,4 +27,40 @@ describe('SiteHeader.astro (plan B6)', () => {
   it('has a Home nav link', () => {
     expect(src).toMatch(/withBase\(['"]\/['"]\)/);
   });
+
+  it('links About and Help in the nav (plan B7)', () => {
+    expect(src).toMatch(/withBase\(['"]\/about['"]\)/);
+    expect(src).toMatch(/withBase\(['"]\/help['"]\)/);
+  });
+});
+
+/**
+ * Plan B7 / B19 "Header weight": marketing pages (/landing, /about, /help,
+ * spec D3) must ship zero React — the shared @astrojs/react client runtime
+ * alone is ~66 kB gz (measured in this issue), which already blows the
+ * 40 kB layout-JS budget before counting UserMenuIsland's own chunk. Since
+ * no route island ever runs on those pages, $user can never leave its
+ * initial `null` there anyway (nothing calls AuthBridge), so hydrating
+ * UserMenuIsland to react to a change that can't happen is dead weight —
+ * SiteHeader accepts a `static` prop that renders the exact same sign-in
+ * link markup without mounting the island at all.
+ */
+describe('SiteHeader.astro static prop (plan B7)', () => {
+  it('declares a `static` prop', () => {
+    expect(src).toMatch(/static\s*\??:\s*boolean/);
+  });
+
+  it('the UserMenuIsland mount is conditional on `static`, not unconditional', () => {
+    // Grab the line(s) around the mount and confirm it's inside a
+    // conditional block referencing the `static` prop, not rendered bare.
+    const mountLine = src.split('\n').find((l) => l.includes('<UserMenuIsland') && l.includes('client:idle'));
+    expect(mountLine, 'expected an <UserMenuIsland client:idle mount').toBeTruthy();
+    const idx = src.indexOf(mountLine!);
+    const before = src.slice(Math.max(0, idx - 200), idx);
+    expect(before).toMatch(/static/);
+  });
+
+  it('the static branch renders a plain sign-in link via withBase, no island', () => {
+    expect(src).toMatch(/withBase\(['"]\/auth\/signin\/['"]\)/);
+  });
 });
