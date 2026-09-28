@@ -14,14 +14,19 @@
 //    that literal `process.env.NODE_ENV`/`process.env.NEXT_PUBLIC_HUB_URL`
 //    text still wouldn't appear because `define` replaces it unconditionally,
 //    guard or not.
-// 2. Measures the gz size of every dist/_astro/*.js chunk reachable from
-//    dist/auth/signin/index.html (its astro-island's component-url and
-//    renderer-url, plus whatever THEY statically import, transitively) and
-//    reports the total plus which chunk(s) carry @supabase/supabase-js
-//    and/or @cyber-eco/auth (grepped by a stable literal each ships).
-//    Informational: does not fail the build. The number feeds ADR 0003 and
-//    lighthouse-budgets.json's `/auth/*` entry (measured, not guessed);
-//    Lighthouse CI is the actual budget gate, in its own job.
+// 2. Measures the gz size of every dist/_astro/*.js chunk reachable from a
+//    page's astro-island component-url/renderer-url (plus whatever THEY
+//    statically import, transitively) and reports the total plus which
+//    chunk(s) carry @supabase/supabase-js and/or @cyber-eco/auth (grepped by
+//    a stable literal each ships). Run for dist/auth/signin/index.html (the
+//    ADR 0003 measurement, plan B4) and dist/index.html (`/`, plan B8b —
+//    DashboardIsland is the first AUTHENTICATED route island, so it is
+//    EXPECTED to carry @supabase/supabase-js up front, unlike section 3's
+//    public pages). Informational only for both: does not fail the build.
+//    The auth/signin number feeds ADR 0003 and lighthouse-budgets.json's
+//    `/auth/*` entry (measured, not guessed); Lighthouse CI is the actual
+//    budget gate, in its own job. `/`'s number has no equivalent formal
+//    budget yet — printed for visibility, not compared against one.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { basename, join, resolve } from 'node:path';
@@ -74,52 +79,74 @@ function chunkGraph(entryFiles) {
   return seen;
 }
 
-const signinHtmlPath = join(DIST, 'auth', 'signin', 'index.html');
-if (existsSync(signinHtmlPath)) {
-  const html = readFileSync(signinHtmlPath, 'utf8');
-  const entries = [...html.matchAll(/(?:component-url|renderer-url)="\/_astro\/([A-Za-z0-9._-]+\.js)"/g)].map(
-    (m) => m[1],
-  );
-  if (entries.length === 0) {
-    failures.push(`${signinHtmlPath} has no astro-island component-url/renderer-url — did the LoginForm island move?`);
-  } else {
-    const chunks = chunkGraph(entries);
-    let totalGz = 0;
-    const rows = [];
-    for (const name of [...chunks].sort()) {
-      const src = readFileSync(join(ASTRO_DIR, name), 'utf8');
-      const gz = gzipSync(src).length;
-      totalGz += gz;
-      const tags = [];
-      if (src.includes(SUPABASE_MARKER)) tags.push('@supabase/supabase-js');
-      if (src.includes(CYBER_ECO_AUTH_MARKER)) tags.push('@cyber-eco/auth');
-      rows.push({ name, gz, tags });
-    }
-    console.log('\ncheck-auth-bundle: /auth/signin/ chunk graph (plan B4 measurement)');
-    for (const { name, gz, tags } of rows) {
-      const tag = tags.length ? `  [${tags.join(', ')}]` : '';
-      console.log(`  ${basename(name).padEnd(28)} ${(gz / 1024).toFixed(2).padStart(7)} kB gz${tag}`);
-    }
-    console.log(`  ${'TOTAL'.padEnd(28)} ${(totalGz / 1024).toFixed(2).padStart(7)} kB gz`);
-    const authChunks = rows.filter((r) => r.tags.length > 0);
-    if (authChunks.length === 0) {
-      console.log(
-        '  (no chunk on this page carries @supabase/supabase-js or @cyber-eco/auth yet — ' +
-          'AuthIsland/<AuthProvider> is not mounted by any built route until Phase 2)',
-      );
-    }
-    if (totalGz > 150 * 1024) {
-      console.log(
-        `  NOTE: ${(totalGz / 1024).toFixed(1)} kB gz exceeds Inceptor's 150 kB script budget — ` +
-          'see ADR 0003 for the fallback already applied (stores/auth.ts drives authAdapter/profileStore ' +
-          'directly; no <AuthProvider> on this page) and why the remainder (React+ReactDOM, supabase-js, zod) ' +
-          "isn't reducible further without dropping client:only React islands.",
-      );
-    }
+/**
+ * Prints the gz-measured chunk graph for one page (informational only —
+ * never pushes to `failures`). `budgetBytes` is optional: only
+ * `/auth/signin/` has an established Inceptor budget to compare against
+ * (ADR 0003); `/` (plan B8b) is printed for visibility with no budget check.
+ *
+ * `graphFn` picks which traversal to report: `chunkGraph` (default, follows
+ * static AND dynamic `import()` references — the auth-chunk measurement's
+ * original "everything this page will eventually download" intent) or
+ * `staticGraph` (defined below section 3 — static `from"..."` references
+ * only). `/` uses `staticGraph` explicitly: `chunkGraph` would fold the
+ * dynamically-`React.lazy`-imported Recharts chunk (~113 kB gz,
+ * `check-charts-bundle.mjs`'s whole job is keeping it OUT of the initial
+ * load) into the reported total, which is not what "`/`'s static JS gz" —
+ * the actual, accurate figure this line exists to report — means.
+ */
+function measurePageChunks(label, htmlPath, { budgetBytes, graphFn = chunkGraph } = {}) {
+  if (!existsSync(htmlPath)) {
+    failures.push(`${htmlPath} is missing — run \`astro build\` first`);
+    return;
   }
-} else {
-  failures.push(`${signinHtmlPath} is missing — run \`astro build\` first`);
+  const html = readFileSync(htmlPath, 'utf8');
+  const entries = [...html.matchAll(/(?:component-url|renderer-url)="\/_astro\/([A-Za-z0-9._-]+\.js)"/g)].map((m) => m[1]);
+  if (entries.length === 0) {
+    failures.push(`${htmlPath} has no astro-island component-url/renderer-url — did its route island move?`);
+    return;
+  }
+  const chunks = graphFn(entries);
+  let totalGz = 0;
+  const rows = [];
+  for (const name of [...chunks].sort()) {
+    const src = readFileSync(join(ASTRO_DIR, name), 'utf8');
+    const gz = gzipSync(src).length;
+    totalGz += gz;
+    const tags = [];
+    if (src.includes(SUPABASE_MARKER)) tags.push('@supabase/supabase-js');
+    if (src.includes(CYBER_ECO_AUTH_MARKER)) tags.push('@cyber-eco/auth');
+    rows.push({ name, gz, tags });
+  }
+  console.log(`\ncheck-auth-bundle: ${label} chunk graph`);
+  for (const { name, gz, tags } of rows) {
+    const tag = tags.length ? `  [${tags.join(', ')}]` : '';
+    console.log(`  ${basename(name).padEnd(28)} ${(gz / 1024).toFixed(2).padStart(7)} kB gz${tag}`);
+  }
+  console.log(`  ${'TOTAL'.padEnd(28)} ${(totalGz / 1024).toFixed(2).padStart(7)} kB gz`);
+  const authChunks = rows.filter((r) => r.tags.length > 0);
+  if (authChunks.length === 0) {
+    console.log(
+      `  (no chunk on ${label} carries @supabase/supabase-js or @cyber-eco/auth yet — ` +
+        'AuthIsland/<AuthProvider> is not mounted by any built route until Phase 2)',
+    );
+  }
+  if (budgetBytes != null && totalGz > budgetBytes) {
+    console.log(
+      `  NOTE: ${(totalGz / 1024).toFixed(1)} kB gz exceeds Inceptor's ${(budgetBytes / 1024).toFixed(0)} kB script budget — ` +
+        'see ADR 0003 for the fallback already applied (stores/auth.ts drives authAdapter/profileStore ' +
+        'directly; no <AuthProvider> on this page) and why the remainder (React+ReactDOM, supabase-js, zod) ' +
+        "isn't reducible further without dropping client:only React islands.",
+    );
+  }
 }
+
+measurePageChunks('plan B4 /auth/signin/', join(DIST, 'auth', 'signin', 'index.html'), { budgetBytes: 150 * 1024 });
+// Plan B8b: '/' is the first AUTHENTICATED route island (DashboardIsland) —
+// expected to carry @supabase/supabase-js up front, same reasoning as
+// /auth/signin/ above. No established budget for this page yet, so no
+// `budgetBytes` — printed for visibility only.
+measurePageChunks('plan B8b / (DashboardIsland) static-only', join(DIST, 'index.html'), { graphFn: staticGraph });
 
 // ---- 3. Public pages must not load the Supabase SDK up front ------------
 // The header's UserMenuIsland is on every page. It reads Nano Stores only and
@@ -130,11 +157,12 @@ if (existsSync(signinHtmlPath)) {
 //
 // `index.html` ('/') left this list in plan B8b: it now mounts
 // `DashboardIsland` (`ErrorBoundary > AuthIsland > AuthGate > Content`), the
-// first AUTHENTICATED route island — like `/auth/signin/` (measured, not
-// gated, in section 2 above), it is expected to load @supabase/supabase-js
-// up front. `404.html` stays in this list: today's `AppRouterIsland` only
-// ever mounts `RouteStub`, a placeholder with no data-layer import; it moves
-// out once a Phase-2 dynamic route (B9+) actually reaches the adapter.
+// first AUTHENTICATED route island — like `/auth/signin/`, it is expected to
+// load @supabase/supabase-js up front, and section 2 above measures its
+// chunk graph the same way (informational, no budget). `404.html` stays in
+// this list: today's `AppRouterIsland` only ever mounts `RouteStub`, a
+// placeholder with no data-layer import; it moves out once a Phase-2 dynamic
+// route (B9+) actually reaches the adapter.
 const PUBLIC_PAGES = ['404.html', 'landing/index.html', 'about/index.html', 'help/index.html'];
 function staticGraph(entryFiles) {
   const seen = new Set();
