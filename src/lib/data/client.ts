@@ -99,3 +99,25 @@ export async function signInWithOAuthRedirect(
   const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo } });
   return { error };
 }
+
+/**
+ * `/auth/reset-password.astro` needs to tell apart "the visitor just landed
+ * from the recovery email link" from an ordinary sign-in, to switch from the
+ * request form to the update-password form. `AuthAdapter.onAuthStateChanged`
+ * (`SupabaseAuthAdapter`) discards the Supabase event type and forwards only
+ * the mapped user, so it cannot make that distinction — this calls
+ * `client.auth.onAuthStateChange` directly, filtered to `PASSWORD_RECOVERY`,
+ * kept here for the same `@supabase/supabase-js`-boundary reason as
+ * `signInWithOAuthRedirect` above. A no-op (returns a callable unsubscribe)
+ * without a client.
+ */
+export function onPasswordRecovery(
+  callback: () => void,
+  client: SupabaseClient | null = supabase,
+): () => void {
+  if (!client) return () => {};
+  const { data } = client.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') callback();
+  });
+  return () => data.subscription.unsubscribe();
+}
