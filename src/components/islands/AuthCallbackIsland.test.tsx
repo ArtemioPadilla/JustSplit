@@ -2,18 +2,18 @@
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 
-const { consumeGoogleNext } = vi.hoisted(() => ({ consumeGoogleNext: vi.fn() }));
-vi.mock('@/stores/auth', () => ({ consumeGoogleNext }));
+const { completeOAuthSignIn } = vi.hoisted(() => ({ completeOAuthSignIn: vi.fn() }));
+vi.mock('@/stores/auth', () => ({ completeOAuthSignIn }));
 
 import AuthCallbackIsland from './AuthCallbackIsland';
 
 /**
- * `/auth/callback.astro` (plan B4): renders this while the browser completes
- * the Google redirect round-trip, then reads back the `next` target stashed
- * before the redirect (never passed through the OAuth round-trip itself) and
- * navigates — through `safeNext` (inside `consumeGoogleNext`) and `withBase`.
+ * `/auth/callback.astro` (plan B4): waits for supabase-js to finish the PKCE
+ * exchange, then navigates to the stashed `next` (validated by `safeNext`
+ * inside `completeOAuthSignIn`) through `withBase`. Navigating before the
+ * exchange settles would abort it and lose the sign-in.
  */
 describe('AuthCallbackIsland', () => {
   beforeEach(() => {
@@ -24,15 +24,19 @@ describe('AuthCallbackIsland', () => {
     });
   });
 
-  it('redirects to withBase(consumeGoogleNext()) on mount', () => {
-    consumeGoogleNext.mockReturnValue('/expenses/list');
+  it('does not navigate until the sign-in has completed', async () => {
+    let finish!: (target: string) => void;
+    completeOAuthSignIn.mockReturnValue(new Promise<string>((r) => (finish = r)));
     render(<AuthCallbackIsland />);
-    expect(window.location.replace).toHaveBeenCalledWith('/expenses/list');
+    await Promise.resolve();
+    expect(window.location.replace).not.toHaveBeenCalled();
+    finish('/expenses/list');
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalledWith('/expenses/list'));
   });
 
-  it('falls back to / when there is no stashed next', () => {
-    consumeGoogleNext.mockReturnValue('/');
+  it('navigates to the target completeOAuthSignIn returns (the sign-in page on failure)', async () => {
+    completeOAuthSignIn.mockResolvedValue('/auth/signin/');
     render(<AuthCallbackIsland />);
-    expect(window.location.replace).toHaveBeenCalledWith('/');
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalledWith('/auth/signin/'));
   });
 });

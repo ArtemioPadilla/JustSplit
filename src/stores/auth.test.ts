@@ -4,8 +4,9 @@ import type { JustSplitProfile } from '@/schemas/profile';
 
 // `vi.mock` factories are hoisted above imports/top-level statements, so the
 // mocked values must be created through `vi.hoisted` to avoid a TDZ error.
-const { signInWithOAuthRedirect, authAdapter, profileStore } = vi.hoisted(() => ({
+const { signInWithOAuthRedirect, waitForSession, authAdapter, profileStore } = vi.hoisted(() => ({
   signInWithOAuthRedirect: vi.fn(),
+  waitForSession: vi.fn(),
   authAdapter: {
     signIn: vi.fn().mockResolvedValue(undefined),
     signUp: vi.fn().mockResolvedValue(undefined),
@@ -23,10 +24,12 @@ const { signInWithOAuthRedirect, authAdapter, profileStore } = vi.hoisted(() => 
 vi.mock('@/lib/data/client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/data/client')>()),
   signInWithOAuthRedirect,
+  waitForSession,
 }));
 vi.mock('@/lib/data/adapter', () => ({ authAdapter, profileStore }));
 
 import {
+  completeOAuthSignIn,
   $profile,
   $user,
   resetPassword,
@@ -132,5 +135,32 @@ describe('stores/auth actions (plan B4)', () => {
       const guard = toGuardUser(user, { ...baseProfile, permissions: ['admin'] });
       expect(guard).toEqual({ id: 'u1', roles: ['user'], flags: {} });
     });
+  });
+});
+
+describe('completeOAuthSignIn (plan B4 callback)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('waits for the session, then returns the stashed next through safeNext', async () => {
+    sessionStorage.setItem('justsplit:auth:next', '/expenses/abc');
+    waitForSession.mockResolvedValue({ signedIn: true, error: null });
+    await expect(completeOAuthSignIn()).resolves.toBe('/expenses/abc');
+    expect(waitForSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('an unsafe stashed next still yields /', async () => {
+    sessionStorage.setItem('justsplit:auth:next', '//evil.example');
+    waitForSession.mockResolvedValue({ signedIn: true, error: null });
+    await expect(completeOAuthSignIn()).resolves.toBe('/');
+  });
+
+  it('a failed exchange returns the sign-in page and clears the stash', async () => {
+    sessionStorage.setItem('justsplit:auth:next', '/expenses/abc');
+    waitForSession.mockResolvedValue({ signedIn: false, error: new Error('invalid flow state') });
+    await expect(completeOAuthSignIn()).resolves.toBe('/auth/signin/');
+    expect(sessionStorage.getItem('justsplit:auth:next')).toBeNull();
   });
 });
