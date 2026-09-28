@@ -71,6 +71,14 @@ vi.mock('@/lib/data/hooks/useSendFriendRequest', () => ({ useSendFriendRequest }
 const { notifySuccess, notifyError } = vi.hoisted(() => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
 
+/** Plan B15 follow-up: every person's avatar renders through the shared `UserAvatar` resolver. */
+const { UserAvatar } = vi.hoisted(() => ({
+  UserAvatar: vi.fn((props: { src: string | null | undefined; name: string }) => (
+    <div data-testid="user-avatar" data-src={props.src ?? ''} data-name={props.name} />
+  )),
+}));
+vi.mock('@/components/features/profile/UserAvatar', () => ({ UserAvatar }));
+
 const { default: FriendsIsland } = await import('./FriendsIsland');
 
 const USER: AuthUser = { uid: 'u1', email: 'ana@example.com', displayName: 'Ana', photoURL: null, emailVerified: true };
@@ -208,6 +216,27 @@ describe('FriendsIsland', () => {
     expect(await screen.findByText(/no friends yet/i)).toBeInTheDocument();
     // The add-by-email form is always present, even with zero friends.
     expect(screen.getByLabelText(/add a friend by email/i)).toBeInTheDocument();
+  });
+
+  it("renders each person's avatar through the shared UserAvatar resolver", async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useProfiles.mockImplementation((ids: string[]) => ({
+      data: ids.map((id) => ({ id, name: NAMES[id] ?? id, avatarUrl: id === 'u2' ? 'avatars/u2/a.jpg' : null })),
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    }));
+    render(<FriendsIsland />);
+    emit(USER);
+
+    await screen.findByRole('heading', { name: /friends \(1\)/i });
+    const avatar = screen.getAllByTestId('user-avatar').find((el) => el.getAttribute('data-name') === 'Beto');
+    expect(avatar).toHaveAttribute('data-src', 'avatars/u2/a.jpg');
   });
 
   it('opening Remove shows a confirmation naming the friend', async () => {

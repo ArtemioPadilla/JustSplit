@@ -69,6 +69,14 @@ vi.mock('@/lib/data/hooks/useRemoveFriendship', () => ({ useRemoveFriendship }))
 const { notifySuccess, notifyError } = vi.hoisted(() => ({ notifySuccess: vi.fn(), notifyError: vi.fn() }));
 vi.mock('@/stores/notifications', () => ({ notifySuccess, notifyError }));
 
+/** Plan B15 follow-up: the friend's avatar renders through the shared `UserAvatar` resolver. */
+const { UserAvatar } = vi.hoisted(() => ({
+  UserAvatar: vi.fn((props: { src: string | null | undefined; name: string }) => (
+    <div data-testid="user-avatar" data-src={props.src ?? ''} data-name={props.name} />
+  )),
+}));
+vi.mock('@/components/features/profile/UserAvatar', () => ({ UserAvatar }));
+
 const { default: FriendDetailView } = await import('./FriendDetailView');
 
 const USER: AuthUser = { uid: 'u1', email: 'ana@example.com', displayName: 'Ana', photoURL: null, emailVerified: true };
@@ -170,6 +178,23 @@ describe('FriendDetailView', () => {
     expect(screen.queryByText('Solo coffee')).not.toBeInTheDocument();
     expect(await screen.findByText(/beto owes you/i)).toBeInTheDocument();
     expect(screen.getAllByText(/100\.00/).length).toBeGreaterThan(0);
+  });
+
+  it("renders the friend's avatar through the shared UserAvatar resolver", async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useExpenses.mockReturnValue({ data: [], isError: false, isRetrying: false, refetch: vi.fn() });
+    useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Beto', avatarUrl: 'avatars/u2/a.jpg' }] });
+
+    render(<FriendDetailView id="u2" />);
+    emit(USER);
+
+    await screen.findByRole('heading', { name: 'Beto' });
+    expect(screen.getByTestId('user-avatar')).toHaveAttribute('data-src', 'avatars/u2/a.jpg');
   });
 
   it('links "Add shared expense" to /expenses/new?friend=<id>', async () => {
