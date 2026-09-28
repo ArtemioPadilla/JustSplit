@@ -1,0 +1,15 @@
+{
+  "id": "fixture-group-unknown-kind",
+  "name": "Somewhere in between",
+  "type": "other",
+  "currency": "USD",
+  "members": [
+    { "userId": "fixture-user-ana", "displayName": "Ana", "role": "owner", "joinedAt": "2026-01-01T00:00:00.000Z" }
+  ],
+  "kind": "polycule",
+  "totalExpenses": 0,
+  "memberIds": ["fixture-user-ana"],
+  "adminIds": ["fixture-user-ana"],
+  "createdBy": "fixture-user-ana",
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}

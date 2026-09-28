@@ -1,0 +1,20 @@
+{
+  "id": "fixture-expense-with-concept",
+  "groupId": "fixture-group-couple",
+  "description": "Renta de marzo",
+  "amount": 1200,
+  "currency": "USD",
+  "paidBy": "fixture-user-ana",
+  "splitType": "equal",
+  "splits": [
+    { "userId": "fixture-user-ana", "amount": 600 },
+    { "userId": "fixture-user-luis", "amount": 600 }
+  ],
+  "date": "2026-03-01",
+  "category": "not-a-taxonomy-key",
+  "conceptId": "fixture-concept-rent",
+  "memberIds": ["fixture-user-ana", "fixture-user-luis"],
+  "createdBy": "fixture-user-ana",
+  "createdAt": "2026-03-01T00:00:00.000Z",
+  "settledAt": null
+}

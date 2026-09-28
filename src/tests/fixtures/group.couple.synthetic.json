@@ -1,0 +1,26 @@
+{
+  "id": "fixture-group-couple",
+  "name": "Ana & Luis",
+  "type": "family",
+  "currency": "USD",
+  "members": [
+    { "userId": "fixture-user-ana", "displayName": "Ana", "role": "owner", "joinedAt": "2026-01-01T00:00:00.000Z" },
+    { "userId": "fixture-user-luis", "displayName": "Luis", "role": "member", "joinedAt": "2026-01-01T00:00:00.000Z" }
+  ],
+  "settings": {
+    "defaultSplitType": "equal",
+    "simplifyDebts": true,
+    "maxMembers": 2,
+    "defaultShares": { "fixture-user-ana": 50, "fixture-user-luis": 50 }
+  },
+  "concepts": [
+    { "id": "fixture-concept-rent", "name": "Renta", "category": "rent", "defaultAmount": 1200, "currency": "USD" }
+  ],
+  "kind": "couple",
+  "totalExpenses": 0,
+  "memberIds": ["fixture-user-ana", "fixture-user-luis"],
+  "adminIds": ["fixture-user-ana"],
+  "createdBy": "fixture-user-ana",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z"
+}
