@@ -1,8 +1,10 @@
-import { RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { PlusIcon, RefreshCw } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import type { CsvNamedEvent, CsvNamedUser } from '@/domain/csvExport';
+import { withBase } from '@/lib/href';
+import { cn } from '@/lib/utils';
 import type { Expense } from '@/schemas/expense';
 
 export interface DashboardHeaderProps {
@@ -19,12 +21,12 @@ export interface DashboardHeaderProps {
 }
 
 /**
- * Dashboard header (plan B8b): the preferred-currency selector, a "Refresh
- * rates" action, and the all-expenses CSV export. The legacy quick-action
- * links ("Add Expense" -> /expenses/new, "Create Event" -> /events/new) are
- * dropped here — those pages don't exist until B10/B11b, and this header is
- * always visible (unlike `WelcomeScreen`, the dashboard's own empty state,
- * which is the decided exception for those two CTAs).
+ * Dashboard header (plan B8b, "Add expense" restored by plan B10): the
+ * preferred-currency selector, a "Refresh rates" action, "Add expense", and
+ * the all-expenses CSV export. The legacy "Create Event" quick-action link
+ * stays dropped — `/events/new` is B11b, not shipped yet, and adding it now
+ * would be a new dead link (the same reasoning that dropped both links in
+ * B8b, now half-resolved).
  */
 export function DashboardHeader({ expenses, users, events, currency, onCurrencyChange, onRefreshRates }: DashboardHeaderProps) {
   return (
@@ -35,6 +37,10 @@ export function DashboardHeader({ expenses, users, events, currency, onCurrencyC
           <RefreshCw aria-hidden="true" className="size-4" />
           Refresh rates
         </Button>
+        <a href={withBase('/expenses/new')} className={cn(buttonVariants({ variant: 'default' }))}>
+          <PlusIcon aria-hidden="true" className="size-4" />
+          Add expense
+        </a>
         <ExportCsvButton
           expenses={expenses}
           users={users}
