@@ -10,7 +10,7 @@
 // parsing with `parseCalendarDate` makes these pass, in any timezone). No RTL render
 // happens here (the original only imported `@testing-library/jest-dom` for matchers it
 // never used), so this needs no jsdom pragma.
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   calculateSettledPercentage,
   calculateTotalByCurrency,
@@ -56,6 +56,18 @@ describe('Timeline Utility Functions — date range (ported from the legacy Jest
     // is 18:00 the previous day there), so the block pins its own zone instead
     // of trusting the machine's. Without this guard the tests are green on a
     // UTC laptop and CI even if the parsing regressed.
+    // Pinned per block, restored after (a missing TZ is DELETED, never set to the
+    // string "undefined", which is what `process.env.TZ = undefined` would do).
+    let originalTZ: string | undefined;
+    beforeAll(() => {
+      originalTZ = process.env.TZ;
+      process.env.TZ = 'America/Mexico_City';
+    });
+    afterAll(() => {
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
+    });
+
     it('runs pinned to America/Mexico_City (UTC-6, no DST), whatever the machine zone', () => {
       expect(new Date(2023, 5, 1).getTimezoneOffset()).toBe(360);
     });

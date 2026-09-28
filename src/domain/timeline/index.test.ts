@@ -84,6 +84,18 @@ describe('Timeline Calculations (ported from the legacy Jest suite, plan B11a)',
     // B11a follow-up (plan B11b): see date-range.test.ts — a display-format
     // assertion only guards the calendar-date fix west of UTC, so it pins its
     // own zone.
+    // Pinned per block, restored after (a missing TZ is DELETED, never set to the
+    // string "undefined", which is what `process.env.TZ = undefined` would do).
+    let originalTZ: string | undefined;
+    beforeAll(() => {
+      originalTZ = process.env.TZ;
+      process.env.TZ = 'America/Mexico_City';
+    });
+    afterAll(() => {
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
+    });
+
     it('runs pinned to America/Mexico_City (UTC-6, no DST), whatever the machine zone', () => {
       expect(new Date(2025, 0, 1).getTimezoneOffset()).toBe(360);
     });
