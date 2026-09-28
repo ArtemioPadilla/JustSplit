@@ -173,6 +173,26 @@ describe('DashboardIsland', () => {
     expect(screen.getByRole('button', { name: 'Export as CSV' })).toBeInTheDocument();
   });
 
+  it('personal figures only count rows that name the viewer: a group row visible through membership is not "yours" (ADR 0013)', async () => {
+    useExpenses.mockReturnValue({
+      data: [
+        makeExpense({ id: 'exp1', description: 'Dinner', amount: 50, paidBy: 'u1', date: '2026-05-10' }),
+        makeExpense({ id: 'exp2', description: 'Their group lunch', amount: 999, paidBy: 'u9', date: '2026-05-11', groupId: 'g1' }),
+      ],
+    });
+    useEvents.mockReturnValue({ data: [] });
+    useSettlements.mockReturnValue({
+      data: [{ id: 's1', groupId: 'g1', fromUserId: 'u8', toUserId: 'u9', amount: 5, currency: 'USD', date: '2026-05-12', memberIds: ['u8', 'u9'], createdBy: 'u8', createdAt: '2026-05-12T00:00:00.000Z' }],
+    });
+    useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+
+    render(<DashboardIsland />);
+    emit(USER);
+
+    expect(await screen.findByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByText('Their group lunch')).not.toBeInTheDocument();
+  });
+
   it(
     'renders an error state with a working Retry when a query fails, instead of an endless skeleton ' +
       '(coordinator review, plan B8b)',
