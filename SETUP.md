@@ -93,7 +93,7 @@ token (see `vendor/README.md`). Once the token exists, contributors put it in
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check`; actionlint + unpinned-action scan |
+| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check`; then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below); actionlint + unpinned-action scan |
 | `deploy.yml` — `Deploy to GitHub Pages` | push to `main` (after cutover); `workflow_dispatch` | production build with `ASTRO_BASE` + `PUBLIC_SUPABASE_*` variables → `actions/deploy-pages` |
 | `deploy-staging.yml` — `Deploy staging (inceptor → GitHub Pages)` | push to `inceptor`; `workflow_dispatch` | same build from the integration branch to the same Pages site (`docs/runbooks/staging.md`) |
 | `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b); required on `inceptor` |
