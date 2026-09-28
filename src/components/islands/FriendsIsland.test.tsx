@@ -223,4 +223,57 @@ describe('FriendsIsland', () => {
     await user.click(await screen.findByRole('button', { name: /^remove$/i }));
     expect(await screen.findByRole('heading', { name: /remove beto\?/i })).toBeInTheDocument();
   });
+
+  /**
+   * Coordinator review follow-up (deviation 4, the rejected-row dead end):
+   * Reject stays a recipient-only status update (per the plan), but the
+   * recipient gets an Undo path back to a clean slate — a Declined
+   * Requests section, visible ONLY to the person who declined. Undo
+   * deletes the row (never a status change), freeing the pair.
+   */
+  it('shows a Declined requests section with an Undo button for a row the caller declined', async () => {
+    useFriends.mockReturnValue({
+      // u1 (the caller) received u3's request and declined it.
+      data: [friendship({ id: 'f5', users: ['u1', 'u3'], status: 'rejected', requestedBy: 'u3' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    render(<FriendsIsland />);
+    emit(USER);
+    expect(await screen.findByRole('heading', { name: /declined requests/i })).toBeInTheDocument();
+    expect(screen.getByText('Caro')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^undo$/i })).toBeInTheDocument();
+  });
+
+  it('Undo calls useRemoveFriendship and toasts, and the row disappears once refetched', async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f5', users: ['u1', 'u3'], status: 'rejected', requestedBy: 'u3' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    render(<FriendsIsland />);
+    emit(USER);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^undo$/i }));
+    await waitFor(() => expect(removeMutateAsync).toHaveBeenCalledWith('f5'));
+    expect(notifySuccess).toHaveBeenCalledWith('Declined request removed');
+  });
+
+  it("the requester's view shows nothing for a row THEY sent that was declined (recipient privacy)", async () => {
+    useFriends.mockReturnValue({
+      // u1 (the caller) sent the request that u3 declined.
+      data: [friendship({ id: 'f6', users: ['u1', 'u3'], status: 'rejected', requestedBy: 'u1' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    render(<FriendsIsland />);
+    emit(USER);
+    await screen.findByLabelText(/add a friend by email/i);
+    expect(screen.queryByRole('heading', { name: /declined requests/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Caro')).not.toBeInTheDocument();
+    expect(screen.queryByText(/declined/i)).not.toBeInTheDocument();
+  });
 });
