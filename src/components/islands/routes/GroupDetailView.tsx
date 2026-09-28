@@ -183,8 +183,6 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
       <MembersSection
         group={group}
         names={names}
-        groupExpenses={groupExpenses}
-        groupEvents={groupEvents}
         uid={uid}
         friendCandidates={friendCandidates}
       />

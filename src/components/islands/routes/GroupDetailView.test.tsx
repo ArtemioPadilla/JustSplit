@@ -179,7 +179,7 @@ describe('GroupDetailView', () => {
     useGroup.mockReturnValue({ data: makeGroup({ memberIds: ['u1', 'u2'] }), isLoading: false, isError: false, refetch: vi.fn() });
     render(<GroupDetailView id="g1" />);
 
-    const props = MembersSection.mock.calls[0]![0] as Record<string, unknown>;
+    const props = (MembersSection.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
     expect(props).not.toHaveProperty('groupExpenses');
     expect(props).not.toHaveProperty('groupEvents');
   });

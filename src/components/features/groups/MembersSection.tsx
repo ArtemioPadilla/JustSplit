@@ -12,22 +12,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { isLastAdmin, memberRemovalBlockerCount, withAddedMembers, withRemovedMember } from '@/domain/groups';
+import { isLastAdmin, withAddedMembers, withRemovedMember } from '@/domain/groups';
 import { useUpdateGroup } from '@/lib/data/hooks/useUpdateGroup';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { cn } from '@/lib/utils';
 import type { ExpenseGroup } from '@/schemas/group';
 
-export interface RowLike {
-  memberIds: string[];
-}
-
 export interface MembersSectionProps {
   group: ExpenseGroup;
   /** Live names via `useProfiles`, keyed by userId — falls back to the member's own stored `displayName` when a profile hasn't resolved. */
   names: Record<string, string>;
-  groupExpenses: RowLike[];
-  groupEvents: RowLike[];
   /** The signed-in viewer. */
   uid: string;
   /** Accepted friends of `uid` who are not already members — the "Add members" dialog's candidate pool. */
@@ -36,16 +30,15 @@ export interface MembersSectionProps {
 
 /**
  * The group detail island's member list + admin-only management (plan
- * B12, risk:high, ADR 0002 amendment). Every management action here is
- * UX-only: `guard_expense_groups`'s BEFORE UPDATE trigger is the actual
- * authority (admin-only, every added member an accepted friend of the
- * acting admin — CLAUDE.md rule 8). The two client-side preflights this
- * component enforces exist because RLS has no way to express them at all:
- * removing a member still on a group expense/event would make that row
- * uneditable forever (`memberRemovalBlockerCount`), and a group with no
- * admin can never be managed or deleted again (`isLastAdmin`).
+ * B12, risk:high). Every management action here is UX-only:
+ * `guard_expense_groups`'s BEFORE UPDATE trigger is the actual authority
+ * (admin-only, every added member an accepted friend of the acting admin —
+ * CLAUDE.md rule 8). The one client-side preflight left is `isLastAdmin`: a
+ * group with no admin can never be managed or deleted again, which RLS cannot
+ * express. Removing a member no longer needs a preflight (ADR 0013): rows that
+ * still name them stay readable and editable, so nothing is locked.
  */
-export function MembersSection({ group, names, groupExpenses, groupEvents, uid, friendCandidates }: MembersSectionProps) {
+export function MembersSection({ group, names, uid, friendCandidates }: MembersSectionProps) {
   const isAdmin = group.adminIds.includes(uid);
 
   return (
@@ -57,7 +50,6 @@ export function MembersSection({ group, names, groupExpenses, groupEvents, uid, 
       <ul className="flex flex-col gap-2">
         {group.members.map((member) => {
           const name = names[member.userId] ?? member.displayName;
-          const blockerCount = memberRemovalBlockerCount(member.userId, groupExpenses, groupEvents);
           const lastAdmin = isLastAdmin(member.userId, group.adminIds);
           return (
             <li key={member.userId} className="flex flex-col gap-1 rounded-md border border-border px-4 py-3 text-sm">
@@ -66,16 +58,10 @@ export function MembersSection({ group, names, groupExpenses, groupEvents, uid, 
                   {name}
                   <Badge variant="outline">{member.role}</Badge>
                 </span>
-                {isAdmin && !lastAdmin && blockerCount === 0 && <RemoveMemberDialog group={group} memberId={member.userId} name={name} />}
+                {isAdmin && !lastAdmin && <RemoveMemberDialog group={group} memberId={member.userId} name={name} />}
               </div>
               {isAdmin && lastAdmin && (
                 <p className="text-xs text-muted-foreground">{name} is the last admin and can&apos;t be removed.</p>
-              )}
-              {isAdmin && !lastAdmin && blockerCount > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {name} is still part of {blockerCount} expense{blockerCount === 1 ? '' : 's'} in this group, so they can&apos;t be
-                  removed yet.
-                </p>
               )}
             </li>
           );
