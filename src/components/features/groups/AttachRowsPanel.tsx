@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { buttonVariants } from '@/components/ui/button';
 import { useAttachEventsToGroup } from '@/lib/data/hooks/useAttachEventsToGroup';
 import { useAttachExpensesToGroup } from '@/lib/data/hooks/useAttachExpensesToGroup';
+import { GroupNotFoundError } from '@/lib/data/repos/groups';
 import { cn } from '@/lib/utils';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 
@@ -60,6 +61,22 @@ function summarize(kind: 'expense' | 'event', result: { attached: string[]; skip
   );
 }
 
+/**
+ * `mutateAsync` itself can reject too (coordinator review) — not just the
+ * per-row eligibility/verification `{ attached, skipped }` `summarize`
+ * handles: `GroupNotFoundError` (the group deleted mid-session by another
+ * admin/tab — `repos.groups.attachExpenses`/`attachEvents`'s own preflight)
+ * or any adapter/network failure the batch write itself hit. Both get an
+ * honest, generic toast — never the raw error/SQL/policy text (CLAUDE.md).
+ */
+function reportAttachFailure(error: unknown): void {
+  if (error instanceof GroupNotFoundError) {
+    notifyError('This group no longer exists');
+    return;
+  }
+  notifyError("Couldn't attach these items. Please try again.");
+}
+
 function AttachExpensesSection({ groupId, expenses }: { groupId: string; expenses: AttachableExpense[] }) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const attachExpenses = useAttachExpensesToGroup();
@@ -69,9 +86,16 @@ function AttachExpensesSection({ groupId, expenses }: { groupId: string; expense
   }
 
   async function handleAttach() {
-    const result = await attachExpenses.mutateAsync({ groupId, expenseIds: selectedIds });
-    summarize('expense', result);
-    setSelectedIds([]);
+    try {
+      const result = await attachExpenses.mutateAsync({ groupId, expenseIds: selectedIds });
+      summarize('expense', result);
+      setSelectedIds([]);
+    } catch (error) {
+      // Selection is kept on failure (never cleared) so a retry doesn't
+      // start from scratch; `attachExpenses.isPending` already settles back
+      // to `false` once `mutateAsync` rejects, restoring the button.
+      reportAttachFailure(error);
+    }
   }
 
   return (
@@ -109,9 +133,13 @@ function AttachEventsSection({ groupId, events }: { groupId: string; events: Att
   }
 
   async function handleAttach() {
-    const result = await attachEvents.mutateAsync({ groupId, eventIds: selectedIds });
-    summarize('event', result);
-    setSelectedIds([]);
+    try {
+      const result = await attachEvents.mutateAsync({ groupId, eventIds: selectedIds });
+      summarize('event', result);
+      setSelectedIds([]);
+    } catch (error) {
+      reportAttachFailure(error);
+    }
   }
 
   return (
