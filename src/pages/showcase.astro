@@ -7,6 +7,7 @@ import ShowcaseEditable from '@/components/islands/ShowcaseEditable';
 import ShowcaseExportCsvButton from '@/components/islands/ShowcaseExportCsvButton';
 import ShowcaseDashboardCharts from '@/components/islands/ShowcaseDashboardCharts';
 import ShowcaseEventTimeline from '@/components/islands/ShowcaseEventTimeline';
+import ShowcaseResetLocalDataButton from '@/components/islands/ShowcaseResetLocalDataButton';
 import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
@@ -121,6 +122,21 @@ import { ProgressBar } from '@/components/ui/progress-bar';
       </p>
       <div class="rounded-md border border-border bg-card p-4">
         <ShowcaseEventTimeline client:visible />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">Reset local data <span class="text-sm font-normal text-muted-foreground">(B17b)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        "Restablecer datos locales" (<code>features/settings/ResetLocalDataButton.tsx</code>) —
+        confirm-dialog wrapper over <code>lib/data/reset-local.ts#resetLocalData</code>: signs out,
+        clears the idb-keyval Query persister and every <code>justsplit:*</code>/supabase-session
+        localStorage key, unregisters service workers, then reloads. This is also the recovery
+        action <code>QueryProvider</code> shows when the persister fails to restore. Confirming
+        here performs the real reset — not a fictional demo.
+      </p>
+      <div class="inline-flex rounded-md border border-border bg-card p-3">
+        <ShowcaseResetLocalDataButton client:idle />
       </div>
     </section>
   </main>
