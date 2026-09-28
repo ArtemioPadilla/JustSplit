@@ -29,8 +29,8 @@ describe('SiteHeader.astro (plan B6)', () => {
   });
 
   it('links About and Help in the nav (plan B7)', () => {
-    expect(src).toMatch(/withBase\(['"]\/about['"]\)/);
-    expect(src).toMatch(/withBase\(['"]\/help['"]\)/);
+    expect(src).toMatch(/href:\s*['"]\/about['"]/);
+    expect(src).toMatch(/href:\s*['"]\/help['"]/);
   });
 });
 
