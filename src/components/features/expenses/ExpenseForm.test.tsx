@@ -320,6 +320,11 @@ describe('ExpenseForm — create ordering', () => {
     expect(call.input).toMatchObject({ description: 'Tacos', amount: 100, createdBy: 'u1' });
     expect(generateId).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/expenses/new-id'));
+    // Plan B17b amendment (cross-navigation toasts): this is a static MPA —
+    // `location.assign` right after is a full page load that would discard
+    // a toast fired synchronously before it. `afterNavigation: true` queues
+    // it instead (drained by the next page's ToasterIsland).
+    expect(notifySuccess).toHaveBeenCalledWith('Expense saved', expect.objectContaining({ afterNavigation: true }));
     location.restore();
   });
 
@@ -335,7 +340,7 @@ describe('ExpenseForm — create ordering', () => {
     await user.click(screen.getByRole('button', { name: /save expense/i }));
 
     await waitFor(() =>
-      expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/couldn't be uploaded/i)),
+      expect(notifyError).toHaveBeenCalledWith(expect.stringMatching(/couldn't be uploaded/i), expect.objectContaining({ afterNavigation: true })),
     );
     await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/expenses/new-id'));
     location.restore();
@@ -394,6 +399,43 @@ describe('ExpenseForm — edit mode', () => {
     expect(patch.amount).toBe(200);
     const total = patch.splits.reduce((sum: number, s: { amount: number }) => sum + s.amount, 0);
     expect(total).toBeCloseTo(200);
+    location.restore();
+  });
+
+  it('toasts success (afterNavigation) and navigates to the detail page', async () => {
+    const location = stubLocationAssign();
+    const expense = makeExpense();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
+
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/expenses/e1'));
+    // Plan B17b amendment: edit-mode's save is the same "notify, then
+    // location.assign" shape as create — queued so it survives the reload.
+    expect(notifySuccess).toHaveBeenCalledWith('Expense saved', expect.objectContaining({ afterNavigation: true }));
+    location.restore();
+  });
+
+  it('reports a partial upload failure honestly (afterNavigation), but still navigates to the detail page', async () => {
+    addReceiptsMutateAsync.mockResolvedValue({ expense: { id: 'e1', images: [] }, failedUploadCount: 1 });
+    const location = stubLocationAssign();
+    const expense = makeExpense();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
+
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'receipt.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, file);
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/expenses/e1'));
+    expect(notifyError).toHaveBeenCalledWith(
+      expect.stringMatching(/couldn't be uploaded/i),
+      expect.objectContaining({ afterNavigation: true }),
+    );
     location.restore();
   });
 });
