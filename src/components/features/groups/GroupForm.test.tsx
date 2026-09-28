@@ -85,8 +85,8 @@ afterEach(() => {
 describe('GroupForm', () => {
   it('offers only ACCEPTED friends as member candidates, never a pending request', () => {
     render(<GroupForm />);
-    expect(screen.getByLabelText('Beto')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Caro')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Caro' })).not.toBeInTheDocument();
   });
 
   it('blocks submit with an inline error when the name is empty, without calling useCreateGroup', async () => {
@@ -99,7 +99,7 @@ describe('GroupForm', () => {
   it('builds the create payload with the creator as owner and the checked friend as an invited member, then redirects on success', async () => {
     render(<GroupForm />);
     await userEvent.type(screen.getByLabelText(/group name/i), 'Roommates');
-    await userEvent.click(screen.getByLabelText('Beto'));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Beto' }));
     await userEvent.click(screen.getByRole('button', { name: /create group/i }));
 
     await waitFor(() => expect(createMutateAsync).toHaveBeenCalled());
