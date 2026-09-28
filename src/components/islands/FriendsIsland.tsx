@@ -156,7 +156,7 @@ function FriendsContent() {
             {partitioned.sent.map((f) => {
               const id = otherUser(f, uid);
               if (!id) return null;
-              return <SentRequestRow key={f.id} friendship={f} person={people[id]} />;
+              return <SentRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
             })}
           </ul>
         </section>
