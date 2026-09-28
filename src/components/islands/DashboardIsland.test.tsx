@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
@@ -113,10 +114,10 @@ beforeEach(() => {
   replace.mockClear();
   Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, replace } });
 
-  useExpenses.mockReturnValue({ data: undefined });
-  useEvents.mockReturnValue({ data: undefined });
-  useSettlements.mockReturnValue({ data: undefined });
-  useProfiles.mockReturnValue({ data: [] });
+  useExpenses.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
+  useEvents.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
+  useSettlements.mockReturnValue({ data: undefined, isError: false, error: null, refetch: vi.fn() });
+  useProfiles.mockReturnValue({ data: [], isError: false, error: null, refetch: vi.fn() });
 });
 
 afterEach(() => {
@@ -170,5 +171,46 @@ describe('DashboardIsland', () => {
     expect(await screen.findByText('Dinner')).toBeInTheDocument();
     expect(screen.getByText('Team Trip')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export as CSV' })).toBeInTheDocument();
+  });
+
+  it(
+    'renders an error state with a working Retry when a query fails, instead of an endless skeleton ' +
+      '(coordinator review, plan B8b)',
+    async () => {
+      const refetchExpenses = vi.fn();
+      useExpenses.mockReturnValue({
+        data: undefined,
+        isError: true,
+        // The real error carries backend detail (RLS/SQL) that must never
+        // reach the user — asserted below via the rendered text, not this value.
+        error: new Error('permission denied for table expenses'),
+        refetch: refetchExpenses,
+      });
+
+      render(<DashboardIsland />);
+      emit(USER);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/something went wrong/i);
+      expect(alert).not.toHaveTextContent(/permission denied/i);
+      expect(alert).not.toHaveTextContent(/SQL|policy/i);
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: /retry/i }));
+      expect(refetchExpenses).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('never shows a permanent skeleton for a query error (dataLoading alone must not mask isError)', async () => {
+    // data stays undefined (as a real failed live query leaves it) AND isError is true —
+    // the old `dataLoading` check alone would have shown a skeleton forever here.
+    useExpenses.mockReturnValue({ data: undefined, isError: true, error: new Error('boom'), refetch: vi.fn() });
+
+    render(<DashboardIsland />);
+    emit(USER);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText(/no expenses or events yet/i)).not.toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeInTheDocument();
   });
 });
