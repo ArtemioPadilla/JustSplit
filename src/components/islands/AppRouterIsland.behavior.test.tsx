@@ -6,9 +6,11 @@ import AppRouterIsland from './AppRouterIsland';
 
 /**
  * Plan B2c: the 404 shell's router mounts the island matching the URL.
- * `expense-detail` is covered separately, in `AppRouterIsland.expense-detail.test.tsx`
- * (plan B9) — it renders the real, lazily-loaded `ExpenseDetailView` now,
- * not `RouteStub`, so it's dropped from this file's stub-route table.
+ * `expense-detail` (plan B9) and `expense-edit` (plan B10) are covered
+ * separately, in `AppRouterIsland.expense-detail.test.tsx` and
+ * `AppRouterIsland.expense-edit.test.tsx` — they render their real, lazily-
+ * loaded views now, not `RouteStub`, so both are dropped from this file's
+ * stub-route table.
  */
 afterEach(() => window.history.replaceState(null, '', '/'));
 
@@ -18,7 +20,6 @@ function at(path: string) {
 
 describe('AppRouterIsland (behavior)', () => {
   it.each([
-    ['/expenses/edit/abc', 'expense-edit', 'abc'],
     ['/events/ev1', 'event-detail', 'ev1'],
     ['/events/edit/ev1', 'event-edit', 'ev1'],
     ['/groups/g1', 'group-detail', 'g1'],

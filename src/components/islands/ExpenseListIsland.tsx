@@ -1,9 +1,10 @@
 import * as React from 'react';
+import { PlusIcon } from 'lucide-react';
 import { useStore } from '@nanostores/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ import { useEvents } from '@/lib/data/hooks/useEvents';
 import { useExpenses } from '@/lib/data/hooks/useExpenses';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { withBase } from '@/lib/href';
+import { cn } from '@/lib/utils';
 import { useUrlParam } from '@/lib/use-url-param';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
@@ -23,6 +25,16 @@ import { $user } from '@/stores/auth';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import ErrorBoundary from './ErrorBoundary';
+
+/** Plan B10: linked from the list's header row, present in every content state (empty, loaded, filtered). */
+function AddExpenseLink() {
+  return (
+    <a href={withBase('/expenses/new')} className={cn(buttonVariants({ variant: 'default' }))}>
+      <PlusIcon aria-hidden="true" className="size-4" />
+      Add expense
+    </a>
+  );
+}
 
 const ALL_EVENTS = 'all';
 
@@ -37,7 +49,10 @@ const ALL_EVENTS = 'all';
 export default function ExpenseListIsland() {
   return (
     <>
-      <h1 className="mb-6 font-display text-2xl font-semibold tracking-tight text-foreground">Expenses</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Expenses</h1>
+        <AddExpenseLink />
+      </div>
       <ErrorBoundary name="ExpenseListIsland">
         <AuthIsland>
           <AuthGate>

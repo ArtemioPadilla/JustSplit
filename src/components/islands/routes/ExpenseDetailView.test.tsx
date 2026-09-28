@@ -288,6 +288,21 @@ describe('ExpenseDetailView', () => {
     expect(screen.queryByRole('button', { name: /delete expense/i })).not.toBeInTheDocument();
   });
 
+  it('renders an Edit link to /expenses/edit/<id> for any member, not just the creator/payer (plan B10; RLS is the authority, no client-side gate)', async () => {
+    useExpense.mockReturnValue({
+      data: makeExpense({ id: 'e1', description: 'Tacos', amount: 100, paidBy: 'u2', createdBy: 'u2', date: '2026-05-10', memberIds: ['u1', 'u2'], splits: [{ userId: 'u2', amount: 100 }] }),
+      isLoading: false,
+      isError: false,
+    });
+    useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Bob', avatarUrl: null }] });
+
+    render(<ExpenseDetailView id="e1" />);
+    emit(USER); // u1, neither creator nor payer — still gets the Edit link
+
+    await screen.findByText('Tacos');
+    expect(screen.getByRole('link', { name: /edit/i })).toHaveAttribute('href', '/expenses/edit/e1');
+  });
+
   it('exports the single expense as expense-<id>.csv', async () => {
     useExpense.mockReturnValue({
       data: makeExpense({ id: 'e1', description: 'Tacos', amount: 100, paidBy: 'u1', date: '2026-05-10', splits: [{ userId: 'u1', amount: 100 }] }),

@@ -90,20 +90,21 @@ export type _SplitTypeCovered = _ExpectTrue<UniversalSplitType extends SplitType
 
 /**
  * Write-input schema (plan B3): `.omit()`s the spec-D9 forward-compatible
- * fields (`conceptId`, `category`) that nobody writes before Track D, plus
- * `settledAt` (only ever written later via a partial `repos.expenses.update`
- * patch, never at create time) and the server-assigned `id`/`createdAt`/
+ * `conceptId` field that nobody writes before Track D, plus `settledAt`
+ * (only ever written later via a partial `repos.expenses.update` patch,
+ * never at create time) and the server-assigned `id`/`createdAt`/
  * `updatedAt`. `eventId` stays writable: B10 writes it from `?event=` at
  * create time, so it predates Track D and is not one of the omitted fields.
- * Track D issue D1 deletes this `.omit()` once `conceptId`/`category` gain
- * real write paths.
+ * `category` also stays writable as of plan B10 (the create form's category
+ * select writes one of the five `LEGACY_CATEGORY_KEYS`; it is a real column,
+ * spec D9, so this was never an overflow-key question) — Track D issue D1
+ * deletes the remaining `conceptId` omit once it gains a real write path.
  */
 export const CreateExpenseInputSchema = ExpenseSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   conceptId: true,
-  category: true,
   settledAt: true,
 });
 export type CreateExpenseInput = z.infer<typeof CreateExpenseInputSchema>;

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useStore } from '@nanostores/react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Editable } from '@/components/ui/editable';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +16,7 @@ import { useExpense } from '@/lib/data/hooks/useExpense';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useUpdateExpense } from '@/lib/data/hooks/useUpdateExpense';
 import { withBase } from '@/lib/href';
+import { cn } from '@/lib/utils';
 import type { Expense, SplitType } from '@/schemas/expense';
 import { $preferredCurrency } from '@/stores/preferences';
 import { $user } from '@/stores/auth';
@@ -279,6 +280,12 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
       )}
 
       <div className="flex flex-wrap gap-3">
+        {/* Plan B10: shown to any member, not just the creator/payer — RLS
+            (update = member) is the authority, no client-side gate (unlike
+            Delete, below, which stays creator/payer-only). */}
+        <a href={withBase(`/expenses/edit/${expense.id}`)} className={cn(buttonVariants({ variant: 'outline' }))}>
+          Edit
+        </a>
         <ExportCsvButton expenses={[expense]} users={csvUsers} events={csvEvents} filename={`expense-${expense.id}.csv`} />
         {canDelete && <DeleteExpenseDialog id={expense.id} description={expense.description} />}
       </div>

@@ -56,11 +56,14 @@ describe('ExpenseSchema (plan B3)', () => {
   });
 });
 
-describe('CreateExpenseInputSchema (plan B3)', () => {
-  it('omits conceptId, category and settledAt (spec D9 fields, until Track D issue D1)', () => {
+describe('CreateExpenseInputSchema (plan B3, category writable since plan B10)', () => {
+  it('omits conceptId and settledAt (spec D9 fields, until Track D issue D1)', () => {
     expect(Object.keys(CreateExpenseInputSchema.shape)).not.toContain('conceptId');
-    expect(Object.keys(CreateExpenseInputSchema.shape)).not.toContain('category');
     expect(Object.keys(CreateExpenseInputSchema.shape)).not.toContain('settledAt');
+  });
+
+  it('keeps category writable (plan B10: the expense form writes it on create, not only on edit)', () => {
+    expect(Object.keys(CreateExpenseInputSchema.shape)).toContain('category');
   });
 
   it('keeps eventId writable (B10 writes it from ?event= at create time)', () => {

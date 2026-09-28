@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { parseCalendarDate } from './dates';
+import { formatCalendarDate, parseCalendarDate } from './dates';
 
 /**
  * New suite (bug fix found in B8a review): `new Date('2026-03-01')` parses a
@@ -48,5 +48,47 @@ describe('parseCalendarDate', () => {
 
   it('passes garbage input straight through to `new Date` (still Invalid Date, never throws)', () => {
     expect(parseCalendarDate('not-a-real-date').getTime()).toBeNaN();
+  });
+});
+
+/**
+ * `formatCalendarDate` (plan B10): the inverse of `parseCalendarDate` — the
+ * expense form's `DatePicker` (`ui/date-picker.tsx`) hands back a local
+ * `Date`, which the form must store as a `YYYY-MM-DD` string (spec D10). It
+ * MUST use local getters (`getFullYear`/`getMonth`/`getDate`), never
+ * `toISOString()` (UTC), for the same reason `parseCalendarDate` reads
+ * `YYYY-MM-DD` as local midnight: `toISOString()` on a local midnight Date
+ * west of UTC prints the PREVIOUS day.
+ */
+describe('formatCalendarDate', () => {
+  let originalTZ: string | undefined;
+
+  beforeAll(() => {
+    originalTZ = process.env.TZ;
+    process.env.TZ = 'America/Mexico_City';
+  });
+
+  afterAll(() => {
+    process.env.TZ = originalTZ;
+  });
+
+  it('formats a local Date as YYYY-MM-DD, zero-padded', () => {
+    expect(formatCalendarDate(new Date(2026, 2, 1))).toBe('2026-03-01');
+  });
+
+  it('zero-pads a single-digit month and day', () => {
+    expect(formatCalendarDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+
+  it('reads local date parts, never toISOString (which would read UTC and can land on a different calendar day)', () => {
+    const localMidnight = new Date(2026, 2, 1, 0, 0, 0);
+    expect(formatCalendarDate(localMidnight)).toBe(
+      `${localMidnight.getFullYear()}-${String(localMidnight.getMonth() + 1).padStart(2, '0')}-${String(localMidnight.getDate()).padStart(2, '0')}`,
+    );
+  });
+
+  it('round-trips with parseCalendarDate', () => {
+    const original = '2026-12-31';
+    expect(formatCalendarDate(parseCalendarDate(original))).toBe(original);
   });
 });
