@@ -102,8 +102,28 @@ comparing `NEW.member_ids` with `OLD.member_ids`. Only **added** members are che
 `events_update` gets the same rule (group member, else accepted friend) and its
 WITH CHECK is only "still a member". `expenses_insert`: group expenses unchanged;
 an event expense without a group takes event members or the creator's friends, and
-the creator must belong to the event. `created_by` stays immutable everywhere.
-NULLing `group_id`/`event_id` is always allowed (the foreign keys do it).
+the creator must belong to the event; `settlements_insert` gets the same
+`event_id is null or is_event_member(event_id)` clause (event members see an
+event's settlements and their amounts, so a stranger's event must not accept
+one). `created_by` stays immutable everywhere.
+
+**Leaving a group or event is privileged like joining one.** Visibility follows
+`group_id`/`event_id`, so nulling (or moving away from) the link pulls the row out
+of every member's feed and changes their balances. A direct write therefore needs
+`is_group_member(old.group_id)` / `is_event_member(old.event_id)` — the group or
+event the row is *leaving* — else `guard_expenses` / `guard_events` raise
+`insufficient_privilege`. A removed member who is still named on a row, and an
+event-only viewer of a group expense, can no longer ungroup it (they can still edit
+it); a current member can. Moving a row from one group straight to another counts as
+leaving the first. The `ON DELETE SET NULL` action is **exempt**, and
+`pg_trigger_depth() <= 1` is the discriminator: a direct UPDATE fires the guard at
+depth 1, whereas the foreign key's UPDATE is issued from inside the referential
+integrity trigger, so the guard runs at depth 2. That is the property we need — the
+cascade must keep working for rows the deleting admin cannot see and for a group
+that no longer exists (so `is_group_member(old.group_id)` would be false) — and it
+needs no session flag a client could set. (`fk-lifecycle.test.ts` fails if the
+cascade is blocked; `ungroup-guard.test.ts` fails if a direct write is not; the
+mutation check removes each half.)
 
 Deviations from the brief, all in the direction of consistency or safety:
 
@@ -115,8 +135,9 @@ Deviations from the brief, all in the direction of consistency or safety:
   also needs `member_ids ⊆ group` (the B12 attach rule). Otherwise anyone who can
   merely *see* an expense (through an event) could re-point it into any group they
   belong to and expose it there.
-- On insert, `event_id` requires the creator to be an event member: rows appear in
-  every event member's feed now, so an outsider must not be able to push into it.
+- On insert, `event_id` requires the creator to be an event member (expenses and
+  settlements): rows appear in every event member's feed now, so an outsider must
+  not be able to push into it.
 
 ### E. `find_profile_by_email` rate limit (`…014_profile_lookup_rate_limit.sql`)
 
@@ -154,6 +175,12 @@ limit is never stated.
   preflight, no read-then-ungroup batch, `GroupDeleteBlockedByFriendshipError`
   deleted); `MembersSection` no longer blocks removing a member "still part of N
   expenses" (`memberRemovalBlockerCount` deleted; the last-admin guard stays).
+- `RelationalSupabaseAdapter.query` with no explicit `limit`/`offset` pages with
+  `.range()` in pages of 1000 until a short page (PostgREST's `max_rows = 1000` would
+  otherwise truncate the now-unfiltered expense/settlement reads silently and
+  arbitrarily), rebuilding the query per page in the caller's order plus the id as
+  the final tie-breaker; Realtime's fetch-then-listen reuses it. An explicit
+  `limit`/`offset` keeps the single request.
 - B9 `repos.expenses.remove` keeps its creator/payer preflight: the row delete policy
   is unchanged, and the storage delete policy is still wider than it.
 
@@ -185,13 +212,11 @@ admin's friendships and whichever rows they can see, in one statement; the clien
 lost three preflights and two notices; the friend-search enumeration is bounded.
 
 **Negative** — anyone added to a group or event sees its whole history (intended,
-recorded in the Stakeholder Analysis); any participant can still *un-group* a row
-they are named on (nulling is allowed, the foreign key does it) and thereby hide it
-from the group feed; Realtime does not signal a row that *becomes invisible* to a
+recorded in the Stakeholder Analysis); Realtime does not signal a row that *becomes invisible* to a
 subscriber (a group deleted, a member removed, an event deleted), so another
 member's open tab keeps the stale row until its next fetch; an unfiltered
-`select *` now returns a whole visible feed, so the PostgREST `max_rows = 1000`
-cap can silently truncate a very busy account (pagination is a follow-up); an old app build writing `eventId` into `extra` after
+`select *` now returns a whole visible feed, which the adapter pages (more requests
+for a very busy account, no truncation); an old app build writing `eventId` into `extra` after
 the migration produces rows the column does not see until the idempotent backfill
 is re-run; the rate limit does not stop an attacker with many accounts (sign-ups are
 limited by Auth).
@@ -215,11 +240,11 @@ statements between the `-- backfill:begin` / `-- backfill:end` markers of migrat
 | Stakeholder | Impact | Mitigation |
 |---|---|---|
 | Members of a group or event | They now see **every** expense and settlement of that group/event, including rows created before they joined, and rows that never name them. That is the intent (one shared ledger, identical totals), but it is a wider disclosure of past spending than `member_ids` gave. | Joining is controlled: only a group admin adds group members (each an accepted friend of the admin), and only an existing event member adds event members (each a group member or an accepted friend). Personal figures still count only rows that name the viewer. The disclosure is stated here and in the test names, not hidden. |
-| A removed member | Keeps the history that names them (rows still list them in `member_ids`, so they stay readable, editable and their receipts reachable) and loses the group's feed and every row that never named them; they can no longer see the group itself. They can still edit or ungroup rows that name them. | Nothing they are part of is locked or lost; what they lose is exactly what they were only seeing as a member. Ungrouping is the accepted trade-off of allowing NULL. |
+| A removed member | Keeps the history that names them (rows still list them in `member_ids`, so they stay readable, editable and their receipts reachable) and loses the group's feed and every row that never named them; they can no longer see the group itself. They can still edit rows that name them, but can no longer ungroup them. | Nothing they are part of is locked or lost; what they lose is exactly what they were only seeing as a member, and they cannot pull a shared row out of the group's feed or balances (`guard_expenses` requires membership of the group being left). |
 | A non-friend co-member | Can now see, create and edit event/group rows without being friends with everyone on them, and is no longer told "you can view this but not edit". They cannot be added to a row by someone who is neither their friend nor a co-member of the group/event, and cannot push rows into a feed they do not belong to. | The added-members guard, the creator-must-belong-to-the-event insert rule and the participant-must-be-named re-pointing rule; all proven in the RLS suite. |
 | Someone whose email is looked up | Registered-vs-not remains inherently revealing to a signed-in user, but a script can now try at most 30 addresses per hour per account; their address is never revealed to the caller beyond that outcome. | The per-caller limit, no policy or grant on the counter table (clients cannot read or reset it), the fixed client sentence that never states the limit, and `auth.users` cascade so deleting an account removes its history. An attacker with many accounts is bounded by Auth's own sign-up limits. |
 | The group admin | Deleting a group always works and never leaves half-ungrouped or dangling rows, even when they are not friends with a member or cannot see a row; removing a member can no longer lock rows. | Group delete stays admin-only (`expense_groups_delete`), the client still preflights admin and re-reads after the delete; the last-admin guard stays. |
-| Future contributors | The membership rules live in two guard triggers and four helper functions instead of in policy text, and a policy can no longer be read on its own. New tables that reference groups/events must use the same foreign key and helper pattern. | The coverage guard fails CI on a table with RLS and no policy that is not on the closed list, on a helper reachable by `anon`, on a private `member_ids` clause in the expense/receipt policies, or on a `group_id`/`event_id` reference without `ON DELETE SET NULL`; `npm run test:rls:mutation` kills 44/44 mutations, including each helper and foreign key. |
+| Future contributors | The membership rules live in two guard triggers and four helper functions instead of in policy text, and a policy can no longer be read on its own. New tables that reference groups/events must use the same foreign key and helper pattern. | The coverage guard fails CI on a table with RLS and no policy that is not on the closed list, on a helper reachable by `anon`, on a private `member_ids` clause in the expense/receipt policies, or on a `group_id`/`event_id` reference without `ON DELETE SET NULL`; `npm run test:rls:mutation` kills 49/49 mutations, including each helper and foreign key. |
 
 ## Supersedes
 

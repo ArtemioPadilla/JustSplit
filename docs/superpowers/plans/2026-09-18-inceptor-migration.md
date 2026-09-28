@@ -601,8 +601,8 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
 - [x] **B. Foreign keys, `ON DELETE SET NULL`:** `expenses.group_id`, `events.group_id`,
       `settlements.group_id` → `expense_groups(id)`; `expenses.event_id`, `settlements.event_id`
       → `events(id)`. Orphans are nulled first, then the constraints are added `NOT VALID` and
-      `VALIDATE`d. FK actions bypass RLS but still fire the BEFORE UPDATE guards, which allow a
-      NULL-ing `group_id`/`event_id`. Deleting a group or event cleanly ungroups or unlinks its
+      `VALIDATE`d. FK actions bypass RLS but still fire the BEFORE UPDATE guards, which exempt them
+      by trigger depth (`pg_trigger_depth() <= 1` checks direct writes only). Deleting a group or event cleanly ungroups or unlinks its
       rows: no friendship check, no dangling id
 - [x] **C. Visibility follows membership (select).** `SECURITY DEFINER`, `stable`, pinned
       `search_path` helpers `is_group_member(gid)`, `is_event_member(eid)`,
@@ -617,8 +617,10 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
       members are checked (group member when `group_id` is set; otherwise event member or
       accepted friend when `event_id` is set; otherwise accepted friend), and pointing a row at a
       group or event needs the actor to be a member of the target. `expenses_insert`: event
-      expenses (no group) accept event members or friends. Removing someone from a group no
-      longer locks old rows
+      expenses (no group) accept event members or friends, and `settlements_insert` requires an
+      event member for `event_id`. Leaving a group/event (nulling `group_id`/`event_id`) needs
+      membership of it, except for the `ON DELETE SET NULL` action. Removing someone from a group
+      no longer locks old rows
 - [x] **E. `find_profile_by_email` rate limit.** `public.profile_lookup_attempts(uid, at)`, RLS
       enabled and no policy; the definer function counts the caller's attempts in the last hour
       (constant 30), raises SQLSTATE `P0429` / `rate_limited` at the limit, otherwise records the
@@ -649,17 +651,20 @@ rate-limit follow-up). Decided by the owner ("best engineering and best UX"); re
 - Landed: migrations `20260928000010`–`…014` (`event_id_column`, `membership_foreign_keys`,
       `membership_visibility`, `edit_checks_added_members`, `profile_lookup_rate_limit`), each with a
       down section exercised by `db:rollback` → `db:migrate`; against `supabase start` the RLS suite
-      went from 12 files / 160 tests to 18 files / 234 (`event-id`, `fk-lifecycle`, `visibility`,
+      went from 12 files / 160 tests to 19 files / 244 (`event-id`, `fk-lifecycle`, `visibility`,
       `realtime-visibility`, `membership-edit`, `lookup-rate-limit`, plus coverage guards), the live
       contract suite has two new foreign-key cases (13 live / 10 memory), and
-      `npm run test:rls:mutation` kills 44/44 (helpers neutralised, each foreign key dropped, the
+      `npm run test:rls:mutation` kills 49/49 (helpers neutralised, each foreign key dropped, the
       attempts table opened). Deviations recorded in ADR 0013: added event-expense members may be
       friends on update as on insert; re-pointing a row needs the actor named on it and (for a
       group) `member_ids ⊆ group`; `event_id` on insert needs the creator in the event; personal
       totals scope to rows that name the viewer (`involvingUser`); the attempts table references
-      `auth.users on delete cascade`. Known limits: Realtime does not signal a row becoming
-      invisible (other tabs keep a stale row until their next fetch) and an unfiltered query is
-      capped by PostgREST `max_rows = 1000` (pagination is a follow-up)
+      `auth.users on delete cascade`. Known limit: Realtime does not signal a row becoming
+      invisible (other tabs keep a stale row until their next fetch). Review fixes (amended in
+      place, nothing was deployed): `settlements_insert` requires an event member for `event_id`;
+      leaving a group/event needs membership of it (`pg_trigger_depth() <= 1`, so the
+      `ON DELETE SET NULL` cascade is exempt); unfiltered reads page past PostgREST's
+      `max_rows = 1000` in the adapter (`.range()` pages, caller sort + id tie-breaker)
 - [ ] **Deploy note (owner action):** run `db-migrate.yml --ref inceptor` against the real
       Supabase project once this merges, before any build that relies on the new columns is
       deployed; then `npm run db:audit` against the project must equal the local dump
