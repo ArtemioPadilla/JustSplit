@@ -17,9 +17,9 @@ describe('createMemoryAdapter (plan B5a)', () => {
     await expect(adapter.updateDocument('not_a_collection', 'x', {})).rejects.toThrow(/not_a_collection/);
     await expect(adapter.deleteDocument('not_a_collection', 'x')).rejects.toThrow(/not_a_collection/);
     await expect(adapter.query('not_a_collection', [])).rejects.toThrow(/not_a_collection/);
-    await expect(adapter.batchWrite([{ type: 'set', collection: 'not_a_collection', id: 'x', data: {} }])).rejects.toThrow(
-      /not_a_collection/,
-    );
+    const batchResult = await adapter.batchWrite([{ type: 'set', collection: 'not_a_collection', id: 'x', data: {} }]);
+    expect(batchResult.success).toBe(false);
+    expect(batchResult.errors?.[0]?.error).toMatch(/not_a_collection/);
     expect(() => adapter.subscribeToQuery('not_a_collection', [], () => {})).toThrow(/not_a_collection/);
   });
 
@@ -51,11 +51,13 @@ describe('createMemoryAdapter (plan B5a)', () => {
     const byGroup = await adapter.query('expenses', [{ field: 'groupId', operator: '==', value: 'g1' }]);
     expect(byGroup.data).toEqual([{ id: 'e1', groupId: 'g1', memberIds: ['a', 'b'] }]);
 
-    const byIn = await adapter.query('expenses', [{ field: 'groupId', operator: 'in', value: ['g1', 'g2'] }]);
-    expect(byIn.data.map((d: { id: string }) => d.id).sort()).toEqual(['e1', 'e2']);
+    const byIn = await adapter.query<{ id: string }>('expenses', [{ field: 'groupId', operator: 'in', value: ['g1', 'g2'] }]);
+    expect(byIn.data.map((d) => d.id).sort()).toEqual(['e1', 'e2']);
 
-    const byMember = await adapter.query('expenses', [{ field: 'memberIds', operator: 'array-contains', value: 'a' }]);
-    expect(byMember.data.map((d: { id: string }) => d.id)).toEqual(['e1']);
+    const byMember = await adapter.query<{ id: string }>('expenses', [
+      { field: 'memberIds', operator: 'array-contains', value: 'a' },
+    ]);
+    expect(byMember.data.map((d) => d.id)).toEqual(['e1']);
 
     await expect(
       adapter.query('expenses', [{ field: 'memberIds', operator: 'array-contains-any', value: ['a'] }]),
