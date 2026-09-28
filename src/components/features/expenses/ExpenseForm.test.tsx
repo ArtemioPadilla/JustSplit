@@ -67,7 +67,7 @@ vi.mock('@/lib/data/hooks/useRemoveReceipt', () => ({ useRemoveReceipt }));
 const { default: ExpenseForm } = await import('./ExpenseForm').then((m) => ({ default: m.ExpenseForm }));
 
 const USER: AuthUser = { uid: 'u1', email: 'ana@example.com', displayName: 'Ana', photoURL: null, emailVerified: true };
-const NAMES: Record<string, string> = { u1: 'Ana', u2: 'Beto', g1: 'Group' };
+const NAMES: Record<string, string> = { u1: 'Ana', u2: 'Beto', u3: 'Caro', u4: 'Dana', g1: 'Group' };
 
 function profilesFor(ids: string[]) {
   return { data: ids.map((id) => ({ id, name: NAMES[id] ?? id, avatarUrl: null })), isError: false };
@@ -190,6 +190,112 @@ describe('ExpenseForm — query-param defaults', () => {
     expect(await screen.findByText(/couldn't find that group/i)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ana' })).toBeChecked());
     expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked();
+  });
+
+  it('?event= belonging to a group is treated as a group expense: candidates + currency + payload come from the group (coordinator review)', async () => {
+    window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    useEvent.mockReturnValue({ data: { id: 'ev1', memberIds: ['u1', 'u2'], groupId: 'g1', name: 'Trip' }, isSuccess: true });
+    useGroup.mockReturnValue({
+      data: { id: 'g1', memberIds: ['u1', 'u2', 'u3'], currency: 'EUR', members: [], name: 'Group', type: 'friends' },
+      isSuccess: true,
+    });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ana' })).toBeChecked());
+    expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked();
+    expect(screen.getByLabelText(/Currency/i)).toHaveValue('EUR');
+
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+    const { input } = createMutateAsync.mock.calls[0]![0];
+    expect(input.groupId).toBe('g1');
+    expect(input.memberIds.slice().sort()).toEqual(['u1', 'u2', 'u3']);
+  });
+
+  it('?event= with no group excludes non-friend members, shows a count-only notice, and never sends a payload the RLS policy would reject (coordinator review)', async () => {
+    window.history.replaceState(null, '', '/expenses/new?event=ev1');
+    useEvent.mockReturnValue({
+      data: { id: 'ev1', memberIds: ['u1', 'u2', 'u3'], groupId: null, preferredCurrency: 'MXN', name: 'Party' },
+      isSuccess: true,
+    });
+    // Only u2 is an accepted friend — u3 is not.
+    useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' }], isSuccess: true });
+
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ana' })).toBeChecked());
+    expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked();
+    expect(screen.queryByRole('checkbox', { name: 'Caro' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Currency/i)).toHaveValue('MXN');
+    // Count only — never names (never reveal who).
+    expect(screen.getByText(/1 person in this event isn't in your friends yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Caro/)).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+    const { input } = createMutateAsync.mock.calls[0]![0];
+    expect(input.groupId).toBeNull();
+    expect(input.memberIds).not.toContain('u3');
+  });
+});
+
+describe('ExpenseForm — no-group RLS invariant (defensive pre-submit check)', () => {
+  it('blocks submit with a generic inline message when a participant stops being an accepted friend after being selected', async () => {
+    window.history.replaceState(null, '', '/expenses/new?friend=u2');
+    useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' }], isSuccess: true });
+
+    const user = userEvent.setup();
+    const { rerender } = render(<ExpenseForm mode="create" />);
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked());
+
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+
+    // The friendship is revoked out from under the already-selected participant
+    // (e.g. a live query update) — the form's own selection state doesn't
+    // auto-prune, which is exactly what the defensive invariant exists for.
+    useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'rejected', requestedBy: 'u1' }], isSuccess: true });
+    rerender(<ExpenseForm mode="create" />);
+
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(createMutateAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('ExpenseForm — edit mode blocked by the no-group friendship invariant', () => {
+  it('shows an upfront notice and disables Save when the editor is not friends with everyone on a no-group expense', async () => {
+    // No accepted friendship with u2 at all.
+    useFriends.mockReturnValue({ data: [], isSuccess: true });
+    const expense = makeExpense({ groupId: null, memberIds: ['u1', 'u2'], paidBy: 'u1', createdBy: 'u1' });
+
+    render(<ExpenseForm mode="edit" expense={expense} />);
+
+    expect(
+      await screen.findByText(/only someone who is friends with everyone on it can edit it here/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
+  });
+
+  it('never blocks a group expense, regardless of friendship', async () => {
+    useFriends.mockReturnValue({ data: [], isSuccess: true });
+    const expense = makeExpense({ groupId: 'g1', memberIds: ['u1', 'u2'], paidBy: 'u1', createdBy: 'u1' });
+
+    render(<ExpenseForm mode="edit" expense={expense} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
+
+    expect(screen.queryByText(/only someone who is friends with everyone/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save changes/i })).not.toBeDisabled();
   });
 });
 
