@@ -22,11 +22,28 @@ import { schemaMap } from '@/lib/data/schema-map';
  * real column updates that column; overflow keys merge into extra") because
  * there is no distinction to make in a flat in-memory store.
  *
+ * Foreign keys (ADR 0013, migration B): deleting an `expense_groups` row sets
+ * `groupId` to `null` on the `expenses`, `events` and `settlements` that named
+ * it, and deleting an `events` row sets `eventId` to `null` on `expenses` and
+ * `settlements` — the same `ON DELETE SET NULL` the database applies, so the
+ * repo and contract suites see the behaviour the real adapter has. There is
+ * no referential check on write (an unknown `groupId` is accepted), only the
+ * delete action.
+ *
  * Unlike the hub's own `MockStorageAdapter` (documented in
  * `storage-adapter-contract.md` §3 as NOT atomic), `batchWrite` here IS
  * atomic: every op is validated and staged against a draft copy of the
  * store first, and only committed if every op in the batch succeeds.
  */
+/** ADR 0013 migration B: `[referenced collection, referencing collection, referencing field]`. */
+const SET_NULL_REFERENCES: ReadonlyArray<readonly [string, string, string]> = [
+  ['expense_groups', 'expenses', 'groupId'],
+  ['expense_groups', 'events', 'groupId'],
+  ['expense_groups', 'settlements', 'groupId'],
+  ['events', 'expenses', 'eventId'],
+  ['events', 'settlements', 'eventId'],
+];
+
 export function createMemoryAdapter(collections: readonly string[] = Object.keys(schemaMap)): StorageAdapter {
   const allowed = new Set(collections);
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -131,10 +148,34 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
     return { id, success: true };
   }
 
+  /**
+   * Applies ON DELETE SET NULL for a deleted `collection`/`id` against maps
+   * resolved by `mapFor` (the live store, or a batch draft). Returns the
+   * collections whose rows changed.
+   */
+  function setNullReferences(mapFor: (collection: string) => Map<string, Record<string, unknown>>, collection: string, id: string): string[] {
+    const touched: string[] = [];
+    for (const [referenced, referencing, field] of SET_NULL_REFERENCES) {
+      if (referenced !== collection || !allowed.has(referencing)) continue;
+      const map = mapFor(referencing);
+      let changed = false;
+      for (const [rowId, doc] of map) {
+        if (doc[field] === id) {
+          map.set(rowId, { ...doc, [field]: null });
+          changed = true;
+        }
+      }
+      if (changed) touched.push(referencing);
+    }
+    return touched;
+  }
+
   async function deleteDocument(collection: string, id: string): Promise<WriteResult> {
     assertMapped(collection);
     collectionMap(collection).delete(id);
+    const touched = setNullReferences(collectionMap, collection, id);
     notify(collection);
+    for (const other of touched) notify(other);
     return { id, success: true };
   }
 
@@ -142,14 +183,20 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
     return runQuery<T>(collection, filters, options);
   }
 
+  /** The draft copy of a collection, created from the live one on first touch. */
+  function draftMap(draft: Map<string, Map<string, Record<string, unknown>>>, collection: string): Map<string, Record<string, unknown>> {
+    let map = draft.get(collection);
+    if (!map) {
+      map = new Map(collectionMap(collection));
+      draft.set(collection, map);
+    }
+    return map;
+  }
+
   /** Applies one op against a draft Map (never the live store) for batch staging. */
   function applyOpToDraft(draft: Map<string, Map<string, Record<string, unknown>>>, op: BatchOperation): void {
     assertMapped(op.collection);
-    let map = draft.get(op.collection);
-    if (!map) {
-      map = new Map(collectionMap(op.collection));
-      draft.set(op.collection, map);
-    }
+    const map = draftMap(draft, op.collection);
     if (op.type === 'set') {
       const payload = { ...(op.data ?? {}) };
       delete payload.id;
@@ -166,6 +213,7 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
       map.set(op.id, { ...existing, ...patch });
     } else if (op.type === 'delete') {
       map.delete(op.id);
+      setNullReferences((collection) => draftMap(draft, collection), op.collection, op.id);
     } else {
       throw new Error(`memory-adapter: unknown batch op type "${String(op.type)}"`);
     }
@@ -181,8 +229,8 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
     }
     // All-or-nothing: only now commit the draft collections into the live store.
     for (const [collection, map] of draft) store.set(collection, map);
-    const touched = new Set(operations.map((op) => op.collection));
-    for (const collection of touched) notify(collection);
+    // Every collection the draft touched, including rows nulled by a delete.
+    for (const collection of draft.keys()) notify(collection);
     return { success: true, count: operations.length };
   }
 

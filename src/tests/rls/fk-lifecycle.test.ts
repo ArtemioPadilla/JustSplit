@@ -47,9 +47,9 @@ const FKS = [
 describe('foreign keys (catalog)', () => {
   it.each(FKS)('%s has %s → %s(id), ON DELETE SET NULL, validated', (table, name, target) => {
     expect(
-      sql(`select conrelid::regclass || '|' || confrelid::regclass || '|' || confdeltype || '|' || convalidated
+      sql(`select conrelid::regclass || '|' || confrelid::regclass || '|' || confdeltype::text || '|' || convalidated::text
              from pg_constraint where contype = 'f' and conname = '${name}' and connamespace = 'public'::regnamespace`),
-    ).toEqual([`${table}|${target}|n|t`]);
+    ).toEqual([`${table}|${target}|n|true`]);
   });
 });
 
