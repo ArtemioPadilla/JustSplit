@@ -361,7 +361,7 @@ function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisp
                 {status === null ? (
                   <Skeleton className="h-4 w-28" />
                 ) : (
-                  <span className={cn(balance > 0 ? 'text-chart-2' : balance < 0 ? 'text-destructive' : 'text-muted-foreground')}>{status}</span>
+                  <span className={cn(balance > 0 ? 'text-green-800 dark:text-green-200' : balance < 0 ? 'text-destructive' : 'text-muted-foreground')}>{status}</span>
                 )}
               </li>
             );
