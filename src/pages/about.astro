@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '@/lib/href';
+import { SITE } from '@/lib/site-meta';
+
+// About page (plan B7, spec D3): ported from the legacy Next tree's
+// src/app/about/page.tsx. The original used framer-motion `whileInView`
+// fade-ins on every paragraph; per CLAUDE.md rule 6 that package is banned
+// outright, and `motion/react` would need a React island (this page has
+// none — `marketing` on BaseLayout below). tailwindcss-motion's CSS-only
+// `motion-preset-*` utilities give the same "fade up on load" read at zero
+// JS cost, respecting prefers-reduced-motion (see src/styles/global.css).
+
+const values: { emoji: string; title: string; body: string }[] = [
+  { emoji: '🤝', title: 'Simplicity', body: 'Making expense sharing accessible to everyone.' },
+  { emoji: '⚖️', title: 'Fairness', body: 'Ensuring everyone pays exactly what they owe.' },
+  { emoji: '🛡️', title: 'Trust', body: 'Building transparent financial relationships.' },
+];
+
+const steps: string[] = [
+  'Create an event or group.',
+  'Add expenses as they happen.',
+  'Settle up with a single click.',
+];
+---
+
+<BaseLayout title={`About — ${SITE.name}`} description="Simplifying expense sharing." marketing>
+  <main id="main-content">
+    {/* Hero */}
+    <section class="px-5 py-20 text-center motion-preset-fade motion-duration-500 sm:py-24">
+      <h1 class="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">About {SITE.name}</h1>
+      <p class="mt-4 text-lg text-muted-foreground">Simplifying expense sharing since 2023</p>
+    </section>
+
+    {/* Mission */}
+    <section class="border-t border-border bg-card/40 px-5 py-16">
+      <div class="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:items-center">
+        <div>
+          <h2 class="font-display text-2xl font-semibold text-foreground">Our Mission</h2>
+          <p class="mt-4 text-muted-foreground">
+            {SITE.name} was created with a simple mission: to eliminate the awkward conversations and
+            complexities of splitting expenses with friends, family, and roommates.
+          </p>
+          <p class="mt-4 text-muted-foreground">
+            We believe that managing shared finances should be effortless, transparent, and stress-free. By
+            providing an intuitive platform for expense tracking and debt settlement, we help preserve the
+            relationships that matter most.
+          </p>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+          {values.map((v) => (
+            <div class="rounded-xl border border-border bg-card p-5">
+              <div class="text-2xl" aria-hidden="true">{v.emoji}</div>
+              <h3 class="mt-2 font-medium text-foreground">{v.title}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{v.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* How it works */}
+    <section class="px-5 py-16">
+      <div class="mx-auto max-w-2xl text-center">
+        <h2 class="font-display text-2xl font-semibold text-foreground">How It Works</h2>
+        <ol class="mt-8 space-y-4 text-left">
+          {steps.map((s, i) => (
+            <li class="flex items-center gap-4">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary font-display text-sm font-semibold text-primary-foreground" aria-hidden="true">
+                {i + 1}
+              </span>
+              <span class="text-muted-foreground">{s}</span>
+            </li>
+          ))}
+        </ol>
+        <p class="mt-6 text-muted-foreground">
+          Our intelligent system calculates who owes whom, making settlements a breeze.
+        </p>
+      </div>
+    </section>
+
+    {/* CTA */}
+    <section class="border-t border-border bg-primary px-5 py-16 text-center text-primary-foreground">
+      <div class="mx-auto max-w-2xl">
+        <h2 class="font-display text-2xl font-semibold sm:text-3xl">Ready to simplify your shared expenses?</h2>
+        <p class="mt-3 text-primary-foreground/80">
+          Join thousands of users who trust {SITE.name} to manage their group finances. Sign up today and
+          experience hassle-free expense sharing!
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <a
+            href={withBase('/auth/signup/')}
+            class="inline-flex h-11 items-center justify-center rounded-md bg-background px-8 text-sm font-medium text-foreground transition-colors hover:bg-background/90"
+          >
+            Get started for free
+          </a>
+          <a
+            href={withBase('/landing')}
+            class="inline-flex h-11 items-center justify-center rounded-md border border-primary-foreground/40 px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-foreground/10"
+          >
+            Learn more
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

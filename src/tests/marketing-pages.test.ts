@@ -25,7 +25,7 @@ const BARE_HREF_RE = /\bhref=["']\/(?!\/)[^"']*["']/;
 
 describe.each(Object.entries(PAGES))('%s.astro (plan B7)', (name, src) => {
   it('uses BaseLayout with the static marketing header (no route island, no React header)', () => {
-    expect(src).toMatch(/import\s+BaseLayout\s+from\s+['"][^'"]*BaseLayout['"]/);
+    expect(src).toMatch(/import\s+BaseLayout\s+from\s+['"][^'"]*BaseLayout(\.astro)?['"]/);
     expect(src).toMatch(/<BaseLayout\b[^>]*\bmarketing\b/);
   });
 
@@ -48,9 +48,6 @@ describe.each(Object.entries(PAGES))('%s.astro (plan B7)', (name, src) => {
     expect(src).not.toMatch(/withBase\(['"]\/contact/);
   });
 
-  it('links sign-up through the real /auth/signup/ route', () => {
-    expect(src).toMatch(/withBase\(['"]\/auth\/signup\/['"]\)/);
-  });
 });
 
 describe('landing.astro content', () => {
@@ -61,12 +58,18 @@ describe('landing.astro content', () => {
   it('renders the FAQ as native <details> (no JS accordion)', () => {
     expect(src).toMatch(/<details/);
   });
+  it('links sign-up through the real /auth/signup/ route', () => {
+    expect(src).toMatch(/withBase\(['"]\/auth\/signup\/['"]\)/);
+  });
 });
 
 describe('about.astro content', () => {
   const src = PAGES.about!;
   it('ports the real mission copy', () => {
     expect(src).toMatch(/Our Mission/);
+  });
+  it('links sign-up through the real /auth/signup/ route', () => {
+    expect(src).toMatch(/withBase\(['"]\/auth\/signup\/['"]\)/);
   });
 });
 

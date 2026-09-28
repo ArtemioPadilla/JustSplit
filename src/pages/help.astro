@@ -1,0 +1,140 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { withBase } from '@/lib/href';
+import { SITE } from '@/lib/site-meta';
+
+// Help page (plan B7, spec D3): ported from the legacy Next tree's
+// src/app/help/page.tsx. The original drove category switching, live
+// search-as-you-type filtering and FAQ collapse with useState — all of that
+// needs a React island, which marketing pages don't get (spec D3: no route
+// island, no React chunk at all — see BaseLayout's `marketing` prop). This
+// version keeps the same content and the same accordion affordance via
+// native <details>, and trades the live text-filter box for in-page anchor
+// navigation (every category renders; the sidebar just jumps to it) — a
+// browser's own find-in-page (Ctrl/Cmd+F) covers the search use case at
+// zero JS cost.
+
+interface Faq {
+  question: string;
+  answer: string;
+}
+interface Category {
+  id: string;
+  name: string;
+  faqs: Faq[];
+}
+
+const categories: Category[] = [
+  {
+    id: 'getting-started',
+    name: 'Getting Started',
+    faqs: [
+      { question: 'How do I create an account?', answer: `Sign up from the ${SITE.name} sign-in page — register with your email address or Google.` },
+      { question: `Is ${SITE.name} free to use?`, answer: `Yes! ${SITE.name} is completely free for basic expense splitting.` },
+      { question: 'How do I add friends?', answer: "Go to the Friends section and invite people by email or a shareable invitation link." },
+    ],
+  },
+  {
+    id: 'managing-expenses',
+    name: 'Managing Expenses',
+    faqs: [
+      { question: 'How do I add an expense?', answer: 'Use the "+" action on the dashboard or Expenses page — amount, description, date, who paid, and how to split it.' },
+      { question: 'Can I split expenses unequally?', answer: 'Yes — equal, percentage-based, share-based and exact-amount splits are all supported.' },
+      { question: 'How do I edit or delete an expense?', answer: 'Open the expense from your list and use its edit or delete action; balances recalculate for everyone involved.' },
+    ],
+  },
+  {
+    id: 'groups-friends',
+    name: 'Groups & Friends',
+    faqs: [
+      { question: 'How do I create a group?', answer: 'Go to the Groups section, create a group, add a name and invite members.' },
+      { question: "Can I add someone who doesn't use JustSplit?", answer: 'Yes — add them as a non-registered participant; you can invite them to a full account anytime.' },
+      { question: 'How do I remove someone from a group?', answer: 'From the group members list — they need a zero balance first.' },
+    ],
+  },
+  {
+    id: 'settlements',
+    name: 'Settlements',
+    faqs: [
+      { question: 'How do I settle up with someone?', answer: "Open Settlements, choose the person, and record the payment once it's made in real life." },
+      { question: 'Can JustSplit process payments directly?', answer: "No — JustSplit tracks balances; record settlements manually after paying outside the app." },
+      { question: 'How does JustSplit simplify who pays whom?', answer: 'It calculates the minimum number of transactions needed to settle every debt in a group.' },
+    ],
+  },
+  {
+    id: 'account-billing',
+    name: 'Account & Billing',
+    faqs: [
+      { question: 'How do I change my password or email?', answer: 'From your Profile → Account Settings.' },
+      { question: 'Is my financial information secure?', answer: 'Row-level security in the database is the authorization boundary — the client never sees data your account cannot access.' },
+      { question: 'How do I delete my account?', answer: 'Profile → Account Settings → Delete Account, after settling all outstanding balances.' },
+    ],
+  },
+];
+---
+
+<BaseLayout title={`Help — ${SITE.name}`} description="Find answers to common JustSplit questions." marketing>
+  <main id="main-content">
+    {/* Hero */}
+    <section class="border-b border-border bg-card/40 px-5 py-16 text-center motion-preset-fade motion-duration-500">
+      <h1 class="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">How can we help you?</h1>
+      <p class="mt-3 text-muted-foreground">
+        Browse a topic below, or use your browser's find-in-page (Ctrl/Cmd+F) to search this page.
+      </p>
+    </section>
+
+    <div class="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-16 lg:flex-row">
+      {/* Sidebar */}
+      <aside class="lg:w-56 lg:shrink-0">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Topics</h2>
+        <nav class="mt-3 flex flex-wrap gap-2 lg:flex-col lg:gap-1">
+          {categories.map((c) => (
+            <a
+              href={`#${c.id}`}
+              class="rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              {c.name}
+            </a>
+          ))}
+        </nav>
+        <div class="mt-8 rounded-xl border border-border bg-card p-4">
+          <h3 class="font-medium text-foreground">Need more help?</h3>
+          <p class="mt-1 text-sm text-muted-foreground">Our support team is ready to assist you.</p>
+          <a href="mailto:support@justsplit.app" class="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+            Contact support
+          </a>
+        </div>
+      </aside>
+
+      {/* Content */}
+      <div class="min-w-0 flex-1 space-y-12">
+        {categories.map((c) => (
+          <section id={c.id} class="scroll-mt-24">
+            <h2 class="font-display text-xl font-semibold text-foreground">{c.name}</h2>
+            <div class="mt-4 divide-y divide-border rounded-xl border border-border bg-card">
+              {c.faqs.map((f) => (
+                <details class="group p-4 open:pb-4">
+                  <summary class="cursor-pointer list-none font-medium text-foreground marker:content-none">
+                    <span class="flex items-center justify-between gap-4">
+                      {f.question}
+                      <span class="text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+                    </span>
+                  </summary>
+                  <p class="mt-2 text-sm text-muted-foreground">{f.answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div class="rounded-xl border border-border bg-card/40 p-6 text-center">
+          <p class="text-muted-foreground">Didn't find what you're looking for?</p>
+          <div class="mt-3 flex flex-wrap justify-center gap-4">
+            <a href={withBase('/about')} class="text-sm font-medium text-primary hover:underline">About us</a>
+            <a href="mailto:support@justsplit.app" class="text-sm font-medium text-primary hover:underline">Contact support</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
