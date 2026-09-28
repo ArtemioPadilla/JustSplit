@@ -1,7 +1,7 @@
 import type { QueryFilter } from '@cyber-eco/types';
 import { CreateExpenseInputSchema, ExpenseSchema, type CreateExpenseInput, type Expense } from '@/schemas/expense';
 import { requireStorageAdapter, requireUid } from '../require-adapter';
-import { removeReceipts } from '../storage';
+import { removeReceipts, removeReceiptObject, uploadReceipt } from '../storage';
 
 /**
  * `expenses` repo (plan B5a). See `groups.ts` for the shared conventions
@@ -44,6 +44,16 @@ export async function listForEvent(eventId: string): Promise<Expense[]> {
 }
 
 /**
+ * A fresh expense id, generated once per form session and reused across a
+ * retry (plan B10) — `createWithReceipts` writes to this id with `setDocument`
+ * (an upsert), so resubmitting after a partial failure never creates a
+ * duplicate row.
+ */
+export function generateId(): string {
+  return requireStorageAdapter().generateId('expenses');
+}
+
+/**
  * Writers always set `memberIds` (group context -> the group's memberIds;
  * otherwise the split participants union payer, every one an accepted
  * friend or a co-member — the RLS membership mirror rejects anything else)
@@ -75,10 +85,14 @@ export async function update(id: string, patch: Partial<Expense>): Promise<Expen
   return get(id);
 }
 
-/** Thrown by `remove()` when `id` does not resolve to a row (already deleted, or never existed). */
+/**
+ * Thrown by `remove()`/`addReceipts()`/`removeReceipt()` when `id` does not
+ * resolve to a row (already deleted, never existed, or RLS-hidden — this
+ * repo never distinguishes those, same leaked-id reasoning as ADR 0002).
+ */
 export class ExpenseNotFoundError extends Error {
   constructor(id: string) {
-    super(`repos.expenses.remove: expense "${id}" was not found`);
+    super(`repos.expenses: expense "${id}" was not found`);
     this.name = 'ExpenseNotFoundError';
   }
 }
@@ -96,6 +110,107 @@ export class ExpenseDeleteNotAllowedError extends Error {
     super(`repos.expenses.remove: only the creator or payer may delete expense "${id}"`);
     this.name = 'ExpenseDeleteNotAllowedError';
   }
+}
+
+export interface ReceiptWriteResult {
+  expense: Expense;
+  /** How many of the given files failed to upload — 0 means every one succeeded. */
+  failedUploadCount: number;
+}
+
+/** Uploads `files` under `expenseId`, appending each successful path onto `existingImages`; a failed upload is skipped, not thrown. */
+async function uploadAll(expenseId: string, existingImages: string[], files: Blob[]): Promise<{ images: string[]; failedUploadCount: number }> {
+  const images = [...existingImages];
+  let failedUploadCount = 0;
+  for (const file of files) {
+    try {
+      images.push(await uploadReceipt(expenseId, file));
+    } catch {
+      failedUploadCount += 1;
+    }
+  }
+  return { images, failedUploadCount };
+}
+
+/**
+ * Create ordering (plan B10, risk:high, spec D10 "Images"): **insert the row
+ * (the given `id`, `images: []`) -> upload each file -> `updateDocument(id,
+ * { images })`** — a partial patch, never rewritten alongside other fields.
+ * The `receipts_expenses_insert` storage policy looks the expense up by id
+ * in `public.expenses`, so an upload attempted before the row exists is
+ * denied; this function's whole reason to exist is fixing that order in ONE
+ * place instead of leaving callers to get it right themselves.
+ *
+ * `id` is caller-generated (`generateId()`) and MUST be reused across a
+ * retry: `setDocument` on an existing id is an upsert, so calling this again
+ * with the same `id` never creates a second row. If the row from a previous
+ * attempt already exists, the insert step is skipped entirely (its `images`
+ * are the new upload's starting point, never reset back to `[]`) — the
+ * concurrent/double-submit case resolves the same way, since both callers
+ * upsert the identical row.
+ *
+ * **Partial failure is reported, never hidden**: a file that fails to
+ * upload is skipped (not thrown), and `failedUploadCount` tells the caller
+ * how many were dropped so it can toast an honest "saved, but N receipts
+ * couldn't be uploaded" message — `images` only ever contains paths that
+ * really uploaded. Only the INSERT step can reject this promise; once the
+ * row exists, this call always resolves.
+ */
+export async function createWithReceipts(id: string, input: CreateExpenseInput, files: Blob[]): Promise<ReceiptWriteResult> {
+  let expense = await get(id);
+  if (!expense) {
+    const adapter = requireStorageAdapter();
+    const parsed = CreateExpenseInputSchema.parse({ ...input, images: [] });
+    await adapter.setDocument('expenses', id, {
+      ...parsed,
+      createdAt: adapter.serverTimestamp(),
+      updatedAt: adapter.serverTimestamp(),
+    });
+    expense = await get(id);
+    if (!expense) throw new Error(`repos.expenses.createWithReceipts: row ${id} not found after insert`);
+  }
+
+  const { images, failedUploadCount } = await uploadAll(id, expense.images ?? [], files);
+  const changed = images.length !== (expense.images?.length ?? 0);
+  const withReceipts = changed ? ((await update(id, { images })) ?? expense) : { ...expense, images };
+  return { expense: withReceipts, failedUploadCount };
+}
+
+/**
+ * Edit-flow upload (plan B10): the row already exists, so this uploads
+ * directly and appends to whatever `images` already has — no insert step.
+ * Same partial-failure contract as `createWithReceipts`.
+ */
+export async function addReceipts(id: string, files: Blob[]): Promise<ReceiptWriteResult> {
+  const expense = await get(id);
+  if (!expense) throw new ExpenseNotFoundError(id);
+
+  const { images, failedUploadCount } = await uploadAll(id, expense.images ?? [], files);
+  const changed = images.length !== (expense.images?.length ?? 0);
+  const updated = changed ? ((await update(id, { images })) ?? expense) : { ...expense, images };
+  return { expense: updated, failedUploadCount };
+}
+
+/**
+ * Removes one receipt (plan B10, ADR 0005 amendment): **patches `images` to
+ * drop `path` BEFORE deleting the storage object**, the opposite order from
+ * `remove()`'s whole-expense delete. Reasoning is the mirror image of that
+ * one: `receipts_expenses_delete` is member-wide, so the object delete
+ * itself can't fail on authorization the way the ROW delete can — the risk
+ * here is a network/storage failure mid-operation, and patching first means
+ * a failure after the patch leaves only an UNREFERENCED object in storage
+ * (a retryable cleanup, and this issue's own amendment records it as an
+ * accepted cost), never a dangling reference in `images` pointing at
+ * something that's already gone.
+ */
+export async function removeReceipt(id: string, path: string): Promise<Expense | null> {
+  const expense = await get(id);
+  if (!expense) throw new ExpenseNotFoundError(id);
+
+  const images = (expense.images ?? []).filter((p) => p !== path);
+  const updated = await update(id, { images });
+  await removeReceiptObject(path);
+  return updated;
 }
 
 /**

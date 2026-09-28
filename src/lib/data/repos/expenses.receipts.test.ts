@@ -78,7 +78,7 @@ describe('repos.expenses.createWithReceipts (ordering: insert -> upload -> patch
     uploadReceipt.mockImplementation(async (expenseId: string, file: Blob) => {
       const row = await expenses.get(expenseId);
       if (!row) throw new Error(`storage: expense "${expenseId}" not found (insert policy denial)`);
-      return `expenses/${expenseId}/${(file as { name: string }).name}`;
+      return `expenses/${expenseId}/${(file as unknown as { name: string }).name}`;
     });
 
     const id = expenses.generateId();
