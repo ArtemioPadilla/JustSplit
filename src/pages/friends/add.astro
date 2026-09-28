@@ -1,0 +1,28 @@
+---
+import { withBase } from '../../lib/href';
+
+// /friends/add has no page of its own (plan B13, ADR 0006): the legacy
+// tree's local-only add-by-name form is dropped — the ADD_USER dispatch
+// never persisted anything, and /friends already has its own add-by-email
+// form. GitHub Pages has no server redirects, so this page forwards to
+// /friends/ with a meta refresh and JS (same pattern as
+// src/pages/expenses/index.astro).
+const target = withBase('/friends/');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href={target} />
+    <title>JustSplit</title>
+    <script is:inline define:vars={{ target }}>
+      location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p><a href={target}>Continue</a></p>
+  </body>
+</html>
