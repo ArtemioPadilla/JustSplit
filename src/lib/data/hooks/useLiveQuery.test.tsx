@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react';
-import { render, cleanup, waitFor } from '@testing-library/react';
+import { render, cleanup, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StorageAdapter } from '@cyber-eco/types';
@@ -147,4 +147,48 @@ describe('useLiveQuery (plan B5a, spec D3: single network source)', () => {
     const state = client.getQueryState(['expenses', 'u1']);
     expect(state?.fetchStatus).not.toBe('fetching');
   });
+
+  it(
+    'reports isError/error when the adapter forwards a query failure (coordinator review, plan B8b), ' +
+      'and refetch() clears it by tearing down and re-subscribing',
+    async () => {
+      let subscribeCalls = 0;
+      const adapter: Partial<StorageAdapter> = {
+        subscribeToQuery: <T,>(_collection: string, _filters: unknown, callback: (data: T[], error?: unknown) => void) => {
+          subscribeCalls += 1;
+          if (subscribeCalls === 1) {
+            queueMicrotask(() => callback([], new Error('permission denied for table expenses')));
+          } else {
+            queueMicrotask(() => callback([{ id: 'e1' }] as unknown as T[]));
+          }
+          return () => {};
+        },
+      };
+      setAdapter(adapter);
+      const client = new QueryClient();
+
+      let latest: ReturnType<typeof useLiveQuery> | undefined;
+      function ErrorHarness() {
+        const result = useLiveQuery(['expenses', 'u1'], 'expenses', [{ field: 'memberIds', operator: 'array-contains', value: 'u1' }]);
+        latest = result;
+        return null;
+      }
+      render(
+        <QueryClientProvider client={client}>
+          <ErrorHarness />
+        </QueryClientProvider>,
+      );
+
+      await waitFor(() => expect(latest?.isError).toBe(true));
+      expect(latest?.error).toBeInstanceOf(Error);
+
+      act(() => {
+        latest?.refetch();
+      });
+
+      await waitFor(() => expect(latest?.isError).toBe(false));
+      await waitFor(() => expect(latest?.data).toEqual([{ id: 'e1' }]));
+      expect(subscribeCalls).toBe(2);
+    },
+  );
 });
