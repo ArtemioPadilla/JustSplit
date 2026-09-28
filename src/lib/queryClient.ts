@@ -95,18 +95,50 @@ export async function clearPersistedQueryCache(idbKey: string = JUSTSPLIT_QUERY_
   await del(idbKey);
 }
 
+/**
+ * Thrown when the idb-keyval persister fails to restore the cached Query
+ * client (plan B17b, ADR 0008) — e.g. IndexedDB is blocked, over quota, or
+ * the stored payload is corrupt. `@tanstack/query-persist-client-core`'s
+ * `persistQueryClientRestore` already calls `persister.removeClient()` on
+ * this path before re-throwing (persist.js), so the stale/corrupt entry is
+ * gone by the time this fires — a subsequent normal network fetch is
+ * unaffected either way (`useLiveQuery`'s FETCH-THEN-LISTEN subscription
+ * never depended on the persister having succeeded).
+ */
+export class QueryCacheRestoreError extends Error {
+  constructor(cause: unknown) {
+    super('Failed to restore the persisted query cache.');
+    this.name = 'QueryCacheRestoreError';
+    this.cause = cause;
+  }
+}
+
 export function attachPersister(
   client: QueryClient,
-  options?: { idbKey?: string },
+  options?: {
+    idbKey?: string;
+    /** Test-only injection point — production callers always get the real idb-keyval persister. */
+    persister?: Persister;
+    /** Called once if `persister.restoreClient()` rejects (plan B17b: QueryProvider surfaces this as its recovery-action fallback). */
+    onRestoreError?: (error: QueryCacheRestoreError) => void;
+  },
 ): () => void {
-  const persister = createIdbPersister(options?.idbKey);
-  const [unsubscribe] = persistQueryClient({
+  const persister = options?.persister ?? createIdbPersister(options?.idbKey);
+  const [unsubscribe, restored] = persistQueryClient({
     queryClient: client,
     persister,
     maxAge: 24 * 60 * 60 * 1000, // 24h
     dehydrateOptions: {
       shouldDehydrateQuery: shouldPersistQuery,
     },
+  });
+  // `restored` rejects when persistQueryClientRestore's own restore step
+  // throws (persist.js re-throws after removeClient()) — without this
+  // `.catch`, that would be an unhandled promise rejection AND silently
+  // invisible to the caller. Restore succeeding is the common case and
+  // needs no handling here: hydrate() already ran inside persistQueryClient.
+  restored.catch((cause: unknown) => {
+    options?.onRestoreError?.(new QueryCacheRestoreError(cause));
   });
   return unsubscribe;
 }

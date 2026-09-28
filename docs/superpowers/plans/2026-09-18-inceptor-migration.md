@@ -1976,12 +1976,24 @@ resolves other users' names through `useProfiles` (B5a).
       kept passing unmodified (none of their fixtures start with a neutralization-triggering
       character).
 ### B17b. Toaster island wiring + local-cache reset
-- [ ] Vitest (`@vitest-environment jsdom`): two separate `createRoot`s on one document — root B
+- [x] Vitest (`@vitest-environment jsdom`): two separate `createRoot`s on one document — root B
       mounts `<Toaster />`, root A calls `toast()`; assert the toast renders in B. Record the
       result and the chosen topology (one layout-level `<ToasterIsland client:idle />` vs one
       `<Toaster />` per route island drained from `$toasts`) in ADR
-      `docs/decisions/0008-toast-topology-and-cache-reset.md`; wire it
-- [ ] Local-cache reset (replaces the Firestore IndexedDB corruption-recovery flow, which has no
+      `docs/decisions/0008-toast-topology-and-cache-reset.md`; wire it — done: the two-root test
+      passed (the module-singleton `toastManager` is shared across roots), confirmed against the
+      real production build too (13 built island/store chunks all reference the same
+      `toast.<hash>.js` chunk, recorded in the ADR) — topology is the one layout-level
+      `<ToasterIsland client:idle />` in `BaseLayout.astro` (skipped on `marketing` pages: spec
+      D3, and `check-auth-bundle.mjs`'s marketing budget forbids any `<astro-island>` there at
+      all). Two real gaps the same test surfaced and fixed: `toast()` fired before any
+      `<Toaster/>` mount was silently dropped (Base UI's manager holds no buffer) — fixed with a
+      small pre-hydration queue in `ui/toast.tsx` itself, flushed on the first `<Toaster/>`
+      mount; and `BaseToast.Close` had no accessible name — fixed with
+      `aria-label="Dismiss notification"`. `notifyError` additionally now passes `priority:
+      'high'` (assertive) and `timeout: 0` (persists until dismissed, WCAG 2.2.1) — not
+      explicitly named by this bullet but required by section 2's a11y list below it.
+- [x] Local-cache reset (replaces the Firestore IndexedDB corruption-recovery flow, which has no
       equivalent need): `src/lib/data/reset-local.ts` clears the TanStack Query idb-keyval
       persister store — the shared `justsplit:query` idb key plus any idb-keyval key matching
       `justsplit:*` (`keys()` from idb-keyval) and Inceptor's default `tanstack-query-cache`
@@ -1989,9 +2001,51 @@ resolves other users' names through `useProfiles` (B5a).
       (after `signOut`), and unregisters B19's service worker; exposed as "Restablecer datos
       locales" in the profile island (B15) and as the recovery action of `ErrorBoundary` when a
       persister hydration error is caught. The ADR records why no corruption detector is ported
-      (the Query cache is disposable; a failed hydration falls back to the network)
-- [ ] Tests: reset clears every store and calls `unregister`; hydration failure renders the
-      recovery action and still fetches
+      (the Query cache is disposable; a failed hydration falls back to the network) — done:
+      `resetLocalData()` runs all six steps (sign out via `stores/auth`'s existing `signOut()`,
+      never a direct `@supabase/supabase-js` import; the three idb-keyval sub-steps; localStorage;
+      `sb-*` supabase session storage; service-worker unregistration), each isolated in its own
+      `try`/`catch` so one failing step never skips the rest, then reloads to `withBase('/')`
+      unconditionally; fires `notifySuccess`/`notifyError` honestly off the collected `failures`,
+      never claiming a full reset on a partial one. `attachPersister` (`queryClient.ts`) now
+      reports a restore failure through a typed `QueryCacheRestoreError` and an `onRestoreError`
+      callback (previously an unhandled promise rejection with no caller-visible signal at all).
+      `QueryProvider`'s recovery action is a nested `ErrorBoundary` that is a SIBLING of
+      `children`, not an ancestor, so the banner (an `ErrorState` + the new reusable
+      `ResetLocalDataButton`) appears alongside the route content instead of unmounting it — the
+      app keeps fetching over the network underneath. Deviation: B19 (PWA/service worker) had not
+      landed as its own issue at the time this one ran — `@vite-pwa/astro` was already installed
+      and configured in `astro.config.mjs` from an earlier pass, so
+      `navigator.serviceWorker.getRegistrations()` has a real registration to unregister once B19
+      finishes; this issue's own step is guarded (`'serviceWorker' in navigator`) and tested
+      against both cases regardless. Deviation: the profile-island mount (B15) is explicitly
+      deferred — `ResetLocalDataButton` is exported, fully tested, and mounted on `/showcase`
+      (`ShowcaseResetLocalDataButton`) so B15 only has to mount the already-built component, per
+      this issue's own "exposed... in the profile island (B15)" framing.
+- [x] Tests: reset clears every store and calls `unregister`; hydration failure renders the
+      recovery action and still fetches — done (`reset-local.test.ts`'s 7 cases;
+      `QueryProvider.test.tsx`'s 2 cases, the second asserting the route content stays mounted
+      throughout the recovery-banner case)
+- [x] **Amendment**, filed against this same issue after review: this is a static MPA (spec D2) —
+      every `notify*` call immediately followed by `window.location.assign`/`.replace`/`reload()`
+      was silently discarding the toast, since the whole page (and Base UI's toast manager with
+      it) is torn down by the navigation. Grepping the tree found six real sites:
+      `ExpenseForm`'s create/edit success AND partial-failure receipt-upload honesty message
+      (B10 — the exact message this design exists to surface, always lost until this amendment),
+      `DeleteExpenseDialog` (B9), `GroupForm` create (B12), `DeleteGroupDialog` (B12), and
+      `resetLocalData` itself. Fixed with a cross-navigation handoff in `notifications.ts`:
+      `{ afterNavigation: true }` on `notifySuccess`/`notifyError`/`notifyInfo` queues the toast
+      in `sessionStorage` (`justsplit:pending-toasts`, a bounded, Zod-validated array —
+      `src/schemas/pending-toast.ts`, storage-boundary schema per CLAUDE.md rule 8) instead of
+      firing it; `ToasterIsland` drains the queue once on mount (its own effect, an ancestor of
+      `<Toaster/>`, so React's bottom-up effect order guarantees a listener already exists),
+      firing each entry through the exact same assertive/persistent rules a live toast gets.
+      `resetLocalData`'s own result toast now survives the reset it's reporting on (its
+      `localStorage`-only clearing steps never touch `sessionStorage`) — proven directly against
+      the real `notifications.ts`, not a mock, in `reset-local-toast-survival.test.ts`.
+      `RemoveFriendDialog`/`FriendDetailView` (B13) and `MembersSection` (B12) were checked and
+      do NOT navigate — no migration needed. Full design record, alternatives considered, and
+      Stakeholder Analysis: ADR 0008's "cross-navigation toasts" amendment section.
 ### Phase 3 — Cutover
 
 ### B18. Feature-parity audit

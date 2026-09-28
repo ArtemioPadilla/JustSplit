@@ -39,7 +39,10 @@ export function DeleteExpenseDialog({ id, description }: DeleteExpenseDialogProp
   const handleConfirm = React.useCallback(async () => {
     try {
       await deleteExpense.mutateAsync(id);
-      notifySuccess('Expense deleted');
+      // afterNavigation: true — location.assign() below is a full page
+      // load in this static MPA that would otherwise discard this toast
+      // before it renders (plan B17b amendment, ADR 0008).
+      notifySuccess('Expense deleted', { afterNavigation: true });
       setOpen(false);
       window.location.assign(withBase('/expenses/list'));
     } catch {

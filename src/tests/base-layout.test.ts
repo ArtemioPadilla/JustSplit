@@ -59,3 +59,25 @@ describe('BaseLayout.astro marketing prop (plan B7)', () => {
     expect(before).toMatch(/marketing/);
   });
 });
+
+/**
+ * Plan B17b, ADR 0008: the single layout-level Toaster. Same
+ * marketing-conditional shape as HydrationCanary above — marketing pages
+ * mount no route island and fire no toasts (spec D3), and
+ * check-auth-bundle.mjs fails the build if a marketing page ships ANY
+ * `<astro-island>` at all.
+ */
+describe('BaseLayout.astro ToasterIsland mount (plan B17b)', () => {
+  it('mounts ToasterIsland with client:idle', () => {
+    expect(src).toMatch(/import\s+ToasterIsland\s+from\s+['"][^'"]*ToasterIsland['"]/);
+    expect(src).toMatch(/<ToasterIsland\s+client:idle/);
+  });
+
+  it('the ToasterIsland mount is conditional on `marketing`, not unconditional', () => {
+    const mountLine = src.split('\n').find((l) => l.includes('<ToasterIsland') && l.includes('client:idle'));
+    expect(mountLine, 'expected a <ToasterIsland client:idle mount').toBeTruthy();
+    const idx = src.indexOf(mountLine!);
+    const before = src.slice(Math.max(0, idx - 400), idx);
+    expect(before).toMatch(/marketing/);
+  });
+});

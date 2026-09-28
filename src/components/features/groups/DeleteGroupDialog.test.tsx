@@ -55,7 +55,9 @@ describe('DeleteGroupDialog', () => {
 
     await waitFor(() => expect(deleteMutateAsync).toHaveBeenCalledWith('g1'));
     await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/groups/list'));
-    expect(notifySuccess).toHaveBeenCalled();
+    // Plan B17b amendment (cross-navigation toasts): notify-then-navigate
+    // is a full page load in this static MPA — afterNavigation queues it.
+    expect(notifySuccess).toHaveBeenCalledWith('Group deleted', expect.objectContaining({ afterNavigation: true }));
   });
 
   it('shows the friendship-block message honestly, without redirecting', async () => {

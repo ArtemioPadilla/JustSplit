@@ -115,7 +115,9 @@ describe('GroupForm', () => {
     expect(input.adminIds).toEqual(['u1']);
 
     await waitFor(() => expect(location.assign).toHaveBeenCalledWith('/groups/g1'));
-    expect(notifySuccess).toHaveBeenCalled();
+    // Plan B17b amendment (cross-navigation toasts): notify-then-navigate
+    // is a full page load in this static MPA — afterNavigation queues it.
+    expect(notifySuccess).toHaveBeenCalledWith('Group created', expect.objectContaining({ afterNavigation: true }));
   });
 
   it('shows a generic error toast on failure, without redirecting', async () => {

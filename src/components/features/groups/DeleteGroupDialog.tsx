@@ -58,7 +58,10 @@ export function DeleteGroupDialog({ groupId, name }: DeleteGroupDialogProps) {
   const handleConfirm = React.useCallback(async () => {
     try {
       await deleteGroup.mutateAsync(groupId);
-      notifySuccess('Group deleted');
+      // afterNavigation: true — location.assign() below is a full page
+      // load in this static MPA that would otherwise discard this toast
+      // before it renders (plan B17b amendment, ADR 0008).
+      notifySuccess('Group deleted', { afterNavigation: true });
       setOpen(false);
       window.location.assign(withBase('/groups/list'));
     } catch (error) {

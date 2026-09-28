@@ -4,6 +4,7 @@ import FeedbackFAB from '../components/common/FeedbackFAB.astro';
 import SiteHeader from '../components/common/SiteHeader.astro';
 import SiteFooter from '../components/common/SiteFooter.astro';
 import HydrationCanary from '../components/islands/HydrationCanary';
+import ToasterIsland from '../components/islands/ToasterIsland';
 import { withBase } from '../lib/href';
 import { SITE } from '../lib/site-meta';
 import { jsonLd } from '../lib/json-ld';
@@ -107,6 +108,18 @@ const jsonLdBlocks: Record<string, unknown>[] = [
           Skipped on `marketing` pages: no hydrated island runs there (spec
           D3), so there is no hydration to mismatch. */
       <HydrationCanary client:idle />
+    )}
+    {!marketing && (
+      /* Single shared Toaster (plan B17b, ADR 0008) — every notifications.ts
+         toast (success/error/"Report an issue") since B8b has had nowhere
+         to render until this. `client:idle` like HydrationCanary: never
+         competes with first paint. Skipped on `marketing` pages: they mount
+         no route island and fire no toasts (spec D3), and
+         check-auth-bundle.mjs's marketing-page check fails the build if any
+         `<astro-island>` shows up there at all (the 40 kB layout-JS budget,
+         plan B7) — this island's own @astrojs/react client runtime cost
+         would blow that budget for zero benefit. */
+      <ToasterIsland client:idle />
     )}
   </body>
 </html>

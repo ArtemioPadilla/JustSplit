@@ -61,7 +61,9 @@ describe('DeleteExpenseDialog', () => {
     await user.click(await screen.findByRole('button', { name: /^delete$/i }));
 
     await waitFor(() => expect(remove).toHaveBeenCalledWith('e1'));
-    expect(notifySuccess).toHaveBeenCalled();
+    // Plan B17b amendment (cross-navigation toasts): notify-then-navigate
+    // is a full page load in this static MPA — afterNavigation queues it.
+    expect(notifySuccess).toHaveBeenCalledWith('Expense deleted', expect.objectContaining({ afterNavigation: true }));
     expect(assign).toHaveBeenCalledWith('/expenses/list');
 
     Object.defineProperty(window, 'location', { configurable: true, value: realLocation });
