@@ -49,8 +49,9 @@ describe('repos.expenses.remove', () => {
       expect(id).toBe(created.id);
       calls.push('removeReceipts');
     });
-    const deleteSpy = vi.spyOn(storageAdapter!, 'deleteDocument').mockImplementation(async () => {
+    const deleteSpy = vi.spyOn(storageAdapter!, 'deleteDocument').mockImplementation(async (_collection, docId) => {
       calls.push('deleteDocument');
+      return { id: docId, success: true };
     });
 
     await expenses.remove(created.id);
