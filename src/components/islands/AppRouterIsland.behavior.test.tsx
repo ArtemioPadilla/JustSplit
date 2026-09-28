@@ -6,11 +6,12 @@ import AppRouterIsland from './AppRouterIsland';
 
 /**
  * Plan B2c: the 404 shell's router mounts the island matching the URL.
- * `expense-detail` (plan B9), `expense-edit` (plan B10), and `friend-detail`
- * (plan B13) are covered separately, in `AppRouterIsland.expense-detail.test.tsx`,
- * `AppRouterIsland.expense-edit.test.tsx`, and `AppRouterIsland.friend-detail.test.tsx`
+ * `expense-detail` (plan B9), `expense-edit` (plan B10), `friend-detail`
+ * (plan B13), and `group-detail` (plan B12) are covered separately, in
+ * `AppRouterIsland.expense-detail.test.tsx`, `AppRouterIsland.expense-edit.test.tsx`,
+ * `AppRouterIsland.friend-detail.test.tsx`, and `AppRouterIsland.group-detail.test.tsx`
  * — they render their real, lazily-loaded views now, not `RouteStub`, so all
- * three are dropped from this file's stub-route table.
+ * four are dropped from this file's stub-route table.
  */
 afterEach(() => window.history.replaceState(null, '', '/'));
 
@@ -22,7 +23,6 @@ describe('AppRouterIsland (behavior)', () => {
   it.each([
     ['/events/ev1', 'event-detail', 'ev1'],
     ['/events/edit/ev1', 'event-edit', 'ev1'],
-    ['/groups/g1', 'group-detail', 'g1'],
   ])('%s mounts the %s route with its id', (path, route, id) => {
     at(path);
     render(<AppRouterIsland />);
@@ -39,18 +39,18 @@ describe('AppRouterIsland (behavior)', () => {
   });
 
   it('re-matches on popstate (back/forward inside the shell)', () => {
-    at('/groups/g1');
+    at('/events/ev1');
     render(<AppRouterIsland />);
     act(() => {
-      at('/groups/g9');
+      at('/events/ev9');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(screen.getByTestId('route-view')).toHaveAttribute('data-route', 'group-detail');
-    expect(screen.getByTestId('route-view')).toHaveAttribute('data-id', 'g9');
+    expect(screen.getByTestId('route-view')).toHaveAttribute('data-route', 'event-detail');
+    expect(screen.getByTestId('route-view')).toHaveAttribute('data-id', 'ev9');
   });
 
   it('removes its popstate listener on unmount', () => {
-    at('/groups/g1');
+    at('/events/ev1');
     const { unmount } = render(<AppRouterIsland />);
     unmount();
     // A popstate after unmount must not throw or re-render anything.

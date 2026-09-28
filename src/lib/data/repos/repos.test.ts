@@ -68,20 +68,11 @@ describe('repos.groups', () => {
     expect(updated?.currency).toBe('MXN');
   });
 
-  it('remove() deletes the row', async () => {
-    const g = await groups.create({
-      name: 'Gone',
-      type: 'friends',
-      currency: 'MXN',
-      members: [],
-      totalExpenses: 0,
-      memberIds: ['u1'],
-      adminIds: ['u1'],
-      createdBy: 'u1',
-    });
-    await groups.remove(g.id);
-    expect(await groups.get(g.id)).toBeNull();
-  });
+  // `remove()`'s own preflights (admin-only via `requireUid()`, the
+  // no-group friendship-invariant check, honest post-write verification —
+  // plan B12, ADR 0002 amendment) have their own dedicated suite,
+  // `groups.remove.test.ts`, including its happy path; this file's generic
+  // CRUD smoke coverage stops at `create`/`listForUser`/`update` above.
 });
 
 describe('repos.expenses', () => {
