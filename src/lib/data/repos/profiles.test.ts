@@ -41,6 +41,23 @@ describe('repos.profiles', () => {
     expect(rpcMock).toHaveBeenCalledWith('find_profiles_by_ids', { ids: ['u1', 'u2'] });
   });
 
+  it('byIds splits more than 200 ids across several calls (the server rejects a bigger call) and merges the rows (plan B11b)', async () => {
+    const ids = Array.from({ length: 450 }, (_, i) => `u${i}`);
+    rpcMock.mockImplementation(async (_fn: string, args: { ids: string[] }) => args.ids.map((id) => ({ id, name: id, avatarUrl: null })));
+    const rows = await profiles.byIds(ids);
+    expect(rpcMock).toHaveBeenCalledTimes(3);
+    for (const [, args] of rpcMock.mock.calls) expect((args as { ids: string[] }).ids.length).toBeLessThanOrEqual(200);
+    expect(rows.map((r) => r.id)).toEqual(ids);
+    rpcMock.mockReset();
+  });
+
+  it('byIds makes exactly one call for 200 ids', async () => {
+    const ids = Array.from({ length: 200 }, (_, i) => `u${i}`);
+    rpcMock.mockResolvedValueOnce([]);
+    await profiles.byIds(ids);
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+  });
+
   it('byIds returns [] for an empty id list without calling the RPC (nothing to look up)', async () => {
     const rows = await profiles.byIds([]);
     expect(rows).toEqual([]);
