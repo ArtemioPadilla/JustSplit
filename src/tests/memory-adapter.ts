@@ -30,6 +30,17 @@ import { schemaMap } from '@/lib/data/schema-map';
  * no referential check on write (an unknown `groupId` is accepted), only the
  * delete action.
  *
+ * Visibility (ADR 0013, migration C): pass `{ viewer }` and READS apply the
+ * select policies — a row is visible to a user in its `memberIds`, or (for
+ * `expenses` / `settlements`) to a member of its group or its event, looked up
+ * live in this same store; groups, events and friendships stay member-only.
+ * `viewer` is read on every call (so a sign-in change is honoured) and a
+ * `null` viewer sees nothing, like `anon`. An `updateDocument` (or batch
+ * `update`) of a row the viewer cannot see behaves like `batch_write`'s
+ * `no_data_found`. Without the option nothing is filtered — the legacy
+ * behaviour the repo tests rely on. Write policies are NOT emulated; the RLS
+ * suite owns those.
+ *
  * Unlike the hub's own `MockStorageAdapter` (documented in
  * `storage-adapter-contract.md` §3 as NOT atomic), `batchWrite` here IS
  * atomic: every op is validated and staged against a draft copy of the
@@ -44,7 +55,12 @@ const SET_NULL_REFERENCES: ReadonlyArray<readonly [string, string, string]> = [
   ['events', 'settlements', 'eventId'],
 ];
 
-export function createMemoryAdapter(collections: readonly string[] = Object.keys(schemaMap)): StorageAdapter {
+export interface MemoryAdapterOptions {
+  /** The signed-in uid, read on every call; `null`/`undefined` = signed out (sees nothing). Omit to disable visibility filtering. */
+  viewer?: () => string | null | undefined;
+}
+
+export function createMemoryAdapter(collections: readonly string[] = Object.keys(schemaMap), options: MemoryAdapterOptions = {}): StorageAdapter {
   const allowed = new Set(collections);
   const store = new Map<string, Map<string, Record<string, unknown>>>();
   const listeners = new Map<string, Set<() => void>>();
@@ -62,6 +78,34 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
       store.set(collection, m);
     }
     return m;
+  }
+
+  function includes(value: unknown, uid: string): boolean {
+    return Array.isArray(value) && (value as unknown[]).includes(uid);
+  }
+
+  /** The select policies of migrations 04 + 12, for the current viewer (always true when no viewer option was given). */
+  function visible(collection: string, doc: Record<string, unknown>): boolean {
+    if (!options.viewer) return true;
+    const uid = options.viewer();
+    if (!uid) return false;
+    switch (collection) {
+      case 'friendships':
+        return includes(doc.users, uid);
+      case 'expense_groups':
+      case 'events':
+        return includes(doc.memberIds, uid);
+      case 'expenses':
+      case 'settlements': {
+        if (includes(doc.memberIds, uid)) return true;
+        const group = typeof doc.groupId === 'string' ? store.get('expense_groups')?.get(doc.groupId) : undefined;
+        if (group && includes(group.memberIds, uid)) return true;
+        const event = typeof doc.eventId === 'string' ? store.get('events')?.get(doc.eventId) : undefined;
+        return Boolean(event && includes(event.memberIds, uid));
+      }
+      default:
+        return true;
+    }
   }
 
   function notify(collection: string): void {
@@ -96,7 +140,9 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
 
   function runQuery<T>(collection: string, filters: QueryFilter[], options?: QueryOptions): PaginatedResult<T> {
     assertMapped(collection);
-    let docs = [...collectionMap(collection).entries()].map(([id, data]) => ({ id, ...data }) as T);
+    let docs = [...collectionMap(collection).entries()]
+      .filter(([, data]) => visible(collection, data))
+      .map(([id, data]) => ({ id, ...data }) as T);
     for (const filter of filters) {
       docs = docs.filter((doc) => matches(doc as Record<string, unknown>, filter));
     }
@@ -118,7 +164,7 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
   async function getDocument<T>(collection: string, id: string): Promise<T | null> {
     assertMapped(collection);
     const doc = collectionMap(collection).get(id);
-    return doc ? ({ id, ...doc } as T) : null;
+    return doc && visible(collection, doc) ? ({ id, ...doc } as T) : null;
   }
 
   async function setDocument<T>(collection: string, id: string, data: T, options?: WriteOptions): Promise<WriteResult> {
@@ -140,7 +186,7 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
     assertMapped(collection);
     const map = collectionMap(collection);
     const existing = map.get(id);
-    if (!existing) return { id, success: false };
+    if (!existing || !visible(collection, existing)) return { id, success: false };
     const patch = { ...data };
     delete patch.id;
     map.set(id, { ...existing, ...patch });
@@ -207,7 +253,9 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
       }
     } else if (op.type === 'update') {
       const existing = map.get(op.id);
-      if (!existing) throw new Error(`memory-adapter: batchWrite update target ${op.collection}/${op.id} does not exist`);
+      if (!existing || !visible(op.collection, existing)) {
+        throw new Error(`memory-adapter: batchWrite update target ${op.collection}/${op.id} does not exist`);
+      }
       const patch = { ...(op.data ?? {}) };
       delete patch.id;
       map.set(op.id, { ...existing, ...patch });
@@ -240,7 +288,7 @@ export function createMemoryAdapter(collections: readonly string[] = Object.keys
     const emit = () => {
       if (!active) return;
       const doc = collectionMap(collection).get(id);
-      callback(doc ? ({ id, ...doc } as T) : null);
+      callback(doc && visible(collection, doc) ? ({ id, ...doc } as T) : null);
     };
     emit();
     const set = listeners.get(collection) ?? new Set();
