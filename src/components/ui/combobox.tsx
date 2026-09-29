@@ -3,6 +3,7 @@ import { Combobox as BaseCombobox } from '@base-ui-components/react/combobox';
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { comboboxIconClass, comboboxInputClass } from './combobox-styles';
 
 // Combobox built on Base UI's Combobox primitive (NOT Radix). Typeahead select
 // with built-in filtering. High-level API: pass `items` (string[] or
@@ -83,9 +84,9 @@ function Combobox({
               event.preventBaseUIHandler();
             }
           }}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 pr-9 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={comboboxInputClass}
         />
-        <BaseCombobox.Icon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+        <BaseCombobox.Icon className={comboboxIconClass}>
           <ChevronsUpDownIcon className="h-4 w-4 opacity-70" />
         </BaseCombobox.Icon>
       </div>
