@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createQueryClient, attachPersister, type QueryCacheRestoreError } from '@/lib/queryClient';
-import { ResetLocalDataButton } from '@/components/features/settings/ResetLocalDataButton';
 import { ErrorState } from '@/components/ui/error-state';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -20,12 +19,24 @@ function RestoreErrorThrower({ error }: { error: QueryCacheRestoreError | null }
   return null;
 }
 
+// Rendered only when the persisted cache fails to restore (rare), but it brings
+// the whole Base UI dialog stack with it. Loading it on demand keeps that out of
+// every app page's statically loaded JS (plan B19).
+const ResetLocalDataButton = React.lazy(() =>
+  import('@/components/features/settings/ResetLocalDataButton').then((m) => ({ default: m.ResetLocalDataButton })),
+);
+
 function PersisterRestoreFailedNotice() {
   return (
     <ErrorState
       title="Could not restore your local data"
       hint="This device's cached data may be corrupt or unavailable. The app still works over the network — reset local data if this keeps happening."
-      action={<ResetLocalDataButton />}
+      action={
+        // A same-size, decorative placeholder: the notice does not jump when the button arrives.
+        <React.Suspense fallback={<span aria-hidden="true" className="inline-block h-9 w-52" />}>
+          <ResetLocalDataButton />
+        </React.Suspense>
+      }
     />
   );
 }

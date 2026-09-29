@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import source from './date-picker.tsx?raw';
+import shell from './date-picker.tsx?raw';
+import source from './date-picker-impl.tsx?raw';
 
 describe('date-picker', () => {
-  it('exports DatePicker and DateRangePicker', () => {
+  // Plan B19: date-picker.tsx is the light shell (a plain trigger button); the Popover,
+  // the Calendar and react-day-picker live in date-picker-impl.tsx, loaded on first use.
+  it('exports DatePicker and DateRangePicker from the light shell, which loads the impl on demand', () => {
+    expect(shell).toMatch(/export\s+\{[^}]*\bDatePicker\b/);
+    expect(shell).toMatch(/export\s+\{[^}]*\bDateRangePicker\b/);
+    expect(shell).toMatch(/import\(\s*['"]@\/components\/ui\/date-picker-impl['"]\s*\)/);
+  });
+
+  it('the impl exports the real DatePicker and DateRangePicker', () => {
     expect(source).toMatch(/export\s+\{[^}]*\bDatePicker\b/);
     expect(source).toMatch(/export\s+\{[^}]*\bDateRangePicker\b/);
   });

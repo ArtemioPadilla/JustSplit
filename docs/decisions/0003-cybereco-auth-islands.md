@@ -212,6 +212,14 @@ is `@cyber-eco/auth` weight to strip. Rather than silently raising the global
 future consumer doesn't pay for a second zod copy) is out of scope here since
 `@cyber-eco/auth` isn't even in this graph today.
 
+**Amended by plan B19.** The `/auth/*` budget is no longer seeded in
+`lighthouse-budgets.json` (retired: Lighthouse 12 dropped its budget audits, so it gated
+nothing). It is `performance-budgets.json`'s `auth` group, enforced on every PR by
+`scripts/check-budgets.mjs` against statically loaded gzipped JS: 220 kB
+(`/auth/signin/` measured 209.0 after the reductions, 216.0 before). The 182.07 kB table above
+predates B4's later imports and the vendor-chunk renames; `check-auth-bundle.mjs` still prints
+the informational chunk graph.
+
 ## Supersedes
 
 None.

@@ -34,14 +34,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { FieldDisplay } from '@/components/ui/field-type/display';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ColumnsMenu } from '@/components/ui/data-table-columns-menu';
 import {
   TableBody,
   TableCell,
@@ -743,37 +736,7 @@ export function DataTable<TData, TValue>({
           className="max-w-sm"
           aria-label="Global filter"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(
-              'ml-auto inline-flex items-center gap-1.5 rounded-md border border-input bg-background',
-              'px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            )}
-          >
-            Columns
-            <ChevronDown className="h-4 w-4 opacity-60" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[10rem]">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {table
-              .getAllColumns()
-              .filter((col) => col.getCanHide())
-              .map((col) => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={(value) => col.toggleVisibility(Boolean(value))}
-                >
-                  {/* Use header string when available, fall back to column id */}
-                  {typeof col.columnDef.header === 'string'
-                    ? col.columnDef.header
-                    : col.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ColumnsMenu table={table} />
         {/* Export trigger (Epic 23) — only rendered when the consumer wires onExport. */}
         {onExport && <DownloadTrigger onExport={onExport} filename={exportFilename} />}
       </div>

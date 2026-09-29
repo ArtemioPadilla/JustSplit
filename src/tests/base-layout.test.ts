@@ -110,3 +110,34 @@ describe('BaseLayout.astro app nav and skip link (plan B6b)', () => {
     expect(line).toMatch(/focus:not-sr-only/);
   });
 });
+
+/**
+ * Plan B19: the PWA is wired into every page. Until then the manifest was built
+ * but never linked, `initPwaRegister()` was never called and no worker ever
+ * registered, so the offline shell existed only on paper
+ * (`scripts/offline-smoke.mjs` is the end-to-end proof).
+ */
+describe('BaseLayout.astro PWA wiring (plan B19)', () => {
+  it('links the web app manifest and the apple touch icon through withBase()', () => {
+    expect(src).toMatch(/<link\s+rel="manifest"\s+href=\{withBase\('\/manifest\.webmanifest'\)\}/);
+    expect(src).toMatch(/<link\s+rel="apple-touch-icon"\s+href=\{withBase\('\/apple-touch-icon\.png'\)\}/);
+  });
+
+  it('registers the service worker on every page, marketing included, through a bundled module script', () => {
+    const script = /<script>([\s\S]*?)<\/script>/.exec(src)?.[1] ?? '';
+    expect(script).toMatch(/import\s*\{\s*initPwaRegister\s*\}\s*from\s*['"][^'"]*pwa-register['"]/);
+    expect(script).toMatch(/initPwaRegister\(\)/);
+    // not the inline theme script, and not inside the `marketing` conditional
+    expect(src.indexOf('initPwaRegister')).toBeGreaterThan(src.indexOf('<slot />'));
+  });
+
+  it('mounts OfflineBanner and UpdateToast with client:idle, on app pages only', () => {
+    for (const island of ['OfflineBanner', 'UpdateToast']) {
+      expect(src).toMatch(new RegExp(`import\\s+${island}\\s+from\\s+['"][^'"]*${island}['"]`));
+      const mount = src.split('\n').find((l) => l.includes(`<${island}`) && l.includes('client:idle'));
+      expect(mount, `expected <${island} client:idle`).toBeTruthy();
+      const before = src.slice(Math.max(0, src.indexOf(mount!) - 900), src.indexOf(mount!));
+      expect(before, `${island} must sit under !marketing`).toMatch(/\{!marketing && \(/);
+    }
+  });
+});

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CurrencySelector } from './CurrencySelector';
 import { SUPPORTED_CURRENCIES } from '@/domain/currency';
@@ -39,7 +39,7 @@ describe('CurrencySelector', () => {
       const user = userEvent.setup();
       render(<CurrencySelector value="USD" onChange={vi.fn()} />);
 
-      await user.click(screen.getByLabelText(/Currency/i));
+      await user.click(await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS));
       for (const currency of SUPPORTED_CURRENCIES) {
         expect(await screen.findByRole('option', { name: new RegExp(`^${currency.code}\\b`) }, WAIT_OPTS)).toBeInTheDocument();
       }
@@ -54,7 +54,7 @@ describe('CurrencySelector', () => {
       const handleChange = vi.fn();
       render(<CurrencySelector value="USD" onChange={handleChange} />);
 
-      await user.click(screen.getByLabelText(/Currency/i));
+      await user.click(await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS));
       const option = await screen.findByRole('option', { name: /^EUR\b/ }, WAIT_OPTS);
       await user.click(option);
 
@@ -67,5 +67,43 @@ describe('CurrencySelector', () => {
     render(<CurrencySelector value="USD" onChange={vi.fn()} id="settlement-currency" />);
     const input = screen.getByLabelText(/Currency/i);
     expect(input).toHaveAttribute('id', 'settlement-currency');
+  });
+
+  // Plan B19: the Base UI combobox (about 45 kB gz with its popup stack) is code-split, so a
+  // labelled, read-only stand-in with the same look shows first. These pin what a user can rely on.
+  describe('code-split combobox (plan B19)', () => {
+    it('shows the label and the current value at once, before the combobox has loaded', () => {
+      render(<CurrencySelector value="EUR" onChange={vi.fn()} id="cs" />);
+      const standIn = screen.getByLabelText(/Currency/i);
+      expect(standIn).toHaveAttribute('id', 'cs');
+      expect(standIn).toHaveValue('EUR');
+    });
+
+    it('swaps in the real combobox, with the same id and value, once it has loaded', async () => {
+      render(<CurrencySelector value="EUR" onChange={vi.fn()} id="cs" />);
+      const combobox = await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS);
+      expect(combobox).toHaveAttribute('id', 'cs');
+      expect(combobox).toHaveValue('EUR');
+    });
+
+    it('hands keyboard focus to the real combobox when the user had focused the stand-in', async () => {
+      render(<CurrencySelector value="USD" onChange={vi.fn()} />);
+      act(() => screen.getByLabelText(/Currency/i).focus());
+      const combobox = await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS);
+      await waitFor(() => expect(combobox).toHaveFocus(), WAIT_OPTS);
+    });
+
+    it('does not steal focus when the user had not focused the stand-in', async () => {
+      render(
+        <>
+          <button type="button">elsewhere</button>
+          <CurrencySelector value="USD" onChange={vi.fn()} />
+        </>,
+      );
+      act(() => screen.getByRole('button', { name: 'elsewhere' }).focus());
+      const combobox = await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS);
+      expect(combobox).not.toHaveFocus();
+      expect(screen.getByRole('button', { name: 'elsewhere' })).toHaveFocus();
+    });
   });
 });

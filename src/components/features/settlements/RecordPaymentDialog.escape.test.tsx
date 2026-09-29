@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 /**
@@ -41,10 +41,19 @@ async function openDialog(user: ReturnType<typeof userEvent.setup>) {
   );
   await user.click(screen.getByRole('button', { name: /record payment from/i }));
   await screen.findByRole('dialog', undefined, WAIT);
-  return screen.getByRole('combobox', { name: 'Payment currency' });
+  // The combobox is code-split (plan B19): a same-looking read-only stand-in shows first.
+  return screen.findByRole('combobox', { name: 'Payment currency' }, WAIT);
 }
 
 afterEach(() => vi.clearAllMocks());
+
+// Warm the code-split chunks (payment form, currency combobox) once, outside
+// any test's own timeout: under a saturated full-suite run their first import
+// can exceed a test's wait budget. The lazy boundaries are pinned statically
+// by src/tests/lazy-boundaries.test.ts.
+beforeAll(async () => {
+  await Promise.all([import('./RecordPaymentForm'), import('@/components/features/currency/CurrencyCombobox')]);
+}, 60_000);
 
 describe('RecordPaymentDialog: Escape with the currency combobox focused (plan A7)', () => {
   it(

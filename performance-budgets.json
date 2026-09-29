@@ -1,0 +1,40 @@
+{
+  "//": "Page-size budgets, a HARD gate: scripts/check-budgets.mjs reads dist/ inside `npm run check` (so on every PR) and fails when a page's STATICALLY loaded gzipped JS exceeds its budget. Statically loaded = the chunks a page's HTML names (island component-url/renderer-url, <script src>) plus their static imports; dynamic import() chunks (Recharts, the combobox, the date picker, route views...) are excluded and reported separately as '+lazy JS'. Units: kB = 1024 bytes, gzip level 6. POLICY: never raise a budget to absorb a regression; fix the regression. A budget is only ever set from a measurement taken after the reductions, with about 5% headroom, and the before/after numbers go in the plan's B19 Landed note (docs/superpowers/plans/2026-09-18-inceptor-migration.md) and SETUP.md 'Performance budgets'. An `overrides` entry (pattern -> kB, first match wins) may only be LOWER than its group budget.",
+  "groups": {
+    "marketing": {
+      "//": "/landing, /about, /help: no route island and zero React, so the only JS is the theme toggle, the service-worker registration (workbox-window, lazy) and Nano Stores. Dominated by preload-helper (Vite's dynamic-import helper, 0.6 kB gz) with 2.7 kB gz in all; measured 2.7 kB. The 40 kB layout-JS ceiling (plan B7) and the 150 kB total (Inceptor's) are kept as they were: they are a rule (no React here), not a measurement.",
+      "pages": ["/landing", "/about", "/help"],
+      "maxStaticJsGzKb": 40,
+      "maxTotalGzKb": 150,
+      "dominantChunk": "preload-helper"
+    },
+    "auth": {
+      "//": "/auth/*: React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then the Supabase client (supabase.*.js, 57.9 kB), zod v4 (schemas.*.js, 25.0 kB) and react-hook-form (form.*.js, 16.2 kB). Measured after the reductions: signin/signup 209.1 kB, reset-password 208.8, callback 188.9 (before: 216.0 / 215.8 / 195.7). +5% => 220; the callback page, which has no form, is held to 199.",
+      "pages": ["/auth/*"],
+      "maxStaticJsGzKb": 220,
+      "dominantChunk": "react",
+      "overrides": { "/auth/callback": 199 }
+    },
+    "app": {
+      "//": "The signed-in app: React + ReactDOM (react.*.js, 67.8 kB gz) dominates every page, then the Supabase client (supabase.*.js, 57.9 kB) and zod v4 (schemas.*.js, 25.0 kB), then the page's own route island. Measured after the reductions: heaviest is /settlements 265.2 kB (before 317.5); /expenses/new 263.6 (348.7), /events/list 262.5 (302.5), /profile 260.2 (297.2), /friends 259.2 (270.6), /expenses/list 257.0 (332.7), /events/new 249.5 (310.1). +5% => 279. Lighter pages are held to their own figure: / 227.6 (291.0) => 239, /groups/* 225.3 (259.7) => 237, the 404 shell 129.7 (128.3: its route views are lazy) => 137, and the redirect stubs (/expenses, /events, /groups, /friends/add: a meta refresh, no script) => 1.",
+      "pages": ["/", "/expenses/*", "/events/*", "/groups/*", "/friends*", "/settlements", "/profile", "/404"],
+      "maxStaticJsGzKb": 279,
+      "dominantChunk": "react",
+      "overrides": {
+        "/expenses": 1,
+        "/events": 1,
+        "/groups": 1,
+        "/friends/add": 1,
+        "/": 239,
+        "/groups/*": 237,
+        "/404": 137
+      }
+    },
+    "showcase": {
+      "//": "/showcase: the component gallery, a developer page that statically mounts sixteen islands, so it carries everything the app pages do. React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then supabase.*.js (57.9 kB, pulled in by the reset-local-data demo) and zod v4 (25.0 kB). Measured 270.3 kB (before 291.0; 279.0 until the sign-out wipe stopped importing the Query client chunk); +5% => 284. It is not a user route, but it is built and deployed, so it is gated like one.",
+      "pages": ["/showcase"],
+      "maxStaticJsGzKb": 284,
+      "dominantChunk": "react"
+    }
+  }
+}

@@ -356,6 +356,52 @@ handoff and don't use it.
 | Users on a shared/borrowed device | `resetLocalData()`'s OWN failure toast (naming that the reset was incomplete) is the most consequential one to lose — a user could believe their data was fully wiped when it wasn't. | Now queued and proven (by test) to survive the reset's own storage-clearing steps, landing on the very next page. |
 | Future contributors | A new notify-then-navigate call site is easy to write without realizing the toast will be silently discarded — there's no error, just a toast nobody ever sees. | This ADR's decision section states the rule explicitly (`{ afterNavigation: true }` whenever a `notify*` call precedes a navigation) as the documented pattern; no automated enforcement exists yet (named as a residual risk above). |
 
+## Amendment (2026-09-29, plan B19): the sign-out wipe never depends on a lazy chunk
+
+### Context
+
+B19 made the TanStack Query client (`@/lib/queryClient`: TanStack core, the
+persister and idb-keyval, about 40 kB) lazy on `/auth/*`. Its first cut had
+`signOut()` dynamically import that chunk *after* the Supabase sign-out had
+already succeeded, in order to call `clearPersistedQueryCache()`. If that
+chunk failed to load (a network drop, or deploy skew leaving a stale hashed
+file), the sequence was:
+
+- the session was gone;
+- `signOut()` rejected;
+- the signed-out user's persisted Query cache stayed on the device.
+
+That is exactly the leak this ADR's cache reset exists to prevent. Centinela
+caught it in review.
+
+### Decision
+
+The shared persister key and the wipe live in a tiny module,
+`src/lib/query-cache-key.ts`, which imports only idb-keyval's `del` (about
+0.6 kB). `signOut()` imports the wipe statically from there and never touches
+the Query client chunk. `@/lib/queryClient` re-exports both names, so the key
+has one source of truth.
+
+`src/stores/auth.test.ts` makes any import of `@/lib/queryClient` throw and
+asserts that `signOut()` still resolves and wipes the cache.
+`query-cache-key.test.ts` pins the key and checks the re-export is the same
+function.
+
+### Consequences
+
+- `/auth/*` carries idb-keyval statically, about +0.6 kB, which is inside the
+  B19 budget.
+- The wipe order is unchanged: the Supabase sign-out comes first, and the
+  wipe runs only if it succeeds, so a failed sign-out keeps both the session
+  and the cache.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| People on shared devices | A failed lazy-chunk load after sign-out would have left the previous user's cached groups, expenses and settlements readable on the device. | The wipe has no dependency on any lazy chunk (a static 0.6 kB import). It is pinned by a test that makes the Query client chunk unloadable. |
+| Signed-in users on flaky networks | `signOut()` could have rejected after actually signing out, which is a confusing half-state. | The only remaining async steps are the Supabase call and an IndexedDB delete. Neither needs a network fetch of app code. |
+
 ## Supersedes
 
 None.

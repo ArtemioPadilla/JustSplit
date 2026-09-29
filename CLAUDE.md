@@ -45,13 +45,16 @@ Target (spec §4): `src/pages/` (Astro shells, one route island each),
 | Command | What it does |
 |---|---|
 | `npm run dev` | dev server (4321 on the Astro tree; 4000 on the frozen Next tree) |
-| `npm run check` | **the umbrella gate**: `astro check` + type-check + Vitest + ESLint + pragma check, then the production build (`ship.sh`, `centinela`, `ci.yml` call it) |
+| `npm run check` | **the umbrella gate**: `astro check` + type-check + Vitest + ESLint + pragma check, then the production build and the `dist/` checks (`check:dist`, `check:auth-bundle`, `check:charts-bundle`, `check:budgets`) (`ship.sh`, `centinela`, `ci.yml` call it) |
+| `npm run check:budgets` | the page-size budget gate (part of `check`): statically loaded gzipped JS per built page against `performance-budgets.json`. **Never raise a budget to absorb a regression**; `node scripts/check-budgets.mjs --report` prints the measurement (`SETUP.md`, "Performance budgets") |
 | `npm run test` | Vitest (Jest on the frozen Next tree) |
 | `npm run type-check` | `tsc --noEmit` |
 | `npm run format` | Prettier |
 | `npm run db:start` / `db:migrate` / `db:seed` | local Supabase stack + dbmate migrations + seed (`SETUP.md` §1) |
 | `npm run test:rls` | the RLS suite against the local stack (its own CI job; never part of `check`) |
 | `npm run check:a11y` | axe-core smoke against a production build (`dist/`, own CI step; never part of `check` — needs a real browser, see `scripts/axe-smoke.mjs`) |
+| `npm run check:offline` | offline shell smoke: builds under `/JustSplit` into `dist-offline/`, lets the service worker install in Chromium, goes offline and asserts `/expenses/abc` gets the 404 shell, `/settlements/?event=x` and `/auth/callback/?code=x` their own pages, Supabase paths untouched (own CI step after `check:a11y`; never part of `check` — needs a real browser, see `scripts/offline-smoke.mjs`) |
+| `npm run perf` | Lighthouse CI against the live staging URLs (`lhci collect && lhci assert`, `.lighthouserc.json`; by hand for B18, never in CI) |
 | `npm run test:live` | live end-to-end smoke: builds the site against `supabase start`, signs in through the real form, walks the critical flows (asserting DB state) and runs axe + the 375px overflow check on every signed-in page state (own CI step in the `RLS & contract` job, after the suites that need the same stack; never part of `check` — needs Docker, the stack and a real browser, see `scripts/live-smoke.mjs`) |
 | `npm run doctor` | preflight: node ≥ 22, gh auth, clean tree, branch naming, config present |
 | `npm run monday` | open PRs, recent merges, top issues, local branches |

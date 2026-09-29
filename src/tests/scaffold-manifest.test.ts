@@ -19,7 +19,8 @@ export const SCAFFOLD_MANIFEST = [
   'astro.config.mjs',
   'components.json',
   'eslint.config.mjs',
-  'lighthouse-budgets.json',
+  // lighthouse-budgets.json retired in B19: Lighthouse 12 removed budget audits, so it gated nothing.
+  'performance-budgets.json',
   'public/icons/pwa-192.png',
   'public/icons/pwa-512.png',
   'public/icons/pwa-maskable-512.png',

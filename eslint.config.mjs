@@ -147,6 +147,7 @@ export default [
   {
     ignores: [
       'dist/**',
+      'dist-offline/**',
       // Agent worktrees nest full checkouts (their own dist, node_modules…)
       // inside the repo — never lint them from the parent.
       '.claude/**',

@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { $needsRefresh, activateUpdate } from '@/stores/install';
+import ErrorBoundary from './ErrorBoundary';
 
 /**
  * Toast that appears when a new service worker is waiting to activate.
@@ -13,7 +14,7 @@ import { $needsRefresh, activateUpdate } from '@/stores/install';
  * - role="status" + aria-live="polite" announces the message without
  *   interrupting ongoing screen-reader speech.
  */
-export default function UpdateToast() {
+function UpdateToastContent() {
   const needs = useStore($needsRefresh);
   if (!needs) return null;
 
@@ -33,5 +34,13 @@ export default function UpdateToast() {
         Reload
       </button>
     </div>
+  );
+}
+
+export default function UpdateToast() {
+  return (
+    <ErrorBoundary name="UpdateToast">
+      <UpdateToastContent />
+    </ErrorBoundary>
   );
 }

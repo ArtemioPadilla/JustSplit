@@ -28,10 +28,18 @@ vi.mock('@/lib/data/client', async (importOriginal) => ({
   waitForSession,
 }));
 vi.mock('@/lib/data/adapter', () => ({ authAdapter, profileStore }));
-vi.mock('@/lib/queryClient', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/queryClient')>()),
+// The sign-out wipe must never depend on the Query client chunk (plan B19): it is
+// lazy on /auth/* and can fail to load (network drop, deploy skew) AFTER the
+// session is already gone, which would leave the signed-out user's persisted
+// cache on the device. The wipe comes from the tiny key module instead, and
+// this mock makes any import of the Query client chunk fail.
+vi.mock('@/lib/query-cache-key', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/query-cache-key')>()),
   clearPersistedQueryCache,
 }));
+vi.mock('@/lib/queryClient', () => {
+  throw new Error('chunk load failed: /_astro/queryClient.js');
+});
 
 import {
   completeOAuthSignIn,
@@ -79,6 +87,11 @@ describe('stores/auth actions (plan B4)', () => {
   it('signOut clears the persisted Query cache (ADR 0004: it is a copy of the signed-out user\'s data)', async () => {
     await signOut();
     expect(clearPersistedQueryCache).toHaveBeenCalled();
+  });
+
+  it('signOut wipes the cache even when the Query client chunk cannot load (no dependency on it)', async () => {
+    await expect(signOut()).resolves.toBeUndefined();
+    expect(clearPersistedQueryCache).toHaveBeenCalledWith();
   });
 
   it('resetPassword forwards a redirectTo built from withBase on the current origin', async () => {
