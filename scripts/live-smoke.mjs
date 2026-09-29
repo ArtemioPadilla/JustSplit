@@ -177,9 +177,15 @@ async function main() {
       await goto(a, '/settlements');
       await waitForText(a, /You owe Beto Smoke\s+USD 30\.00/);
 
-      await a.getByRole('button', { name: 'Record payment from you to Beto Smoke' }).click();
+      const openRecord = () => a.getByRole('button', { name: 'Record payment from you to Beto Smoke' }).click();
+      await openRecord();
       // By name: a toast is a role=dialog too (Base UI), so a bare getByRole('dialog') is ambiguous.
       const dialog = a.getByRole('dialog', { name: 'Record payment' });
+      // Escape from the currency combobox (popup closed) must still dismiss the dialog.
+      await dialog.getByRole('combobox', { name: 'Payment currency' }).focus();
+      await a.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'hidden' });
+      await openRecord();
       await dialog.getByLabel('Amount').fill('10.00');
       await dialog.getByRole('button', { name: 'Save payment' }).click();
       await dialog.waitFor({ state: 'hidden' });
