@@ -56,7 +56,9 @@ const linkClass = showAppNav
       JustSplit
     </a>
     {/* One Main landmark per page. App pages: a second row that scrolls sideways on a phone
-        (no JS, native keyboard focus scrolling) and sits inline from md up. */}
+        (no JS, native keyboard focus scrolling) and sits inline from md up. The row is
+        full-bleed (-mx-5 cancels the container's px-5), which needs an explicit width: a
+        100% flex-basis alone would leave it as narrow as the padded container. */}
     <nav
       aria-label="Main"
       data-app-nav={showAppNav ? '' : undefined}
@@ -64,7 +66,7 @@ const linkClass = showAppNav
       class:list={[
         'font-mono text-xs sm:text-sm',
         showAppNav
-          ? 'relative order-last -mx-5 flex basis-full overflow-x-auto px-5 md:order-none md:mx-0 md:basis-auto md:overflow-visible md:px-0'
+          ? 'relative order-last -mx-5 flex w-[calc(100%+2.5rem)] overflow-x-auto px-5 md:order-none md:mx-0 md:w-auto md:overflow-visible md:px-0'
           : 'ml-auto flex items-center gap-1',
       ]}
     >
