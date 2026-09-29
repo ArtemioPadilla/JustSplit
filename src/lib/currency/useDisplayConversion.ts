@@ -10,6 +10,12 @@ export interface DisplayConversion {
   ready: boolean;
   /** True if any resolved rate was a fallback (ADR 0007 honesty marker, ticker parity). */
   approximate: boolean;
+  /**
+   * The rates this conversion resolved, keyed by source currency (the target
+   * itself is never listed). Empty until `ready`, so a table built from it never
+   * shows a rate for a request that has not resolved (plan B14b).
+   */
+  rates: Record<string, { rate: number; isFallback: boolean }>;
   /** Forces a fresh fetch (pairs with `clearRateCache()` for a "Refresh rates" action). */
   refresh: () => void;
 }
@@ -119,5 +125,5 @@ export function useDisplayConversion(currencies: string[], targetOverride?: stri
 
   const approximate = Object.values(rates).some((r) => r.isFallback);
 
-  return { convert, ready, approximate, refresh };
+  return { convert, ready, approximate, rates, refresh };
 }
