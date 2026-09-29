@@ -42,24 +42,32 @@ const LAZY: { file: string; module: string; why: string }[] = [
     module: './RecordPaymentForm',
     why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
   },
+  {
+    file: 'components/ui/data-table-columns-menu.tsx',
+    module: '@/components/ui/data-table-columns-menu-impl',
+    why: 'the Columns dropdown (Base UI menu, floating-ui, list navigation) was ~50 kB gz on /expenses/list for a control most visits never touch',
+  },
 ];
 
 // The selector's own file must not reach the combobox by any other route either.
 const NEVER_STATIC: { file: string; module: string }[] = [
   { file: 'components/features/currency/CurrencySelector.tsx', module: '@/components/ui/combobox' },
+  { file: 'components/ui/data-table.tsx', module: '@/components/ui/dropdown-menu' },
 ];
 describe.each(NEVER_STATIC)('$file (no back door)', ({ file, module }) => {
   it(`does not import ${module} statically`, () => {
-    expect(staticImports(readFileSync(resolve(SRC, file), 'utf8'))).not.toContain(module);
+    expect(staticImports(read(file))).not.toContain(module);
   });
 });
 
+// Read inside each test: a file that does not exist yet must fail its own test, not the whole suite.
+const read = (file: string) => readFileSync(resolve(SRC, file), 'utf8');
+
 describe.each(LAZY)('$file', ({ file, module, why }) => {
-  const source = readFileSync(resolve(SRC, file), 'utf8');
   it(`does not import ${module} statically (${why})`, () => {
-    expect(staticImports(source)).not.toContain(module);
+    expect(staticImports(read(file))).not.toContain(module);
   });
   it(`loads ${module} through import()`, () => {
-    expect(dynamicImports(source)).toContain(module);
+    expect(dynamicImports(read(file))).toContain(module);
   });
 });
