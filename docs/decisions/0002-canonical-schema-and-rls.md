@@ -414,7 +414,8 @@ Both sides, so neither trusts the other.
   gates `admin_ids` changes, not label changes, so a two-way constraint would
   change what an admin may write. Left as an open question: any member may edit
   `members[]` (ordinary fields), so a member can relabel someone as `admin`; that
-  changes a badge, never a permission, because nothing authorizes from the label.
+  changes a badge, never a permission, because nothing authorizes from the label. **Corrected and closed by the
+  B19c amendment below:** `computeAdminIds` did carry the label into `admin_ids`; migration 017 and the app change fix it.
 - **Failing the read (status quo).** One bad label blanks the group for everyone.
 
 ### Deploy note (owner action)
@@ -436,6 +437,46 @@ one), and aborts, changing nothing, if an entry is not an object.
 | Every other member | Groups stop blanking because of one bad row. | Tolerant read plus the database check: the bad state cannot be re-created. |
 | The owner running the deploy | A data rewrite and a constraint on a shared production table. | Normalise, `NOT VALID`, then `VALIDATE` (no long write lock), one transaction, a down path, a rolled-back-transaction test of both directions, and a failure that changes nothing. |
 | Future contributors | A new role must be added in three places: `AppRoleSchema`, the `@cyber-eco/types` enum and the helper. | The RLS suite fails on a role the helper does not know, and the mutation check fails if the constraint is dropped. |
+
+## Amendment (2026-09-29, plan B19c): stored admin labels agree with `admin_ids`
+
+`risk:high`: a migration and a correction. The full reasoning, the alternatives and the
+Stakeholder Analysis are in [ADR 0015](./0015-writes-require-a-connection.md), section 5; this
+records the schema change where the schema is owned.
+
+### Correction of the B19b amendment
+
+B19b left this open: "any member may edit `members[]`, so a member can relabel someone as `admin`;
+that changes a badge, never a permission, because nothing authorizes from the label." The second half
+was wrong. `withAddedMembers` and `withRemovedMember` derived the next `admin_ids` from the stored
+labels (`computeAdminIds`), so a member who labelled themselves `admin` became a real admin the next
+time any admin added or removed a member. The guard trigger did not stop it: the acting admin is
+allowed to change `admin_ids`, and the patch was theirs.
+
+### Decision
+
+- **App**: the displayed role is derived from `admin_ids` (Owner is `created_by` while still an
+  admin, Admin is anyone in `admin_ids`, everyone else Member); membership patches start from the
+  stored `admin_ids` and rewrite every label from it. `computeAdminIds` is for a brand-new group only.
+- **Database**, migration `20260928000017_group_admin_labels_consistent.sql`: CHECK constraint
+  `expense_groups_admin_labels_consistent` over the immutable, total helper
+  `public.group_admin_labels_consistent(jsonb, text[])`: a member labelled `owner` or `admin` must be
+  in `admin_ids` (SQLSTATE `23514`, every writer, the service role included). **One-way**: an
+  `admin_ids` entry with a plain label is still valid (it is what the RLS suite and `batch_write`
+  write, and the UI shows Admin for it); demoting changes both in one UPDATE. A `moderator` label needs
+  nothing. Rollout in one transaction: demote any owner/admin label that has no `admin_ids` entry to
+  `member` (never touching `admin_ids`, so nobody is really promoted or demoted), `NOT VALID`, then
+  `VALIDATE`; full `migrate:down` (constraint and helper; 016 untouched; the demotion is not
+  reversed). `AppRoleSchema` and the universal `ExpenseGroupMember` shape are unchanged.
+- **Proof**: `src/tests/rls/admin-labels.test.ts`; `test:rls:mutation` drops the constraint and
+  neuters the helper (both killed).
+
+### Deploy note (owner action)
+
+Migration 017 joins the owner's next `db-migrate.yml` run (`gh workflow run db-migrate.yml --ref
+inceptor -f command=migrate`), then `npm run -s db:audit -- "$SUPABASE_DB_URL"` must equal the local
+dump. Order does not matter for the app: the new patches never write a label the constraint refuses,
+and the display derivation ignores the stored one.
 
 ## Supersedes
 

@@ -1075,7 +1075,7 @@ supabase/config.toml          local CLI only ([db.migrations] and [db.seed] disa
 - [ ] Currency: preferred currency (`profiles.preferences` is the source of truth), live exchange ticker with fallback table, rate cache; a display-currency selector with live conversion of every listed amount on the expenses list, expense detail, events list/detail (default: the event's `preferredCurrency`), settlements and group detail; conversion is always on (the `isConvertingCurrencies` toggle is dropped)
 - [ ] CSV export from the dashboard, the filtered expense list, the expense detail and the event detail page (one `ExportCsvButton`, names via `find_profiles_by_ids`)
 - [ ] Notifications/toasts (topology per plan B17b ADR)
-- [ ] Offline: last data readable from the Query persister, mutations disabled with `OfflineBanner`; "Restablecer datos locales" clears the persister (plan B17b)
+- [ ] Offline: last data readable from the Query persister, mutations disabled with `OfflineBanner`; "Restablecer datos locales" clears the persister (plan B17b) — *implemented by plan B19c, [ADR 0015](../../decisions/0015-writes-require-a-connection.md): every write control is `aria-disabled` with one shared sentence, the data layer refuses the write, nothing is queued*
 - [ ] Existing URLs resolve via the `404.astro` shell; `/expenses`, `/events`, `/groups` redirect to `/…/list`; dead links fixed; every link goes through `withBase()`
 - [ ] Every table in `public` has RLS (coverage guard), every `SchemaMap` table has a policy per command + guard trigger + Realtime publication, `public.documents` does not exist; the B2b RLS suite is green in CI against `supabase start` and `npm run db:audit` shows no diff against the `justsplit` project
 - [ ] `npm run check`, `npm run test`, Lighthouse budgets (split by route family) green; axe smoke clean
@@ -1094,7 +1094,7 @@ Migrating any Firestore data, document or base64 image (nothing is ported;
 the Firebase retirement steps are outside the app's scope but listed in plan
 B20); shared identity with the CyberEco Hub (ADR-009, Story 3.1 in the hub);
 the `DataLayerService` orchestrator, webhooks, permissions service; offline
-writes; payment integrations; E2E encryption (README claim, never built);
+writes (writes are disabled while offline and never queued, [ADR 0015](../../decisions/0015-writes-require-a-connection.md), plan B19c); payment integrations; E2E encryption (README claim, never built);
 Tauri desktop/mobile packaging (available later via Inceptor's
 `add-tauri*.mjs`); redesign beyond what the shadcn mapping implies; Astro
 View Transitions / `ClientRouter`. For Track D (D9): per-group custom
