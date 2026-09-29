@@ -49,6 +49,7 @@ comes with `npm ci`.
 | `npm run db:audit [-- <url>]` | read-only dump of RLS, policies, triggers, function grants, table grants, Realtime and buckets; diff local against the project (B18) |
 | `npm run test:rls` | the B2b RLS suite against the running stack |
 | `npm run test:rls:mutation` | drops each policy and guard trigger in turn and requires the suite to fail |
+| `npm run test:live` | the A7 live end-to-end smoke: builds `dist` against the running stack (keys from `supabase status`, into a temporary directory, so `dist/` is untouched), seeds and removes its own users through the service role, then drives Chromium — see §3 |
 | `npm run db:rollback` / `db:status` / `db:stop` | dbmate rollback of the last file, status, stop the stack |
 
 Migrations live in `db/migrations/` and **never** in `supabase/migrations/`
@@ -96,7 +97,7 @@ token (see `vendor/README.md`). Once the token exists, contributors put it in
 | `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check`; then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below); actionlint + unpinned-action scan |
 | `deploy.yml` — `Deploy to GitHub Pages` | push to `main` (after cutover); `workflow_dispatch` | production build with `ASTRO_BASE` + `PUBLIC_SUPABASE_*` variables → `actions/deploy-pages` |
 | `deploy-staging.yml` — `Deploy staging (inceptor → GitHub Pages)` | push to `inceptor`; `workflow_dispatch` | same build from the integration branch to the same Pages site (`docs/runbooks/staging.md`) |
-| `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b); required on `inceptor` |
+| `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b) + `test:contract:live` (B5a) + `npx playwright-core install --with-deps chromium` and `npm run test:live` (plan A7: real sign-in, the critical flows with the database checked through the service role, and axe + 375px overflow on every signed-in page state in light, dark and 375px, failing on any console error or hydration mismatch; deliberately its own step, never part of `check`, and no secret — the keys come from `supabase status`); required on `inceptor` |
 | `db-migrate.yml` — `DB Migrate (Supabase)` | push to `main` touching `db/migrations/**`; `workflow_dispatch` (`migrate` / `status` / `rollback` / `rollback-all` with `confirm=TEARDOWN`) | dbmate in a pinned container against `SUPABASE_DB_URL`; warns and skips while the secret is missing |
 
 Branch protection (owner, once, after the first green run): Settings →

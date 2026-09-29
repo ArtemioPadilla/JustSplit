@@ -85,7 +85,7 @@ part of the migration's definition of done).
 
 | Milestone | Track | Issues |
 |---|---|---|
-| `v0.2 - Inceptor workflow` | A | A1, A2, A3a, A3b, A4, A5, A6 |
+| `v0.2 - Inceptor workflow` | A | A1, A2, A3a, A3b, A4, A5, A6, A7 |
 | `v0.3 - Foundation on Astro` | B, phase 1 | B1, B2a, B2, B2c, B2b, B3, B4, B5a, B5b, B6, B7, B16 |
 | `v0.4 - Feature islands` | B, phase 2 | B8a, B8b, B9–B15, B2d, B17a, B17b |
 | `v0.5 - Cutover` | B, phase 3 | B18–B22 |
@@ -298,6 +298,61 @@ backend decision; ADR numbers are allocation order, not merge order),
       neither exists in the repo today, so B20/B22/D2/D12 only append to them
 - [x] Also `SECURITY.md` + `CODE_OF_CONDUCT.md` (governance checklist rows); `LICENSE` is an owner decision (the README says open source but no license file exists; the hub uses open-core) — recorded in `SETUP.md` §4
 - [ ] Acceptance: no doc references Jest/Next as *future* work once Track B starts
+
+### A7. Live end-to-end smoke in CI, and the signed-in a11y fixes it surfaced (`tdd-tier:strict`)
+Filed after B6b (`inceptor` at `198a406`). Why: the defects that made the app unusable (the missing
+`QueryProvider`, NULL-column reads, the #418 hydration mismatch) never showed up in the mocked unit
+suites; only manual Chromium runs against a real stack caught them, and `check:a11y` runs signed
+OUT, so it never sees a signed-in page state. A CI job now does what those runs did, on every PR.
+- [x] `scripts/live-smoke.mjs` (`npm run test:live`): builds the site with the local stack's public
+      config (`supabase status`, as `db-env.mjs` and the RLS job derive it) into a temporary
+      directory, serves it with the shared static server (`scripts/lib/static-server.mjs`, now also
+      used by `axe-smoke.mjs`; opt-in GitHub-Pages `404.html` shell), seeds four users and their
+      rows through the service role (`scripts/lib/live-stack.mjs`, per-run ids, removed in
+      `finally`)
+- [x] Sign-in: Ana, Beto and Cami sign in through the REAL `/auth/signin/` form; the axe contexts
+      reuse Ana's session through Playwright's `storageState` (three more sign-ins would add
+      nothing the flows do not already prove)
+- [x] Flows, each asserting database state through the service role: dashboard numbers; create an
+      expense (list + detail); create an event with a friend and add an expense to it; create a
+      group; send a friend request and accept it as the second user; `/settlements` partial payment,
+      both parties read the same pairwise balance, then undo; profile name edit; Escape from the
+      currency combobox closes the record dialog
+- [x] Signed-in axe + 375px overflow on 22 page states in light, dark and 375px: dashboard (and its
+      rates-unavailable state), every list page, the three `new` forms, one detail page per type plus
+      the two edit views, `/settlements` (every tab, the record dialog open, the event scope),
+      `/profile`, an unknown detail id. Console policy (`scripts/lib/console-policy.mjs`): any
+      `console.error`, `pageerror` or hydration error fails; the allowlist is two entries, each bound
+      to a resource (Google Fonts TLS error; the 404 shell's own status). The one third-party API
+      (`open.er-api.com`) is answered with a fixed table and Google Fonts with an empty stylesheet;
+      any other external request is aborted
+- [x] CI: two steps (Chromium install, `npm run test:live`) in the existing `RLS & contract
+      (supabase start)` job, after `test:contract:live` and before the stack is stopped (`always()`).
+      Same job, not a new one: it needs that stack, avoids a second `supabase start`, and is covered
+      by the already-required check. No secret and no `PUBLIC_SUPABASE_*` in the workflow
+      (`supabase-workflow-env.test.ts` extended); never part of `npm run check`; actionlint and the
+      pinned-SHA scan unchanged
+- [x] Pre-existing defects the smoke found, each fixed test-first: `/profile` 2px overflow at 375px
+      (`AvatarUploadField` `w-64`); `/profile` `heading-order` (card titles are level-2 headings);
+      unknown detail id nesting `NotFoundView`'s `<main>` in the router's (`standalone` prop). And,
+      not on the brief: dashboard `heading-order` (chart widget titles h3 -> h2); `/expenses/new` and
+      `/expenses/edit/<id>` 15px overflow at 375px (split-method radio row now wraps); dashboard with
+      the rates API down, dark theme: `color-contrast` 1.83:1 on the "approximate rates" note
+- [x] Polish: the `dates`, `dashboard`, `csvExport`, `formatters` (and `timeline/index`) suites delete
+      `TZ` instead of restoring the string `"undefined"` (guarded by `tz-restore.test.ts`); Escape
+      closes a Combobox popup if open and otherwise reaches the enclosing dialog (Base UI cleared the
+      input and swallowed the key); `/showcase` Tabs demo as the `ShowcaseTabs` island
+- [x] Docs: this entry; `CLAUDE.md` and `SETUP.md` list `npm run test:live` (own CI step, never part of `check`)
+- [x] Acceptance: `npm run test:live` fails on the six defects above before their fixes and passes
+      after (22/22 page states clean in all three configurations); `npm run check`, `check:a11y`,
+      `test:rls` and actionlint green
+- Landed (`tdd-tier:strict`, 12 red/green pairs, `Tdd-Red:` on each green; script and CI-config
+  commits carry `Tdd-Red-Verified: inline`): `npm run check` green (215 files / 2208 tests, astro check
+  0 errors, eslint 0 errors / 10 pre-existing warnings, build + `check:dist` / auth / charts bundles);
+  `check:a11y` 16 pages x 3 configurations clean; `test:rls` 253 tests; `test:live` about 100 s
+  locally including the ~20 s build (flows ~25 s, audit ~55 s). Decision: live-smoke steps live in the
+  RLS job, not a new job. Open: the Google Fonts TLS allowlist entry is not hit while the fonts are
+  stubbed; it is kept as the safety net the brief asked for.
 
 ---
 
@@ -2951,6 +3006,7 @@ D0 exists only if a migration ever adds a policy or `check` constraint that insp
 ```
 A1 (done, 6a32c4d) → [Firebase workflows deleted in the docs PR #2, 0ba4348] → A2 → A3a → A3b (ci.yml + db-migrate.yml) → A4 (owner actions: secrets, GH_PACKAGES_TOKEN, SETUP.md) → A5 → A6
                                           (serial, one PR each, ~1 week; A1–A3a by the main session; zero workflows run on main between #2 and A3b)
+A7 after B6b (needs every signed-in page and a local stack; one PR against `inceptor`; every later Track B PR runs its smoke)
 B1 → B2a → B2 → B2b → B3 → B4 → B5a → B5b → B6 → B7   (foundation, serial; B2 migrations applied to the justsplit project via `--ref inceptor` before B2b; B2b RLS suite green before B3)
   B2c after B1 (parallel with B2a/B2/B2b)
   B2d after B15 and before B11b/B14a/B14 (migrations C–D change who can see and edit expense rows; the

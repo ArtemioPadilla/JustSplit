@@ -52,6 +52,7 @@ Target (spec §4): `src/pages/` (Astro shells, one route island each),
 | `npm run db:start` / `db:migrate` / `db:seed` | local Supabase stack + dbmate migrations + seed (`SETUP.md` §1) |
 | `npm run test:rls` | the RLS suite against the local stack (its own CI job; never part of `check`) |
 | `npm run check:a11y` | axe-core smoke against a production build (`dist/`, own CI step; never part of `check` — needs a real browser, see `scripts/axe-smoke.mjs`) |
+| `npm run test:live` | live end-to-end smoke: builds the site against `supabase start`, signs in through the real form, walks the critical flows (asserting DB state) and runs axe + the 375px overflow check on every signed-in page state (own CI step in the `RLS & contract` job, after the suites that need the same stack; never part of `check` — needs Docker, the stack and a real browser, see `scripts/live-smoke.mjs`) |
 | `npm run doctor` | preflight: node ≥ 22, gh auth, clean tree, branch naming, config present |
 | `npm run monday` | open PRs, recent merges, top issues, local branches |
 | `npm run ship` | `check` → push → open PR (refuses from `main` or a dirty tree) |
