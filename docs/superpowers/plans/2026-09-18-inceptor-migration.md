@@ -2114,7 +2114,7 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       suggestion and from a partial amount calls `settle()` once and nothing else; history lists
       settlements for both directions with "Marked as paid by"; Undo is offered only on the
       viewer's own rows; a rejected insert leaves the lists unchanged and toasts
-- Landed (B14b, on B14a; `risk:high`, `tdd-tier:strict`, 10 red/green pairs): `src/pages/settlements.astro` (static shell,
+- Landed (B14b, on B14a; `risk:high`, `tdd-tier:strict`, 13 red/green pairs): `src/pages/settlements.astro` (static shell,
       `client:only`, fallback skeleton, in `scripts/axe-smoke.mjs`) over `SettlementsIsland`
       (`ErrorBoundary > AuthIsland > AuthGate > Content`; the whole Base UI `Tabs` composition in one
       file) with `features/settlements/{PendingPanel,BalancePanel,HistoryPanel,RecordPaymentDialog,
@@ -2125,7 +2125,11 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       simplified debts across people, which showed Beto "You owe Ana 80" and Ana "Beto owes you
       60" for the same trip): one row per other person from `balancesWithUser`, the dashboard's own
       maths, so both parties of a debt read the same number, "Record payment" pre-fills it and the
-      overpay notice compares against it, and the Balances tab lists "You owe" / "Owe you";
+      overpay notice compares against it, and the Balances tab lists "You owe" / "Owe you"; each row is recorded only where
+      `settlements_insert` accepts it (`recordingRoute`): an accepted friend directly (no event id),
+      a non-friend whose whole debt is one event's with that event id and "Recorded in <event name>"
+      in the dialog (migration 015), otherwise no button but links "settle this from the event"
+      (names from `useEvents`, "the event" when unknown), so no button is a dead end;
       `?event=` keeps the debt-simplified suggestions and net balances, with the note "Suggestions
       are simplified across the event, so a payment may go to someone other than who paid" (ADR 0014
       §5 has the example), reading `useEventExpenses` +
@@ -2145,8 +2149,8 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `data-active`), so the current tab looked like the rest everywhere — fixed test-first; "Settle
       up" links added to `DashboardHeader` and `FriendDetailView` (nothing had pinned their absence;
       the stale "may 404 until B14" comment on the event page's "View Settlements" is gone). Gates:
-      `npm run check` 202 files / 2069 tests; RLS 20 files / 253 tests (no SQL); live run against
-      `supabase start` in real Chromium on a build with the local env: 43/43 checks (Beto, Ana and the dashboard all read the same 60 for the Beto-Ana debt; partial and
+      `npm run check` 202 files / 2093 tests; RLS 20 files / 253 tests (no SQL); live run against
+      `supabase start` in real Chromium on a build with the local env: 47/47 checks (Beto, Ana and the dashboard all read the same 60 for the Beto-Ana debt; Beto -> Carla, who are not friends, recorded from the personal view with the event id; partial and
       full payments, balances and history updating without a reload, Undo, Ana recording what Beto
       paid her, a non-friend event co-member recording inside the event with the event id, the
       denial, `?group=` / unknown event / signed out) and axe 29 runs (light, dark, 375px, dialogs
@@ -2157,10 +2161,7 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       combobox-inside-dialog issue for the shared `Combobox`/`Dialog`; (2) an intermittent React
       hydration error #418 on pages that use the shared layout (seen on `/profile` and
       `/settlements`; `/settlements` itself is `client:only`, so it comes from the SSR'd header
-      island); (3) a pairwise personal row between two non-friend event co-members cannot be
-      recorded from the personal view (no event id, so `settlements_insert` denies it with the plain
-      sentence) — it can be recorded from the event scope; decide whether the personal view should
-      pass the event id when the pair's whole debt comes from one event.
+      island).
 
 ### B15. Profile island — editable profile, avatar upload, preferred currency
 - [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
