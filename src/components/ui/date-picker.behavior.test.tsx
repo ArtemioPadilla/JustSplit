@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DatePicker } from './date-picker';
+import { DatePicker, DateRangePicker } from './date-picker';
 
 /**
  * Plan B19: the calendar (react-day-picker, date-fns) is code-split, so it
@@ -118,4 +118,98 @@ describe('DatePicker (calendar loaded on open)', () => {
     },
     TEST_TIMEOUT,
   );
+
+  // B19b: the calendar used to open on today's month whatever was selected, so editing an expense from
+  // last quarter meant paging back to find the selected day. It now opens on the selected date's month.
+  describe('opens on the month of the selected date (B19b)', () => {
+    // Far enough from today to be a different month (and, around January, a different year).
+    const EARLIER = new Date(YEAR, MONTH - 4, 12);
+    const EARLIER_LABEL = `${EARLIER.toLocaleString('en-US', { month: 'long' })} ${EARLIER.getFullYear()}`;
+    const LATER = new Date(YEAR, MONTH + 3, 8);
+    const LATER_LABEL = `${LATER.toLocaleString('en-US', { month: 'long' })} ${LATER.getFullYear()}`;
+    const TODAY_LABEL = `${MONTH_NAME} ${YEAR}`;
+
+    it(
+      'shows the month of a past selected date, with that day selected',
+      async () => {
+        const user = userEvent.setup();
+        render(<DatePicker value={EARLIER} triggerProps={{ 'aria-label': 'Expense date' }} />);
+        await user.click(screen.getByRole('button', { name: 'Expense date' }));
+
+        const grid = await screen.findByRole('grid', undefined, WAIT);
+        expect(grid).toHaveAccessibleName(EARLIER_LABEL);
+        const day = screen.getByRole('button', { name: new RegExp(`${EARLIER.toLocaleString('en-US', { month: 'long' })} 12`) });
+        expect(day.closest('[role="gridcell"]')).toHaveAttribute('aria-selected', 'true');
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'shows the month of a future selected date',
+      async () => {
+        const user = userEvent.setup();
+        render(<DatePicker value={LATER} triggerProps={{ 'aria-label': 'Expense date' }} />);
+        await user.click(screen.getByRole('button', { name: 'Expense date' }));
+        expect(await screen.findByRole('grid', undefined, WAIT)).toHaveAccessibleName(LATER_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'follows an uncontrolled defaultValue too',
+      async () => {
+        const user = userEvent.setup();
+        render(<DatePicker defaultValue={EARLIER} triggerProps={{ 'aria-label': 'Expense date' }} />);
+        await user.click(screen.getByRole('button', { name: 'Expense date' }));
+        expect(await screen.findByRole('grid', undefined, WAIT)).toHaveAccessibleName(EARLIER_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'opens on today\'s month when nothing is selected',
+      async () => {
+        const user = userEvent.setup();
+        render(<DatePicker triggerProps={{ 'aria-label': 'Expense date' }} />);
+        await user.click(screen.getByRole('button', { name: 'Expense date' }));
+        expect(await screen.findByRole('grid', undefined, WAIT)).toHaveAccessibleName(TODAY_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'still lets the caller choose the month with calendarProps.defaultMonth',
+      async () => {
+        const user = userEvent.setup();
+        render(<DatePicker value={EARLIER} calendarProps={{ defaultMonth: LATER }} triggerProps={{ 'aria-label': 'Expense date' }} />);
+        await user.click(screen.getByRole('button', { name: 'Expense date' }));
+        expect(await screen.findByRole('grid', undefined, WAIT)).toHaveAccessibleName(LATER_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'a range opens with its first month on the start of the selected range',
+      async () => {
+        const user = userEvent.setup();
+        render(<DateRangePicker value={{ from: EARLIER, to: new Date(YEAR, MONTH - 4, 20) }} triggerProps={{ 'aria-label': 'Period' }} />);
+        await user.click(screen.getByRole('button', { name: 'Period' }));
+        const grids = await screen.findAllByRole('grid', undefined, WAIT);
+        expect(grids[0]).toHaveAccessibleName(EARLIER_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+
+    it(
+      'a range with nothing selected opens on today\'s month',
+      async () => {
+        const user = userEvent.setup();
+        render(<DateRangePicker triggerProps={{ 'aria-label': 'Period' }} />);
+        await user.click(screen.getByRole('button', { name: 'Period' }));
+        const grids = await screen.findAllByRole('grid', undefined, WAIT);
+        expect(grids[0]).toHaveAccessibleName(TODAY_LABEL);
+      },
+      TEST_TIMEOUT,
+    );
+  });
 });
