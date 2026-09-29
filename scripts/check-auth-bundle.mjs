@@ -23,10 +23,10 @@
 //    DashboardIsland is the first AUTHENTICATED route island, so it is
 //    EXPECTED to carry @supabase/supabase-js up front, unlike section 3's
 //    public pages). Informational only for both: does not fail the build.
-//    The auth/signin number feeds ADR 0003 and lighthouse-budgets.json's
-//    `/auth/*` entry (measured, not guessed); Lighthouse CI is the actual
-//    budget gate, in its own job. `/`'s number has no equivalent formal
-//    budget yet — printed for visibility, not compared against one.
+//    The auth/signin number feeds ADR 0003. These prints follow static AND
+//    dynamic imports (the original "everything this page might download"
+//    intent); the budget GATE is scripts/check-budgets.mjs, on statically
+//    loaded JS only, against performance-budgets.json (plan B19).
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { basename, join, resolve } from 'node:path';
@@ -133,10 +133,9 @@ function measurePageChunks(label, htmlPath, { budgetBytes, graphFn = chunkGraph 
   }
   if (budgetBytes != null && totalGz > budgetBytes) {
     console.log(
-      `  NOTE: ${(totalGz / 1024).toFixed(1)} kB gz exceeds Inceptor's ${(budgetBytes / 1024).toFixed(0)} kB script budget — ` +
-        'see ADR 0003 for the fallback already applied (stores/auth.ts drives authAdapter/profileStore ' +
-        'directly; no <AuthProvider> on this page) and why the remainder (React+ReactDOM, supabase-js, zod) ' +
-        "isn't reducible further without dropping client:only React islands.",
+      `  NOTE: ${(totalGz / 1024).toFixed(1)} kB gz (static + dynamic) exceeds Inceptor's ${(budgetBytes / 1024).toFixed(0)} kB script budget — ` +
+        'informational only. The enforced budget for /auth/* is in performance-budgets.json (statically loaded JS); ' +
+        'see ADR 0003 for why the remainder (React+ReactDOM, supabase-js, zod) is not reducible further without dropping client:only React islands.',
     );
   }
 }
@@ -205,15 +204,15 @@ for (const page of PUBLIC_PAGES) {
   }
 }
 
-// ---- 4. Marketing pages: no route island, no Supabase/@cyber-eco chunk, ---
-// ---- layout JS statically loaded is <= 40 kB gz (plan B7, spec D3) --------
+// ---- 4. Marketing pages: no route island, no Supabase/@cyber-eco chunk ---
+// ---- (plan B7, spec D3). The 40 kB layout-JS budget these pages must meet ---
+// ---- moved to performance-budgets.json / scripts/check-budgets.mjs (B19). ---
 // /landing, /about, /help never mount a route island (BaseLayout's
 // `marketing` prop renders SiteHeader's static sign-in link and skips
 // HydrationCanary — see src/layouts/BaseLayout.astro), so there should be
 // zero <astro-island> elements at all on these pages. Any island showing up
 // here would be a route island the marketing pages must never carry.
 const MARKETING_PAGES = ['landing/index.html', 'about/index.html', 'help/index.html'];
-const MARKETING_LAYOUT_BUDGET_BYTES = 40 * 1024;
 for (const page of MARKETING_PAGES) {
   const htmlPath = join(DIST, page);
   if (!existsSync(htmlPath)) {
@@ -238,16 +237,7 @@ for (const page of MARKETING_PAGES) {
   if (offenders.length > 0) {
     failures.push(`dist/${page} statically loads a Supabase/@cyber-eco chunk (${offenders.join(', ')})`);
   }
-  console.log(
-    `check-auth-bundle: dist/${page} layout JS = ${(totalGz / 1024).toFixed(2)} kB gz ` +
-      `(budget ${(MARKETING_LAYOUT_BUDGET_BYTES / 1024).toFixed(0)} kB, plan B7)`,
-  );
-  if (totalGz > MARKETING_LAYOUT_BUDGET_BYTES) {
-    failures.push(
-      `dist/${page} layout JS is ${(totalGz / 1024).toFixed(2)} kB gz — over the ` +
-        `${(MARKETING_LAYOUT_BUDGET_BYTES / 1024).toFixed(0)} kB budget (plan B7)`,
-    );
-  }
+  console.log(`check-auth-bundle: dist/${page} has no route island and loads no Supabase/@cyber-eco chunk (${(totalGz / 1024).toFixed(2)} kB gz layout JS)`);
 }
 
 if (failures.length) {
