@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The one inline script in SiteHeader.astro (plan B6b). The build marks the
@@ -80,5 +80,25 @@ describe('SiteHeader app-nav inline script (plan B6b)', () => {
   it('never marks the dashboard for a deeper path (empty section matches only the root)', () => {
     mountNav('/');
     expect(run('/expensesx/1')).toEqual([]);
+  });
+
+  /**
+   * Live finding at 375px: Chrome does not scroll a scroll container to a
+   * focused child that is only PARTLY visible, so Tab landed on "Dashboard"
+   * with 5px of it showing. Focus must bring the whole link into view.
+   */
+  it('brings a keyboard-focused link fully into view of the scrolling row', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mountNav('/');
+    run('/expenses/list');
+    scrollIntoView.mockClear();
+
+    const settlements = [...document.querySelectorAll('nav a')].find((a) => a.textContent === 'Settlements')!;
+    settlements.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.contexts[0]).toBe(settlements);
+    expect(scrollIntoView).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' });
   });
 });

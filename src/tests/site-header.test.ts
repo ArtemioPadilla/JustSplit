@@ -90,6 +90,11 @@ describe('SiteHeader.astro app navigation (plan B6b)', () => {
     expect(src).not.toMatch(/basis-full/);
     expect(src).toMatch(/md:w-auto/);
   });
+
+  it('leaves a gutter when focus scrolls a link into the row (scroll padding matches the row padding)', () => {
+    expect(src).toMatch(/scroll-px-5/);
+    expect(src).toMatch(/md:scroll-px-0/);
+  });
 });
 
 /**
