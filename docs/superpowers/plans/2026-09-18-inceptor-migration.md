@@ -2496,10 +2496,10 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       from `supabase start` (must be empty). The `service_role` key is never exported outside
       `supabase start` and no admin-created fixture user ever lands in the production `auth.users`
 ### B19. PWA + performance
-- [ ] `@vite-pwa/astro` manifest re-branded, offline shell; the `@supabase/supabase-js` +
+- [x] `@vite-pwa/astro` manifest re-branded, offline shell; the `@supabase/supabase-js` +
       `@cyber-eco/*` chunk isolated (`vite.build.rollupOptions.manualChunks`) — its size was
       already measured in B4 and recorded in ADR 0003
-- [ ] Workbox: `navigateFallback: asset('404.html')` — a config-time helper built from the `BASE`
+- [x] Workbox: `navigateFallback: asset('404.html')` — a config-time helper built from the `BASE`
       const, because `withBase()`/`import.meta.env.BASE_URL` cannot be evaluated in
       `astro.config.mjs` — so an offline navigation to any app route gets the shell that mounts the
       route island (spec D2); `ignoreURLParametersMatching: [/.*/]` so precached pages match
@@ -2515,7 +2515,7 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `/settlements/?event=x` → the settlements page, `/auth/callback/?code=x` → the callback
       page, `/rest/v1/*` untouched. The same fix applies to Inceptor's own `navigateFallback:
       BASE` config — noted in C1
-- [ ] Adapt `lighthouse-budgets.json` + `.lighthouserc.json` (grafted in B1) and split budgets by
+- [x] Adapt `lighthouse-budgets.json` + `.lighthouserc.json` (grafted in B1) and split budgets by
       path: `/landing`, `/about`, `/help` keep Inceptor's 150 kB script budget; `/`,
       `/expenses/*`, `/events/*`, `/groups/*`, `/friends/*`, `/settlements`, `/profile` get an
       explicit budget set from the measured size of the supabase-js + `@cyber-eco` chunk plus
@@ -2547,6 +2547,144 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `@supabase/supabase-js` + `@cyber-eco/auth` + `zod`, ADR 0003's already-accepted fallback) —
       not raising that budget, per this bullet's own instruction; the remainder is B4/ADR 0003
       territory, not header weight.
+
+**Landed (B19)** — owner decision (overrides the plan text above where they differ): the page-size
+budget is a **hard gate on every PR**, not only lhci against staging in B18. All numbers below are
+gzipped kB (1024 bytes), measured by `scripts/check-budgets.mjs` on the branch tip before the
+work (`60283d3`) and after it; "static JS" is the JS a page loads up front (its entry script tags
+plus their static imports, never a dynamic `import()` chunk), "+lazy JS" adds every lazy chunk (the
+worst case if all of them load), "JS+CSS" is the static transfer. Note on the older figures in this
+document and ADR 0003 (`/` 253.5, `/auth/signin/` 182–260): those came from `check-auth-bundle`'s
+informational print, which followed dynamic imports for `/auth/signin/`, and from `/` before B9–B17
+grew it; the static-only figures at the branch tip were `/` 291.0 and `/auth/signin/` 216.0.
+
+| Page | static JS before | after | change | JS+CSS before | after | +lazy JS before | after |
+|---|---|---|---|---|---|---|---|
+| `/` | 291.0 | 227.6 | -63.4 | 306.6 | 243.3 | 423.8 | 417.5 |
+| `/404` (app shell) | 128.3 | 129.7 | +1.4 | 143.9 | 145.3 | 408.6 | 405.4 |
+| `/landing/`, `/about/`, `/help/` | 1.3 | 2.7 | +1.4 | 16.8 | 18.4 | 1.3 | 5.1 |
+| `/auth/callback/` | 195.7 | 188.9 | -6.8 | 211.4 | 204.6 | 253.8 | 258.6 |
+| `/auth/reset-password/` | 215.8 | 208.8 | -7.0 | 231.4 | 224.5 | 273.7 | 278.4 |
+| `/auth/signin/` | 216.0 | 209.0 | -7.0 | 231.6 | 224.7 | 273.9 | 278.6 |
+| `/auth/signup/` | 216.0 | 209.1 | -6.9 | 231.7 | 224.7 | 273.9 | 278.6 |
+| `/events/list/` | 302.5 | 262.5 | -40.0 | 318.2 | 278.2 | 317.7 | 311.6 |
+| `/events/new/` | 310.1 | 249.5 | -60.6 | 325.8 | 265.1 | 328.3 | 322.1 |
+| `/expenses/list/` | 332.7 | 257.0 | -75.7 | 348.3 | 272.7 | 335.5 | 332.4 |
+| `/expenses/new/` | 348.7 | 263.6 | -85.1 | 364.3 | 279.3 | 361.9 | 359.2 |
+| `/friends/` | 270.6 | 259.2 | -11.4 | 286.2 | 274.9 | 305.6 | 298.3 |
+| `/groups/list/` | 250.1 | 214.8 | -35.3 | 265.8 | 230.5 | 286.7 | 279.2 |
+| `/groups/new/` | 259.7 | 225.3 | -34.4 | 275.3 | 241.0 | 295.7 | 288.3 |
+| `/profile/` | 297.2 | 260.2 | -37.0 | 312.9 | 275.8 | 315.1 | 309.1 |
+| `/settlements/` | 317.5 | 265.2 | -52.3 | 333.2 | 280.8 | 335.3 | 332.4 |
+| `/showcase/` | 291.0 | 279.0 | -12.0 | 306.7 | 294.6 | 422.3 | 428.0 |
+
+The redirect stubs (`/expenses/`, `/events/`, `/groups/`, `/friends/add/`) load no JS. The +1.4 on
+the marketing pages and the app shell, and about +2 on the rest, is the PWA wiring below
+(workbox-window, the registration script, `OfflineBanner`, `UpdateToast`); it is inside the figures
+above. The worst case (+lazy JS) fell on the app pages, so the reductions did not merely move
+weight behind a boundary; it rose on `/auth/*` and the marketing pages only by that PWA code.
+
+- [x] Budgets, `performance-budgets.json` (one file, one group per path family, a comment on each
+      naming the dominant chunk; `scripts/check-budgets.mjs`, wired after the build in
+      `npm run check`; the grafted `lighthouse-budgets.json` is retired, see the last bullet).
+      Set from the "after" column with ~5% headroom, never raised to absorb a regression:
+
+      | Group | Budget (static JS gz) | Dominant chunk |
+      |---|---|---|
+      | marketing (`/landing`, `/about`, `/help`) | 40 layout JS, 150 total (kept: a rule, no React there; measured 2.7) | `preload-helper` (0.6) |
+      | `/auth/*` | 220 (`/auth/callback` 199) | `react.*.js` 67.8, then `supabase.*.js` 57.9, `schemas.*.js` (zod v4) 25.0 |
+      | app pages | 279 (`/` 239, `/groups/*` 237, `/404` 137, redirect stubs 1) | `react.*.js` 67.8, `supabase.*.js` 57.9, `schemas.*.js` 25.0, then the route island |
+      | `/showcase` (the component gallery, built and deployed) | 293 | `react.*.js` |
+
+      The check also fails a built page that no group budgets, a budget entry that matches no page,
+      and an override higher than its group. A group budget has to fit its heaviest page, so
+      `overrides` (first match wins, only ever lower) hold the lighter pages to their own figure.
+- [x] Reductions, each its own commit with a red test first (what each bought is static JS gz):
+      `manualChunks` names the two shared vendor chunks (`supabase` = every `@supabase/*` +
+      `@cyber-eco/supabase`; `react` = react, react-dom, scheduler): the Supabase client was already
+      one shared chunk, named `client.<hash>.js` by accident next to Astro's React renderer of the
+      same name; the small shim chunks merge, `/` -1.2. `QueryProvider` lazy-loads the
+      reset-local-data button (only rendered when the cache fails to restore; it dragged the Base
+      UI dialog stack into every app page): `/groups/new` -22.9, `/groups/list` -24.0, `/` -6.1.
+      `signOut` imports `queryClient` on demand (the sign-in page has no cache to clear; TanStack
+      Query core + persister + idb-keyval left `/auth/*`): -8.5. A build-time annotation drops the
+      unused **zod v3 copy inside `@cyber-eco/auth`** (its validation schemas are unused
+      `z.object(...)` calls, not tree-shakeable): `AuthIsland` 19.1 -> 6.3, -12.4 on every app page.
+      The currency combobox loads on demand behind a same-id, same-look read-only stand-in
+      (focus handed over): `/` -45.9, `/events/new` -43.1, `/profile` -27.3, `/settlements` -23.8,
+      `/expenses/new` -12.4. The date picker is a plain trigger until first use and loads its
+      Popover + Calendar together on the first click (hover, focus and touch warm it):
+      `/expenses/new` a further -57.6 (the first attempt, loading only the Calendar, bought -20.2 and
+      left the Popover stack). The payment form loads when the record-payment dialog opens:
+      `/settlements` -17.1. The DataTable "Columns" menu loads on first use: `/expenses/list` -50.9.
+      Checked and left alone, with the numbers: Recharts is in no static graph (`check-charts-bundle`);
+      `motion` is not imported anywhere in `src/` (0 bytes; LazyMotion is moot; the dependency could
+      be dropped); zod v4 is one chunk (25.0) with no duplicate once the v3 copy is gone, and
+      `zod/mini` would mean rewriting every schema (est. -18, not done); the Supabase client is 57.9
+      in one chunk and `@supabase/realtime-js` (~12), `storage-js` (~6) and `functions-js` are
+      constructed by `createClient`, so they cannot be lazy without patching it; the
+      relational adapter + SchemaMap still ride along in `adapter.ts` (~3, not split: it is the one
+      construction point the data-boundary test pins); Base UI tree-shakes per component, and what
+      is left of it is the toast (6.5, its manager is a cross-island singleton, ADR 0008), the
+      dialogs on `/friends`, `/profile`, `/settlements` (~25) and the EventTimeline hover cards on
+      `/events/list` (~23), each a candidate for the same load-on-first-use treatment.
+- [x] PWA. Found in B19: the PWA was built but never wired (no `<link rel="manifest">`,
+      `initPwaRegister()` never called, so no worker ever registered), and the generated worker
+      could not have evaluated anyway: `@vite-pwa/astro`'s directory handler renames the precached
+      `404.html` to `404` while `navigateFallback` binds to `/404.html`, and
+      `createHandlerBoundToURL` throws at start-up for a URL that is not precached. Now:
+      `BaseLayout` links the manifest and apple-touch-icon through `withBase()` and registers the
+      worker from a bundled module script on every page (workbox-window, no React, marketing stays
+      island-free); `OfflineBanner` and `UpdateToast` mount `client:idle` on app pages only.
+      `pwa.config.mjs` (shared by `astro.config.mjs` and the tests) holds the options:
+      `navigateFallback: assetUrl(BASE, '404.html')` (the config-time helper), a manifest transform
+      that keeps `404.html` exact and adds the no-slash alias `x` for every `x/index.html` (the
+      nav links carry no slash and the shell cannot render a static page) plus the scope root;
+      `ignoreURLParametersMatching: [/.*/]` (chosen over `navigateFallbackAllowlist`: an allowlist
+      of the dynamic families does not fix a static page with a query string missing the precache,
+      and hashed assets carry no query, so nothing else is affected); a denylist of the Supabase
+      paths (`/auth/v1/`, `/storage/v1/`, `/rest/v1/`, `/realtime/v1/`) plus file-like paths
+      (`llms.txt`, sitemaps); `runtimeCaching` `NetworkOnly` for `*.supabase.co`;
+      `registerType: 'prompt'` with `clientsClaim` (offline works after the first visit, and an
+      update waits for "Reload" in `UpdateToast`: `autoUpdate` would reload under a half-filled
+      expense form). Manifest: JustSplit, navy `#124d8c`, white splash, `id`/`start_url`/`scope` at
+      the directory URL under the base (a precached page), categories, "Add expense" and "Settle
+      up" shortcuts. Icons are still the scaffold's placeholders: not regenerated (the only
+      JustSplit mark is `public/images/logo-square.png`, 342px, too small for 512; it needs a
+      vector or a 1024px source). Tests: `src/tests/pwa-config.test.ts` feeds the real config to
+      `workbox-build`'s `generateSW` and decides requests with Workbox's own matching code, for both
+      `/JustSplit` and `/`: `/expenses/abc` offline -> the shell, `/settlements/?event=x` -> the
+      settlements page, `/auth/callback/?code=x` -> the callback page, any query string on a static
+      page from the precache, the no-slash form, `/rest/v1/*` (and the other Supabase paths)
+      untouched, `*.supabase.co` NetworkOnly, the fallback is a precached URL; mutation-checked
+      (dropping `ignoreURLParametersMatching`, the fallback, the runtime route, a denylist entry
+      or the alias each fails it). `npm run check:offline` (`scripts/offline-smoke.mjs`, in the
+      `Build & Check` job after the axe smoke, no Supabase stack) proves the same in a real
+      Chromium under `/JustSplit` with service workers allowed and then offline; it failed
+      before the fix (no worker ever took control) and passes after. `test:live` still blocks
+      service workers on purpose, so it is untouched. `check:dist` also asserts the worker's exact
+      `404.html` precache, the ignore-all-params and NetworkOnly rules and the manifest link.
+      `astro.config.mjs` takes `ASTRO_OUT_DIR` (project-relative) so the smoke can build with a
+      base without touching `dist/`: with an absolute path outside the project, `@vite-pwa`'s
+      precache glob finds only the public assets (8 entries, not ~225), which is also why the
+      live smoke's `--outDir` build must never be used to test the worker. The same fix applies to
+      Inceptor's own `navigateFallback: BASE` config (C1): it needs a precached URL and the same
+      query-string handling.
+- [x] Lighthouse. `.lighthouserc.json` audits the absolute staging URLs
+      (`https://artemiopadilla.github.io/JustSplit/landing/`, `…/auth/signin/`, `…/`), no
+      `staticDistDir`, and `npm run perf` is `lhci collect && lhci assert` (no local build; run by
+      hand for B18, not in CI). Deviation: `lighthouse-budgets.json` is **retired**. Lighthouse
+      12 removed its performance-budget audits (the installed 12.6.1 has no `performance-budget`
+      audit; an `lhci collect` with the old file produced none), so `settings.budgetsPath`
+      gated nothing since B1. The budgets are `assertMatrix` assertions on `resource-summary`
+      instead: marketing 150 KiB (Inceptor's), `/auth/*` 222 (signin: 211.2 actually loaded, +5%),
+      `/` 242 (229.8, +5%), a little above the hard gate because Lighthouse also counts mount-time
+      lazy chunks; `src/tests/lighthouse-config.test.ts` keeps them within [gate, gate +10%]. The
+      signed-in pages are behind auth, so only `check-budgets` covers them. Verified with `lhci
+      assert` against a real collected report.
+- Budget policy (also `SETUP.md`, "Performance budgets"): never raise a budget to absorb a
+  regression; fix the regression. A budget is only set from a measurement taken after the
+  reductions, with about 5% headroom, and the before/after go in this note.
 
 ### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
 - [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend

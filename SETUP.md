@@ -94,7 +94,7 @@ token (see `vendor/README.md`). Once the token exists, contributors put it in
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check`; then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below); actionlint + unpinned-action scan |
+| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check` (which includes the page-size budget gate, see "Performance budgets" below); then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below) and `npm run check:offline` (plan B19: builds its own copy under `/JustSplit`, lets the service worker install in Chromium, goes offline and asserts what it answers); actionlint + unpinned-action scan |
 | `deploy.yml` — `Deploy to GitHub Pages` | push to `main` (after cutover); `workflow_dispatch` | production build with `ASTRO_BASE` + `PUBLIC_SUPABASE_*` variables → `actions/deploy-pages` |
 | `deploy-staging.yml` — `Deploy staging (inceptor → GitHub Pages)` | push to `inceptor`; `workflow_dispatch` | same build from the integration branch to the same Pages site (`docs/runbooks/staging.md`) |
 | `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b) + `test:contract:live` (B5a) + `npx playwright-core install --with-deps chromium` and `npm run test:live` (plan A7: real sign-in, the critical flows with the database checked through the service role, and axe + 375px overflow on every signed-in page state in light, dark and 375px, failing on any console error or hydration mismatch; deliberately its own step, never part of `check`, and no secret — the keys come from `supabase status`); required on `inceptor` |
@@ -104,6 +104,30 @@ Branch protection (owner, once, after the first green run): Settings →
 Branches → `main` → require a pull request and the `Build & Check` status
 check. The same rule applies to the `inceptor` integration branch for the life
 of Track B.
+
+### Performance budgets (plan B19)
+
+`performance-budgets.json` holds the page-size budgets and `scripts/check-budgets.mjs` enforces them
+inside `npm run check`, so on every PR: it reads `dist/`, computes the gzipped JS each built page
+loads **statically** (its entry script tags plus their static imports; a dynamic `import()` chunk is
+excluded and shown separately as "+lazy JS"), and fails when a page is over the budget of its path
+group (marketing, `/auth/*`, app pages, the `/showcase` gallery). It prints one row per page:
+
+```bash
+npm run build && npm run check:budgets            # the gate
+node scripts/check-budgets.mjs --report           # the measurement, never fails on a budget
+```
+
+**Policy: never raise a budget to absorb a regression. Fix the regression.** A budget is only ever
+set from a measurement taken after the reductions, with about 5% headroom, and the before and after
+numbers go in the plan's B19 Landed note. Each budget carries a comment naming the chunk that
+dominates it (the check warns when that stops being true). When the gate fails, look at the row's
+largest chunk and at what the change added to the page's static graph: usually a component that could
+load on first use (a dialog, a menu, a picker, a form inside a dialog) was imported statically.
+`src/tests/lazy-boundaries.test.ts` lists the ones that are deliberately lazy. To investigate,
+build with `rollup-plugin-visualizer` in a scratch config (not committed) and read each module's
+size by package. The Lighthouse budgets (`.lighthouserc.json`, `npm run perf`, run by hand against
+staging for B18) are a little above the gate because Lighthouse also counts mount-time lazy chunks.
 
 ## 4. Owner-actions log
 
