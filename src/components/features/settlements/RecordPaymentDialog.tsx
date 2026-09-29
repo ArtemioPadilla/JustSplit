@@ -158,8 +158,8 @@ function RecordPaymentForm({ suggestion, displayCurrency, viewerId, names, event
       <DialogHeader>
         <DialogTitle>Record payment</DialogTitle>
         <DialogDescription>
-          Mark that {from} paid {to}. JustSplit doesn&apos;t move money or check it: this is a note that everyone who can see it will read as
-          &quot;Marked as paid by {personName(viewerId, viewerId, names)}&quot;.
+          Mark that {from} paid {to}. JustSplit doesn&apos;t move money or check it: this is a note, and others will see it as
+          &quot;Marked as paid by {names[viewerId] ?? 'you'}&quot;.
           {eventId && <> Recorded in {eventName ?? 'the event'}.</>}
         </DialogDescription>
       </DialogHeader>
