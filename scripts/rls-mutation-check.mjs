@@ -24,7 +24,7 @@ if (!/@(127\.0\.0\.1|localhost):/.test(DB)) {
 
 const dir = 'src/tests/rls/';
 const FILES = {
-  expense_groups: [`${dir}expense-groups.test.ts`, `${dir}fk-lifecycle.test.ts`, `${dir}member-roles.test.ts`],
+  expense_groups: [`${dir}expense-groups.test.ts`, `${dir}fk-lifecycle.test.ts`, `${dir}member-roles.test.ts`, `${dir}admin-labels.test.ts`],
   expenses: [`${dir}expenses.test.ts`, `${dir}visibility.test.ts`, `${dir}membership-edit.test.ts`],
   settlements: [`${dir}settlements.test.ts`, `${dir}settlements-event-counterparty.test.ts`, `${dir}visibility.test.ts`],
   events: [`${dir}events.test.ts`, `${dir}membership-edit.test.ts`, `${dir}fk-lifecycle.test.ts`],
@@ -128,6 +128,31 @@ const roleMutations = [
   },
 ];
 
+// B19c (migration 017): the stored admin/owner labels must agree with admin_ids. Dropped
+// outright, and with its helper neutered so the constraint is still there but accepts everything.
+const labelConstraint = rows(`
+  select conname as name, pg_get_constraintdef(oid) as def
+    from pg_constraint
+   where conrelid = 'public.expense_groups'::regclass and contype = 'c' and conname = 'expense_groups_admin_labels_consistent'`)[0];
+if (!labelConstraint) throw new Error('expense_groups_admin_labels_consistent is missing: apply migration 017 first');
+const labelHelper = psql(`select pg_get_functiondef('public.group_admin_labels_consistent(jsonb, text[])'::regprocedure)`).trim();
+const labelMutations = [
+  {
+    label: `constraint expense_groups.${labelConstraint.name} dropped`,
+    table: 'expense_groups',
+    files: [`${dir}admin-labels.test.ts`],
+    drop: `alter table public.expense_groups drop constraint ${q(labelConstraint.name)}`,
+    restore: `alter table public.expense_groups add constraint ${q(labelConstraint.name)} ${labelConstraint.def}`,
+  },
+  {
+    label: 'function public.group_admin_labels_consistent(jsonb, text[]) -> select true',
+    table: 'expense_groups',
+    files: [`${dir}admin-labels.test.ts`],
+    drop: labelHelper.replace(/AS \$function\$[\s\S]*\$function\$/, 'AS $function$ select true $function$'),
+    restore: labelHelper,
+  },
+];
+
 // B2d: the lookup-attempts table must stay closed to clients.
 const attemptsMutations = [
   {
@@ -218,7 +243,7 @@ for (const file of new Set(Object.values(FILES).flat())) {
 console.log('baseline green for every table file.');
 
 const results = [];
-for (const m of [...policies, ...triggers, ...helperMutations, ...fkMutations, ...attemptsMutations, ...roleMutations, ...clauseMutations]) {
+for (const m of [...policies, ...triggers, ...helperMutations, ...fkMutations, ...attemptsMutations, ...roleMutations, ...labelMutations, ...clauseMutations]) {
   const files = filesOf(m);
   if (!files) {
     results.push({ ...m, outcome: 'NO TEST FILE' });
