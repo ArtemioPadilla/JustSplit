@@ -2087,32 +2087,82 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       and the balance moves by exactly the paid amount, mixed currencies, history in both
       directions).
 ### B14. Settlements island (`/settlements`, reads `?event=` from `location.search`) — the island only, built on B14a
-- [ ] Tabs pending / balance / history (port from `settlements/page.tsx`); display-currency
+- [x] Tabs pending / balance / history (port from `settlements/page.tsx`); display-currency
       selector (`CurrencySelector`, B16) + the exchange-rates table with every amount converted;
       party names via `useProfiles` ("X owes Y")
-- [ ] "Settle up" calls `repos.settlements.settle()` (B14a): **one insert, no expense is marked and
+- [x] "Settle up" calls `repos.settlements.settle()` (B14a): **one insert, no expense is marked and
       `settledAt` is never written**. The pending tab is `calculateSettlementsWithConversion`
-      over the scope's expenses and settlements (B14a); recording a suggestion writes a settlement
+      over the scope's expenses and settlements (B14a) in the **event scope**; the personal view
+      is pairwise (`balancesWithUser`, ADR 0014 §5); recording a suggestion writes a settlement
       for its amount (`round2`), and a partial payment is just a smaller amount. `eventId` is
       passed when the scope is `?event=` (migration 015 lets non-friend event co-members record
       it). A denied insert (RLS) surfaces a toast; the
       denial of a settlement the payer may not record reads as a plain sentence, never a raw error. The
       history tab offers "Undo" on the viewer's own settlements (`useRemoveSettlement`; creator-only)
-- [ ] Trust statement (ADR 0002 / 0014): `settlements` rows are attestations by `created_by`, not
+- [x] Trust statement (ADR 0002 / 0014): `settlements` rows are attestations by `created_by`, not
       verified payments — only a party may record one. History shows "Marked as paid by <name>"
       (names via `useProfiles`), never "paid"; the ETHICS checklist in the PR records it
-- [ ] Reads: `useSettlements(uid)` is the **unfiltered B2d query** (every row RLS lets the viewer see:
+- [x] Reads: `useSettlements(uid)` is the **unfiltered B2d query** (every row RLS lets the viewer see:
       the two parties, group and event members), plus scoping in the domain — `?event=` uses
       `useEventSettlements` (`eventId == id`); the personal view narrows with `involvingUser`
       (a settlement counts whatever its `eventId`/`groupId`); a friend pair with
       `settlementsBetween`
-- [ ] `?group=` (already linked from today's group page) is out of scope here: the island ignores
+- [x] `?group=` (already linked from today's group page) is out of scope here: the island ignores
       it with a visible "próximamente" note; Track D D7 implements the group scope and writes
       `settlement.groupId`
-- [ ] Tests (island level; the ledger, `settle()` and `remove()` are proven in B14a): settle-up from a
+- [x] Tests (island level; the ledger, `settle()` and `remove()` are proven in B14a): settle-up from a
       suggestion and from a partial amount calls `settle()` once and nothing else; history lists
       settlements for both directions with "Marked as paid by"; Undo is offered only on the
       viewer's own rows; a rejected insert leaves the lists unchanged and toasts
+- Landed (B14b, on B14a; `risk:high`, `tdd-tier:strict`, 13 red/green pairs): `src/pages/settlements.astro` (static shell,
+      `client:only`, fallback skeleton, in `scripts/axe-smoke.mjs`) over `SettlementsIsland`
+      (`ErrorBoundary > AuthIsland > AuthGate > Content`; the whole Base UI `Tabs` composition in one
+      file) with `features/settlements/{PendingPanel,BalancePanel,HistoryPanel,RecordPaymentDialog,
+      UndoSettlementDialog,useSuggestions,payment-errors,labels}`, pure helpers in
+      `domain/settlements.ts` (scope from `location.search`, party test, viewer-first, newest-first,
+      owes / is-owed split, overpayment in whole cents, pairwise rows and lists) and `schemas/settlement-form.ts` (the dialog's
+      RHF + Zod form). Scope: no param = personal (`involvingUser`) and **pairwise** (review fix: the first cut
+      simplified debts across people, which showed Beto "You owe Ana 80" and Ana "Beto owes you
+      60" for the same trip): one row per other person from `balancesWithUser`, the dashboard's own
+      maths, so both parties of a debt read the same number, "Record payment" pre-fills it and the
+      overpay notice compares against it, and the Balances tab lists "You owe" / "Owe you"; each row is recorded only where
+      `settlements_insert` accepts it (`recordingRoute`): an accepted friend directly (no event id),
+      a non-friend whose whole debt is one event's with that event id and "Recorded in <event name>"
+      in the dialog (migration 015), otherwise no button but links "settle this from the event"
+      (names from `useEvents`, "the event" when unknown), so no button is a dead end;
+      `?event=` keeps the debt-simplified suggestions and net balances, with the note "Suggestions
+      are simplified across the event, so a payment may go to someone other than who paid" (ADR 0014
+      §5 has the example), reading `useEventExpenses` +
+      `useEventSettlements` with the event name and a link back (an unknown or RLS-hidden event is a
+      not-found panel with a link to the personal view, not an error), `?group=` = a polite "Group
+      settlements are coming soon" note over the personal view. Copy is English (the plan's
+      "próximamente" is superseded). "Record payment" only for a party; a partial amount is just a
+      smaller settlement; more than owed shows a non-blocking notice (role-aware: "more than you owe"
+      for the payer, "more than <name> owes you" for the payee); a denied insert is the plain sentence
+      "You can't record this payment. Only the two people involved can, and they must be friends or
+      share the event." shown inline in the dialog AND in a toast (the toast sits under a modal's
+      backdrop, so the inline copy is what a user or screen reader reliably gets). Undo asks first.
+      Focus returns to the trigger on Cancel and to the tab's heading after a save or undo (the row
+      is gone). Deviations: `useDisplayConversion` also returns `rates` (additive; feeds the
+      exchange-rates table with its live / approximate marker and the provider attribution link);
+      `ui/tabs.tsx` styled `data-[selected]`, which Base UI 1.0.0-rc.0 never sets (it sets
+      `data-active`), so the current tab looked like the rest everywhere — fixed test-first; "Settle
+      up" links added to `DashboardHeader` and `FriendDetailView` (nothing had pinned their absence;
+      the stale "may 404 until B14" comment on the event page's "View Settlements" is gone). Gates:
+      `npm run check` 202 files / 2093 tests; RLS 20 files / 253 tests (no SQL); live run against
+      `supabase start` in real Chromium on a build with the local env: 47/47 checks (Beto, Ana and the dashboard all read the same 60 for the Beto-Ana debt; Beto -> Carla, who are not friends, recorded from the personal view with the event id; partial and
+      full payments, balances and history updating without a reload, Undo, Ana recording what Beto
+      paid her, a non-friend event co-member recording inside the event with the event id, the
+      denial, `?group=` / unknown event / signed out) and axe 29 runs (light, dark, 375px, dialogs
+      open) with no violations. A settlement recorded from a simplified event suggestion shows
+      pairwise between its two people in the personal view (ADR 0014 §5).
+  - Follow-ups (not in B14b): (1) Escape does not close the record dialog while the currency
+      combobox has focus (Base UI `Combobox` consumes the key; Cancel and Tab still work) — a
+      combobox-inside-dialog issue for the shared `Combobox`/`Dialog`; (2) an intermittent React
+      hydration error #418 on pages that use the shared layout (seen on `/profile` and
+      `/settlements`; `/settlements` itself is `client:only`, so it comes from the SSR'd header
+      island).
+
 ### B15. Profile island — editable profile, avatar upload, preferred currency
 - [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
       (B4); avatar via `FileUpload` + B5b `uploadAvatar` (object path

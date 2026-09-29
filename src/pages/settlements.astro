@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SettlementsIsland from '../components/islands/SettlementsIsland';
+import { withBase } from '../lib/href';
+
+// `/settlements`'s shell (plan B14b), same pattern as `/profile.astro`: a static
+// skeleton renders until SettlementsIsland hydrates and either mounts the real
+// page or redirects a signed-out visitor to /landing/ (AuthGate, plan B4). The
+// scope is read from `location.search` (`?event=`, `?group=`) in the browser, so
+// one prerendered page serves every event.
+---
+
+<BaseLayout title="Settlements · JustSplit" description="See who owes whom, record a payment, and undo one you recorded — for everything you share or for one event.">
+  <main id="main-content">
+    <SettlementsIsland client:only="react">
+      <div slot="fallback" class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-10" aria-busy="true">
+        <div class="h-8 w-48 animate-pulse rounded bg-muted"></div>
+        <div class="h-16 w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-10 w-72 animate-pulse rounded bg-muted"></div>
+        <div class="h-[4.5rem] w-full animate-pulse rounded bg-muted"></div>
+        <div class="h-[4.5rem] w-full animate-pulse rounded bg-muted"></div>
+        <noscript>
+          <h1 class="mt-8 font-display text-3xl font-semibold text-foreground">This page needs JavaScript</h1>
+          <p class="mt-4 text-muted-foreground">
+            JustSplit runs in the browser. Enable JavaScript, or go
+            <a class="underline" href={withBase('/landing/')}>learn more about JustSplit</a>.
+          </p>
+        </noscript>
+      </div>
+    </SettlementsIsland>
+  </main>
+</BaseLayout>

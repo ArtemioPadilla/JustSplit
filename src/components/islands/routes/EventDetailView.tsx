@@ -200,7 +200,7 @@ function EventDetailLoaded({ event }: { event: Event }) {
         <a href={withBase(`/events/edit/${event.id}`)} className={cn(buttonVariants({ variant: 'outline' }))}>
           Edit event
         </a>
-        {/* `/settlements` is built by B14; until then this can 404 (the plan accepts it). */}
+        {/* The event scope of `/settlements` (plan B14b). */}
         <a href={withBase(`/settlements?event=${event.id}`)} className={cn(buttonVariants({ variant: 'outline' }))}>
           View Settlements
         </a>

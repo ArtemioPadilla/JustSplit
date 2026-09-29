@@ -169,6 +169,38 @@ describe('useDisplayConversion', () => {
     expect(fetchExchangeRate).toHaveBeenCalledWith('GBP', 'EUR');
   });
 
+  it('plan B14b: exposes the resolved rates (never the target itself) so a rates table can show what was used', async () => {
+    fetchExchangeRate.mockImplementation(async (from: string) =>
+      from === 'EUR' ? { rate: 1.08, isFallback: false } : { rate: 0.79, isFallback: true },
+    );
+
+    function RatesHarness({ currencies }: { currencies: string[] }) {
+      // An explicit target: an earlier test in this file persists GBP as the preferred currency.
+      const { ready, rates } = useDisplayConversion(currencies, 'USD');
+      return <span data-testid="rates">{ready ? JSON.stringify(rates) : 'n/a'}</span>;
+    }
+
+    render(<RatesHarness currencies={['USD', 'EUR', 'GBP']} />);
+
+    await waitFor(() => expect(screen.getByTestId('rates')).not.toHaveTextContent('n/a'));
+    expect(JSON.parse(screen.getByTestId('rates').textContent ?? '')).toEqual({
+      EUR: { rate: 1.08, isFallback: false },
+      GBP: { rate: 0.79, isFallback: true },
+    });
+  });
+
+  it('plan B14b: rates is empty until ready, so a table cannot show a rate for a request that has not resolved', () => {
+    fetchExchangeRate.mockReturnValue(new Promise(() => undefined));
+
+    function RatesHarness() {
+      const { rates } = useDisplayConversion(['USD', 'EUR'], 'USD');
+      return <span data-testid="rates">{JSON.stringify(rates)}</span>;
+    }
+
+    render(<RatesHarness />);
+    expect(screen.getByTestId('rates')).toHaveTextContent('{}');
+  });
+
   it('does not throw on an unmount before the fetch resolves (cancelled flag)', async () => {
     let resolve!: (v: { rate: number; isFallback: boolean }) => void;
     fetchExchangeRate.mockReturnValue(new Promise((r) => (resolve = r)));

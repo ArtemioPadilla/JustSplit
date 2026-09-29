@@ -20,7 +20,7 @@
  * `/landing`, `/about`, `/help` join this list in plan B7, which is what
  * builds those pages. `/expenses/list` joins in plan B9, `/expenses/new` in
  * plan B10, `/friends` in plan B13, `/groups/list` and `/groups/new` in
- * plan B12, `/events/list` and `/events/new` in plan B11b, `/profile` in plan B15 (same reasoning as `/`: an authenticated
+ * plan B12, `/events/list` and `/events/new` in plan B11b, `/profile` in plan B15, `/settlements` in plan B14b (same reasoning as `/`: an authenticated
  * route island, deterministic and accessible in every auth state a CI build
  * without Supabase env vars can reach).
  */
@@ -53,6 +53,7 @@ const PAGES = [
   '/events/list',
   '/events/new',
   '/profile',
+  '/settlements',
 ];
 
 const MIME = {

@@ -259,6 +259,22 @@ describe('FriendDetailView', () => {
     );
   });
 
+  it('links "Settle up" to /settlements now that plan B14b shipped it (the personal view, where this friend\'s balance is one row)', async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useExpenses.mockReturnValue({ data: [], isError: false, isRetrying: false, refetch: vi.fn() });
+    useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Beto', avatarUrl: null }] });
+
+    render(<FriendDetailView id="u2" />);
+    emit(USER);
+
+    expect(await screen.findByRole('link', { name: /^settle up$/i })).toHaveAttribute('href', '/settlements');
+  });
+
   it('shows a settled-up message when the balance rounds to zero, and a Remove button that opens a confirmation', async () => {
     useFriends.mockReturnValue({
       data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
