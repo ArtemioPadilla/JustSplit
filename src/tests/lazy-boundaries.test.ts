@@ -34,8 +34,8 @@ const LAZY: { file: string; module: string; why: string }[] = [
   },
   {
     file: 'components/ui/date-picker.tsx',
-    module: '@/components/ui/calendar',
-    why: 'react-day-picker, date-fns and @date-fns/tz are ~15 kB gz that only the open popover needs',
+    module: '@/components/ui/date-picker-impl',
+    why: 'the Popover stack plus react-day-picker, date-fns and @date-fns/tz are ~55 kB gz that only an opened picker needs',
   },
   {
     file: 'components/features/settlements/RecordPaymentDialog.tsx',
@@ -53,6 +53,8 @@ const LAZY: { file: string; module: string; why: string }[] = [
 const NEVER_STATIC: { file: string; module: string }[] = [
   { file: 'components/features/currency/CurrencySelector.tsx', module: '@/components/ui/combobox' },
   { file: 'components/ui/data-table.tsx', module: '@/components/ui/dropdown-menu' },
+  { file: 'components/ui/date-picker.tsx', module: '@/components/ui/popover' },
+  { file: 'components/ui/date-picker.tsx', module: '@/components/ui/calendar' },
 ];
 describe.each(NEVER_STATIC)('$file (no back door)', ({ file, module }) => {
   it(`does not import ${module} statically`, () => {

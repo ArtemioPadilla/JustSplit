@@ -52,6 +52,54 @@ describe('DatePicker (calendar loaded on open)', () => {
   );
 
   it(
+    'opens from the keyboard and closes on Escape, giving focus back to the trigger',
+    async () => {
+      const user = userEvent.setup();
+      render(<DatePicker value={the(15)} triggerProps={{ 'aria-label': 'Expense date' }} />);
+      await user.tab();
+      expect(screen.getByRole('button', { name: 'Expense date' })).toHaveFocus();
+      await user.keyboard('{Enter}');
+      expect(await screen.findByRole('grid', undefined, WAIT)).toBeInTheDocument();
+
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('grid')).not.toBeInTheDocument(), WAIT);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Expense date' })).toHaveFocus(), WAIT);
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'keeps the caller\'s id on the trigger throughout, so a <label htmlFor> keeps working',
+    async () => {
+      const user = userEvent.setup();
+      render(
+        <>
+          <label htmlFor="expense-form-date">Date</label>
+          <DatePicker value={the(15)} triggerProps={{ id: 'expense-form-date' }} />
+        </>,
+      );
+      expect(screen.getByLabelText('Date')).toHaveAttribute('id', 'expense-form-date');
+      await user.click(screen.getByLabelText('Date'));
+      await screen.findByRole('grid', undefined, WAIT);
+      expect(screen.getByLabelText('Date', { selector: 'button' })).toHaveAttribute('id', 'expense-form-date');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'shows the placeholder when there is no value, and a range with both ends when there is one',
+    async () => {
+      const { DateRangePicker } = await import('./date-picker');
+      const { unmount } = render(<DatePicker placeholder="Pick a day" />);
+      expect(screen.getByRole('button', { name: /pick a day/i })).toBeInTheDocument();
+      unmount();
+      render(<DateRangePicker value={{ from: the(3), to: the(9) }} />);
+      expect(screen.getByRole('button', { name: new RegExp(`${MONTH_NAME} 3, ${YEAR} – ${MONTH_NAME} 9, ${YEAR}`) })).toBeInTheDocument();
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
     'does not open while disabled',
     async () => {
       const user = userEvent.setup();
