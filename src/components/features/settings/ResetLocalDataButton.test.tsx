@@ -10,7 +10,7 @@ vi.mock('@/lib/data/reset-local', () => ({ resetLocalData }));
 const { ResetLocalDataButton } = await import('./ResetLocalDataButton');
 
 /**
- * Plan B17b: "Restablecer datos locales" signs the user out, so it needs a
+ * Plan B17b: "Reset local data" signs the user out, so it needs a
  * confirm step (CLAUDE.md compound-component rule: the whole Dialog
  * composition lives in this one component, same shape as B9's
  * DeleteExpenseDialog / B13's RemoveFriendDialog).
@@ -20,7 +20,7 @@ describe('ResetLocalDataButton', () => {
     const user = userEvent.setup();
     render(<ResetLocalDataButton />);
 
-    await user.click(screen.getByRole('button', { name: /restablecer datos locales/i }));
+    await user.click(screen.getByRole('button', { name: /reset local data/i }));
     expect(resetLocalData).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: /^cancel$/i }));
@@ -31,10 +31,20 @@ describe('ResetLocalDataButton', () => {
     const user = userEvent.setup();
     render(<ResetLocalDataButton />);
 
-    await user.click(screen.getByRole('button', { name: /restablecer datos locales/i }));
+    await user.click(screen.getByRole('button', { name: /reset local data/i }));
     const dialogConfirm = await screen.findByRole('button', { name: /^confirm reset$/i });
     await user.click(dialogConfirm);
 
     expect(resetLocalData).toHaveBeenCalledTimes(1);
+  });
+
+  it('titles the dialog in English, like the trigger', async () => {
+    const user = userEvent.setup();
+    render(<ResetLocalDataButton />);
+
+    await user.click(screen.getByRole('button', { name: /reset local data/i }));
+
+    expect(await screen.findByRole('heading', { name: /^reset local data$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/restablecer/i)).not.toBeInTheDocument();
   });
 });

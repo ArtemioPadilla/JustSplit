@@ -12,8 +12,8 @@ import ShowcaseResetLocalDataButton from './ShowcaseResetLocalDataButton';
  * src/tests/mounted-island-error-boundary.test.ts's source scan).
  */
 describe('ShowcaseResetLocalDataButton', () => {
-  it('mounts the "Restablecer datos locales" trigger', () => {
+  it('mounts the "Reset local data" trigger', () => {
     render(<ShowcaseResetLocalDataButton />);
-    expect(screen.getByRole('button', { name: /restablecer datos locales/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset local data/i })).toBeInTheDocument();
   });
 });

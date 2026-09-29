@@ -121,9 +121,9 @@ describe('AccountSettings', () => {
     expect(location.assign).not.toHaveBeenCalled();
   });
 
-  it('mounts the existing ResetLocalDataButton ("Restablecer datos locales") instead of duplicating it', () => {
+  it('mounts the existing ResetLocalDataButton ("Reset local data") instead of duplicating it', () => {
     render(<AccountSettings />);
-    expect(screen.getByRole('button', { name: /restablecer datos locales/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset local data/i })).toBeInTheDocument();
   });
 });
 
