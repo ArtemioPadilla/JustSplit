@@ -1,7 +1,7 @@
 import type { BatchOperation, QueryFilter } from '@cyber-eco/types';
 import { isEventAttachable, isExpenseAttachable } from '@/domain/groups';
 import { CreateExpenseGroupInputSchema, ExpenseGroupSchema, type CreateExpenseGroupInput, type ExpenseGroup } from '@/schemas/group';
-import { requireStorageAdapter, requireUid } from '../require-adapter';
+import { assertOnline, requireStorageAdapter, requireUid } from '../require-adapter';
 import * as expensesRepo from './expenses';
 import * as eventsRepo from './events';
 
@@ -31,6 +31,7 @@ export async function listForUser(uid: string): Promise<ExpenseGroup[]> {
 
 /** `memberIds` must include every member's id (D10: the RLS membership mirror reads it on every row). */
 export async function create(input: CreateExpenseGroupInput): Promise<ExpenseGroup> {
+  assertOnline();
   const adapter = requireStorageAdapter();
   const parsed = CreateExpenseGroupInputSchema.parse(input);
   const id = adapter.generateId('expense_groups');
@@ -46,6 +47,7 @@ export async function create(input: CreateExpenseGroupInput): Promise<ExpenseGro
 
 /** A partial patch (D9: repos.*.update writes partial adapter.updateDocument patches, never a full-row setDocument). */
 export async function update(id: string, patch: Partial<ExpenseGroup>): Promise<ExpenseGroup | null> {
+  assertOnline();
   await requireStorageAdapter().updateDocument('expense_groups', id, patch);
   return get(id);
 }
@@ -106,6 +108,7 @@ export class GroupDeleteVerificationFailedError extends Error {
  * never a caller-passed argument.
  */
 export async function remove(id: string): Promise<void> {
+  assertOnline();
   const uid = requireUid();
   const group = await get(id);
   if (!group) throw new GroupNotFoundError(id);
@@ -133,6 +136,7 @@ export interface AttachResult {
  * rule `remove()` follows for its own batch).
  */
 export async function attachExpenses(groupId: string, expenseIds: string[]): Promise<AttachResult> {
+  assertOnline();
   const group = await get(groupId);
   if (!group) throw new GroupNotFoundError(groupId);
 
@@ -170,6 +174,7 @@ export async function attachExpenses(groupId: string, expenseIds: string[]): Pro
  * `attachExpenses`.
  */
 export async function attachEvents(groupId: string, eventIds: string[]): Promise<AttachResult> {
+  assertOnline();
   const group = await get(groupId);
   if (!group) throw new GroupNotFoundError(groupId);
 

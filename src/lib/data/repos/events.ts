@@ -1,6 +1,6 @@
 import type { QueryFilter } from '@cyber-eco/types';
 import { CreateEventInputSchema, EventPatchSchema, EventSchema, type CreateEventInput, type Event, type EventPatch } from '@/schemas/event';
-import { requireStorageAdapter } from '../require-adapter';
+import { assertOnline, requireStorageAdapter } from '../require-adapter';
 
 /** `events` repo (plan B5a). JustSplit-local collection, not a universal `@cyber-eco/types` type (see `src/schemas/event.ts`). */
 
@@ -28,6 +28,7 @@ export async function listForGroup(groupId: string): Promise<Event[]> {
 }
 
 export async function create(input: CreateEventInput): Promise<Event> {
+  assertOnline();
   const adapter = requireStorageAdapter();
   const parsed = CreateEventInputSchema.parse(input);
   const id = adapter.generateId('events');
@@ -62,6 +63,7 @@ export class EventNotFoundError extends Error {
  * this repo's.
  */
 export async function update(id: string, patch: EventPatch): Promise<Event | null> {
+  assertOnline();
   const parsed = EventPatchSchema.parse(patch);
   const result = await requireStorageAdapter().updateDocument('events', id, parsed);
   if (!result.success) throw new EventNotFoundError(id);
@@ -69,5 +71,6 @@ export async function update(id: string, patch: EventPatch): Promise<Event | nul
 }
 
 export async function remove(id: string): Promise<void> {
+  assertOnline();
   await requireStorageAdapter().deleteDocument('events', id);
 }

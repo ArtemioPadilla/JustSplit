@@ -1,6 +1,6 @@
 import type { QueryFilter } from '@cyber-eco/types';
 import { CreateExpenseInputSchema, ExpenseSchema, type CreateExpenseInput, type Expense } from '@/schemas/expense';
-import { requireStorageAdapter, requireUid } from '../require-adapter';
+import { assertOnline, requireStorageAdapter, requireUid } from '../require-adapter';
 import { removeReceipts, removeReceiptObject, uploadReceipt } from '../storage';
 
 /**
@@ -70,6 +70,7 @@ export function generateId(): string {
  * invariant; this repo validates shape, not membership.
  */
 export async function create(input: CreateExpenseInput): Promise<Expense> {
+  assertOnline();
   const adapter = requireStorageAdapter();
   const parsed = CreateExpenseInputSchema.parse(input);
   const id = adapter.generateId('expenses');
@@ -90,6 +91,7 @@ export async function create(input: CreateExpenseInput): Promise<Expense> {
  * already on the row (e.g. `eventId`) — never a full-row replace.
  */
 export async function update(id: string, patch: Partial<Expense>): Promise<Expense | null> {
+  assertOnline();
   await requireStorageAdapter().updateDocument('expenses', id, patch);
   return get(id);
 }
@@ -166,6 +168,7 @@ async function uploadAll(expenseId: string, existingImages: string[], files: Blo
  * row exists, this call always resolves.
  */
 export async function createWithReceipts(id: string, input: CreateExpenseInput, files: Blob[]): Promise<ReceiptWriteResult> {
+  assertOnline();
   let expense = await get(id);
   if (!expense) {
     const adapter = requireStorageAdapter();
@@ -191,6 +194,7 @@ export async function createWithReceipts(id: string, input: CreateExpenseInput, 
  * Same partial-failure contract as `createWithReceipts`.
  */
 export async function addReceipts(id: string, files: Blob[]): Promise<ReceiptWriteResult> {
+  assertOnline();
   const expense = await get(id);
   if (!expense) throw new ExpenseNotFoundError(id);
 
@@ -214,6 +218,7 @@ export async function addReceipts(id: string, files: Blob[]): Promise<ReceiptWri
  * something that's already gone.
  */
 export async function removeReceipt(id: string, path: string): Promise<Expense | null> {
+  assertOnline();
   const expense = await get(id);
   if (!expense) throw new ExpenseNotFoundError(id);
 
@@ -243,6 +248,7 @@ export async function removeReceipt(id: string, path: string): Promise<Expense |
  * nothing about what RLS itself allows or denies.
  */
 export async function remove(id: string): Promise<void> {
+  assertOnline();
   const uid = requireUid();
   const expense = await get(id);
   if (!expense) throw new ExpenseNotFoundError(id);

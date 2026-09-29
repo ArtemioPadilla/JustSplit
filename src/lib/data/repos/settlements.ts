@@ -7,7 +7,7 @@ import {
   type SettleInput,
   type Settlement,
 } from '@/schemas/settlement';
-import { requireStorageAdapter, requireUid } from '../require-adapter';
+import { assertOnline, requireStorageAdapter, requireUid } from '../require-adapter';
 
 /**
  * `settlements` repo (plan B5a). No `update` export on purpose: spec D10's
@@ -60,6 +60,7 @@ export async function listForEvent(eventId: string): Promise<Settlement[]> {
 }
 
 export async function create(input: CreateSettlementInput): Promise<Settlement> {
+  assertOnline();
   const adapter = requireStorageAdapter();
   const parsed = CreateSettlementInputSchema.parse(input);
   const id = adapter.generateId('settlements');
@@ -98,6 +99,7 @@ export class SettlementPartyNotAllowedError extends Error {
  * only when the scope is an event. Returns the created row.
  */
 export async function settle(input: SettleInput): Promise<Settlement> {
+  assertOnline();
   const uid = requireUid();
   const parsed = SettleInputSchema.parse(input);
   if (uid !== parsed.fromUserId && uid !== parsed.toUserId) throw new SettlementPartyNotAllowedError();
@@ -157,6 +159,7 @@ export class SettlementDeleteVerificationFailedError extends Error {
  * changed by recording it.
  */
 export async function remove(id: string): Promise<void> {
+  assertOnline();
   const uid = requireUid();
   const settlement = await get(id);
   if (!settlement) throw new SettlementNotFoundError(id);

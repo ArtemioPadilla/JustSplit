@@ -4,6 +4,7 @@ import type { GuardUser } from '@/lib/route-guard';
 import { authAdapter, profileStore } from '@/lib/data/adapter';
 import { SupabaseDisabledError, signInWithOAuthRedirect, waitForSession } from '@/lib/data/client';
 import { safeNext, withBase } from '@/lib/href';
+import { assertOnline } from '@/lib/offline-write';
 import { clearPersistedQueryCache } from '@/lib/query-cache-key';
 
 /**
@@ -67,10 +68,12 @@ export async function resetPassword(email: string): Promise<void> {
 }
 
 export async function updatePassword(newPassword: string): Promise<void> {
+  assertOnline(); // plan B19c: profile and credential writes need a connection (ADR 0015)
   await requireAuthAdapter().updatePassword(newPassword);
 }
 
 export async function updateDisplayProfile(update: { displayName?: string; photoURL?: string }): Promise<void> {
+  assertOnline(); // plan B19c: profile and credential writes need a connection (ADR 0015)
   await requireAuthAdapter().updateDisplayProfile(update);
 }
 
@@ -81,6 +84,7 @@ export async function updateDisplayProfile(update: { displayName?: string; photo
  * `$profile` from the store (plan B4).
  */
 export async function updateProfile(partial: Partial<AuthProfile>): Promise<void> {
+  assertOnline(); // plan B19c: profile and credential writes need a connection (ADR 0015)
   const uid = $user.get()?.uid;
   if (!uid) throw new Error('updateProfile: no signed-in user');
   const store = requireProfileStore();
