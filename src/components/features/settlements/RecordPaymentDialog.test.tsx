@@ -115,6 +115,25 @@ describe('RecordPaymentDialog', () => {
     expect(within(dialog).getByText(/marked as paid by you/i)).toBeInTheDocument();
   });
 
+  it('inside an event it says where it is recorded, by name, and "the event" when the name is unknown', async () => {
+    const user = userEvent.setup();
+    const named = renderDialog({ eventId: 'ev1', eventName: 'Oaxaca trip' });
+    let dialog = await open(user);
+    expect(within(dialog).getByText(/Recorded in Oaxaca trip\./)).toBeInTheDocument();
+    named.unmount();
+
+    renderDialog({ eventId: 'ev1' });
+    dialog = await open(user);
+    expect(within(dialog).getByText(/Recorded in the event\./)).toBeInTheDocument();
+  });
+
+  it('says nothing about an event when there is none', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    expect(within(dialog).queryByText(/recorded in/i)).not.toBeInTheDocument();
+  });
+
   it('submits once with the suggestion, toasts success and closes', async () => {
     const user = userEvent.setup();
     renderDialog();

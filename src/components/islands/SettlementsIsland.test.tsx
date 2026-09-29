@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthUser } from '@cyber-eco/types';
 import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import type { Event } from '@/schemas/event';
+import type { Friendship } from '@/schemas/friendship';
 import type { Expense } from '@/schemas/expense';
 import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
@@ -42,18 +43,22 @@ vi.mock('./AuthGate', () => ({
   },
 }));
 
-const { useExpenses, useEventExpenses, useSettlements, useEventSettlements, useEvent, useProfiles, useDisplayConversion } = vi.hoisted(() => ({
+const { useExpenses, useEventExpenses, useSettlements, useEventSettlements, useEvent, useEvents, useFriends, useProfiles, useDisplayConversion } = vi.hoisted(() => ({
   useExpenses: vi.fn(),
   useEventExpenses: vi.fn(),
   useSettlements: vi.fn(),
   useEventSettlements: vi.fn(),
   useEvent: vi.fn(),
+  useEvents: vi.fn(),
+  useFriends: vi.fn(),
   useProfiles: vi.fn(),
   useDisplayConversion: vi.fn(),
 }));
 vi.mock('@/lib/data/hooks/useExpenses', () => ({ useExpenses, useEventExpenses }));
 vi.mock('@/lib/data/hooks/useSettlements', () => ({ useSettlements, useEventSettlements }));
 vi.mock('@/lib/data/hooks/useEvent', () => ({ useEvent }));
+vi.mock('@/lib/data/hooks/useEvents', () => ({ useEvents }));
+vi.mock('@/lib/data/hooks/useFriends', () => ({ useFriends }));
 vi.mock('@/lib/data/hooks/useProfiles', () => ({ useProfiles }));
 vi.mock('@/lib/currency/useDisplayConversion', () => ({ useDisplayConversion }));
 
@@ -148,6 +153,12 @@ const LIVE_EXPENSES: Expense[] = [
   makeExpense({ id: 'e2', eventId: 'ev1', paidBy: 'u1', amount: 60, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }] }),
 ];
 
+function friendship(a: string, b: string, status: Friendship['status'] = 'accepted'): Friendship {
+  return { id: `f-${a}-${b}`, users: [a, b], status, requestedBy: a, createdAt: NOW };
+}
+// Ana is friends with Beto and with Caro; Beto and Caro are NOT friends (they only share the Oaxaca trip).
+const FRIENDS: Friendship[] = [friendship('u1', 'u2'), friendship('u1', 'u3')];
+
 const PROFILES = [
   { id: 'u1', name: 'Ana', avatarUrl: null },
   { id: 'u2', name: 'Beto', avatarUrl: null },
@@ -197,6 +208,8 @@ beforeEach(() => {
   useSettlements.mockReturnValue(live<Settlement>([]));
   useEventSettlements.mockReturnValue(live<Settlement>(undefined));
   useEvent.mockReturnValue(query<Event>(undefined, { isLoading: false }));
+  useEvents.mockReturnValue(live([EVENT]));
+  useFriends.mockReturnValue(live(FRIENDS));
   useProfiles.mockReturnValue({ data: PROFILES, isError: false, isFetching: false, refetch: vi.fn() });
   useDisplayConversion.mockReturnValue({ convert, ready: true, approximate: false, rates: RATES, refresh: vi.fn() });
   settle.mockResolvedValue({ id: 'new' });
@@ -700,6 +713,146 @@ describe('SettlementsIsland — the personal view is pairwise, so both parties s
     await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
     await waitFor(() => expect(settle).toHaveBeenCalledWith(expect.objectContaining({ fromUserId: 'u2', toUserId: 'u1', amount: 60 })));
     expect(settle.mock.calls[0]![0]).not.toHaveProperty('eventId');
+  });
+});
+
+const refetchFriends = vi.fn();
+const refetchEvents = vi.fn();
+
+describe('SettlementsIsland — where each personal row can be recorded (no dead-end button)', () => {
+  // Beto (u2) is Ana's friend and NOT Caro's; Beto owes Ana 60 (Groceries + Hotel) and Caro 20 (Mezcal tour, in the Oaxaca trip).
+  function asBeto(expenses: Expense[] = LIVE_EXPENSES, events: Event[] = [EVENT]) {
+    $user.set({ ...USER, uid: 'u2', displayName: 'Beto' });
+    useExpenses.mockReturnValue(live(expenses));
+    useEvents.mockReturnValue(live(events));
+  }
+  const CANCUN: Event = { ...EVENT, id: 'ev2', name: 'Cancun' };
+  // A second event expense between Beto and Caro: their debt now spans two events.
+  const CARO_IN_CANCUN = makeExpense({ id: 'e3', eventId: 'ev2', paidBy: 'u3', amount: 20, memberIds: ['u2', 'u3'], splits: [{ userId: 'u3', amount: 10 }, { userId: 'u2', amount: 10 }] });
+  const rowFor = (name: string) => rows('Suggested payments').find((r) => r.textContent?.includes(name))!;
+
+  it('an accepted friend: "Record payment" and no event id', async () => {
+    asBeto();
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('button', { name: 'Record payment from you to Ana' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByText(/recorded in/i)).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    await waitFor(() => expect(settle).toHaveBeenCalledTimes(1));
+    expect(settle).toHaveBeenCalledWith(expect.objectContaining({ fromUserId: 'u2', toUserId: 'u1', amount: 60 }));
+    expect(settle.mock.calls[0]![0]).not.toHaveProperty('eventId');
+  });
+
+  it('not a friend, but the whole debt is one event\'s: "Record payment" that passes that event id and says so', async () => {
+    asBeto();
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('button', { name: 'Record payment from you to Caro' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Recorded in Oaxaca trip\./)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Amount')).toHaveValue('20.00');
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    await waitFor(() => expect(settle).toHaveBeenCalledTimes(1));
+    expect(settle).toHaveBeenCalledWith({ fromUserId: 'u2', toUserId: 'u3', amount: 20, currency: 'USD', date: expect.any(String), eventId: 'ev1' });
+  });
+
+  it('an event whose name is not available is called "the event" in the dialog', async () => {
+    asBeto(LIVE_EXPENSES, []);
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('button', { name: 'Record payment from you to Caro' }));
+    expect(await within(await screen.findByRole('dialog')).findByText(/Recorded in the event\./)).toBeInTheDocument();
+  });
+
+  it('not a friend and the debt spans several events: no button, and a link to settle from each event', async () => {
+    asBeto([...LIVE_EXPENSES, CARO_IN_CANCUN], [EVENT, CANCUN]);
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    const row = rowFor('Caro');
+    expect(row).toHaveTextContent('USD 30.00');
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument();
+    expect(row).toHaveTextContent("You and Caro aren't friends, so settle this from the event:");
+    expect(within(row).getByRole('link', { name: 'Oaxaca trip' })).toHaveAttribute('href', '/settlements?event=ev1');
+    expect(within(row).getByRole('link', { name: 'Cancun' })).toHaveAttribute('href', '/settlements?event=ev2');
+    // The friend's row is untouched.
+    expect(within(rowFor('Ana')).getByRole('button', { name: /record payment/i })).toBeInTheDocument();
+  });
+
+  it('a link whose event name is unavailable says "the event"', async () => {
+    asBeto([...LIVE_EXPENSES, CARO_IN_CANCUN], [EVENT]);
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    const links = within(rowFor('Caro')).getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual(['Oaxaca trip', 'the event']);
+    expect(links[1]).toHaveAttribute('href', '/settlements?event=ev2');
+  });
+
+  it('not a friend and no event at all: no button and no false promise of one, just why', async () => {
+    asBeto([...LIVE_EXPENSES.slice(0, 1), makeExpense({ id: 'x2', paidBy: 'u3', amount: 40, memberIds: ['u2', 'u3'], splits: [{ userId: 'u3', amount: 20 }, { userId: 'u2', amount: 20 }] })]);
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    const row = rowFor('Caro');
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(row).queryByRole('link')).not.toBeInTheDocument();
+    expect(row).toHaveTextContent("You and Caro aren't friends, so this can't be settled here.");
+  });
+
+  it('no branch leaves a button that always fails: every row is either recordable (friend, or one event) or explains where to go instead', async () => {
+    const scenarios: [string, Expense[], Event[]][] = [
+      ['friend + single event', LIVE_EXPENSES, [EVENT]],
+      ['friend + several events', [...LIVE_EXPENSES, CARO_IN_CANCUN], [EVENT, CANCUN]],
+      ['friend + no-event non-friend', [LIVE_EXPENSES[0]!, makeExpense({ id: 'x2', paidBy: 'u3', amount: 40, memberIds: ['u2', 'u3'], splits: [{ userId: 'u3', amount: 20 }, { userId: 'u2', amount: 20 }] })], []],
+    ];
+    for (const [label, expenses, events] of scenarios) {
+      asBeto(expenses, events);
+      const { unmount } = render(<SettlementsIsland />);
+      await screen.findByRole('list', { name: 'Suggested payments' });
+      for (const row of rows('Suggested payments')) {
+        const hasButton = within(row).queryAllByRole('button').length > 0;
+        const explains = /aren't friends/.test(row.textContent ?? '');
+        expect(hasButton !== explains, `${label}: "${row.textContent}" has ${hasButton ? 'a button' : 'no button'} and ${explains ? 'an' : 'no'} explanation`).toBe(true);
+        // A row with a button is a friend row or a single-event one, i.e. one RLS accepts.
+        if (hasButton) expect(row.textContent).toMatch(/Ana|Caro/);
+      }
+      unmount();
+    }
+  });
+
+  it('the event scope does not ask about friends or events: a fellow member can always be recorded there', async () => {
+    eventScope();
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    expect(useFriends).toHaveBeenCalledWith(undefined);
+    expect(useEvents).toHaveBeenCalledWith(undefined);
+  });
+
+  it.each([
+    ['friends', () => useFriends.mockReturnValue(live<Friendship>(undefined))],
+    ['events', () => useEvents.mockReturnValue(live<Event>(undefined))],
+  ])('waits for %s before showing any row: a skeleton, never a button that might be wrong', async (_name, load) => {
+    load();
+    const { container } = render(<SettlementsIsland />);
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: /record payment/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['friends', () => useFriends.mockReturnValue(live<Friendship>(undefined, { isError: true, refetch: refetchFriends }))],
+    ['events', () => useEvents.mockReturnValue(live<Event>(undefined, { isError: true, refetch: refetchEvents }))],
+  ])('a failed %s query shows the error state, and Retry refetches friends and events too', async (_name, fail) => {
+    refetchFriends.mockClear();
+    refetchEvents.mockClear();
+    useFriends.mockReturnValue(live(FRIENDS, { refetch: refetchFriends }));
+    useEvents.mockReturnValue(live([EVENT], { refetch: refetchEvents }));
+    fail();
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/something went wrong loading your settlements/i);
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetchFriends).toHaveBeenCalledTimes(1);
+    expect(refetchEvents).toHaveBeenCalledTimes(1);
   });
 });
 
