@@ -2092,7 +2092,8 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       party names via `useProfiles` ("X owes Y")
 - [x] "Settle up" calls `repos.settlements.settle()` (B14a): **one insert, no expense is marked and
       `settledAt` is never written**. The pending tab is `calculateSettlementsWithConversion`
-      over the scope's expenses and settlements (B14a); recording a suggestion writes a settlement
+      over the scope's expenses and settlements (B14a) in the **event scope**; the personal view
+      is pairwise (`balancesWithUser`, ADR 0014 §5); recording a suggestion writes a settlement
       for its amount (`round2`), and a partial payment is just a smaller amount. `eventId` is
       passed when the scope is `?event=` (migration 015 lets non-friend event co-members record
       it). A denied insert (RLS) surfaces a toast; the
@@ -2113,14 +2114,21 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       suggestion and from a partial amount calls `settle()` once and nothing else; history lists
       settlements for both directions with "Marked as paid by"; Undo is offered only on the
       viewer's own rows; a rejected insert leaves the lists unchanged and toasts
-- Landed (B14b, on B14a; `risk:high`, `tdd-tier:strict`, 9 red/green pairs): `src/pages/settlements.astro` (static shell,
+- Landed (B14b, on B14a; `risk:high`, `tdd-tier:strict`, 10 red/green pairs): `src/pages/settlements.astro` (static shell,
       `client:only`, fallback skeleton, in `scripts/axe-smoke.mjs`) over `SettlementsIsland`
       (`ErrorBoundary > AuthIsland > AuthGate > Content`; the whole Base UI `Tabs` composition in one
       file) with `features/settlements/{PendingPanel,BalancePanel,HistoryPanel,RecordPaymentDialog,
       UndoSettlementDialog,useSuggestions,payment-errors,labels}`, pure helpers in
       `domain/settlements.ts` (scope from `location.search`, party test, viewer-first, newest-first,
-      owes / is-owed split, overpayment in whole cents) and `schemas/settlement-form.ts` (the dialog's
-      RHF + Zod form). Scope: no param = personal (`involvingUser`), `?event=` = `useEventExpenses` +
+      owes / is-owed split, overpayment in whole cents, pairwise rows and lists) and `schemas/settlement-form.ts` (the dialog's
+      RHF + Zod form). Scope: no param = personal (`involvingUser`) and **pairwise** (review fix: the first cut
+      simplified debts across people, which showed Beto "You owe Ana 80" and Ana "Beto owes you
+      60" for the same trip): one row per other person from `balancesWithUser`, the dashboard's own
+      maths, so both parties of a debt read the same number, "Record payment" pre-fills it and the
+      overpay notice compares against it, and the Balances tab lists "You owe" / "Owe you";
+      `?event=` keeps the debt-simplified suggestions and net balances, with the note "Suggestions
+      are simplified across the event, so a payment may go to someone other than who paid" (ADR 0014
+      §5 has the example), reading `useEventExpenses` +
       `useEventSettlements` with the event name and a link back (an unknown or RLS-hidden event is a
       not-found panel with a link to the personal view, not an error), `?group=` = a polite "Group
       settlements are coming soon" note over the personal view. Copy is English (the plan's
@@ -2137,15 +2145,22 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       `data-active`), so the current tab looked like the rest everywhere — fixed test-first; "Settle
       up" links added to `DashboardHeader` and `FriendDetailView` (nothing had pinned their absence;
       the stale "may 404 until B14" comment on the event page's "View Settlements" is gone). Gates:
-      `npm run check` 202 files / 2048 tests; RLS 20 files / 253 tests (no SQL); live run against
-      `supabase start` in real Chromium on a build with the local env: 40/40 checks (partial and
+      `npm run check` 202 files / 2069 tests; RLS 20 files / 253 tests (no SQL); live run against
+      `supabase start` in real Chromium on a build with the local env: 43/43 checks (Beto, Ana and the dashboard all read the same 60 for the Beto-Ana debt; partial and
       full payments, balances and history updating without a reload, Undo, Ana recording what Beto
       paid her, a non-friend event co-member recording inside the event with the event id, the
       denial, `?group=` / unknown event / signed out) and axe 29 runs (light, dark, 375px, dialogs
-      open) with no violations. Known limits: Escape does not close the record dialog while the
-      currency combobox has focus (Base UI `Combobox` consumes it; Cancel and Tab still work); a
-      personal view simplifies debts over the rows that name the viewer, so two people can be shown
-      different suggested payments for the same trip (ADR 0014 §5).
+      open) with no violations. A settlement recorded from a simplified event suggestion shows
+      pairwise between its two people in the personal view (ADR 0014 §5).
+  - Follow-ups (not in B14b): (1) Escape does not close the record dialog while the currency
+      combobox has focus (Base UI `Combobox` consumes the key; Cancel and Tab still work) — a
+      combobox-inside-dialog issue for the shared `Combobox`/`Dialog`; (2) an intermittent React
+      hydration error #418 on pages that use the shared layout (seen on `/profile` and
+      `/settlements`; `/settlements` itself is `client:only`, so it comes from the SSR'd header
+      island); (3) a pairwise personal row between two non-friend event co-members cannot be
+      recorded from the personal view (no event id, so `settlements_insert` denies it with the plain
+      sentence) — it can be recorded from the event scope; decide whether the personal view should
+      pass the event id when the pair's whole debt comes from one event.
 
 ### B15. Profile island — editable profile, avatar upload, preferred currency
 - [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
