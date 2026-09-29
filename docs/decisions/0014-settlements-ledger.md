@@ -123,6 +123,19 @@ came from Beto's expense, shows in the personal view as a payment between Carla 
 Ana. It lowers their pairwise balance only and leaves Beto's balances with each of
 them unchanged.
 
+**Recording from the personal view never offers a button that must fail
+(plan B14b).** `settlements_insert` (migration 015) accepts a pair only when the
+two people are accepted friends, or when the settlement carries an event they both
+belong to. For each pairwise row, `recordingRoute` in `domain/settlements.ts` picks
+one of three outcomes:
+
+- **Accepted friends:** record directly, with no `eventId`.
+- **Not friends, and every row linking the two carries the same event E:** record
+  with `eventId` E. That debt belongs to E.
+- **Otherwise:** no button. The row links to each event involved so the payment can
+  be recorded there. If no event is involved, the friendship must have ended after
+  the expense, so the row links to Friends to add them again.
+
 ### 6. Rounding
 
 Round per displayed figure with `round2`; tolerance 0.01 everywhere.
