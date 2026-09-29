@@ -359,6 +359,13 @@ describe('SettlementsIsland — pending tab', () => {
     expect(others).toHaveTextContent('USD 50.00');
   });
 
+  it("avatars carry each person's own initial — the viewer is \"A\" for Ana, never \"Y\" for \"You\"", async () => {
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    // Decorative avatars come first in a row's text: Beto's "B", then the viewer's own "A".
+    expect(rows('Suggested payments')[0]!.textContent).toMatch(/^BABeto owes you/);
+  });
+
   it('says "You owe" when the viewer is the payer', async () => {
     useExpenses.mockReturnValue(
       live([makeExpense({ id: 'x9', paidBy: 'u2', amount: 40, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 20 }, { userId: 'u2', amount: 20 }] })]),
