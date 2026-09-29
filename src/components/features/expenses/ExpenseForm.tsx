@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { ReceiptImage } from '@/components/features/ReceiptImage';
 import { LEGACY_CATEGORY_KEYS, type LegacyCategoryKey } from '@/domain/categories';
 import { formatCalendarDate, parseCalendarDate } from '@/domain/dates';
@@ -24,6 +25,8 @@ import { useRemoveReceipt } from '@/lib/data/hooks/useRemoveReceipt';
 import { useUpdateExpense } from '@/lib/data/hooks/useUpdateExpense';
 import * as expensesRepo from '@/lib/data/repos/expenses';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import type { CreateExpenseInput, Expense } from '@/schemas/expense';
 import { ExpenseFormValuesSchema, type ExpenseFormValues } from '@/schemas/expense-form';
 import { $user } from '@/stores/auth';
@@ -268,6 +271,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
 
   const createId = React.useMemo(() => (mode === 'create' ? expensesRepo.generateId() : undefined), [mode]);
 
+  // Plan B19c (ADR 0015): with no connection Save is blocked and explained; what was typed stays put.
+  const write = useCanWrite();
   const createMutation = useCreateExpenseWithReceipts();
   const updateMutation = useUpdateExpense();
   const addReceiptsMutation = useAddReceipts();
@@ -361,8 +366,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           notifySuccess('Expense saved', { afterNavigation: true });
         }
         window.location.assign(withBase(`/expenses/${result.expense.id}`));
-      } catch {
-        notifyError('Could not save this expense. Please try again.');
+      } catch (error) {
+        notifyError(writeErrorMessage(error, 'Could not save this expense. Please try again.'));
       }
       return;
     }
@@ -402,24 +407,31 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
         notifySuccess('Expense saved', { afterNavigation: true });
       }
       window.location.assign(withBase(`/expenses/${expense.id}`));
-    } catch {
-      notifyError('Could not save this expense. Please try again.');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not save this expense. Please try again.'));
     }
   }
 
   async function handleRemoveExistingReceipt(path: string) {
-    if (!expense) return;
+    if (!expense || refuseIfOffline()) return;
     try {
       await removeReceiptMutation.mutateAsync({ id: expense.id, path });
       notifySuccess('Receipt removed');
-    } catch {
-      notifyError('Could not remove this receipt.');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not remove this receipt.'));
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleValid)} noValidate className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
+      <form
+        onSubmit={(event) => {
+          if (refuseIfOffline(event)) return;
+          return form.handleSubmit(handleValid)(event);
+        }}
+        noValidate
+        className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10"
+      >
         {/* Not an <h1> on purpose: the mounting island/route view (`ExpenseFormIsland`/`ExpenseEditView`) owns
             the page's ONE <h1>, sr-only and OUTSIDE the auth-gated subtree (same as `ExpenseDetailView`'s
             `Editable` heading), so axe's `page-has-heading-one` passes in every auth state, not just this one. */}
@@ -576,7 +588,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
                     onClick={() => handleRemoveExistingReceipt(path)}
                     aria-label={`Remove existing receipt ${path}`}
                     disabled={removeReceiptMutation.isPending}
-                    className="absolute -right-1.5 -top-1.5 rounded-full bg-background px-1 text-xs text-muted-foreground shadow ring-1 ring-border hover:text-foreground"
+                    {...write.blocked}
+                    className="absolute -right-1.5 -top-1.5 rounded-full bg-background px-1 text-xs text-muted-foreground shadow ring-1 ring-border hover:text-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                   >
                     ×
                   </button>
@@ -607,7 +620,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           </p>
         )}
 
-        <Button type="submit" disabled={pending} aria-busy={pending}>
+        <OfflineWriteNotice write={write} />
+        <Button type="submit" disabled={pending} aria-busy={pending} {...write.blocked}>
           {pending ? 'Saving…' : mode === 'create' ? 'Save expense' : 'Save changes'}
         </Button>
       </form>

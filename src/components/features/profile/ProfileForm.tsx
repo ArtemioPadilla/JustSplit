@@ -4,12 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { buildPreferencesPatch } from '@/domain/profile';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { ProfileEditSchema, type ProfileEditValues } from '@/schemas/profile-edit';
 import { $preferredCurrency } from '@/stores/preferences';
 import { $profile, $user, updateProfile } from '@/stores/auth';
@@ -34,6 +37,9 @@ export function ProfileForm() {
   const profile = useStore($profile);
   const preferredCurrency = useStore($preferredCurrency);
   const uid = user?.uid ?? '';
+  // Plan B19c (ADR 0015): the card owns ONE connection state and shows ONE sentence for Save, the
+  // preferred currency and the photo; with no connection all three are blocked and nothing typed is lost.
+  const write = useCanWrite();
 
   const [savingDetails, setSavingDetails] = React.useState(false);
   const [savingCurrency, setSavingCurrency] = React.useState(false);
@@ -62,21 +68,22 @@ export function ProfileForm() {
         }),
       });
       notifySuccess('Profile updated');
-    } catch {
-      notifyError('Could not update your profile. Please try again.');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not update your profile. Please try again.'));
     } finally {
       setSavingDetails(false);
     }
   }
 
   async function handleCurrencyChange(code: string) {
+    if (refuseIfOffline()) return;
     setSavingCurrency(true);
     try {
       await updateProfile({
         preferences: buildPreferencesPatch(profile?.preferences, { preferredCurrency: code }),
       });
-    } catch {
-      notifyError('Could not update your preferred currency');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not update your preferred currency'));
     } finally {
       setSavingCurrency(false);
     }
@@ -99,10 +106,19 @@ export function ProfileForm() {
         <CardTitle role="heading" aria-level={2}>Your profile</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <AvatarUploadField uid={uid} name={profile.name ?? 'Account'} avatarPath={profile.avatarUrl} />
+        <OfflineWriteNotice write={write} />
+
+        <AvatarUploadField uid={uid} name={profile.name ?? 'Account'} avatarPath={profile.avatarUrl} write={write} />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          <form
+            onSubmit={(event) => {
+              if (refuseIfOffline(event)) return;
+              return form.handleSubmit(onSubmit)(event);
+            }}
+            noValidate
+            className="flex flex-col gap-4"
+          >
             <FormField
               control={form.control}
               name="displayName"
@@ -129,7 +145,7 @@ export function ProfileForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={savingDetails} aria-busy={savingDetails} className="self-start">
+            <Button type="submit" disabled={savingDetails} aria-busy={savingDetails} className="self-start" {...write.blocked}>
               {savingDetails ? 'Saving…' : 'Save changes'}
             </Button>
           </form>
@@ -141,6 +157,7 @@ export function ProfileForm() {
             value={preferredCurrency}
             onChange={handleCurrencyChange}
             label="Preferred currency"
+            write={write}
           />
         </div>
       </CardContent>

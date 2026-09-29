@@ -1,4 +1,5 @@
 import { SettlementPartyNotAllowedError } from '@/lib/data/repos/settlements';
+import { OFFLINE_WRITE_MESSAGE, OfflineWriteError } from '@/lib/offline-write';
 
 /**
  * What the "Record payment" dialog says when saving fails. The raw error text
@@ -24,5 +25,7 @@ export function isPaymentDenied(error: unknown): boolean {
 }
 
 export function paymentFailureMessage(error: unknown): string {
+  // Plan B19c: offline is neither a denial nor a failure worth "checking your connection" about; say what it is.
+  if (error instanceof OfflineWriteError) return OFFLINE_WRITE_MESSAGE;
   return isPaymentDenied(error) ? PAYMENT_DENIED_MESSAGE : PAYMENT_FAILED_MESSAGE;
 }

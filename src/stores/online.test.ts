@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 import { $online } from './online';
 
@@ -41,9 +41,13 @@ describe('$online store follows the browser (plan B19c: the same signal the writ
   });
 
   it('syncs to the real value when it mounts on a page that loaded offline', async () => {
+    // A fresh module: an atom stays mounted for a moment after its last listener leaves, so reusing the
+    // shared one would not run the mount-time sync at all.
+    vi.resetModules();
     Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
-    const unbind = $online.listen(() => {});
-    expect($online.get()).toBe(false);
+    const { $online: fresh } = await import('./online');
+    const unbind = fresh.listen(() => {});
+    expect(fresh.get()).toBe(false);
     unbind();
   });
 });

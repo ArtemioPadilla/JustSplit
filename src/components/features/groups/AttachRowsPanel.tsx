@@ -1,9 +1,12 @@
 import * as React from 'react';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { Checkbox } from '@/components/ui/checkbox';
 import { buttonVariants } from '@/components/ui/button';
 import { useAttachEventsToGroup } from '@/lib/data/hooks/useAttachEventsToGroup';
 import { useAttachExpensesToGroup } from '@/lib/data/hooks/useAttachExpensesToGroup';
 import { GroupNotFoundError } from '@/lib/data/repos/groups';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 
@@ -23,6 +26,8 @@ export interface AttachRowsPanelProps {
   attachableExpenses: AttachableExpense[];
   /** Already filtered by the caller (`domain/groups.ts#filterAttachableEvents`). */
   attachableEvents: AttachableEvent[];
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the panel reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /**
@@ -34,7 +39,8 @@ export interface AttachRowsPanelProps {
  * many could not be attached rather than claiming every checked row
  * succeeded.
  */
-export function AttachRowsPanel({ groupId, attachableExpenses, attachableEvents }: AttachRowsPanelProps) {
+export function AttachRowsPanel({ groupId, attachableExpenses, attachableEvents, write: pageWrite }: AttachRowsPanelProps) {
+  const { write, owned } = useSharedWrite(pageWrite);
   if (attachableExpenses.length === 0 && attachableEvents.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -45,8 +51,9 @@ export function AttachRowsPanel({ groupId, attachableExpenses, attachableEvents 
 
   return (
     <div className="flex flex-col gap-6">
-      {attachableExpenses.length > 0 && <AttachExpensesSection groupId={groupId} expenses={attachableExpenses} />}
-      {attachableEvents.length > 0 && <AttachEventsSection groupId={groupId} events={attachableEvents} />}
+      {owned && <OfflineWriteNotice write={write} />}
+      {attachableExpenses.length > 0 && <AttachExpensesSection groupId={groupId} expenses={attachableExpenses} write={write} />}
+      {attachableEvents.length > 0 && <AttachEventsSection groupId={groupId} events={attachableEvents} write={write} />}
     </div>
   );
 }
@@ -74,10 +81,10 @@ function reportAttachFailure(error: unknown): void {
     notifyError('This group no longer exists');
     return;
   }
-  notifyError("Couldn't attach these items. Please try again.");
+  notifyError(writeErrorMessage(error, "Couldn't attach these items. Please try again."));
 }
 
-function AttachExpensesSection({ groupId, expenses }: { groupId: string; expenses: AttachableExpense[] }) {
+function AttachExpensesSection({ groupId, expenses, write }: { groupId: string; expenses: AttachableExpense[]; write: WriteState }) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const attachExpenses = useAttachExpensesToGroup();
 
@@ -86,6 +93,7 @@ function AttachExpensesSection({ groupId, expenses }: { groupId: string; expense
   }
 
   async function handleAttach() {
+    if (refuseIfOffline()) return;
     try {
       const result = await attachExpenses.mutateAsync({ groupId, expenseIds: selectedIds });
       summarize('expense', result);
@@ -117,6 +125,7 @@ function AttachExpensesSection({ groupId, expenses }: { groupId: string; expense
         disabled={selectedIds.length === 0 || attachExpenses.isPending}
         aria-busy={attachExpenses.isPending}
         className={cn(buttonVariants({ variant: 'outline' }), 'self-start')}
+        {...write.blocked}
       >
         Attach expenses
       </button>
@@ -124,7 +133,7 @@ function AttachExpensesSection({ groupId, expenses }: { groupId: string; expense
   );
 }
 
-function AttachEventsSection({ groupId, events }: { groupId: string; events: AttachableEvent[] }) {
+function AttachEventsSection({ groupId, events, write }: { groupId: string; events: AttachableEvent[]; write: WriteState }) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const attachEvents = useAttachEventsToGroup();
 
@@ -133,6 +142,7 @@ function AttachEventsSection({ groupId, events }: { groupId: string; events: Att
   }
 
   async function handleAttach() {
+    if (refuseIfOffline()) return;
     try {
       const result = await attachEvents.mutateAsync({ groupId, eventIds: selectedIds });
       summarize('event', result);
@@ -161,6 +171,7 @@ function AttachEventsSection({ groupId, events }: { groupId: string; events: Att
         disabled={selectedIds.length === 0 || attachEvents.isPending}
         aria-busy={attachEvents.isPending}
         className={cn(buttonVariants({ variant: 'outline' }), 'self-start')}
+        {...write.blocked}
       >
         Attach events
       </button>

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { ResetLocalDataButton } from '@/components/features/settings/ResetLocalDataButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,8 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Separator } from '@/components/ui/separator';
 import { ChangePasswordSchema, type ChangePasswordValues } from '@/schemas/change-password';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { signOut, updatePassword } from '@/stores/auth';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 
@@ -47,6 +50,9 @@ type Status = 'idle' | 'submitting' | 'error';
 
 function ChangePasswordForm() {
   const [status, setStatus] = React.useState<Status>('idle');
+  // Plan B19c (ADR 0015): changing the password is a write; with no connection it is blocked and explained.
+  // Signing out and resetting local data below are not, and stay available.
+  const write = useCanWrite();
   const form = useForm<ChangePasswordValues>({
     resolver: zodResolver(ChangePasswordSchema),
     defaultValues: { newPassword: '', confirmPassword: '' },
@@ -59,9 +65,9 @@ function ChangePasswordForm() {
       notifySuccess('Password updated');
       form.reset({ newPassword: '', confirmPassword: '' });
       setStatus('idle');
-    } catch {
+    } catch (error) {
       setStatus('error');
-      notifyError('Could not update your password. Please try again.');
+      notifyError(writeErrorMessage(error, 'Could not update your password. Please try again.'));
     }
   }
 
@@ -76,7 +82,14 @@ function ChangePasswordForm() {
         new one.
       </p>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <form
+          onSubmit={(event) => {
+            if (refuseIfOffline(event)) return;
+            return form.handleSubmit(onSubmit)(event);
+          }}
+          noValidate
+          className="flex flex-col gap-4"
+        >
           <FormField
             control={form.control}
             name="newPassword"
@@ -103,7 +116,8 @@ function ChangePasswordForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={status === 'submitting'} aria-busy={status === 'submitting'} className="self-start">
+          <OfflineWriteNotice write={write} />
+          <Button type="submit" disabled={status === 'submitting'} aria-busy={status === 'submitting'} className="self-start" {...write.blocked}>
             {status === 'submitting' ? 'Updating…' : 'Update password'}
           </Button>
         </form>

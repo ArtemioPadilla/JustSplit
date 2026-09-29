@@ -15,9 +15,15 @@ export function setOnLine(value: boolean): void {
   });
 }
 
-/** Back to jsdom's own value (online), without firing an event. */
+/**
+ * Back to jsdom's own value (online). Fires `online` too, because TanStack Query's module-level
+ * `onlineManager` follows those events and would otherwise stay "offline" for the next test.
+ */
 export function restoreOnLine(): void {
   Reflect.deleteProperty(navigator, 'onLine');
+  act(() => {
+    window.dispatchEvent(new Event('online'));
+  });
 }
 
 /** The sentence every write surface shows while offline (`OFFLINE_WRITE_MESSAGE`); spelled out here so a copy change is a deliberate test edit. */

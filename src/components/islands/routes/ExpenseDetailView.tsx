@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { DeleteExpenseDialog } from '@/components/features/expenses/DeleteExpenseDialog';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { ReceiptGallery } from '@/components/features/expenses/ReceiptGallery';
 import { parseCalendarDate } from '@/domain/dates';
 import { isLegacySettled } from '@/domain/ledger';
@@ -17,6 +18,8 @@ import { useExpense } from '@/lib/data/hooks/useExpense';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useUpdateExpense } from '@/lib/data/hooks/useUpdateExpense';
 import { withBase } from '@/lib/href';
+import { writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import type { Expense, SplitType } from '@/schemas/expense';
 import { $preferredCurrency } from '@/stores/preferences';
@@ -149,6 +152,8 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
     setNotesDraft(expense.notes ?? '');
   }
 
+  // Plan B19c (ADR 0015): the page owns ONE connection state and shows ONE sentence for the inline edits and Delete.
+  const write = useCanWrite();
   const updateExpense = useUpdateExpense();
   const handleDescriptionCommit = React.useCallback(
     async (value: string) => {
@@ -156,9 +161,9 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
       setDescriptionDraft(value);
       try {
         await updateExpense.mutateAsync({ id: expense.id, patch: { description: value } });
-      } catch {
+      } catch (error) {
         setDescriptionDraft(previous);
-        notifyError('Could not update the description');
+        notifyError(writeErrorMessage(error, 'Could not update the description'));
       }
     },
     [updateExpense, expense.id, descriptionDraft],
@@ -169,9 +174,9 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
       setNotesDraft(value);
       try {
         await updateExpense.mutateAsync({ id: expense.id, patch: { notes: value } });
-      } catch {
+      } catch (error) {
         setNotesDraft(previous);
-        notifyError('Could not update the notes');
+        notifyError(writeErrorMessage(error, 'Could not update the notes'));
       }
     },
     [updateExpense, expense.id, notesDraft],
@@ -191,11 +196,15 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
           key={descriptionDraft}
           defaultValue={descriptionDraft}
           onValueCommit={handleDescriptionCommit}
+          readOnly={!write.canWrite}
+          describedBy={write.noticeId}
           className="font-display text-2xl font-semibold text-foreground"
         />
         {/* Only a legacy (imported) settledAt: nothing per-expense is derivable from the ledger (ADR 0014). */}
         {isLegacySettled(expense) && <Badge>Settled</Badge>}
       </div>
+
+      <OfflineWriteNotice write={write} />
 
       <div className="flex flex-col gap-2">
         <CurrencySelector
@@ -273,6 +282,8 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
           defaultValue={notesDraft}
           placeholder="Click to add notes"
           onValueCommit={handleNotesCommit}
+          readOnly={!write.canWrite}
+          describedBy={write.noticeId}
         />
       </div>
 
@@ -291,7 +302,7 @@ function ExpenseDetailLoaded({ expense }: { expense: Expense }) {
           Edit
         </a>
         <ExportCsvButton expenses={[expense]} users={csvUsers} events={csvEvents} filename={`expense-${expense.id}.csv`} />
-        {canDelete && <DeleteExpenseDialog id={expense.id} description={expense.description} />}
+        {canDelete && <DeleteExpenseDialog id={expense.id} description={expense.description} write={write} />}
       </div>
     </div>
   );

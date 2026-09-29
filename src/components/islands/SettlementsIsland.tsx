@@ -9,6 +9,7 @@ import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features
 import { BalancePanel } from '@/components/features/settlements/BalancePanel';
 import { HistoryPanel } from '@/components/features/settlements/HistoryPanel';
 import { PendingPanel } from '@/components/features/settlements/PendingPanel';
+import { useCanWrite } from '@/lib/use-can-write';
 import { useSuggestions, type SuggestionsResult } from '@/components/features/settlements/useSuggestions';
 import { involvingUser } from '@/domain/dashboard';
 import { balancesWithUser } from '@/domain/dashboard';
@@ -221,6 +222,9 @@ interface SettlementsBoardProps {
 /** Everything that depends on the scope's rows: currency, the three tabs and their panels. */
 function SettlementsBoard({ viewerId, event, expenses, settlements, friendships, events, names, avatars }: SettlementsBoardProps) {
   const preferredCurrency = useStore($preferredCurrency);
+  // Plan B19c (ADR 0015): the board owns ONE connection state; "Record payment" and "Undo" are handed it and
+  // each panel shows ONE sentence for all of its rows.
+  const write = useCanWrite();
   // This island's OWN display currency (same one-way seed as every other island): the visitor's preferred one, never written back.
   const [displayCurrency, setDisplayCurrency] = React.useState(event?.preferredCurrency ?? preferredCurrency);
 
@@ -318,6 +322,7 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, friendships,
             routes={routes}
             eventNames={isEvent ? { [event.id]: event.name } : eventNames}
             headingRef={pendingHeadingRef}
+            write={write}
           />
         </TabsContent>
         <TabsContent value="balances" className="pt-4">
@@ -342,6 +347,7 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, friendships,
             convert={convert}
             ready={ready}
             headingRef={historyHeadingRef}
+            write={write}
           />
         </TabsContent>
       </Tabs>

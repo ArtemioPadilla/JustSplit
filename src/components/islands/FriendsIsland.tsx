@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddFriendForm } from '@/components/features/friends/AddFriendForm';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { RemoveFriendDialog } from '@/components/features/friends/RemoveFriendDialog';
 import { otherUser, partitionFriendships } from '@/domain/friends';
 import { useFriends } from '@/lib/data/hooks/useFriends';
@@ -13,6 +14,8 @@ import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useRemoveFriendship } from '@/lib/data/hooks/useRemoveFriendship';
 import { useUpdateFriendshipStatus } from '@/lib/data/hooks/useUpdateFriendshipStatus';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, type WriteState } from '@/lib/use-can-write';
 import type { Friendship } from '@/schemas/friendship';
 import { $profile, $user } from '@/stores/auth';
 import { notifyError, notifySuccess } from '@/stores/notifications';
@@ -53,6 +56,9 @@ function FriendsContent() {
   const user = useStore($user);
   const profile = useStore($profile);
   const uid = user?.uid ?? '';
+  // Plan B19c (ADR 0015): the page owns ONE connection state and shows ONE sentence for every write
+  // control on it (add, accept, reject, cancel, undo, remove).
+  const write = useCanWrite();
 
   const friendsQuery = useFriends(uid || undefined);
   const friendships = React.useMemo(() => friendsQuery.data ?? [], [friendsQuery.data]);
@@ -104,7 +110,8 @@ function FriendsContent() {
 
   return (
     <div className="flex flex-col gap-10">
-      <AddFriendForm uid={uid} selfEmail={selfEmail} inviterName={inviterName} />
+      <OfflineWriteNotice write={write} />
+      <AddFriendForm uid={uid} selfEmail={selfEmail} inviterName={inviterName} write={write} />
 
       {partitioned.received.length > 0 && (
         <section aria-labelledby="friend-requests-heading" className="flex flex-col gap-3">
@@ -115,7 +122,7 @@ function FriendsContent() {
             {partitioned.received.map((f) => {
               const id = otherUser(f, uid);
               if (!id) return null;
-              return <ReceivedRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
+              return <ReceivedRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} write={write} />;
             })}
           </ul>
         </section>
@@ -132,7 +139,7 @@ function FriendsContent() {
             {partitioned.accepted.map((f) => {
               const id = otherUser(f, uid);
               if (!id) return null;
-              return <FriendRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
+              return <FriendRow key={f.id} friendship={f} person={people[id]} otherId={id} write={write} />;
             })}
           </ul>
         )}
@@ -147,7 +154,7 @@ function FriendsContent() {
             {partitioned.sent.map((f) => {
               const id = otherUser(f, uid);
               if (!id) return null;
-              return <SentRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
+              return <SentRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} write={write} />;
             })}
           </ul>
         </section>
@@ -162,7 +169,7 @@ function FriendsContent() {
             {partitioned.declined.map((f) => {
               const id = otherUser(f, uid);
               if (!id) return null;
-              return <DeclinedRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} />;
+              return <DeclinedRequestRow key={f.id} friendship={f} person={people[id]} otherId={id} write={write} />;
             })}
           </ul>
         </section>
@@ -185,20 +192,23 @@ interface RowProps {
   friendship: Friendship;
   person: PersonRow | undefined;
   otherId: string;
+  /** The page's connection state (one sentence for every row). */
+  write: WriteState;
 }
 
 /** Recipient-only in practice: this row only ever renders for a request where `f.requestedBy !== uid` (`partitionFriendships`'s "received" bucket) — `friendships_update`'s RLS + `guard_friendships` are the actual authority (CLAUDE.md rule 8), this is UX only. */
-function ReceivedRequestRow({ friendship, person, otherId }: RowProps) {
+function ReceivedRequestRow({ friendship, person, otherId, write }: RowProps) {
   const updateStatus = useUpdateFriendshipStatus();
   const [pendingAction, setPendingAction] = React.useState<'accepted' | 'rejected' | null>(null);
 
   async function handle(status: 'accepted' | 'rejected') {
+    if (refuseIfOffline()) return;
     setPendingAction(status);
     try {
       await updateStatus.mutateAsync({ id: friendship.id, status });
       notifySuccess(status === 'accepted' ? 'Friend request accepted' : 'Friend request declined');
-    } catch {
-      notifyError('Could not update this request');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not update this request'));
     } finally {
       setPendingAction(null);
     }
@@ -208,7 +218,13 @@ function ReceivedRequestRow({ friendship, person, otherId }: RowProps) {
     <li className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3">
       <PersonBadge person={person ?? { id: otherId, name: null, avatarUrl: null }} />
       <div className="flex gap-2">
-        <Button type="button" onClick={() => handle('accepted')} disabled={updateStatus.isPending} aria-busy={pendingAction === 'accepted'}>
+        <Button
+          type="button"
+          onClick={() => handle('accepted')}
+          disabled={updateStatus.isPending}
+          aria-busy={pendingAction === 'accepted'}
+          {...write.blocked}
+        >
           Accept
         </Button>
         <Button
@@ -217,6 +233,7 @@ function ReceivedRequestRow({ friendship, person, otherId }: RowProps) {
           onClick={() => handle('rejected')}
           disabled={updateStatus.isPending}
           aria-busy={pendingAction === 'rejected'}
+          {...write.blocked}
         >
           Reject
         </Button>
@@ -225,28 +242,29 @@ function ReceivedRequestRow({ friendship, person, otherId }: RowProps) {
   );
 }
 
-function FriendRow({ friendship, person, otherId }: RowProps) {
+function FriendRow({ friendship, person, otherId, write }: RowProps) {
   const name = person?.name ?? 'Unknown';
   return (
     <li className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3">
       <a href={withBase(`/friends/${otherId}`)} className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={name}>
         <PersonBadge person={person ?? { id: otherId, name: null, avatarUrl: null }} />
       </a>
-      <RemoveFriendDialog friendshipId={friendship.id} name={name} />
+      <RemoveFriendDialog friendshipId={friendship.id} name={name} write={write} />
     </li>
   );
 }
 
 /** Cancel = the requester deletes the pending row (plan B13) — this row only ever renders in the "sent" bucket (`f.requestedBy === uid`). */
-function SentRequestRow({ friendship, person }: RowProps) {
+function SentRequestRow({ friendship, person, write }: RowProps) {
   const removeFriendship = useRemoveFriendship();
 
   async function handleCancel() {
+    if (refuseIfOffline()) return;
     try {
       await removeFriendship.mutateAsync(friendship.id);
       notifySuccess('Friend request canceled');
-    } catch {
-      notifyError('Could not cancel this request');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not cancel this request'));
     }
   }
 
@@ -259,6 +277,7 @@ function SentRequestRow({ friendship, person }: RowProps) {
         onClick={handleCancel}
         disabled={removeFriendship.isPending}
         aria-busy={removeFriendship.isPending}
+        {...write.blocked}
       >
         Cancel
       </Button>
@@ -277,15 +296,16 @@ function SentRequestRow({ friendship, person }: RowProps) {
  * either party). The requester never sees any of this: their own view of a
  * rejected row has no bucket at all (recipient privacy).
  */
-function DeclinedRequestRow({ friendship, person }: RowProps) {
+function DeclinedRequestRow({ friendship, person, write }: RowProps) {
   const removeFriendship = useRemoveFriendship();
 
   async function handleUndo() {
+    if (refuseIfOffline()) return;
     try {
       await removeFriendship.mutateAsync(friendship.id);
       notifySuccess('Declined request removed');
-    } catch {
-      notifyError('Could not remove this request');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not remove this request'));
     }
   }
 
@@ -298,6 +318,7 @@ function DeclinedRequestRow({ friendship, person }: RowProps) {
         onClick={handleUndo}
         disabled={removeFriendship.isPending}
         aria-busy={removeFriendship.isPending}
+        {...write.blocked}
       >
         Undo
       </Button>

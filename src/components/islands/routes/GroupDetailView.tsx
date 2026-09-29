@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { AttachRowsPanel } from '@/components/features/groups/AttachRowsPanel';
 import { DeleteGroupDialog } from '@/components/features/groups/DeleteGroupDialog';
 import { MembersSection } from '@/components/features/groups/MembersSection';
@@ -20,6 +21,7 @@ import { useFriends } from '@/lib/data/hooks/useFriends';
 import { useGroup } from '@/lib/data/hooks/useGroup';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { withBase } from '@/lib/href';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import type { ExpenseGroup } from '@/schemas/group';
 import { $user } from '@/stores/auth';
@@ -93,6 +95,9 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
   const user = useStore($user);
   const uid = user?.uid ?? '';
   const isAdmin = group.adminIds.includes(uid);
+  // Plan B19c (ADR 0015): this page owns ONE connection state and shows ONE sentence for its write
+  // surfaces (delete, members, attach); each is handed the state and shows none of its own.
+  const write = useCanWrite();
 
   const groupExpensesQuery = useGroupExpenses(group.id);
   const groupEventsQuery = useGroupEvents(group.id);
@@ -155,8 +160,10 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
           <h2 className="font-display text-2xl font-semibold text-foreground">{group.name}</h2>
           {group.description && <p className="mt-1 text-muted-foreground">{group.description}</p>}
         </div>
-        {isAdmin && <DeleteGroupDialog groupId={group.id} name={group.name} />}
+        {isAdmin && <DeleteGroupDialog groupId={group.id} name={group.name} write={write} />}
       </div>
+
+      {(isAdmin || attachableExpenses.length > 0 || attachableEvents.length > 0) && <OfflineWriteNotice write={write} />}
 
       <div className="flex flex-col gap-2">
         <CurrencySelector
@@ -187,6 +194,7 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
         names={names}
         uid={uid}
         friendCandidates={friendCandidates}
+        write={write}
       />
 
       <div>
@@ -240,7 +248,7 @@ function GroupDetailLoaded({ group }: { group: ExpenseGroup }) {
         )}
       </div>
 
-      <AttachRowsPanel groupId={group.id} attachableExpenses={attachableExpenses} attachableEvents={attachableEvents} />
+      <AttachRowsPanel groupId={group.id} attachableExpenses={attachableExpenses} attachableEvents={attachableEvents} write={write} />
     </div>
   );
 }

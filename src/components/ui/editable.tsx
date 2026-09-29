@@ -19,6 +19,14 @@ export interface EditableProps {
   onValueCommit?: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Keeps the text readable but starts no edit (plan B19c: an inline edit is a
+   * write, blocked while offline). Unlike `disabled`, the Edit button stays
+   * focusable and is announced `aria-disabled`, described by `describedBy`.
+   */
+  readOnly?: boolean;
+  /** Id of the element explaining why the edit is unavailable; used only while `readOnly`. */
+  describedBy?: string;
   className?: string;
   /** @default 'click' — clicking the preview text (or the edit button) enters edit mode. */
   activationMode?: 'focus' | 'dblclick' | 'click' | 'none';
@@ -31,6 +39,8 @@ function Editable({
   onValueCommit,
   placeholder = 'Click to edit…',
   disabled,
+  readOnly,
+  describedBy,
   className,
   activationMode = 'click',
 }: EditableProps) {
@@ -52,6 +62,7 @@ function Editable({
     value,
     defaultValue,
     disabled,
+    readOnly,
     placeholder,
     activationMode,
     onValueChange: (details) => onValueChange?.(details.value),
@@ -107,6 +118,7 @@ function Editable({
             size="icon"
             className="size-7"
             aria-label="Edit"
+            {...(readOnly ? { 'aria-disabled': true, 'aria-describedby': describedBy } : {})}
           >
             <PencilIcon className="size-3.5" />
           </Button>

@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { useSendFriendRequest } from '@/lib/data/hooks/useSendFriendRequest';
 import { FriendshipAlreadyExistsError } from '@/lib/data/repos/friendships';
 import { LookupRateLimitedError } from '@/lib/data/repos/profiles';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, type WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { AddFriendFormValuesSchema, type AddFriendFormValues } from '@/schemas/friend-request-form';
 import { notifyError, notifySuccess } from '@/stores/notifications';
@@ -18,6 +21,12 @@ export interface AddFriendFormProps {
   selfEmail: string | null;
   /** The signed-in user's own display name, optionally included in the unregistered-email invite's mailto body. */
   inviterName: string | null;
+  /**
+   * The page's connection state (plan B19c, ADR 0015). A page that shows one
+   * sentence for all its write controls passes its own; standing alone the form
+   * reads the connection itself and shows its own sentence.
+   */
+  write?: WriteState;
 }
 
 /**
@@ -32,7 +41,9 @@ export interface AddFriendFormProps {
  * no personal data beyond the inviter's own name. Past the server-side lookup
  * limit (plan B2d, ADR 0013) a fixed inline sentence is shown instead.
  */
-export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProps) {
+export function AddFriendForm({ uid, selfEmail, inviterName, write: pageWrite }: AddFriendFormProps) {
+  const ownWrite = useCanWrite();
+  const write = pageWrite ?? ownWrite;
   const form = useForm<AddFriendFormValues>({
     resolver: zodResolver(AddFriendFormValuesSchema),
     defaultValues: { email: '' },
@@ -65,7 +76,7 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
       } else if (error instanceof FriendshipAlreadyExistsError) {
         notifyError('You already have a request or friendship with this person');
       } else {
-        notifyError('Could not send this friend request. Please try again.');
+        notifyError(writeErrorMessage(error, 'Could not send this friend request. Please try again.'));
       }
     }
   }
@@ -73,7 +84,14 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
   return (
     <div className="flex flex-col gap-4">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleValid)} noValidate className="flex flex-wrap items-end gap-3">
+        <form
+          onSubmit={(event) => {
+            if (refuseIfOffline(event)) return;
+            return form.handleSubmit(handleValid)(event);
+          }}
+          noValidate
+          className="flex flex-wrap items-end gap-3"
+        >
           <FormField
             control={form.control}
             name="email"
@@ -87,11 +105,12 @@ export function AddFriendForm({ uid, selfEmail, inviterName }: AddFriendFormProp
               </FormItem>
             )}
           />
-          <Button type="submit" disabled={sendRequest.isPending} aria-busy={sendRequest.isPending}>
+          <Button type="submit" disabled={sendRequest.isPending} aria-busy={sendRequest.isPending} {...write.blocked}>
             Send request
           </Button>
         </form>
       </Form>
+      {!pageWrite && <OfflineWriteNotice write={write} />}
 
       {rateLimited && (
         <p role="alert" className="text-sm text-destructive">

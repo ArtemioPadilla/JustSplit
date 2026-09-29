@@ -27,6 +27,8 @@ import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useSettlements } from '@/lib/data/hooks/useSettlements';
 import { $preferredCurrency, clearRateCache } from '@/stores/preferences';
 import { $profile, $user, updateProfile } from '@/stores/auth';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
@@ -76,6 +78,8 @@ function DashboardContent() {
   const profile = useStore($profile);
   const preferredCurrency = useStore($preferredCurrency);
   const uid = user?.uid;
+  // Plan B19c (ADR 0015): the preferred currency writes the profile; the header shows the one sentence when it is blocked.
+  const write = useCanWrite();
 
   const expensesQuery = useExpenses(uid);
   const eventsQuery = useEvents(uid);
@@ -141,14 +145,15 @@ function DashboardContent() {
 
   const handleCurrencyChange = React.useCallback(
     async (code: string) => {
+      if (refuseIfOffline()) return;
       try {
         // buildPreferencesPatch (plan B15): spreads the CURRENT preferences
         // before overwriting preferredCurrency — SupabaseProfileStore.update
         // upserts `preferences` as a whole column value, so a bare
         // `{ preferredCurrency }` would silently wipe `phoneNumber`.
         await updateProfile({ preferences: buildPreferencesPatch(profile?.preferences, { preferredCurrency: code }) });
-      } catch {
-        notifyError('Could not update your preferred currency');
+      } catch (error) {
+        notifyError(writeErrorMessage(error, 'Could not update your preferred currency'));
       }
     },
     [profile],
@@ -211,6 +216,7 @@ function DashboardContent() {
         currency={preferredCurrency}
         onCurrencyChange={handleCurrencyChange}
         onRefreshRates={handleRefreshRates}
+        write={write}
       />
 
       <CurrencyExchangeTicker />

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { useRemoveSettlement } from '@/lib/data/hooks/useRemoveSettlement';
 import { SettlementDeleteNotAllowedError } from '@/lib/data/repos/settlements';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, type WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { money, personName } from './labels';
@@ -23,6 +26,8 @@ export interface UndoSettlementDialogProps {
   names: Record<string, string>;
   /** Where focus goes after a successful undo, because the row it started from is gone. */
   returnFocusTo?: React.RefObject<HTMLElement | null>;
+  /** The page's connection state (plan B19c, ADR 0015), for the trigger; the shell always passes one. */
+  write?: WriteState;
 }
 
 const NOT_ALLOWED = 'Only the person who recorded this payment can undo it.';
@@ -42,9 +47,15 @@ export function UndoSettlementDialogImpl({
   viewerId,
   names,
   returnFocusTo,
+  write: triggerWrite,
   defaultOpen = false,
 }: UndoSettlementDialogProps & { defaultOpen?: boolean }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  // The trigger follows the page's state (one sentence per page); the dialog has its own, because it can
+  // be open when the connection drops and its confirm button must say why it is blocked.
+  const inDialog = useCanWrite();
+  const ownTrigger = useCanWrite();
+  const trigger = triggerWrite ?? ownTrigger;
   const [failure, setFailure] = React.useState<string | null>(null);
   const undoneRef = React.useRef(false);
   const removeSettlement = useRemoveSettlement();
@@ -57,6 +68,7 @@ export function UndoSettlementDialogImpl({
   const amount = money(settlement.amount, settlement.currency);
 
   async function handleConfirm() {
+    if (refuseIfOffline()) return;
     setFailure(null);
     try {
       await removeSettlement.mutateAsync(settlement.id);
@@ -65,7 +77,7 @@ export function UndoSettlementDialogImpl({
       setOpen(false);
     } catch (error) {
       // Never the raw error: `remove()`'s messages are for developers.
-      const message = error instanceof SettlementDeleteNotAllowedError ? NOT_ALLOWED : FAILED;
+      const message = error instanceof SettlementDeleteNotAllowedError ? NOT_ALLOWED : writeErrorMessage(error, FAILED);
       setFailure(message);
       notifyError(message);
     }
@@ -75,6 +87,7 @@ export function UndoSettlementDialogImpl({
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (next && refuseIfOffline()) return;
         if (next) {
           undoneRef.current = false;
           setFailure(null);
@@ -82,7 +95,12 @@ export function UndoSettlementDialogImpl({
         setOpen(next);
       }}
     >
-      <DialogTrigger ref={triggerRef} aria-label={`Undo payment from ${from} to ${to}, ${amount}`} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+      <DialogTrigger
+        ref={triggerRef}
+        aria-label={`Undo payment from ${from} to ${to}, ${amount}`}
+        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+        {...trigger.blocked}
+      >
         Undo
       </DialogTrigger>
       <DialogContent finalFocus={() => (undoneRef.current && returnFocusTo?.current ? returnFocusTo.current : (triggerRef.current ?? true))}>
@@ -97,6 +115,7 @@ export function UndoSettlementDialogImpl({
             {failure}
           </p>
         )}
+        <OfflineWriteNotice write={inDialog} />
         <DialogFooter>
           <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Keep it</DialogClose>
           <button
@@ -105,6 +124,7 @@ export function UndoSettlementDialogImpl({
             disabled={removeSettlement.isPending}
             aria-busy={removeSettlement.isPending}
             className={cn(buttonVariants({ variant: 'destructive' }))}
+            {...inDialog.blocked}
           >
             Undo payment
           </button>

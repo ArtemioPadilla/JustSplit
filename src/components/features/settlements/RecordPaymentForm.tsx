@@ -2,6 +2,7 @@ import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import { DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -11,6 +12,8 @@ import { round2 } from '@/domain/ledger';
 import { exceedsOwed } from '@/domain/settlements';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useSettleUp } from '@/lib/data/hooks/useSettleUp';
+import { refuseIfOffline } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import {
   RecordPaymentFormSchema,
@@ -29,12 +32,14 @@ import { money, personName } from './labels';
  * `/settlements` does not need until someone records a payment. It mounts only
  * while the dialog is open, so it starts from the current suggestion every time.
  */
-export interface RecordPaymentFormProps extends Omit<RecordPaymentDialogProps, 'returnFocusTo'> {
+export interface RecordPaymentFormProps extends Omit<RecordPaymentDialogProps, 'returnFocusTo' | 'write'> {
   onSaved: () => void;
 }
 
 export default function RecordPaymentForm({ suggestion, displayCurrency, viewerId, names, eventId, eventName, onSaved }: RecordPaymentFormProps) {
   const settleUp = useSettleUp();
+  // Plan B19c (ADR 0015): the form can be open when the connection drops; Save says why it is blocked.
+  const write = useCanWrite();
   const [failure, setFailure] = React.useState<string | null>(null);
 
   const owed = round2(suggestion.amount);
@@ -94,7 +99,14 @@ export default function RecordPaymentForm({ suggestion, displayCurrency, viewerI
       </DialogHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="grid gap-4">
+        <form
+          onSubmit={(event) => {
+            if (refuseIfOffline(event)) return;
+            return form.handleSubmit(onSubmit)(event);
+          }}
+          noValidate
+          className="grid gap-4"
+        >
           <FormField
             control={form.control}
             name="amount"
@@ -143,9 +155,11 @@ export default function RecordPaymentForm({ suggestion, displayCurrency, viewerI
             </p>
           )}
 
+          <OfflineWriteNotice write={write} />
+
           <DialogFooter>
             <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
-            <button type="submit" disabled={saving} aria-busy={saving} className={cn(buttonVariants({ variant: 'default' }))}>
+            <button type="submit" disabled={saving} aria-busy={saving} className={cn(buttonVariants({ variant: 'default' }))} {...write.blocked}>
               {saving ? 'Saving…' : 'Save payment'}
             </button>
           </DialogFooter>

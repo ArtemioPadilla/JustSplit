@@ -1,6 +1,8 @@
 import * as React from 'react';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import { LazyDialog } from '@/components/ui/lazy-dialog';
+import { useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { personName } from './labels';
 
@@ -32,6 +34,8 @@ export interface RecordPaymentDialogProps {
    * and Escape still return to the trigger.
    */
   returnFocusTo?: React.RefObject<HTMLElement | null>;
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the dialog reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /**
@@ -44,17 +48,24 @@ export function RecordPaymentDialog(props: RecordPaymentDialogProps) {
   const { suggestion, viewerId, names } = props;
   const from = personName(suggestion.fromUser, viewerId, names);
   const to = personName(suggestion.toUser, viewerId, names);
+  // A blocked stand-in never loads the dialog. On a page that owns the state (the settlements list) there
+  // is one sentence for every row; standing alone, this shows its own.
+  const { write, owned } = useSharedWrite(props.write);
   return (
-    <LazyDialog
-      impl={RecordPaymentDialogImpl}
-      load={load}
-      implProps={props}
-      triggerProps={{
-        'aria-label': `Record payment from ${from} to ${to}`,
-        className: cn(buttonVariants({ variant: 'default', size: 'sm' })),
-      }}
-    >
-      Record payment
-    </LazyDialog>
+    <>
+      <LazyDialog
+        impl={RecordPaymentDialogImpl}
+        load={load}
+        implProps={{ ...props, write }}
+        triggerProps={{
+          'aria-label': `Record payment from ${from} to ${to}`,
+          className: cn(buttonVariants({ variant: 'default', size: 'sm' })),
+          ...write.blocked,
+        }}
+      >
+        Record payment
+      </LazyDialog>
+      {owned && <OfflineWriteNotice write={write} />}
+    </>
   );
 }

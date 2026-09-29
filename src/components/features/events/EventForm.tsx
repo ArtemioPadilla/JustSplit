@@ -21,7 +21,10 @@ import { useGroup } from '@/lib/data/hooks/useGroup';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useUpdateEvent } from '@/lib/data/hooks/useUpdateEvent';
 import { EventNotFoundError } from '@/lib/data/repos/events';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import type { Event } from '@/schemas/event';
 import { EventFormValuesSchema, type EventFormValues } from '@/schemas/event-form';
@@ -172,6 +175,8 @@ function EventFormFields({ mode, event, uid, poolIds, friendIds, group, groupHid
     return profilesQuery.isPending ? 'Loading…' : 'Unknown';
   };
 
+  // Plan B19c (ADR 0015): with no connection Save is blocked and explained; what was typed stays put.
+  const write = useCanWrite();
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const pending = createEvent.isPending || updateEvent.isPending;
@@ -228,8 +233,8 @@ function EventFormFields({ mode, event, uid, poolIds, friendIds, group, groupHid
         // renders (plan B17b amendment, ADR 0008).
         notifySuccess('Event created', { afterNavigation: true });
         window.location.assign(withBase(`/events/${created.id}`));
-      } catch {
-        notifyError('Could not create this event. Please try again.');
+      } catch (error) {
+        notifyError(writeErrorMessage(error, 'Could not create this event. Please try again.'));
       }
       return;
     }
@@ -251,7 +256,7 @@ function EventFormFields({ mode, event, uid, poolIds, friendIds, group, groupHid
       notifyError(
         error instanceof EventNotFoundError
           ? 'This event no longer exists, or you can’t edit it any more.'
-          : 'Could not save your changes. Please try again.',
+          : writeErrorMessage(error, 'Could not save your changes. Please try again.'),
       );
     }
   }
@@ -261,7 +266,14 @@ function EventFormFields({ mode, event, uid, poolIds, friendIds, group, groupHid
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleValid)} noValidate className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
+      <form
+        onSubmit={(event) => {
+          if (refuseIfOffline(event)) return;
+          return form.handleSubmit(handleValid)(event);
+        }}
+        noValidate
+        className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10"
+      >
         {/* Not an <h1> on purpose: the mounting island/route view owns the page's ONE <h1>, sr-only and
             OUTSIDE the auth-gated subtree, so axe's `page-has-heading-one` passes in every auth state. */}
         <p className="font-display text-2xl font-semibold text-foreground">{mode === 'create' ? 'New event' : 'Edit event'}</p>
@@ -402,8 +414,9 @@ function EventFormFields({ mode, event, uid, poolIds, friendIds, group, groupHid
           </p>
         )}
 
+        <OfflineWriteNotice write={write} />
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending} aria-busy={pending}>
+          <Button type="submit" disabled={pending} aria-busy={pending} {...write.blocked}>
             {pending ? (mode === 'create' ? 'Creating…' : 'Saving…') : mode === 'create' ? 'Create event' : 'Save changes'}
           </Button>
           <a href={cancelHref} className={cn(buttonVariants({ variant: 'ghost' }))}>

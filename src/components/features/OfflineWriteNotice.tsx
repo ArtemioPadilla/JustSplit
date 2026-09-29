@@ -15,6 +15,7 @@ export function OfflineWriteNotice({ write, className }: { write: WriteState; cl
   return (
     <p
       id={write.noticeId}
+      data-offline-notice=""
       className={cn('rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground', className)}
     >
       {OFFLINE_WRITE_MESSAGE}

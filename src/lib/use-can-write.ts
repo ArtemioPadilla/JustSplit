@@ -44,3 +44,15 @@ export function useCanWrite(): WriteState {
     blocked: canWrite ? undefined : { 'aria-disabled': true, 'aria-describedby': noticeId },
   };
 }
+
+/**
+ * For a write component that a page may or may not own the connection state for
+ * (plan B19c): a page that shows ONE sentence for all its write controls passes
+ * its `WriteState` down; standing alone, the component reads the connection itself
+ * (`owned`) and shows its own sentence. The hook is always called, never
+ * conditionally, so the rules of hooks hold either way.
+ */
+export function useSharedWrite(pageWrite: WriteState | undefined): { write: WriteState; owned: boolean } {
+  const own = useCanWrite();
+  return { write: pageWrite ?? own, owned: pageWrite === undefined };
+}
