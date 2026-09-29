@@ -95,7 +95,8 @@ export function ProfileForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your profile</CardTitle>
+        {/* Level 2: the island's sr-only <h1> is right above, and the sections below are h3 (axe heading-order, plan A7). */}
+        <CardTitle role="heading" aria-level={2}>Your profile</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <AvatarUploadField uid={uid} name={profile.name ?? 'Account'} avatarPath={profile.avatarUrl} />
