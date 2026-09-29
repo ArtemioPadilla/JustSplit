@@ -4,6 +4,8 @@ import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `AvatarUploadField` (plan B15, risk:high — avatar replace ordering).
@@ -188,5 +190,78 @@ describe('AvatarUploadField layout (375px)', () => {
     expect(upload.className).toMatch(/(^|\s)w-full(\s|$)/);
     expect(upload.className).toMatch(/(^|\s)max-w-64(\s|$)/);
     expect((upload.parentElement as HTMLElement).className).toMatch(/(^|\s)min-w-0(\s|$)/);
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): a photo is upload -> profile update -> old-object removal; never start it offline. */
+describe('AvatarUploadField — offline (plan B19c)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:mock-url'), revokeObjectURL: vi.fn() });
+  });
+
+  afterEach(() => {
+    restoreOnLine();
+    vi.unstubAllGlobals();
+  });
+
+  it('Save photo is blocked and explained, keeps the chosen file, and works again on reconnect', async () => {
+    uploadAvatar.mockResolvedValue('avatars/u1/new-uuid.jpg');
+    updateProfile.mockResolvedValue(undefined);
+    removeAvatar.mockResolvedValue(undefined);
+    render(<AvatarUploadField uid="u1" name="Ana" avatarPath="avatars/u1/old-uuid.jpg" />);
+    selectFile();
+
+    setOnLine(false);
+    const save = screen.getByRole('button', { name: /save photo/i });
+    expectBlocked(save);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    fireEvent.click(save);
+    expect(uploadAvatar).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /remove selection/i })).toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(save);
+    expect(visibleNotices()).toHaveLength(0);
+    fireEvent.click(save);
+    await waitFor(() => expect(notifySuccess).toHaveBeenCalled());
+    expect(uploadAvatar).toHaveBeenCalledTimes(1);
+  });
+
+  it('a page that owns the state shows no second sentence of its own', () => {
+    const write = { canWrite: false, noticeId: 'page-notice', blocked: { 'aria-disabled': true as const, 'aria-describedby': 'page-notice' } };
+    render(
+      <>
+        <p id="page-notice">{OFFLINE_SENTENCE}</p>
+        <AvatarUploadField uid="u1" name="Ana" avatarPath={null} write={write} />
+      </>,
+    );
+    selectFile();
+    expect(visibleNotices()).toHaveLength(0);
+    expect(screen.getByRole('button', { name: /save photo/i })).toHaveAccessibleDescription(OFFLINE_SENTENCE);
+  });
+
+  it('a connection that drops after the upload takes the failure path: the plain message, never success', async () => {
+    uploadAvatar.mockResolvedValue('avatars/u1/new-uuid.jpg');
+    updateProfile.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    removeAvatar.mockRejectedValue(new TypeError('Failed to fetch'));
+    render(<AvatarUploadField uid="u1" name="Ana" avatarPath="avatars/u1/old-uuid.jpg" />);
+    selectFile();
+    fireEvent.click(screen.getByRole('button', { name: /save photo/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not update your profile photo. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the data layer refusing an offline write reads as the shared sentence', async () => {
+    uploadAvatar.mockRejectedValue(new OfflineWriteError());
+    render(<AvatarUploadField uid="u1" name="Ana" avatarPath={null} />);
+    selectFile();
+    fireEvent.click(screen.getByRole('button', { name: /save photo/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+    expect(notifySuccess).not.toHaveBeenCalled();
   });
 });

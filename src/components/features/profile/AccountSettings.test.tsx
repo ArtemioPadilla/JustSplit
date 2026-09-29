@@ -4,6 +4,8 @@ import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `AccountSettings` (plan B15, risk:high): change password (`updatePassword`,
@@ -155,3 +157,80 @@ describe('AccountSettings heading structure', () => {
     ]);
   });
 });
+
+/**
+ * Plan B19c (risk:high, ADR 0015): changing the password is a write. Signing out and resetting local data are not
+ * data writes and stay available: leaving must never be blocked by a bad connection.
+ */
+describe('AccountSettings — offline (plan B19c)', () => {
+  beforeEach(() => {
+    signOut.mockReset();
+    updatePassword.mockReset();
+    notifySuccess.mockClear();
+    notifyError.mockClear();
+  });
+
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('Update password is blocked and explained, keeps the typed passwords, and works again on reconnect', async () => {
+    updatePassword.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AccountSettings />);
+    await user.type(screen.getByLabelText(/^new password$/i), 'brandnewpw1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'brandnewpw1');
+
+    setOnLine(false);
+    const update = screen.getByRole('button', { name: /update password/i });
+    expectBlocked(update);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    await user.click(update);
+    await user.type(screen.getByLabelText(/confirm new password/i), '{Enter}');
+    expect(updatePassword).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^new password$/i)).toHaveValue('brandnewpw1');
+
+    setOnLine(true);
+    expectWritable(update);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(update);
+    await waitFor(() => expect(updatePassword).toHaveBeenCalledWith('brandnewpw1'));
+  });
+
+  it('a connection that drops mid-update shows the plain failure, never success', async () => {
+    updatePassword.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    render(<AccountSettings />);
+    await user.type(screen.getByLabelText(/^new password$/i), 'brandnewpw1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'brandnewpw1');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not update your password. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the store refusing an offline write reads as the shared sentence', async () => {
+    updatePassword.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    render(<AccountSettings />);
+    await user.type(screen.getByLabelText(/^new password$/i), 'brandnewpw1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'brandnewpw1');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+  });
+
+  it('sign out and reset local data are not writes: they stay enabled offline', () => {
+    render(<AccountSettings />);
+    setOnLine(false);
+    expectNotBlocked(screen.getByRole('button', { name: /sign out everywhere/i }));
+    expectNotBlocked(screen.getByRole('button', { name: /reset local data/i }));
+  });
+});
+
+function expectNotBlocked(control: HTMLElement) {
+  expect(control).not.toHaveAttribute('aria-disabled');
+  expect(control).not.toBeDisabled();
+}

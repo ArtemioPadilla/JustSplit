@@ -7,6 +7,7 @@ import type { AuthUser } from '@cyber-eco/types';
 import type { ExpenseGroup } from '@/schemas/group';
 import { ExpenseGroupSchema } from '@/schemas/group';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OFFLINE_SENTENCE, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `GroupDetailView` (plan B12, risk:high) — the `/groups/<id>` route view,
@@ -241,5 +242,42 @@ describe('GroupDetailView', () => {
 
     expect(screen.getByRole('link', { name: /new event/i })).toHaveAttribute('href', '/events/new?group=g1');
     expect(screen.getByRole('link', { name: 'Dinner' })).toHaveAttribute('href', '/events/ev1');
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the page owns ONE connection state and ONE sentence; the delete dialog, the members
+ * section and the attach panel are handed that state (they show no sentence of their own).
+ */
+describe('GroupDetailView — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('shows one sentence for an admin and hands the same state to the three write surfaces, before and after going offline', () => {
+    useGroup.mockReturnValue({ data: makeGroup({ adminIds: ['u1'] }), isLoading: false, isError: false, refetch: vi.fn() });
+    const { container } = render(<GroupDetailView id="g1" />);
+    expect(visibleNotices(container)).toHaveLength(0);
+
+    setOnLine(false);
+    expect(visibleNotices(container)).toHaveLength(1);
+    expect(visibleNotices(container)[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    const lastProps = (spy: { mock: { calls: unknown[] } }) => (spy.mock.calls.at(-1) as unknown as [{ write: { canWrite: boolean; noticeId: string } }])[0];
+    const states = [MembersSection, AttachRowsPanel, DeleteGroupDialog].map(lastProps);
+    for (const props of states) expect(props.write).toMatchObject({ canWrite: false, noticeId: visibleNotices(container)[0]!.id });
+
+    setOnLine(true);
+    expect(visibleNotices(container)).toHaveLength(0);
+    for (const spy of [MembersSection, AttachRowsPanel, DeleteGroupDialog]) {
+      expect((spy.mock.calls.at(-1) as unknown as [{ write: { canWrite: boolean } }])[0].write.canWrite).toBe(true);
+    }
+  });
+
+  it('a non-admin with nothing to attach sees no sentence: there is nothing here they could write', () => {
+    $user.set({ ...USER, uid: 'u2' });
+    useGroup.mockReturnValue({ data: makeGroup({ adminIds: ['u1'] }), isLoading: false, isError: false, refetch: vi.fn() });
+    const { container } = render(<GroupDetailView id="g1" />);
+    setOnLine(false);
+    expect(visibleNotices(container)).toHaveLength(0);
   });
 });

@@ -9,6 +9,8 @@ import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
 import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `EventDetailView` (plan B11b) — the `/events/<id>` route view, loaded lazily
@@ -571,4 +573,57 @@ describe('EventDetailView — expenses, timeline, links', () => {
     expect(props.expenses.map((e) => e.id).sort()).toEqual(['exp1', 'exp2', 'exp3']);
     expect(props.filename).toBe('Test Event-expenses.csv');
   });
+});
+
+/** Plan B19c (risk:high, ADR 0015): renaming the event inline is a write; see `ExpenseDetailView.test.tsx`. */
+describe('EventDetailView — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it(
+    'blocks the inline rename with one sentence, starts no edit, and re-enables it on reconnect',
+    async () => {
+      const user = userEvent.setup();
+      render(<EventDetailView id="e1" />);
+      await screen.findByText('Test Event');
+
+      setOnLine(false);
+      const edit = screen.getByRole('button', { name: 'Edit' });
+      expectBlocked(edit);
+      expect(visibleNotices()).toHaveLength(1);
+      expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+      await user.click(screen.getByText('Test Event'));
+      await user.click(edit);
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(updateMutateAsync).not.toHaveBeenCalled();
+
+      setOnLine(true);
+      expectWritable(screen.getByRole('button', { name: 'Edit' }));
+      expect(visibleNotices()).toHaveLength(0);
+      await user.click(screen.getByText('Test Event'));
+      expect(await screen.findByRole('textbox', {}, WAIT_OPTS)).toHaveValue('Test Event');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'a rename open when the connection drops is refused by the data layer: the name reverts and the sentence is shown',
+    async () => {
+      updateMutateAsync.mockRejectedValue(new OfflineWriteError());
+      const user = userEvent.setup();
+      render(<EventDetailView id="e1" />);
+      await screen.findByText('Test Event');
+      await user.click(screen.getByText('Test Event'));
+      const input = await screen.findByRole('textbox', {}, WAIT_OPTS);
+      await user.clear(input);
+      await user.type(input, 'Renamed');
+      await waitFor(() => expect(input).toHaveValue('Renamed'), WAIT_OPTS);
+      setOnLine(false);
+      await user.type(input, '{Enter}');
+      await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE), WAIT_OPTS);
+      expect(await screen.findByText('Test Event', {}, WAIT_OPTS)).toBeInTheDocument();
+    },
+    TEST_TIMEOUT,
+  );
 });

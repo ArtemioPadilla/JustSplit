@@ -4,6 +4,8 @@ import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * Plan B13, ADR 0006. Behavior contracts:
@@ -133,5 +135,70 @@ describe('AddFriendForm', () => {
     await user.type(screen.getByLabelText(/email/i), 'beto@example.com');
     await user.click(screen.getByRole('button', { name: /send request/i }));
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not send this friend request. Please try again.'));
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx` for the contract. */
+describe('AddFriendForm — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('Send request is blocked and explained, keeps the typed email, and works again on reconnect', async () => {
+    mutateAsync.mockResolvedValue({ kind: 'sent', friendship: { id: 'f1' }, name: 'Beto' });
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText(/email/i), 'beto@example.com');
+
+    setOnLine(false);
+    const send = screen.getByRole('button', { name: /send request/i });
+    expectBlocked(send);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+
+    await user.click(send);
+    await user.type(screen.getByLabelText(/email/i), '{Enter}');
+    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/email/i)).toHaveValue('beto@example.com');
+
+    setOnLine(true);
+    expectWritable(send);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(send);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ uid: 'u1', email: 'beto@example.com' }));
+  });
+
+  it('a page that owns the state shows no second sentence of its own', () => {
+    const write = { canWrite: false, noticeId: 'page-notice', blocked: { 'aria-disabled': true as const, 'aria-describedby': 'page-notice' } };
+    render(
+      <>
+        <p id="page-notice">{OFFLINE_SENTENCE}</p>
+        <AddFriendForm uid="u1" selfEmail={null} inviterName={null} write={write} />
+      </>,
+    );
+    expect(visibleNotices()).toHaveLength(0);
+    expect(screen.getByRole('button', { name: /send request/i })).toHaveAccessibleDescription(OFFLINE_SENTENCE);
+  });
+
+  it('a connection that drops mid-submit shows the plain failure, never success', async () => {
+    mutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText(/email/i), 'beto@example.com');
+    await user.click(screen.getByRole('button', { name: /send request/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not send this friend request. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    mutateAsync.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    renderForm();
+    await user.type(screen.getByLabelText(/email/i), 'beto@example.com');
+    await user.click(screen.getByRole('button', { name: /send request/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });

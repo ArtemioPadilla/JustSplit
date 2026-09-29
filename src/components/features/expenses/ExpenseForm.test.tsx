@@ -25,6 +25,8 @@ import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 
 /**
  * Plan B10 (risk:high). Covers: field validation, the splitter's sum gate
@@ -557,5 +559,105 @@ describe('ExpenseForm — heading ownership', () => {
   it('never renders its own <h1> — the mounting island/route view owns the page\'s one <h1> outside the auth gate (axe page-has-heading-one)', () => {
     render(<ExpenseForm mode="create" />);
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): with no connection Save is `aria-disabled`
+ * with the shared sentence next to it, nothing is sent, nothing typed is lost,
+ * and the button works again on reconnect with no reload. A connection that
+ * drops MID-submit takes the existing error path: the plain failure text, never
+ * a success.
+ */
+describe('ExpenseForm — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  async function fillCreate(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByRole('checkbox', { name: 'Ana' });
+    await user.type(screen.getByLabelText(/description/i), 'Tacos');
+    await user.type(screen.getByLabelText(/^amount$/i), '100');
+  }
+
+  it('create: Save is blocked and explained, keeps what was typed, and works again on reconnect', async () => {
+    const location = stubLocationAssign();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+    await fillCreate(user);
+    expect(screen.queryByText(OFFLINE_SENTENCE)).not.toBeInTheDocument();
+
+    setOnLine(false);
+    const save = screen.getByRole('button', { name: /save expense/i });
+    expectBlocked(save);
+    expect(screen.getByText(OFFLINE_SENTENCE)).toBeVisible();
+
+    await user.click(save);
+    await user.type(screen.getByLabelText(/description/i), '{Enter}'); // Enter submits a form too
+    expect(createMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/description/i)).toHaveValue('Tacos');
+    expect(screen.getByLabelText(/^amount$/i)).toHaveValue('100');
+
+    setOnLine(true);
+    expectWritable(save);
+    expect(screen.queryByText(OFFLINE_SENTENCE)).not.toBeInTheDocument();
+    await user.click(save);
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+    location.restore();
+  });
+
+  it('create: a connection that drops mid-submit shows the plain failure, never success, and keeps the form', async () => {
+    createMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const location = stubLocationAssign();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+    await fillCreate(user);
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not save this expense. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(location.assign).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/description/i)).toHaveValue('Tacos');
+    location.restore();
+  });
+
+  it('create: the repo refusing an offline write reads as the shared sentence', async () => {
+    createMutateAsync.mockRejectedValue(new OfflineWriteError());
+    const location = stubLocationAssign();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="create" />);
+    await fillCreate(user);
+    await user.click(screen.getByRole('button', { name: /save expense/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    location.restore();
+  });
+
+  it('edit: Save changes and every remove-receipt button are blocked and explained, then enabled on reconnect', async () => {
+    const location = stubLocationAssign();
+    const user = userEvent.setup();
+    render(<ExpenseForm mode="edit" expense={makeExpense({ images: ['expenses/e1/a.jpg'] })} />);
+    await screen.findByRole('checkbox', { name: 'Ana' });
+
+    setOnLine(false);
+    const save = screen.getByRole('button', { name: /save changes/i });
+    const removeReceipt = screen.getByRole('button', { name: /remove existing receipt/i });
+    expectBlocked(save);
+    expectBlocked(removeReceipt);
+
+    await user.click(save);
+    await user.click(removeReceipt);
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+    expect(removeReceiptMutateAsync).not.toHaveBeenCalled();
+
+    setOnLine(true);
+    expectWritable(save);
+    expectWritable(removeReceipt);
+    await user.click(removeReceipt);
+    await waitFor(() => expect(removeReceiptMutateAsync).toHaveBeenCalledTimes(1));
+    location.restore();
   });
 });

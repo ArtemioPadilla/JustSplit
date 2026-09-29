@@ -107,3 +107,32 @@ describe('OfflineWriteNotice', () => {
     expect(button).not.toHaveAttribute('aria-describedby');
   });
 });
+
+describe('OfflineWriteNotice — one sentence for many controls', () => {
+  it('a section owns one hook call and one notice; every row control it passes the state to is described by that one sentence', () => {
+    function Row({ write, label }: { write: ReturnType<typeof useCanWrite>; label: string }) {
+      return (
+        <button type="button" {...write.blocked}>
+          {label}
+        </button>
+      );
+    }
+    function Section() {
+      const write = useCanWrite();
+      return (
+        <section>
+          <OfflineWriteNotice write={write} />
+          <Row write={write} label="Accept" />
+          <Row write={write} label="Reject" />
+        </section>
+      );
+    }
+    const { container } = render(<Section />);
+    setOnLine(false);
+
+    expect(container.querySelectorAll('[data-offline-notice]')).toHaveLength(1);
+    for (const name of ['Accept', 'Reject']) {
+      expect(screen.getByRole('button', { name })).toHaveAccessibleDescription(OFFLINE_SENTENCE);
+    }
+  });
+});

@@ -9,6 +9,7 @@ import type { Expense } from '@/schemas/expense';
 import type { Friendship } from '@/schemas/friendship';
 import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * FriendDetailView (plan B13) — the `/friends/<id>` route view, loaded
@@ -369,5 +370,40 @@ describe('FriendDetailView', () => {
       await userEvent.setup().click(await screen.findByRole('button', { name: /retry/i }));
       expect(refetch).toHaveBeenCalled();
     });
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): Remove is a write; the page shows one sentence next to it. */
+describe('FriendDetailView — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('blocks Remove with one sentence, opens nothing, and re-enables it on reconnect', async () => {
+    useFriends.mockReturnValue({
+      data: [friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' })],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+    useExpenses.mockReturnValue({ data: [], isError: false, isRetrying: false, refetch: vi.fn() });
+    useProfiles.mockReturnValue({ data: [{ id: 'u2', name: 'Beto', avatarUrl: null }] });
+    const user = userEvent.setup();
+    render(<FriendDetailView id="u2" />);
+    emit(USER);
+    await screen.findByText(/all settled up/i);
+
+    setOnLine(false);
+    const remove = screen.getByRole('button', { name: /^remove$/i });
+    expectBlocked(remove);
+    expect(visibleNotices()).toHaveLength(1);
+    await user.click(remove);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(remove);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(remove);
+    expect(await screen.findByRole('heading', { name: /remove beto\?/i })).toBeInTheDocument();
   });
 });

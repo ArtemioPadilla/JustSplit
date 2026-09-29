@@ -8,6 +8,8 @@ import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
 import type { Event } from '@/schemas/event';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * DashboardIsland (plan B8b) — the `/` route island. Composes
@@ -381,5 +383,44 @@ describe('DashboardIsland', () => {
     const retryButton = await screen.findByRole('button', { name: /retry/i });
     expect(retryButton).not.toBeDisabled();
     expect(retryButton).toHaveAttribute('aria-busy', 'false');
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): the dashboard's preferred-currency selector writes the profile, so it follows the connection. */
+describe('DashboardIsland — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  async function renderWithData() {
+    useExpenses.mockReturnValue({ data: [makeExpense({ id: 'exp1', description: 'Dinner', amount: 50, paidBy: 'u1', date: '2026-05-10' })] });
+    useEvents.mockReturnValue({ data: [] });
+    useSettlements.mockReturnValue({ data: [] });
+    useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+    render(<DashboardIsland />);
+    emit(USER);
+    await screen.findByText('Dinner');
+  }
+
+  it('blocks the currency selector with one sentence, and reading the dashboard is untouched', async () => {
+    await renderWithData();
+    expectWritable(screen.getByLabelText(/currency/i));
+
+    setOnLine(false);
+    expectBlocked(screen.getByLabelText(/currency/i));
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(screen.getByLabelText(/currency/i));
+    expect(visibleNotices()).toHaveLength(0);
+  });
+
+  it('offline the profile write is refused by the store before any request (the OfflineWriteError contract)', async () => {
+    await renderWithData();
+    setOnLine(false);
+    const { updateProfile } = await import('@/stores/auth');
+    await expect(updateProfile({ name: 'x' })).rejects.toBeInstanceOf(OfflineWriteError);
   });
 });

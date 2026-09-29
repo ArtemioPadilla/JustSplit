@@ -4,6 +4,8 @@ import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `AttachRowsPanel` (plan B12) — the group detail island's "attach
@@ -136,5 +138,70 @@ describe('AttachRowsPanel', () => {
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith("Couldn't attach these items. Please try again."));
     expect(checkbox).toBeChecked();
     expect(button).not.toBeDisabled();
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): a batch attach is a multi-row write; see `ExpenseForm.test.tsx` for the contract. */
+describe('AttachRowsPanel — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  function renderPanel() {
+    return render(
+      <AttachRowsPanel
+        groupId="g1"
+        attachableExpenses={[{ id: 'e1', description: 'Tacos' }]}
+        attachableEvents={[{ id: 'ev1', name: 'Trip' }]}
+      />,
+    );
+  }
+
+  it('blocks both attach buttons with one visible explanation, keeps the selection, and re-enables on reconnect', async () => {
+    renderPanel();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Tacos' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Trip' }));
+
+    setOnLine(false);
+    const attachExpenses = screen.getByRole('button', { name: /attach expenses/i });
+    const attachEvents = screen.getByRole('button', { name: /attach events/i });
+    expectBlocked(attachExpenses);
+    expectBlocked(attachEvents);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+
+    await userEvent.click(attachExpenses);
+    await userEvent.click(attachEvents);
+    expect(attachExpensesMutateAsync).not.toHaveBeenCalled();
+    expect(attachEventsMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', { name: 'Tacos' })).toBeChecked();
+
+    setOnLine(true);
+    expectWritable(attachExpenses);
+    expectWritable(attachEvents);
+    expect(visibleNotices()).toHaveLength(0);
+    await userEvent.click(attachExpenses);
+    await waitFor(() => expect(attachExpensesMutateAsync).toHaveBeenCalledWith({ groupId: 'g1', expenseIds: ['e1'] }));
+  });
+
+  it('a connection that drops mid-attach shows the plain failure, never success, and keeps the selection', async () => {
+    attachExpensesMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    renderPanel();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Tacos' }));
+    await userEvent.click(screen.getByRole('button', { name: /attach expenses/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith("Couldn't attach these items. Please try again."));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', { name: 'Tacos' })).toBeChecked();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    attachEventsMutateAsync.mockRejectedValueOnce(new OfflineWriteError());
+    renderPanel();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Trip' }));
+    await userEvent.click(screen.getByRole('button', { name: /attach events/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });

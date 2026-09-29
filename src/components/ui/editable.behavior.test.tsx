@@ -113,3 +113,48 @@ describe('Editable (behavior)', () => {
     TEST_TIMEOUT,
   );
 });
+
+/**
+ * Plan B19c (ADR 0015): inline edits are writes. `readOnly` keeps the text readable and the Edit button focusable
+ * (announced `aria-disabled`, described by the explanation) but starts no edit, by mouse or by keyboard.
+ */
+describe('Editable — readOnly with an explanation (B19c)', () => {
+  it(
+    'clicking the preview or the Edit button starts no edit; the button is aria-disabled and described, never a bare disabled',
+    async () => {
+      const user = userEvent.setup();
+      render(
+        <>
+          <p id="why">You&apos;re offline.</p>
+          <Editable defaultValue="Untitled" readOnly describedBy="why" />
+        </>,
+      );
+      const edit = screen.getByRole('button', { name: 'Edit' });
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
+      expect(edit).not.toHaveAttribute('disabled');
+      expect(edit).toHaveAccessibleDescription("You're offline.");
+
+      await user.click(screen.getByText('Untitled'));
+      await user.click(edit);
+      await user.keyboard('{Enter}');
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.getByText('Untitled')).toBeInTheDocument();
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'is editable again as soon as readOnly is lifted, with no leftover aria-disabled',
+    async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(<Editable defaultValue="Untitled" readOnly describedBy="why" />);
+      rerender(<Editable defaultValue="Untitled" readOnly={false} describedBy="why" />);
+      const edit = screen.getByRole('button', { name: 'Edit' });
+      expect(edit).not.toHaveAttribute('aria-disabled');
+      expect(edit).not.toHaveAttribute('aria-describedby');
+      await user.click(screen.getByText('Untitled'));
+      expect(await screen.findByRole('textbox', {}, WAIT_OPTS)).toHaveValue('Untitled');
+    },
+    TEST_TIMEOUT,
+  );
+});

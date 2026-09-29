@@ -5,6 +5,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `RecordPaymentDialog` (plan B14b): the small Base UI dialog form behind
@@ -362,5 +364,78 @@ describe('RecordPaymentDialog', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       await waitFor(() => expect(screen.getByRole('heading', { name: 'Pending payments' })).toHaveFocus());
     });
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx` for the contract; "Record payment" writes to the ledger. */
+describe('RecordPaymentDialog — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('the stand-in trigger is blocked and explained offline, opens nothing, and opens on reconnect', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    setOnLine(false);
+    const trigger = screen.getByRole('button', { name: 'Record payment from you to Beto' });
+    expectBlocked(trigger);
+    expect(visibleNotices()).toHaveLength(1);
+    await user.click(trigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(trigger);
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a form open when the connection drops blocks Save payment, keeps the typed amount, and works on reconnect', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    const amount = within(dialog).getByLabelText('Amount');
+    await user.clear(amount);
+    await user.type(amount, '12.50');
+
+    setOnLine(false);
+    const save = within(dialog).getByRole('button', { name: /save payment/i });
+    expectBlocked(save);
+    expect(visibleNotices(dialog)).toHaveLength(1);
+    await user.click(save);
+    await user.type(amount, '{Enter}');
+    expect(settle).not.toHaveBeenCalled();
+    expect(amount).toHaveValue('12.50');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(save);
+    expect(visibleNotices(dialog)).toHaveLength(0);
+    await user.click(save);
+    await waitFor(() => expect(settle).toHaveBeenCalledTimes(1));
+    expect(settle.mock.calls[0]![0]).toMatchObject({ amount: 12.5 });
+  });
+
+  it('a connection that drops mid-save shows the plain failure, never success, and keeps the dialog', async () => {
+    settle.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent("We couldn't record this payment. Check your connection and try again.");
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    settle.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(OFFLINE_SENTENCE);
+    expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE);
   });
 });

@@ -6,6 +6,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import { $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `ProfileForm` (plan B15, risk:high) — the profile island's name/phone/
@@ -17,18 +19,29 @@ import { $profile, $user } from '@/stores/session';
  * the currency keeps `phoneNumber`, both through `buildPreferencesPatch`.
  */
 vi.mock('./AvatarUploadField', () => ({
-  AvatarUploadField: (props: { uid: string; name: string; avatarPath: string | null | undefined }) => (
-    <div data-testid="avatar-upload-field" data-uid={props.uid} data-avatar-path={props.avatarPath ?? ''}>
+  AvatarUploadField: (props: { uid: string; name: string; avatarPath: string | null | undefined; write?: { canWrite: boolean } }) => (
+    <div
+      data-testid="avatar-upload-field"
+      data-uid={props.uid}
+      data-avatar-path={props.avatarPath ?? ''}
+      data-can-write={String(props.write?.canWrite)}
+    >
       {props.name}
     </div>
   ),
 }));
 
 vi.mock('@/components/features/currency/CurrencySelector', () => ({
-  CurrencySelector: (props: { value: string; onChange: (code: string) => void; label?: string; id?: string }) => (
+  CurrencySelector: (props: {
+    value: string;
+    onChange: (code: string) => void;
+    label?: string;
+    id?: string;
+    write?: { blocked?: Record<string, unknown> };
+  }) => (
     <div>
       <label htmlFor={props.id}>{props.label}</label>
-      <select id={props.id} value={props.value} onChange={(e) => props.onChange(e.target.value)}>
+      <select id={props.id} value={props.value} onChange={(e) => props.onChange(e.target.value)} {...props.write?.blocked}>
         <option value="USD">USD</option>
         <option value="EUR">EUR</option>
       </select>
@@ -146,5 +159,80 @@ describe('ProfileForm', () => {
     expect(updateProfile).toHaveBeenCalledWith({
       preferences: { preferredCurrency: 'EUR', phoneNumber: '555-0100' },
     });
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): the card shares ONE connection state and shows ONE sentence for Save, the currency and the photo. */
+describe('ProfileForm — offline (plan B19c)', () => {
+  beforeEach(() => {
+    updateProfile.mockClear();
+    updateProfile.mockResolvedValue(undefined);
+    notifySuccess.mockClear();
+    notifyError.mockClear();
+    $user.set(USER);
+    $preferredCurrency.set('USD');
+  });
+
+  afterEach(() => {
+    restoreOnLine();
+    $profile.set(null);
+  });
+
+  it('Save changes and the currency are blocked and explained once, keep what was typed, and work again on reconnect', async () => {
+    $profile.set(baseProfile());
+    const user = userEvent.setup();
+    render(<ProfileForm />);
+    const name = screen.getByLabelText(/^name$/i);
+    await user.clear(name);
+    await user.type(name, 'Ana María');
+
+    setOnLine(false);
+    const save = screen.getByRole('button', { name: /save changes/i });
+    const currency = screen.getByLabelText(/preferred currency/i);
+    expectBlocked(save);
+    expectBlocked(currency);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    expect(screen.getByTestId('avatar-upload-field')).toHaveAttribute('data-can-write', 'false');
+
+    await user.click(save);
+    await user.type(name, '{Enter}');
+    await user.selectOptions(currency, 'EUR');
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(name).toHaveValue('Ana María');
+
+    setOnLine(true);
+    expectWritable(save);
+    expectWritable(currency);
+    expect(visibleNotices()).toHaveLength(0);
+    expect(screen.getByTestId('avatar-upload-field')).toHaveAttribute('data-can-write', 'true');
+    await user.click(save);
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
+    expect(updateProfile.mock.calls[0]![0]).toMatchObject({ name: 'Ana María' });
+  });
+
+  it('a connection that drops mid-save shows the plain failure, never success', async () => {
+    $profile.set(baseProfile());
+    updateProfile.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    render(<ProfileForm />);
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not update your profile. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the store refusing an offline write reads as the shared sentence, for the details and for the currency', async () => {
+    $profile.set(baseProfile());
+    updateProfile.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    render(<ProfileForm />);
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+    notifyError.mockClear();
+    await user.selectOptions(screen.getByLabelText(/preferred currency/i), 'EUR');
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });
