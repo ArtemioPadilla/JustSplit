@@ -43,6 +43,36 @@ const LAZY: { file: string; module: string; why: string }[] = [
     why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
   },
   {
+    file: 'components/features/friends/RemoveFriendDialog.tsx',
+    module: './RemoveFriendDialogImpl',
+    why: 'the Base UI dialog stack is ~25 kB gz on /friends, /profile and /settlements, for a confirm most visits never open',
+  },
+  {
+    file: 'components/features/settlements/UndoSettlementDialog.tsx',
+    module: './UndoSettlementDialogImpl',
+    why: 'the same dialog stack, on /settlements: an undo confirm most visits never open',
+  },
+  {
+    file: 'components/features/settlements/RecordPaymentDialog.tsx',
+    module: './RecordPaymentDialogImpl',
+    why: 'the same dialog stack, on /settlements, opened only when someone records a payment',
+  },
+  {
+    file: 'components/features/settings/ResetLocalDataButton.tsx',
+    module: './ResetLocalDataButtonImpl',
+    why: 'the same dialog stack, on /profile, for a reset most visits never use',
+  },
+  {
+    file: 'components/features/settlements/RecordPaymentDialogImpl.tsx',
+    module: './RecordPaymentForm',
+    why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
+  },
+  {
+    file: 'components/features/events/EventTimeline.tsx',
+    module: './EventTimelineMarkerImpl',
+    why: 'the hover-card stack (Base UI preview card, floating-ui) is ~23 kB gz on /events/list; the marker is a plain button until it is hovered, focused or touched',
+  },
+  {
     file: 'components/ui/data-table-columns-menu.tsx',
     module: '@/components/ui/data-table-columns-menu-impl',
     why: 'the Columns dropdown (Base UI menu, floating-ui, list navigation) was ~50 kB gz on /expenses/list for a control most visits never touch',
@@ -55,6 +85,12 @@ const NEVER_STATIC: { file: string; module: string }[] = [
   { file: 'components/ui/data-table.tsx', module: '@/components/ui/dropdown-menu' },
   { file: 'components/ui/date-picker.tsx', module: '@/components/ui/popover' },
   { file: 'components/ui/date-picker.tsx', module: '@/components/ui/calendar' },
+  // B19b: no back door for the dialog stack or the hover card into the pages' static graph.
+  { file: 'components/features/friends/RemoveFriendDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settlements/UndoSettlementDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settlements/RecordPaymentDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settings/ResetLocalDataButton.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/events/EventTimeline.tsx', module: '@/components/ui/hover-card' },
 ];
 describe.each(NEVER_STATIC)('$file (no back door)', ({ file, module }) => {
   it(`does not import ${module} statically`, () => {

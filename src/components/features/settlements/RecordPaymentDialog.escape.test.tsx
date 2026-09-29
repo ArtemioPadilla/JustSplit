@@ -52,7 +52,7 @@ afterEach(() => vi.clearAllMocks());
 // can exceed a test's wait budget. The lazy boundaries are pinned statically
 // by src/tests/lazy-boundaries.test.ts.
 beforeAll(async () => {
-  await Promise.all([import('./RecordPaymentForm'), import('@/components/features/currency/CurrencyCombobox')]);
+  await Promise.all([import('./RecordPaymentDialogImpl'), import('./RecordPaymentForm'), import('@/components/features/currency/CurrencyCombobox')]);
 }, 60_000);
 
 describe('RecordPaymentDialog: Escape with the currency combobox focused (plan A7)', () => {

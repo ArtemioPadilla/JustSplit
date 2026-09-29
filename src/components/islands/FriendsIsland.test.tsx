@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
@@ -117,6 +117,13 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
 });
+
+// B19b: the dialog opens through a load-on-first-use stand-in. Warm its chunk once, outside any test's
+// own timeout (a saturated full-suite run can exceed a findBy budget on the first transform + import);
+// the behaviour behind the boundary is what these tests pin, and a warm module cache does not change it.
+beforeAll(async () => {
+  await Promise.all([import('@/components/features/friends/RemoveFriendDialogImpl')]);
+}, 60_000);
 
 describe('FriendsIsland', () => {
   it('shows a skeleton while friendships are loading', () => {

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 const { resetLocalData } = vi.hoisted(() => ({ resetLocalData: vi.fn().mockResolvedValue({ ok: true, failures: [] }) }));
 vi.mock('@/lib/data/reset-local', () => ({ resetLocalData }));
@@ -15,6 +15,13 @@ const { ResetLocalDataButton } = await import('./ResetLocalDataButton');
  * composition lives in this one component, same shape as B9's
  * DeleteExpenseDialog / B13's RemoveFriendDialog).
  */
+// B19b: the dialog opens through a load-on-first-use stand-in. Warm its chunk once, outside any test's
+// own timeout (a saturated full-suite run can exceed a findBy budget on the first transform + import);
+// the behaviour behind the boundary is what these tests pin, and a warm module cache does not change it.
+beforeAll(async () => {
+  await Promise.all([import('./ResetLocalDataButtonImpl')]);
+}, 60_000);
+
 describe('ResetLocalDataButton', () => {
   it('does not call resetLocalData until the confirm dialog is accepted', async () => {
     const user = userEvent.setup();
@@ -46,5 +53,20 @@ describe('ResetLocalDataButton', () => {
 
     expect(await screen.findByRole('heading', { name: /^reset local data$/i })).toBeInTheDocument();
     expect(screen.queryByText(/restablecer/i)).not.toBeInTheDocument();
+  });
+
+  it('offers a plain button first (same name, popup semantics) and Escape returns focus to the real trigger', async () => {
+    const user = userEvent.setup();
+    render(<ResetLocalDataButton />);
+    const trigger = screen.getByRole('button', { name: /reset local data/i });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /reset local data/i })).toHaveFocus());
   });
 });

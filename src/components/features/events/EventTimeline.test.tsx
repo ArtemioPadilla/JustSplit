@@ -36,8 +36,14 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { EventTimeline, type EventTimelineExpense } from './EventTimeline';
+
+// B19b: a marker is a plain button until it is hovered, focused or touched, and the hover-card stack loads then.
+// Warm that chunk once, outside any test's own timeout; the behaviour behind the boundary is what these pin.
+beforeAll(async () => {
+  await import('./EventTimelineMarkerImpl');
+}, 60_000);
 
 const USERS = { u1: 'Alex', u2: 'Sam' };
 
@@ -212,6 +218,19 @@ describe('EventTimeline — hover card reveals expense detail and navigates (por
     startMarker.focus();
 
     await waitFor(() => expect(screen.getByText('Start date expense')).toBeInTheDocument());
+  });
+
+  // B19b: the swap from the plain marker to the real hover-card trigger must not lose the keyboard user.
+  it('keeps keyboard focus on the marker when its hover card arrives, and the card opens for it', async () => {
+    renderTimeline();
+    const startMarker = screen.getAllByTestId('timeline-marker').find((m) => m.getAttribute('aria-label')?.includes('Start date expense'))!;
+    const name = startMarker.getAttribute('aria-label');
+
+    startMarker.focus();
+    await waitFor(() => expect(screen.getByText('Paid by Alex')).toBeInTheDocument());
+
+    expect(document.activeElement).toHaveAttribute('data-testid', 'timeline-marker');
+    expect(document.activeElement).toHaveAttribute('aria-label', name);
   });
 
   it('converts the amount into the display currency using the injected convert function', async () => {
