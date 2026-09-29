@@ -52,15 +52,20 @@ describe('classifyConsoleEntry (plan A7)', () => {
     }
   });
 
-  it('allows the Google Fonts TLS error, and only from a Google Fonts resource', async () => {
+  // B19b: the live smoke answers the Google Fonts hosts with a stub (scripts/lib/live-audit.mjs), so the
+  // sandbox's TLS interception never reaches the page and the old allowlist entry was dead. A certificate
+  // error from ANY resource, fonts included, is a defect again.
+  it('no longer allows the Google Fonts TLS error: it is a defect from every resource', async () => {
     const { classifyConsoleEntry } = await load();
     const text = 'Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID';
-    expect(classifyConsoleEntry({ type: 'error', text, resourceUrl: 'https://fonts.googleapis.com/css2?family=Fraunces', pageUrl: PAGE })).toBeNull();
-    expect(classifyConsoleEntry({ type: 'error', text, resourceUrl: 'https://fonts.gstatic.com/s/x.woff2', pageUrl: PAGE })).toBeNull();
-    expect(classifyConsoleEntry({ type: 'error', text, resourceUrl: 'http://127.0.0.1:54321/rest/v1/expenses', pageUrl: PAGE })).toMatchObject({
-      kind: 'console-error',
-    });
-    expect(classifyConsoleEntry({ type: 'error', text, resourceUrl: 'https://open.er-api.com/v6/latest/USD', pageUrl: PAGE })).not.toBeNull();
+    for (const resourceUrl of [
+      'https://fonts.googleapis.com/css2?family=Fraunces',
+      'https://fonts.gstatic.com/s/x.woff2',
+      'http://127.0.0.1:54321/rest/v1/expenses',
+      'https://open.er-api.com/v6/latest/USD',
+    ]) {
+      expect(classifyConsoleEntry({ type: 'error', text, resourceUrl, pageUrl: PAGE })).toMatchObject({ kind: 'console-error' });
+    }
   });
 
   it('allows the shell’s intentional 404 status only for the page document itself', async () => {
@@ -74,16 +79,16 @@ describe('classifyConsoleEntry (plan A7)', () => {
     expect(classifyConsoleEntry({ type: 'error', text, pageUrl: PAGE })).not.toBeNull();
   });
 
-  it('never allowlists a hydration error, even from an allowlisted resource', async () => {
+  it('never allowlists a hydration error, even from the allowlisted page document', async () => {
     const { classifyConsoleEntry } = await load();
     expect(
-      classifyConsoleEntry({ type: 'error', text: 'Minified React error #418', resourceUrl: 'https://fonts.googleapis.com/x', pageUrl: PAGE }),
+      classifyConsoleEntry({ type: 'error', text: 'Minified React error #418', resourceUrl: PAGE, pageUrl: PAGE }),
     ).toMatchObject({ kind: 'hydration' });
   });
 
-  it('keeps the allowlist to two documented entries', async () => {
+  it('keeps the allowlist to one documented entry: the shell\u2019s 404 status', async () => {
     const { CONSOLE_ALLOWLIST } = await load();
-    expect(CONSOLE_ALLOWLIST).toHaveLength(2);
+    expect(CONSOLE_ALLOWLIST.map((entry) => entry.id)).toEqual(['shell-404-status']);
     for (const entry of CONSOLE_ALLOWLIST) {
       expect(entry.id).toMatch(/^[a-z0-9-]+$/);
       expect(entry.reason.length).toBeGreaterThan(20);
