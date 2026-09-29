@@ -453,7 +453,7 @@ describe('SettlementsIsland — pending tab', () => {
     render(<SettlementsIsland />);
     await user.click(await screen.findByRole('button', { name: 'Record payment from Beto to you' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Amount')).toHaveValue('33.33');
+    expect(await within(dialog).findByLabelText('Amount')).toHaveValue('33.33');
     expect(within(dialog).getByLabelText('Payment currency')).toHaveValue('USD');
     await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
     await waitFor(() => expect(settle).toHaveBeenCalledTimes(1));
@@ -469,7 +469,7 @@ describe('SettlementsIsland — pending tab', () => {
     render(<SettlementsIsland />);
     await user.click(await screen.findByRole('button', { name: 'Record payment from Beto to you' }));
     const dialog = await screen.findByRole('dialog');
-    const amount = within(dialog).getByLabelText('Amount');
+    const amount = await within(dialog).findByLabelText('Amount');
     await user.clear(amount);
     await user.type(amount, '12.5');
     await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
@@ -482,7 +482,7 @@ describe('SettlementsIsland — pending tab', () => {
     render(<SettlementsIsland />);
     await user.click(await screen.findByRole('button', { name: 'Record payment from Beto to you' }));
     const dialog = await screen.findByRole('dialog');
-    const amount = within(dialog).getByLabelText('Amount');
+    const amount = await within(dialog).findByLabelText('Amount');
     await user.clear(amount);
     await user.type(amount, '45');
     expect(await within(dialog).findByText(/this is more than beto owes you/i)).toBeInTheDocument();
@@ -702,7 +702,7 @@ describe('SettlementsIsland — the personal view is pairwise, so both parties s
     await user.click(await screen.findByRole('button', { name: 'Record payment from you to Ana' }));
     const dialog = await screen.findByRole('dialog');
     // Simplified, Beto would have been offered 80 (60 to Ana plus what Caro owes her).
-    const amount = within(dialog).getByLabelText('Amount');
+    const amount = await within(dialog).findByLabelText('Amount');
     expect(amount).toHaveValue('60.00');
     await user.clear(amount);
     await user.type(amount, '70');
@@ -751,7 +751,7 @@ describe('SettlementsIsland — where each personal row can be recorded (no dead
     await user.click(await screen.findByRole('button', { name: 'Record payment from you to Caro' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/Recorded in Oaxaca trip\./)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Amount')).toHaveValue('20.00');
+    expect(await within(dialog).findByLabelText('Amount')).toHaveValue('20.00');
     await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
     await waitFor(() => expect(settle).toHaveBeenCalledTimes(1));
     expect(settle).toHaveBeenCalledWith({ fromUserId: 'u2', toUserId: 'u3', amount: 20, currency: 'USD', date: expect.any(String), eventId: 'ev1' });
@@ -901,7 +901,7 @@ describe('SettlementsIsland — the event scope keeps the debt-simplified sugges
     render(<SettlementsIsland />);
     await user.click(await screen.findByRole('button', { name: 'Record payment from Beto to you' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByLabelText('Amount')).toHaveValue('30.00');
+    expect(await within(dialog).findByLabelText('Amount')).toHaveValue('30.00');
     await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
     await waitFor(() => expect(settle).toHaveBeenCalledWith(expect.objectContaining({ fromUserId: 'u2', toUserId: 'u1', amount: 30, eventId: 'ev1' })));
   });

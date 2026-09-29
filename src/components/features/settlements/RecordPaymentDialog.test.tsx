@@ -67,7 +67,10 @@ function renderDialog(props: Partial<React.ComponentProps<typeof RecordPaymentDi
 
 async function open(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: /record payment/i }));
-  return screen.findByRole('dialog');
+  const dialog = await screen.findByRole('dialog');
+  // The form is code-split (plan B19): it arrives a moment after the dialog does.
+  await within(dialog).findByLabelText('Amount');
+  return dialog;
 }
 
 beforeEach(() => {
@@ -94,6 +97,13 @@ describe('RecordPaymentDialog', () => {
     expect(screen.getByRole('button', { name: 'Record payment from you to Beto' })).toBeInTheDocument();
     const dialog = await open(user);
     expect(within(dialog).getByRole('heading', { name: /record payment/i })).toBeInTheDocument();
+  });
+
+  it('is named from the moment it opens, before the code-split form has arrived (plan B19)', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /record payment/i }));
+    expect(await screen.findByRole('dialog', { name: /record payment/i })).toBeInTheDocument();
   });
 
   it('opens pre-filled: the suggestion rounded to 2 dp, the display currency and today', async () => {

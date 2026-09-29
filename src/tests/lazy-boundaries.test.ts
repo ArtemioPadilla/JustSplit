@@ -37,6 +37,11 @@ const LAZY: { file: string; module: string; why: string }[] = [
     module: '@/components/ui/calendar',
     why: 'react-day-picker, date-fns and @date-fns/tz are ~15 kB gz that only the open popover needs',
   },
+  {
+    file: 'components/features/settlements/RecordPaymentDialog.tsx',
+    module: './RecordPaymentForm',
+    why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
+  },
 ];
 
 // The selector's own file must not reach the combobox by any other route either.
