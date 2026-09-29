@@ -143,3 +143,29 @@ describe('ExpenseSplitter', () => {
     expect(onSplitTypeChange).toHaveBeenCalledWith('percentage');
   });
 });
+
+/**
+ * Plan A7 (found by the live smoke on /expenses/new and /expenses/edit/<id> at
+ * 375px): the three split methods sat in a `grid-flow-col auto-cols-max` row
+ * that cannot wrap, 374px wide inside a ~359px card, so the page scrolled
+ * sideways by 15px. jsdom has no layout: this pins the wrapping row, and the
+ * live smoke measures the real overflow.
+ */
+describe('ExpenseSplitter layout (375px)', () => {
+  it('lets the split-method options wrap instead of forcing one non-wrapping row', () => {
+    render(
+      <ExpenseSplitter
+        splitType="equal"
+        onSplitTypeChange={vi.fn()}
+        participantIds={['u1', 'u2']}
+        amount={100}
+        shares={{}}
+        onSharesChange={vi.fn()}
+        names={NAMES}
+      />,
+    );
+    const group = screen.getAllByRole('radio')[0]!.closest('[role="radiogroup"]') as HTMLElement;
+    expect(group.className).toMatch(/(^|\s)flex-wrap(\s|$)/);
+    expect(group.className).not.toMatch(/grid-flow-col|auto-cols-max/);
+  });
+});
