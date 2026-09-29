@@ -2161,7 +2161,61 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       combobox-inside-dialog issue for the shared `Combobox`/`Dialog`; (2) an intermittent React
       hydration error #418 on pages that use the shared layout (seen on `/profile` and
       `/settlements`; `/settlements` itself is `client:only`, so it comes from the SSR'd header
-      island).
+      island) — root-caused and fixed in B6b.
+
+### B6b. Signed-in app navigation and the hydration #418 fix (`tdd-tier:strict`)
+- [x] The header lists the app: Dashboard (`/`), Expenses (`/expenses/list`), Events (`/events/list`),
+      Groups (`/groups/list`), Friends (`/friends`), Settlements (`/settlements`); Profile stays in
+      the account menu. Shown on app pages only (every page that hosts an authenticated route
+      island, `appNav` on `BaseLayout`); `/landing`, `/about`, `/help` keep the island-free `static`
+      header, and auth pages and `/showcase` keep Home/About/Help
+- [x] The nav is **server-rendered links, no island** (option (a)): the site is static so SSR cannot
+      know the session, but the links are harmless to a signed-out visitor because `AuthGate`
+      redirects every app page to `/landing`; no signed-out default to swap, no layout shift, zero
+      added JS; `check-auth-bundle` and the 40 kB marketing budget are untouched
+- [x] Active section: `aria-current="page"` from `Astro.url.pathname` at build time
+      (`src/lib/app-nav.ts`, whole-segment match, base-aware; `/expenses/new` keeps Expenses). The
+      dynamic routes `404.html` serves (`/expenses/<id>`) build as `/404`, so a ~25-line inline
+      script marks them from `location.pathname` (each link carries `data-section`), and centres
+      the current link on a phone; it never overrides a build-time mark
+- [x] Mobile (375px): the same `<nav aria-label="Main">` becomes a full-bleed second row that scrolls
+      sideways (no JS, no disclosure island: six short items, one tap each, nothing to open or
+      close); 44px targets, inset focus ring, and a `focusin` handler because Chrome does not scroll
+      a container to a focused child that is only partly visible
+- [x] Skip-to-content link first in `<body>` on every page; `/showcase` and the 404 shell's fallback
+      gained the `#main-content` target; About and Help moved to the footer for app pages; the
+      stale "dead links until Phase 2" comment is gone; `site-header.test.ts` no longer pins
+      Home/About/Help as the only nav
+- [x] Hydration #418, root cause: `UserMenuIsland` is SSR'd (always signed-out) and hydrates on
+      `client:idle`, by which time the page's `client:only` route island has usually mirrored the
+      session into `$user`/`$profile`/`$authReady`; `@nanostores/react`'s `useStore` uses the LIVE
+      store value as its server snapshot too, so a signed-in load that lost that race hydrated
+      signed-in markup against the server's "Sign in" link. Fixed by reading the three atoms through
+      `useClientPreference` (fixed server snapshot, then the store value in a follow-up render).
+      Reproduced in `UserMenuIsland.hydration.test.tsx` (`renderToString`, then stores set, then
+      `hydrateRoot`) and live (below)
+- [x] Tests: `app-nav.test.ts`, `app-nav-script.test.ts` (the shipped inline script in jsdom),
+      `app-nav-pages.test.ts` (derives the app pages from the sources, so a new app page that
+      forgets `appNav` fails), `site-header` / `base-layout` / `site-footer` source tests;
+      `check-dist.mjs` asserts the built HTML (one Main landmark, the six links, the right
+      `aria-current`, skip link and target on every page, no app nav and no island on marketing
+      pages); `axe-smoke.mjs` now runs every page in light, dark and 375px and fails on horizontal
+      overflow (it found `/showcase` overflowing at 375px)
+- Landed (`tdd-tier:strict`, 5 green commits over 6 red ones, `Tdd-Red:` on each green): the above. Gates: `npm run check`
+      207 files / 2168 tests (auth-bundle: marketing pages 1.25 kB layout JS against the 40 kB budget, charts-bundle clean);
+      `npm run check:a11y` 16 pages x 3 configurations (light, dark, 375px) with no violations and no overflow.
+      Live run against `supabase start` in real Chromium on a build with the local env (scripts in
+      the scratchpad, not committed): baseline `6ef6fde` reproduced #418 (2 of 39 ordinary loads, and
+      10 of 10 with `requestIdleCallback` delayed 2 s to mimic a busy main thread); with the fix 0 of
+      39 and 0 of 10. Also: keyboard-only walk to every section, Enter navigating, the right link
+      current on each page and on dynamic routes, signed-out redirects, marketing pages with no
+      island, 375px with no page overflow and 44px+ targets, axe signed in in light, dark, 375px
+      light and dark. Deviations: the nav is not in a client island (decision above). Follow-ups
+      (present on `6ef6fde`, none caused by this issue, all signed-in only so `axe-smoke.mjs` cannot see them): (1) `/profile` overflows 375px by 2px
+      (`AvatarUploadField`'s `w-64` upload box); (2) `/profile` has an axe `heading-order` violation
+      (`<h3>` sections under an `sr-only` `<h1>`); (3) a detail route for an id that does not exist
+      (`/expenses/nope`) nests `NotFoundView`'s `<main>` inside `AppRouterIsland`'s `<main>` (axe
+      landmark rules)
 
 ### B15. Profile island — editable profile, avatar upload, preferred currency
 - [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
@@ -2905,6 +2959,7 @@ B1 → B2a → B2 → B2b → B3 → B4 → B5a → B5b → B6 → B7   (foundat
   B5a: if relational mode (H2) is not published when B5a starts → ship the contingency adapter behind StorageAdapter (spec D1); never document mode
 B16 after B5b (needs $preferredCurrency/$rateCache from B5b, domain/currency from B3, combobox/editable/progress-bar from the B1 manifest); may run alongside B6/B7
 B17a after B7 (shared ExportCsvButton + /showcase entry; B8b/B9/B11b mount it)
+B6b after B14 (the header links every app page, so all of them must exist; it also fixes the #418 B14b reported)
 B8a..B15, B17b parallelizable after B7 and B16
   (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B14a;
    B14a after B2d + B8b + B9 + B11b + B13 (it rewrites how their balances and badges are derived); B14 is the island only, on B14a;
