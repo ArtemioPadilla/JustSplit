@@ -116,7 +116,7 @@ singleton holds in production, not just inside one test file.
   already existed) is exercised and asserted in `toast.test.tsx` — no
   production change needed there, just confirmed working end to end.
 
-### Local-cache reset: `resetLocalData()` ("Restablecer datos locales")
+### Local-cache reset: `resetLocalData()` ("Reset local data")
 
 `src/lib/data/reset-local.ts` replaces the legacy Firestore IndexedDB
 corruption-recovery flow. It runs six independent, isolated steps (each

@@ -143,7 +143,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
     <section class="mt-10 space-y-3 border-t border-border pt-8">
       <h2 class="text-xl font-semibold">Reset local data <span class="text-sm font-normal text-muted-foreground">(B17b)</span></h2>
       <p class="text-sm text-muted-foreground">
-        "Restablecer datos locales" (<code>features/settings/ResetLocalDataButton.tsx</code>) —
+        "Reset local data" (<code>features/settings/ResetLocalDataButton.tsx</code>) —
         confirm-dialog wrapper over <code>lib/data/reset-local.ts#resetLocalData</code>: signs out,
         clears the idb-keyval Query persister and every <code>justsplit:*</code>/supabase-session
         localStorage key, unregisters service workers, then reloads. This is also the recovery

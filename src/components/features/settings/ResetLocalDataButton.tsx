@@ -18,7 +18,7 @@ export interface ResetLocalDataButtonProps {
 }
 
 /**
- * "Restablecer datos locales" (plan B17b, ADR 0008) — the reusable
+ * "Reset local data" (plan B17b, ADR 0008) — the reusable
  * confirm-dialog trigger for `resetLocalData()`. The WHOLE Dialog
  * composition (trigger + content) lives in this one component (CLAUDE.md
  * compound-component rule), same shape as B9's `DeleteExpenseDialog` / B13's
@@ -47,11 +47,11 @@ export function ResetLocalDataButton({ className }: ResetLocalDataButtonProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className={cn(buttonVariants({ variant: 'outline' }), className)}>
-        Restablecer datos locales
+        Reset local data
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Restablecer datos locales</DialogTitle>
+          <DialogTitle>Reset local data</DialogTitle>
           <DialogDescription>
             This signs you out and clears every expense, group, and preference this browser has
             cached for you, then reloads the app. Use it if something looks stuck or out of date.
