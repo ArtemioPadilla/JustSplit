@@ -187,9 +187,13 @@ async function decide(base: string, path: string, opts: { navigate?: boolean; or
   return { kind: 'network' };
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   workDir = mkdtempSync(join(tmpdir(), 'pwa-config-'));
-});
+  // generateSW is the slow part (seconds under a loaded `npm run check`): do it once, up
+  // front, with room, instead of inside whichever test happens to run first.
+  await buildFor('/JustSplit');
+  await buildFor('/');
+}, 120_000);
 afterAll(() => rmSync(workDir, { recursive: true, force: true }));
 
 describe.each(['/JustSplit', '/'])('service worker for base %s', (base) => {
