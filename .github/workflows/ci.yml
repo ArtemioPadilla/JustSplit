@@ -69,12 +69,16 @@ jobs:
   # cell, storage, functions, batch_write, Realtime and the coverage guard.
   # No secret is used: the stack's keys come from `supabase status` inside the
   # runner. Required on `inceptor` (A3b protection) and on `main` after cutover.
-  # The real-adapter contract run (`test:contract:live`) joins this job in B5a.
+  # The real-adapter contract run (`test:contract:live`) joined this job in B5a,
+  # and the live end-to-end smoke (`test:live`, plan A7) in A7: it needs this
+  # same stack, and living here means it is already covered by the required
+  # check, with no second `supabase start` (image pulls dominate) and no new
+  # required-check name to configure.
   # ---------------------------------------------------------------------------
   rls:
     name: RLS & contract (supabase start)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
@@ -105,6 +109,20 @@ jobs:
       # meaningful.
       - name: Storage-adapter contract suite (real adapter)
         run: npm run test:contract:live
+      # ---------------------------------------------------------------------
+      # Live end-to-end smoke (plan A7): a production build made against this
+      # stack, driven in Chromium — real sign-in, the critical flows with the
+      # database checked through the service role, and axe + overflow on every
+      # signed-in page state in light, dark and 375px (scripts/live-smoke.mjs).
+      # No secret and no public-config variable here: the script reads the
+      # stack's keys from `supabase status` and passes them to its own build
+      # (supabase-workflow-env.test.ts asserts this file never names them).
+      # Its own step, never part of `npm run check` (needs Docker + a browser).
+      # ---------------------------------------------------------------------
+      - name: Install Chromium for the live smoke
+        run: npx playwright-core install --with-deps chromium
+      - name: Live end-to-end smoke
+        run: npm run test:live
       - name: Stop the stack
         if: always()
         run: npm run db:stop
