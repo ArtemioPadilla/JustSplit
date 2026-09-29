@@ -95,7 +95,7 @@ export default function AppRouterIsland() {
     return d.dispose;
   }, []);
 
-  if (match.name === 'not-found' || !match.id) return <NotFoundView />;
+  if (match.name === 'not-found' || !match.id) return <NotFoundView standalone />;
   const { name, id } = match;
 
   return (
