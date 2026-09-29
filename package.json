@@ -39,7 +39,8 @@
     "check:dist": "node scripts/check-dist.mjs",
     "check:auth-bundle": "node scripts/check-auth-bundle.mjs",
     "check:charts-bundle": "node scripts/check-charts-bundle.mjs",
-    "check:a11y": "node scripts/axe-smoke.mjs"
+    "check:a11y": "node scripts/axe-smoke.mjs",
+    "test:live": "node scripts/live-smoke.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",

@@ -27,6 +27,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
+import { CONFIGS } from './lib/a11y-configs.mjs';
 import { launchChromium } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 
@@ -53,16 +54,6 @@ const PAGES = [
   '/events/new',
   '/profile',
   '/settlements',
-];
-
-const CONFIGS = [
-  { name: 'light', contextOptions: { colorScheme: 'light' }, checkOverflow: false },
-  { name: 'dark', contextOptions: { colorScheme: 'dark' }, checkOverflow: false },
-  {
-    name: '375px',
-    contextOptions: { colorScheme: 'light', viewport: { width: 375, height: 812 } },
-    checkOverflow: true,
-  },
 ];
 
 async function main() {
