@@ -5,7 +5,7 @@ import AstroPWA from '@vite-pwa/astro';
 import sitemap from '@astrojs/sitemap';
 // Single-sourced canonical origin — see site.config.mjs for the rationale.
 import { SITE_ORIGIN } from './site.config.mjs';
-import { manualChunks } from './build.config.mjs';
+import { manualChunks, pureCyberEcoAuthSchemas } from './build.config.mjs';
 
 // Subpath the site is served under. GitHub *project* pages live at
 // <domain>/<repo>/, so the Pages build sets ASTRO_BASE=/JustSplit (repository
@@ -68,7 +68,7 @@ export default defineConfig({
     }),
   ],
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), pureCyberEcoAuthSchemas()],
     // Named vendor chunks (plan B19): see build.config.mjs.
     build: { rollupOptions: { output: { manualChunks } } },
     // @cyber-eco/auth's client entry reads process.env at runtime in a few
