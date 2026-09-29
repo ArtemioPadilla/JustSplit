@@ -1,6 +1,7 @@
-import { QueryClient } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
-import { attachPersister, QueryCacheRestoreError } from './queryClient';
+import { QueryClient, QueryObserver, onlineManager } from '@tanstack/react-query';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { OfflineWriteError } from './offline-write';
+import { attachPersister, createQueryClient, QueryCacheRestoreError } from './queryClient';
 
 /**
  * Plan B17b, ADR 0008: a failed persister hydration must be detectable by
@@ -60,5 +61,56 @@ describe('attachPersister restore-failure reporting', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(() => detach()).not.toThrow();
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): "never queue writes silently". TanStack Query's default
+ * `networkMode: 'online'` PAUSES a mutation started while its `onlineManager` says offline, without
+ * ever calling `mutationFn`, and RESUMES it when the connection returns. That is an offline write
+ * queue: the data layer's own guard (which lives inside `mutationFn`) would never run, and a save the
+ * person believed failed could be replayed later. Mutations therefore run whatever the connection
+ * (`networkMode: 'always'`), so the guard refuses them; queries keep pausing offline and serve the cache.
+ */
+describe('createQueryClient network mode (plan B19c)', () => {
+  afterEach(() => {
+    onlineManager.setOnline(true);
+  });
+
+  it('the library default would pause the mutation and never call mutationFn (why the override exists)', () => {
+    onlineManager.setOnline(false);
+    const client = new QueryClient();
+    const mutationFn = vi.fn().mockResolvedValue('saved');
+    const mutation = client.getMutationCache().build(client, { mutationFn });
+    void mutation.execute(undefined).catch(() => {});
+    expect(mutation.state.isPaused).toBe(true);
+    expect(mutationFn).not.toHaveBeenCalled();
+  });
+
+  it('runs a mutation offline so the data layer can refuse it: it rejects with OfflineWriteError, is never paused, and nothing is replayed on reconnect', async () => {
+    onlineManager.setOnline(false);
+    const client = createQueryClient();
+    const mutationFn = vi.fn().mockRejectedValue(new OfflineWriteError());
+    const mutation = client.getMutationCache().build(client, { mutationFn });
+
+    await expect(mutation.execute(undefined)).rejects.toBeInstanceOf(OfflineWriteError);
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+    expect(mutation.state.isPaused).toBe(false);
+    expect(mutation.state.status).toBe('error');
+
+    onlineManager.setOnline(true);
+    await client.resumePausedMutations();
+    expect(mutationFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('queries still pause offline, so reads are served from the cache instead of failing', () => {
+    onlineManager.setOnline(false);
+    const client = createQueryClient();
+    const queryFn = vi.fn().mockResolvedValue('fresh');
+    const observer = new QueryObserver(client, { queryKey: ['expenses'], queryFn });
+    const unsubscribe = observer.subscribe(() => {});
+    expect(observer.getCurrentResult().fetchStatus).toBe('paused');
+    expect(queryFn).not.toHaveBeenCalled();
+    unsubscribe();
   });
 });
