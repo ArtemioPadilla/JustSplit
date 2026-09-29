@@ -73,3 +73,60 @@ describe.each(LAZY)('$file', ({ file, module, why }) => {
     expect(dynamicImports(read(file))).toContain(module);
   });
 });
+
+/**
+ * B19b: warming the currency combobox on idle is a dynamic `import()` from the
+ * SAME file that already owns the lazy boundary, so the page's static graph is
+ * exactly what it was (`check:budgets` gates the built figure). The combobox is
+ * still reachable statically from nowhere but its own module, and every island or
+ * route view that renders a `CurrencySelector` (directly, or through a form)
+ * asks for the warm-up.
+ */
+describe('currency combobox warm-up (B19b)', () => {
+  const SELECTOR = 'components/features/currency/CurrencySelector.tsx';
+
+  it('the loader stays a dynamic import in CurrencySelector.tsx, and the warm-up shares it', () => {
+    const source = read(SELECTOR);
+    expect(staticImports(source)).not.toContain('@/components/features/currency/CurrencyCombobox');
+    expect(staticImports(source)).not.toContain('@/components/ui/combobox');
+    expect(dynamicImports(source)).toEqual(['@/components/features/currency/CurrencyCombobox']);
+    expect(source).toMatch(/export function warmCurrencyCombobox/);
+    expect(source).toMatch(/export function useWarmCurrencyCombobox/);
+  });
+
+  it('nothing else imports the combobox modules statically', () => {
+    const offenders = Object.entries(
+      import.meta.glob('../**/*.{ts,tsx,astro}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+    )
+      .filter(([path]) => !/\.test\.[tj]sx?$/.test(path))
+      .filter(([path]) => !path.endsWith('components/features/currency/CurrencyCombobox.tsx') && !path.endsWith('components/ui/combobox.tsx'))
+      .filter(([, text]) =>
+        staticImports(text).some((spec) => spec === '@/components/features/currency/CurrencyCombobox' || spec === '@/components/ui/combobox'),
+      )
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  // Where a CurrencySelector first renders: the file's default export is the one place that always runs on the page.
+  const WARMERS = [
+    'components/islands/DashboardIsland.tsx',
+    'components/islands/ExpenseFormIsland.tsx',
+    'components/islands/EventFormIsland.tsx',
+    'components/islands/ProfileIsland.tsx',
+    'components/islands/SettlementsIsland.tsx',
+    'components/islands/EventsListIsland.tsx',
+    'components/islands/ExpenseListIsland.tsx',
+    'components/islands/routes/ExpenseDetailView.tsx',
+    'components/islands/routes/ExpenseEditView.tsx',
+    'components/islands/routes/EventDetailView.tsx',
+    'components/islands/routes/EventEditView.tsx',
+    'components/islands/routes/GroupDetailView.tsx',
+    'components/islands/routes/FriendDetailView.tsx',
+  ];
+  it.each(WARMERS)('%s warms the combobox on idle', (file) => {
+    const source = read(file);
+    expect(source).toMatch(/useWarmCurrencyCombobox\(\)/);
+    expect(staticImports(source)).toContain('@/components/features/currency/CurrencySelector');
+  });
+});
+
