@@ -1,3 +1,4 @@
+import type { PersonBalance } from './dashboard';
 import { BALANCE_TOLERANCE } from './ledger';
 
 /**
@@ -81,4 +82,40 @@ export function splitBalances(balances: Record<string, number>): { owes: Balance
 /** True when `entered` is at least one cent above `owed`, compared in whole cents (never float noise). */
 export function exceedsOwed(entered: number, owed: number): boolean {
   return Math.round(entered * 100) > Math.round(owed * 100);
+}
+
+/** One suggested payment: `fromUser` pays `toUser` `amount` (positive, in the display currency). */
+export type PairwiseSuggestion = { fromUser: string; toUser: string; amount: number };
+
+/**
+ * The personal view (plan B14b, ADR 0014 §5) is PAIRWISE: one suggested payment
+ * per other person with a non-zero balance, from `dashboard.balancesWithUser`
+ * (positive = they owe the viewer). There is deliberately no simplification
+ * across people: both parties of a debt see exactly the rows that name both of
+ * them, so both compute the same number, and it is the number the dashboard
+ * shows. Largest first, ties by the other person's id.
+ */
+export function pairwiseSuggestions(balances: readonly PersonBalance[], viewerId: string): PairwiseSuggestion[] {
+  return balances
+    .filter((entry) => Math.abs(entry.balance) >= BALANCE_TOLERANCE)
+    .map<PairwiseSuggestion & { other: string }>((entry) =>
+      entry.balance > 0
+        ? { fromUser: entry.userId, toUser: viewerId, amount: entry.balance, other: entry.userId }
+        : { fromUser: viewerId, toUser: entry.userId, amount: -entry.balance, other: entry.userId },
+    )
+    .sort((a, b) => b.amount - a.amount || (a.other < b.other ? -1 : a.other > b.other ? 1 : 0))
+    .map(({ fromUser, toUser, amount }) => ({ fromUser, toUser, amount }));
+}
+
+/** The same pairwise balances as two lists for the Balances tab: people the viewer owes, and people who owe the viewer. */
+export function pairwiseLists(balances: readonly PersonBalance[]): { youOwe: BalanceEntry[]; oweYou: BalanceEntry[] } {
+  const youOwe: BalanceEntry[] = [];
+  const oweYou: BalanceEntry[] = [];
+  for (const entry of balances) {
+    if (Math.abs(entry.balance) < BALANCE_TOLERANCE) continue;
+    if (entry.balance < 0) youOwe.push({ userId: entry.userId, amount: -entry.balance });
+    else oweYou.push({ userId: entry.userId, amount: entry.balance });
+  }
+  const bySize = (a: BalanceEntry, b: BalanceEntry) => b.amount - a.amount || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0);
+  return { youOwe: youOwe.sort(bySize), oweYou: oweYou.sort(bySize) };
 }
