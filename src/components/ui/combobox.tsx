@@ -73,6 +73,16 @@ function Combobox({
         <BaseCombobox.Input
           id={id}
           placeholder={placeholder}
+          onKeyDown={(event) => {
+            // Base UI, with its popup CLOSED, answers Escape by clearing the
+            // input and selection and stopping the event — so an enclosing
+            // Dialog could never be dismissed from here. Skip that handler
+            // and let the key bubble; with the popup open, Base UI's own
+            // handler still closes just the popup (plan A7).
+            if (event.key === 'Escape' && event.currentTarget.getAttribute('aria-expanded') !== 'true') {
+              event.preventBaseUIHandler();
+            }
+          }}
           className="h-10 w-full rounded-md border border-input bg-background px-3 pr-9 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <BaseCombobox.Icon className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">

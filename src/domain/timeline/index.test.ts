@@ -150,7 +150,9 @@ describe('calculateTimelineProgress / calculatePositionPercentage — timezone-s
   });
 
   afterAll(() => {
-    process.env.TZ = originalTZ;
+    // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
   });
 
   beforeEach(() => {

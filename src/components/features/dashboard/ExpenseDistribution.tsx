@@ -24,7 +24,7 @@ export function ExpenseDistribution({ data, currency }: ExpenseDistributionProps
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-base font-semibold text-foreground">Expense distribution</h3>
+      <h2 className="text-base font-semibold text-foreground">Expense distribution</h2>
       <DonutChart data={donutData} ariaLabel="Expense distribution by category" />
       {/* Accessible text alternative — the recharts Legend renders category names but not amounts/percentages. */}
       <table className="sr-only">

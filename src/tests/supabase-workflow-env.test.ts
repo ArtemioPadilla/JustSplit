@@ -67,3 +67,56 @@ describe('ci.yml (plan B2a)', () => {
     expect(load('ci.yml').text).not.toMatch(/PUBLIC_SUPABASE_/);
   });
 });
+
+/**
+ * Plan A7: the live smoke (`npm run test:live`) is a step of the existing
+ * "RLS & contract (supabase start)" job, reusing its stack. Its build gets the
+ * stack's keys from `supabase status` INSIDE `scripts/live-smoke.mjs`, so the
+ * workflow never names a `PUBLIC_SUPABASE_*` variable or a secret (the
+ * `ci.yml` assertion above keeps holding), and it is never part of `check`.
+ */
+describe('ci.yml live smoke (plan A7)', () => {
+  interface JobStep extends Step {
+    name?: string;
+    if?: string;
+  }
+  const { text, wf } = load('ci.yml');
+  const rls = (wf.jobs as unknown as Record<string, { steps: JobStep[] }>).rls!;
+  const runs = (needle: string) => rls.steps.findIndex((s) => (s.run ?? '').includes(needle));
+
+  it('runs after the stack is up and migrated, and after the RLS and contract suites', () => {
+    const live = runs('npm run test:live');
+    expect(live).toBeGreaterThan(-1);
+    expect(runs('npm run db:start')).toBeGreaterThan(-1);
+    for (const earlier of ['npm run db:start', 'npm run db:migrate', 'npm run test:rls', 'npm run test:contract:live']) {
+      expect(runs(earlier), earlier).toBeLessThan(live);
+    }
+  });
+
+  it('installs Chromium in that job first, the way the Build job does', () => {
+    const install = runs('npx playwright-core install --with-deps chromium');
+    expect(install).toBeGreaterThan(-1);
+    expect(install).toBeLessThan(runs('npm run test:live'));
+  });
+
+  it('passes no secret and no public Supabase variable to the smoke (keys come from `supabase status`)', () => {
+    const step = rls.steps[runs('npm run test:live')]!;
+    expect(step.env).toBeUndefined();
+    expect(text).not.toMatch(/PUBLIC_SUPABASE_/);
+    // The only secret in ci.yml is the package-registry token used by `npm ci`.
+    const secrets = [...text.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]);
+    expect(new Set(secrets)).toEqual(new Set(['GH_PACKAGES_TOKEN']));
+  });
+
+  it('still stops the stack last, even when the smoke fails', () => {
+    const last = rls.steps[rls.steps.length - 1]!;
+    expect(last.run).toBe('npm run db:stop');
+    expect(last.if).toBe('always()');
+  });
+
+  it('is its own npm script and is never part of `npm run check`', () => {
+    const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf8')) as { scripts: Record<string, string> };
+    expect(pkg.scripts['test:live']).toBe('node scripts/live-smoke.mjs');
+    expect(pkg.scripts.check).not.toMatch(/test:live|live-smoke/);
+  });
+});

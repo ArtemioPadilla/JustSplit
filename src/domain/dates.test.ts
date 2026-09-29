@@ -17,7 +17,9 @@ describe('parseCalendarDate', () => {
   });
 
   afterAll(() => {
-    process.env.TZ = originalTZ;
+    // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
   });
 
   it('parses a strict YYYY-MM-DD string as LOCAL midnight, not UTC midnight', () => {
@@ -69,7 +71,9 @@ describe('formatCalendarDate', () => {
   });
 
   afterAll(() => {
-    process.env.TZ = originalTZ;
+    // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
   });
 
   it('formats a local Date as YYYY-MM-DD, zero-padded', () => {

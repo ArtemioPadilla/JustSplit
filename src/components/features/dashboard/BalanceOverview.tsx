@@ -22,7 +22,7 @@ export function BalanceOverview({ balances, currency }: BalanceOverviewProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <h3 className="text-base font-semibold text-foreground">Balance overview</h3>
+      <h2 className="text-base font-semibold text-foreground">Balance overview</h2>
       <div className="divide-y divide-border">
         {balances.map((b) => (
           <BalanceLine key={b.userId} name={b.name} balance={b.balance} maxAbsBalance={maxAbsBalance} currency={currency} />

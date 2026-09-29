@@ -96,6 +96,14 @@ describe('ProfileForm', () => {
     expect(avatarField).toHaveAttribute('data-avatar-path', 'avatars/u1/existing.jpg');
   });
 
+  // Plan A7 (live smoke, axe heading-order): the route island's sr-only <h1> is followed directly by this card, so its
+  // title is the level-2 heading — a plain <div> title left h1 -> h3 gaps further down the page.
+  it('titles the card with a level-2 heading', () => {
+    $profile.set(baseProfile());
+    render(<ProfileForm />);
+    expect(screen.getByRole('heading', { level: 2, name: 'Your profile' })).toBeInTheDocument();
+  });
+
   it('shows a validation error for an invalid phone number and does not call updateProfile', async () => {
     $profile.set(baseProfile());
     const user = userEvent.setup();

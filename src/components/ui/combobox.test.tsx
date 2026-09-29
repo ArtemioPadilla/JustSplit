@@ -65,3 +65,61 @@ describe('Combobox (object items, plan B16)', () => {
     expect(screen.getByRole('combobox')).toHaveValue('EUR');
   });
 });
+
+/**
+ * Plan A7: Base UI's Combobox handles Escape with its popup CLOSED by
+ * clearing its input and selection and stopping the event, so an enclosing
+ * Dialog never sees the key. The wrapper leaves Escape alone in that state:
+ * the value stays and the key bubbles; with the popup open, Escape still just
+ * closes the popup (Base UI's own dismissal).
+ */
+describe('Combobox: Escape (plan A7)', () => {
+  const items = [
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+  ];
+
+  it(
+    'with the popup closed: keeps the selected value and lets Escape reach an ancestor',
+    async () => {
+      const user = userEvent.setup();
+      const onAncestorKeyDown = vi.fn();
+      render(
+        <div role="presentation" onKeyDown={(e) => onAncestorKeyDown(e.key)}>
+          <Combobox items={items} value="USD" onValueChange={vi.fn()} />
+        </div>,
+      );
+      const input = screen.getByRole('combobox');
+      input.focus();
+      expect(input).toHaveAttribute('aria-expanded', 'false');
+
+      await user.keyboard('{Escape}');
+
+      expect(onAncestorKeyDown).toHaveBeenCalledWith('Escape');
+      expect(input).toHaveValue('USD');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'with the popup open: Escape closes the popup and does not reach an ancestor',
+    async () => {
+      const user = userEvent.setup();
+      const onAncestorKeyDown = vi.fn();
+      render(
+        <div role="presentation" onKeyDown={(e) => onAncestorKeyDown(e.key)}>
+          <Combobox items={items} value="USD" onValueChange={vi.fn()} />
+        </div>,
+      );
+      await user.click(screen.getByRole('combobox'));
+      await screen.findByRole('listbox', undefined, WAIT_OPTS);
+      onAncestorKeyDown.mockClear();
+
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument(), WAIT_OPTS);
+      expect(onAncestorKeyDown).not.toHaveBeenCalledWith('Escape');
+    },
+    TEST_TIMEOUT,
+  );
+});

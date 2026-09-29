@@ -22,7 +22,8 @@ export function AccountSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Account</CardTitle>
+        {/* Level 2: the island's sr-only <h1> is right above, and the sections below are h3 (axe heading-order, plan A7). */}
+        <CardTitle role="heading" aria-level={2}>Account</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <ChangePasswordForm />

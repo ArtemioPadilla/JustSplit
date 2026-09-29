@@ -134,7 +134,7 @@ function CurrencyExchangeTickerInner({ className }: { className?: string }) {
       </div>
 
       {hasFallback && (
-        <p className="border-y border-dashed border-white/30 bg-amber-400/20 px-3 py-1 text-center text-xs text-amber-100">
+        <p className="border-y border-dashed border-primary-foreground/40 bg-black/20 px-3 py-1 text-center text-xs text-primary-foreground">
           * Some rates are approximate
         </p>
       )}

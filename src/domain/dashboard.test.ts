@@ -441,7 +441,9 @@ describe('monthlyTotals / upcomingEvents — timezone-safe calendar-date parsing
   });
 
   afterAll(() => {
-    process.env.TZ = originalTZ;
+    // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
   });
 
   it('monthlyTotals buckets an expense dated the 1st of the month into that month, not the previous one', () => {

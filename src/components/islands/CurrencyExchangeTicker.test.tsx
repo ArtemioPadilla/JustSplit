@@ -61,6 +61,21 @@ describe('CurrencyExchangeTicker', () => {
     expect(screen.getAllByText(/approximate/i).length).toBeGreaterThan(0);
   });
 
+  // Plan A7 (live smoke, dark theme with the rates API down): amber-100 text on an amber-400/20 tint sat on `bg-primary`, which
+  // is a LIGHT blue in dark mode — contrast 1.83:1 (axe color-contrast, serious). The note uses the ticker's own foreground
+  // token, which is what every other line on this `bg-primary` surface uses in both themes. jsdom has no computed colours, so
+  // this pins the tokens; the live smoke measures the contrast (it audits this state in light, dark and 375px).
+  it('draws the approximate-rates note in the ticker\'s own foreground token, not a fixed amber', async () => {
+    fetchExchangeRate.mockImplementation(rateFor({ EUR: { rate: 0.9, isFallback: true } }));
+
+    render(<CurrencyExchangeTicker />);
+
+    await screen.findByText('USD/EUR');
+    const note = screen.getByText(/some rates are approximate/i);
+    expect(note.className).toMatch(/(^|\s)text-primary-foreground(\s|$)/);
+    expect(note.className).not.toMatch(/amber/);
+  });
+
   it('omits a pair whose rate is the fallback-less 1:1 placeholder (never implies false parity)', async () => {
     fetchExchangeRate.mockImplementation(
       rateFor({

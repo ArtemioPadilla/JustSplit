@@ -30,7 +30,7 @@ export function MonthlyTrendsChart({ data, currency }: MonthlyTrendsChartProps) 
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-base font-semibold text-foreground">Monthly trends</h3>
+      <h2 className="text-base font-semibold text-foreground">Monthly trends</h2>
       <BarChart data={chartData} index="month" series={['total']} ariaLabel="Monthly expense totals" />
       {/* Accessible text alternative — bar height/color never carries information alone. */}
       <table className="sr-only">

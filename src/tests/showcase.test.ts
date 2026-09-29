@@ -98,3 +98,17 @@ describe('/showcase (plan B11a)', () => {
     expect(src).toMatch(/<ShowcaseEventTimeline\s+client:visible/);
   });
 });
+
+/**
+ * Plan A7: Tabs is a shared primitive (settlements uses it) with no demo. It is
+ * a compound component (Tabs + TabsList + TabsTrigger + TabsContent share
+ * state), so CLAUDE.md's rule applies: the whole composition lives in ONE
+ * island file and is hydrated as one island, never one `client:*` per part.
+ */
+describe('/showcase (plan A7)', () => {
+  it('mounts ShowcaseTabs live, as one island (compound component), hydrated only when scrolled into view', () => {
+    expect(src).toMatch(/import\s+ShowcaseTabs\s+from\s+['"][^'"]*ShowcaseTabs['"]/);
+    expect(src).toMatch(/<ShowcaseTabs\s+client:visible/);
+    expect(src).not.toMatch(/<(Tabs|TabsList|TabsTrigger|TabsContent)\b[^>]*client:/);
+  });
+});
