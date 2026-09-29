@@ -41,7 +41,8 @@ async function openDialog(user: ReturnType<typeof userEvent.setup>) {
   );
   await user.click(screen.getByRole('button', { name: /record payment from/i }));
   await screen.findByRole('dialog', undefined, WAIT);
-  return screen.getByRole('combobox', { name: 'Payment currency' });
+  // The combobox is code-split (plan B19): a same-looking read-only stand-in shows first.
+  return screen.findByRole('combobox', { name: 'Payment currency' }, WAIT);
 }
 
 afterEach(() => vi.clearAllMocks());

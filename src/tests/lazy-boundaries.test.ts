@@ -27,7 +27,22 @@ const LAZY: { file: string; module: string; why: string }[] = [
     module: '@/components/features/settings/ResetLocalDataButton',
     why: 'only rendered when the persisted cache fails to restore; it drags the whole Base UI dialog stack into every app page',
   },
+  {
+    file: 'components/features/currency/CurrencySelector.tsx',
+    module: '@/components/features/currency/CurrencyCombobox',
+    why: 'the Base UI combobox and its popup stack are ~45 kB gz on nearly every app page; a same-looking read-only stand-in shows until it loads',
+  },
 ];
+
+// The selector's own file must not reach the combobox by any other route either.
+const NEVER_STATIC: { file: string; module: string }[] = [
+  { file: 'components/features/currency/CurrencySelector.tsx', module: '@/components/ui/combobox' },
+];
+describe.each(NEVER_STATIC)('$file (no back door)', ({ file, module }) => {
+  it(`does not import ${module} statically`, () => {
+    expect(staticImports(readFileSync(resolve(SRC, file), 'utf8'))).not.toContain(module);
+  });
+});
 
 describe.each(LAZY)('$file', ({ file, module, why }) => {
   const source = readFileSync(resolve(SRC, file), 'utf8');
