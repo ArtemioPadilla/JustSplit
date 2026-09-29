@@ -85,7 +85,13 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
     return (
       <span className="text-xs text-muted-foreground">
         {eventIds.length === 0 ? (
-          <>You and {who} aren&apos;t friends, so this can&apos;t be settled here.</>
+          <>
+            You and {who} aren&apos;t friends anymore.{' '}
+            <a href={withBase('/friends')} className="text-foreground underline underline-offset-2">
+              Add them as a friend
+            </a>{' '}
+            to record this payment.
+          </>
         ) : (
           <>
             You and {who} aren&apos;t friends, so settle this from the event:{' '}
