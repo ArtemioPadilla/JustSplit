@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CreateExpenseGroupInputSchema, ExpenseGroupSchema } from './group';
+import { AppRoleSchema, CreateExpenseGroupInputSchema, ExpenseGroupMemberSchema, ExpenseGroupSchema } from './group';
 
 const validGroup = {
   id: 'group1',
@@ -58,5 +58,44 @@ describe('CreateExpenseGroupInputSchema (plan B3)', () => {
     void _id;
     void _createdAt;
     expect(() => CreateExpenseGroupInputSchema.parse(rest)).not.toThrow();
+  });
+});
+
+/**
+ * B19b: `members[].role` is stored inside a jsonb column and the RLS fixtures
+ * once wrote `'user'` (a value outside `owner|admin|moderator|member`) that the
+ * database accepted, so ONE such member made `ExpenseGroupSchema.parse` throw
+ * and `GroupDetailView` blank the whole page with "Something went wrong". Reads
+ * are tolerant now: an unknown role reads as `'member'` (deny by default: the
+ * lowest role, never a power), and the database rejects the value on write
+ * (migration 016).
+ */
+describe('members[].role parsing is tolerant (B19b)', () => {
+  const member = { userId: 'u2', displayName: 'Beto', joinedAt: '2026-09-28T00:00:00.000Z' };
+
+  it.each(['owner', 'admin', 'moderator', 'member'])('keeps the known role %s as it is', (role) => {
+    expect(ExpenseGroupMemberSchema.parse({ ...member, role }).role).toBe(role);
+  });
+
+  it.each(['user', 'superadmin', 'Admin', '', 'owner '])('reads the unknown role %j as "member"', (role) => {
+    expect(ExpenseGroupMemberSchema.parse({ ...member, role }).role).toBe('member');
+  });
+
+  it.each([undefined, null, 3, {}, ['admin']])('reads a non-string role (%j) as "member"', (role) => {
+    expect(ExpenseGroupMemberSchema.parse({ ...member, role }).role).toBe('member');
+  });
+
+  it('parses a whole group with an unknown-role member instead of throwing, and adminIds is untouched', () => {
+    const parsed = ExpenseGroupSchema.parse({
+      ...validGroup,
+      members: [...validGroup.members, { ...member, role: 'user' }],
+      memberIds: ['user1', 'u2'],
+    });
+    expect(parsed.members.map((m) => m.role)).toEqual(['owner', 'member']);
+    expect(parsed.adminIds).toEqual(['user1']);
+  });
+
+  it('never upgrades: the role enum itself stays strict', () => {
+    expect(AppRoleSchema.safeParse('user').success).toBe(false);
   });
 });

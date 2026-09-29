@@ -86,6 +86,17 @@ describe('computeAdminIds', () => {
     ];
     expect(computeAdminIds(members)).toEqual(['u1', 'u2']);
   });
+
+  // B19b: deny by default. A role outside the enum (a raw jsonb value that
+  // skipped parsing) never counts as an admin.
+  it('grants nothing to a role outside the enum', () => {
+    const members = [
+      member({ userId: 'u1', role: 'owner' }),
+      member({ userId: 'u2', role: 'user' as unknown as 'member' }),
+      member({ userId: 'u3', role: undefined as unknown as 'member' }),
+    ];
+    expect(computeAdminIds(members)).toEqual(['u1']);
+  });
 });
 
 describe('buildCreateGroupInput', () => {
