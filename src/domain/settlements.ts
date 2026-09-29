@@ -1,5 +1,5 @@
 import type { PersonBalance } from './dashboard';
-import { BALANCE_TOLERANCE } from './ledger';
+import { BALANCE_TOLERANCE, isLegacySettled } from './ledger';
 
 /**
  * Pure helpers behind the `/settlements` island (plan B14b). The money maths
@@ -118,4 +118,64 @@ export function pairwiseLists(balances: readonly PersonBalance[]): { youOwe: Bal
   }
   const bySize = (a: BalanceEntry, b: BalanceEntry) => b.amount - a.amount || (a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0);
   return { youOwe: youOwe.sort(bySize), oweYou: oweYou.sort(bySize) };
+}
+
+/** Where a pairwise row can be recorded (see `recordingRoute`). */
+export type RecordingRoute =
+  | { kind: 'direct' }
+  | { kind: 'event'; eventId: string }
+  | { kind: 'from-events'; eventIds: string[] };
+
+export type RouteExpense = {
+  paidBy: string;
+  splits: readonly { userId: string }[];
+  eventId?: string | null;
+  settledAt?: string | null;
+};
+export type RouteSettlement = { fromUserId: string; toUserId: string; eventId?: string | null };
+
+/**
+ * How the viewer can record a payment with `otherId` from the personal view.
+ * `settlements_insert` accepts a counterparty who is an accepted friend of the
+ * creator (no event), or, with an `event_id`, a fellow member of that event
+ * (migration 015); anything else is denied, and a button that is always denied
+ * is a dead end. So each row gets exactly one route:
+ *  - `direct`: an accepted friend, no event id.
+ *  - `event`: not a friend, but every expense and settlement linking the two
+ *    carries the same event, so the debt really is that event's: record it with
+ *    that event id.
+ *  - `from-events`: not a friend, and the debt spans several events or has none:
+ *    no button; the caller links to each event (`eventIds`, sorted, unique; may be
+ *    empty) where it can be settled.
+ * "Linking" means the rows behind the pairwise balance: an expense one of them
+ * paid where the other has a split (legacy settled ones excluded, like the
+ * ledger) and a settlement between exactly the two. UX only: RLS decides.
+ */
+export function recordingRoute(input: {
+  viewerId: string;
+  otherId: string;
+  isFriend: boolean;
+  expenses: readonly RouteExpense[];
+  settlements: readonly RouteSettlement[];
+}): RecordingRoute {
+  if (input.isFriend) return { kind: 'direct' };
+  const { viewerId: v, otherId: p } = input;
+
+  const linking: (string | null)[] = [];
+  for (const expense of input.expenses) {
+    if (isLegacySettled(expense)) continue;
+    const links =
+      (expense.paidBy === v && expense.splits.some((split) => split.userId === p)) ||
+      (expense.paidBy === p && expense.splits.some((split) => split.userId === v));
+    if (links) linking.push(expense.eventId ?? null);
+  }
+  for (const settlement of input.settlements) {
+    if ((settlement.fromUserId === v && settlement.toUserId === p) || (settlement.fromUserId === p && settlement.toUserId === v)) {
+      linking.push(settlement.eventId ?? null);
+    }
+  }
+
+  const eventIds = Array.from(new Set(linking.filter((id): id is string => id !== null))).sort();
+  if (eventIds.length === 1 && linking.every((id) => id === eventIds[0])) return { kind: 'event', eventId: eventIds[0]! };
+  return { kind: 'from-events', eventIds };
 }
