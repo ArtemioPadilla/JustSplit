@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
@@ -38,6 +38,15 @@ function Harness() {
 
 const WAIT = { timeout: 8000 };
 const TEST_TIMEOUT = 20000;
+
+// Warm the code-split chunk once, outside any test's own timeout: under a
+// saturated full-suite run its first transform + import can exceed the WAIT
+// budget (a test-harness cost, not the user's). The lazy boundary itself is
+// pinned statically by src/tests/lazy-boundaries.test.ts; these tests pin the
+// behaviour across it, which a warm module cache does not change.
+beforeAll(async () => {
+  await import('@/components/ui/data-table-columns-menu-impl');
+}, 60_000);
 
 describe('ColumnsMenu', () => {
   it('is a real menu button from the first paint, closed', () => {

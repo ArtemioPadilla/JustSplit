@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DatePicker } from './date-picker';
@@ -20,6 +20,15 @@ const MONTH = NOW.getMonth();
 const MONTH_NAME = NOW.toLocaleString('en-US', { month: 'long' });
 const the = (day: number) => new Date(YEAR, MONTH, day);
 const TEST_TIMEOUT = 20000;
+
+// Warm the code-split chunk once, outside any test's own timeout: under a
+// saturated full-suite run its first transform + import can exceed the WAIT
+// budget (a test-harness cost, not the user's). The lazy boundary itself is
+// pinned statically by src/tests/lazy-boundaries.test.ts; these tests pin the
+// behaviour across it, which a warm module cache does not change.
+beforeAll(async () => {
+  await import('@/components/ui/date-picker-impl');
+}, 60_000);
 
 describe('DatePicker (calendar loaded on open)', () => {
   it('shows a real, labelled trigger with the formatted value before any calendar code has loaded', () => {
