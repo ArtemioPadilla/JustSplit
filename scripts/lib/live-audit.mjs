@@ -22,8 +22,8 @@ export const RATES = {
  * passing silently. BaseLayout's Google Fonts stylesheet is answered with an
  * empty one: the run must not depend on Google being reachable (in the dev
  * sandbox it fails TLS or the proxy tunnel, in CI it is one more thing that can
- * flake). console-policy.mjs still allowlists the sandbox's TLS error for a run
- * that bypasses this isolation.
+ * flake). Because of that stub the console policy needs no Google Fonts entry: a
+ * certificate error from any resource is a defect.
  */
 export async function isolateExternalRequests(context) {
   await context.route('**/*', (route) => {

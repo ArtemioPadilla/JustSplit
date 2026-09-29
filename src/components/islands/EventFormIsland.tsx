@@ -2,6 +2,7 @@ import { EventForm } from '@/components/features/events/EventForm';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import ErrorBoundary from './ErrorBoundary';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 /**
  * `/events/new`'s route island (plan B11b): `ErrorBoundary > AuthIsland >
@@ -12,6 +13,8 @@ import ErrorBoundary from './ErrorBoundary';
  * `?group=<id>` (linked from a group page) is read by the form itself.
  */
 export default function EventFormIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">New event</h1>

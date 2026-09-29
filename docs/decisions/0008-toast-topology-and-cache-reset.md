@@ -100,7 +100,9 @@ singleton holds in production, not just inside one test file.
   mounted with `client:idle` (never competes with first paint/interaction).
 - Base UI's `Toast.Viewport` already sets `role="region"` +
   `aria-live="polite"` + `aria-label="Notifications"` — every toast is
-  announced politely by default (unchanged here).
+  announced politely by default (unchanged here). **Amended by B19b (below):**
+  each toast's own role is now `status` (`alert` for an error), not Base UI's
+  `dialog`.
 - `notifyError` (`stores/notifications.ts`) now passes `priority: 'high'`
   (Base UI announces it assertively — a hidden `role="alert"` mirror region,
   `esm/toast/viewport/ToastViewport.js`) and `timeout: 0` (disables the
@@ -116,7 +118,7 @@ singleton holds in production, not just inside one test file.
   already existed) is exercised and asserted in `toast.test.tsx` — no
   production change needed there, just confirmed working end to end.
 
-### Local-cache reset: `resetLocalData()` ("Restablecer datos locales")
+### Local-cache reset: `resetLocalData()` ("Reset local data")
 
 `src/lib/data/reset-local.ts` replaces the legacy Firestore IndexedDB
 corruption-recovery flow. It runs six independent, isolated steps (each
@@ -401,6 +403,67 @@ function.
 |---|---|---|
 | People on shared devices | A failed lazy-chunk load after sign-out would have left the previous user's cached groups, expenses and settlements readable on the device. | The wipe has no dependency on any lazy chunk (a static 0.6 kB import). It is pinned by a test that makes the Query client chunk unloadable. |
 | Signed-in users on flaky networks | `signOut()` could have rejected after actually signing out, which is a confusing half-state. | The only remaining async steps are the Supabase call and an IndexedDB delete. Neither needs a network fetch of app code. |
+
+## Amendment (2026-09-29, plan B19b): a toast is a status, not a dialog
+
+### Context
+
+Base UI's `Toast.Root` renders `role="dialog"` (and `role="alertdialog"` for a
+`priority: 'high'` toast), with `aria-modal="false"`. That is the wrong
+announcement for a transient message: a screen reader treats a dialog as a
+surface that wants attention, so "Expense saved" was announced like a prompt.
+The B19 live smoke had to name every dialog it looked for because a toast
+matched a bare `getByRole('dialog')`.
+
+### Decision
+
+`ui/toast.tsx` passes the role to `Toast.Root` (Base UI merges caller props over
+its own):
+
+| Toast | Root | Live region |
+|---|---|---|
+| plain (`notifySuccess`, `notifyInfo`) | `role="status"`, no `aria-modal` | polite (a status is implicitly polite) |
+| error (`priority: 'high'`, which `notifyError` sets, or the destructive variant) | `role="alert"`, no `aria-modal` | `aria-live="assertive"` |
+
+Unchanged on purpose, so the topology and the focus model are exactly what this
+ADR and its tests already pin:
+
+- one layout-level `ToasterIsland`, one module-level manager, the
+  pre-hydration queue and the cross-navigation handoff;
+- the Viewport is still Base UI's persistent polite `region` named
+  "Notifications" (a live region that exists before its content changes is what
+  makes an insertion announce reliably);
+- focus: a toast never takes focus when it appears, the root keeps
+  `tabindex="0"` (reachable with F6 or Tab), and `aria-labelledby` /
+  `aria-describedby` stay, so a keyboard user who lands on a toast hears its title
+  and description (a bare `status` role has no name from content);
+- for `priority: 'high'` Base UI keeps the root `aria-hidden` until it is focused
+  and announces the error through its visually hidden `role="alert"` mirror, so an
+  error is spoken once; `timeout: 0` still keeps it on screen.
+
+Proven in `src/components/ui/toast.semantics.test.tsx`: `status` with its text and
+no `dialog`/`alertdialog` anywhere, no `aria-modal`, not assertive; `alert` +
+`aria-live="assertive"` for both error signals; focus stays on the previously
+focused button for both kinds; the root stays focusable and named.
+
+### Consequences
+
+- A nested live region (a `status` root inside the polite viewport) is a known
+  source of double announcements in some screen reader and browser pairs. The
+  persistent viewport is kept because dropping it risks the opposite, silence on
+  insertion. Not verified with a real screen reader in this change (the suite runs
+  in jsdom and the a11y smoke in axe); open question for the first manual pass.
+- `getByRole('dialog')` in tests and smokes is no longer ambiguous when a toast is
+  on screen. The by-name lookups stay as they are.
+
+### Stakeholder Analysis (new rows, this amendment)
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| Screen reader users | Confirmations stop being announced as dialogs; errors stay assertive and persistent. | `status` for plain toasts, `alert` + assertive for errors, error toasts do not auto-dismiss. |
+| Keyboard users | Must still reach a toast and hear it. | Focus behaviour, `tabindex` and the label/description wiring are unchanged and tested. |
+| Sighted users | No visual change. | Only ARIA attributes moved. |
+| Future contributors | A new toast variant that is an error must be marked `priority: 'high'` (or destructive) or it is announced politely. | `toastSemantics` in `ui/toast.tsx` is the single place; the test covers both signals. |
 
 ## Supersedes
 

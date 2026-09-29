@@ -5,7 +5,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { RemoveFriendDialog } from '@/components/features/friends/RemoveFriendDialog';
 import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import { parseCalendarDate } from '@/domain/dates';
@@ -43,6 +43,8 @@ import NotFoundView from './NotFoundView';
  * here to "does this user even exist").
  */
 export default function FriendDetailView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Friend</h1>

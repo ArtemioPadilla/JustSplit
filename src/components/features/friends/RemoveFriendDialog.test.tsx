@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -35,6 +35,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// B19b: the dialog opens through a load-on-first-use stand-in. Warm its chunk once, outside any test's
+// own timeout (a saturated full-suite run can exceed a findBy budget on the first transform + import);
+// the behaviour behind the boundary is what these tests pin, and a warm module cache does not change it.
+beforeAll(async () => {
+  await Promise.all([import('./RemoveFriendDialogImpl')]);
+}, 60_000);
+
 describe('RemoveFriendDialog', () => {
   it('shows a confirmation naming the friend once opened', async () => {
     const user = userEvent.setup();
@@ -63,5 +70,22 @@ describe('RemoveFriendDialog', () => {
     await user.click(await within(dialog).findByRole('button', { name: /^remove$/i }));
     await waitFor(() => expect(notifyError).toHaveBeenCalledTimes(1));
     expect(notifyError.mock.calls[0]![0]).not.toMatch(/permission denied/i);
+  });
+
+  // B19b: the trigger is a stand-in until first use; the focus contract of a real dialog must survive the swap.
+  it('offers a plain "Remove" button first, and Cancel returns focus to the (real) trigger', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const trigger = screen.getByRole('button', { name: /^remove$/i });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(trigger);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^remove$/i })).toHaveFocus());
   });
 });

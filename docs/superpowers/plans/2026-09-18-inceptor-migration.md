@@ -2686,6 +2686,119 @@ weight behind a boundary; it rose on `/auth/*` and the marketing pages only by t
   regression; fix the regression. A budget is only set from a measurement taken after the
   reductions, with about 5% headroom, and the before/after go in this note.
 
+### B19b. Polish follow-ups (`risk:high`, `tdd-tier:strict`; item 2 adds migration 016)
+Sequencing: after B19, before B20 (the cutover). Nothing here changes a product decision; it closes the
+follow-ups B18/B19 and the review left open. Each item is its own red/green commit pair (`Tdd-Red:`
+trailer; docs and config use `Tdd-Red-Verified: inline`).
+- [x] Spanish label in the English UI: "Restablecer datos locales" (the button and the dialog title of
+      `ResetLocalDataButton`) is now "Reset local data", its dialog copy was already English; ADR 0008's
+      heading and the tests follow. Grepping `src/` for other Spanish UI strings found one more:
+      `FeedbackFAB` defaulted to its Spanish dictionary (`lang = 'es'`, the client script's
+      `dataset.lang || 'es'` and its "Copiar diagnósticos" / "¡Copiado!" label fallbacks); all now
+      English. The `es` dictionary itself and `src/i18n/es.ts` are a real locale and stay.
+      `src/tests/english-ui.test.ts` scans the React components for Spanish literals. The historical
+      plan and spec text that quotes the old label is left as the record.
+- [x] Unknown member role blanked the group page. **Where roles live:** only inside the
+      `expense_groups.members` jsonb array (`[{ userId, displayName, role, joinedAt, invitedBy? }]`);
+      no column, no other table. `AppRoleSchema` is `owner | admin | moderator | member`, but the
+      database accepted any JSON there and the RLS fixtures wrote `'user'`. (a) **Database**, migration
+      `20260928000016_group_member_role_check.sql`: an immutable helper
+      `public.group_members_roles_valid(jsonb)` (no table reads; `authenticated` and `service_role` may
+      execute it, never `anon` or `PUBLIC`) and a CHECK constraint `expense_groups_member_roles_valid`
+      calling it, so every writer (client, REST, `batch_write`, the service role) gets SQLSTATE `23514`
+      for an entry that is not an object, or whose `role` is missing, null, not a string or not one of the
+      four. A constraint rather than a trigger because it must also validate stored rows. Rollout in one
+      transaction: normalise (an object entry with a bad or missing role becomes `'member'`, the lowest
+      role, order kept), `ADD CONSTRAINT ... NOT VALID`, then `VALIDATE`; a non-object entry, which the
+      app never writes, aborts the whole migration by name instead of dropping a member. Full
+      `migrate:down` (constraint and helper; the data fix is not reversed). `admin_ids`: the invariant
+      that exists in the database is `admin_ids <@ member_ids` (migration 003), untouched and re-tested;
+      "admin_ids equals the members labelled owner/admin" is an app-side derivation
+      (`computeAdminIds`) that the suite itself violates (it writes `admin_ids` without touching
+      `members[]`), so it is not made a constraint here (open question in ADR 0002's amendment: any
+      member can relabel another as `admin`, which changes a badge, never a permission, since RLS and the
+      guard read `admin_ids`). (b) **App**: `ExpenseGroupMemberSchema.role` is
+      `AppRoleSchema.catch('member')`: an unknown role reads as `'member'` for display and grants nothing
+      (`computeAdminIds` stays an allowlist), so the page renders. `AppRoleSchema` stays strict. The RLS
+      fixtures write `'member'`. Tests: `src/tests/rls/member-roles.test.ts` (each valid role, empty
+      `members[]`, every rejection shape on insert and update, the service role, the validated
+      constraint, the helper's grants, the normalisation, and the down/up round trip in rolled-back
+      transactions), the schema, repo and `GroupDetailView` tests; `test:rls:mutation` drops the
+      constraint and neuters the helper (both killed). ADR 0002 amendment with a Stakeholder Analysis and
+      the deploy note.
+- [x] Toast semantics: Base UI's `Toast.Root` renders `role="dialog"` (`alertdialog` for
+      `priority: 'high'`) with `aria-modal`, so a "Saved" confirmation was announced as a dialog. A plain
+      toast is now `role="status"` (no `aria-modal`); an error (`priority: 'high'`, which `notifyError`
+      sets, or the destructive variant) is `role="alert"` with `aria-live="assertive"`. Unchanged: the
+      one layout-level Toaster, the persistent polite "Notifications" viewport, the hidden `role="alert"`
+      mirror Base UI keeps for high-priority toasts, and the focus model (a toast never takes focus, the
+      root keeps `tabindex="0"` and its `aria-labelledby`/`aria-describedby`). ADR 0008 amendment;
+      `toast.semantics.test.tsx`. Not checked with a real screen reader (open question in the ADR).
+- [x] Dead console-policy entry: the `google-fonts-tls` allowlist entry is removed from
+      `scripts/lib/console-policy.mjs` (the smoke stubs the Google Fonts hosts, so it never matched); the
+      allowlist is the shell's 404 status alone, and a certificate error is a defect from any resource.
+- [x] Unused dependency: nothing in `src/` imports `motion` (grep and the build agree), so it is
+      removed from `package.json` (npm also dropped `framer-motion`, `motion-dom` and `motion-utils` from
+      the lockfile). `tailwindcss-motion`, the CSS plugin, stays. No doc claimed it was used.
+      `declared-dependencies.test.ts` keeps "declared iff imported".
+- [x] Date picker month: the calendar opened on today's month whatever was selected. It opens on the
+      selected date's month (the range start for a range), today's when nothing is selected, and
+      `calendarProps.defaultMonth` still wins.
+- [x] Idle warm-up of the currency combobox: `useWarmCurrencyCombobox()` (in `CurrencySelector.tsx`, called
+      by the thirteen islands and route views that will render one) fetches the chunk in the browser's
+      idle time (`requestIdleCallback` with a 4 s timeout, a `setTimeout` fallback, cancelled on unmount,
+      once per page, skipped under Save-Data). It is the same dynamic `import()` as the `React.lazy`
+      boundary, so the static graph is unchanged (every page moved by 0.0 to +0.3 kB, the hook code);
+      `lazy-boundaries.test.ts` pins that.
+- [x] Lazy dialogs and timeline hover cards, using B19's stand-in pattern (same accessible name and
+      classes, `aria-haspopup="dialog"`, `aria-busy` while loading, warm on hover/focus/touch, the real
+      component mounts open on the click): the shared `ui/lazy-dialog.tsx` (`LazyDialog`) fronts
+      `RemoveFriendDialog` (`/friends`), `ResetLocalDataButton` (`/profile`), `RecordPaymentDialog` and
+      `UndoSettlementDialog` (`/settlements`); each keeps its whole Dialog composition in an `*Impl`
+      module and names its real trigger as `finalFocus`, because a dialog that mounts already open never
+      saw focus on a trigger (Cancel and Escape still return focus to the trigger). The shell of
+      `RecordPaymentDialog` also warms the payment form, so opening is not a second wait. In
+      `EventTimeline` a marker is a plain button until it is hovered, focused or touched, then swaps to
+      `EventTimelineMarkerImpl` (the hover card, `delay={0}`); if the plain marker had keyboard focus the
+      real one takes it over before paint, and it opens at once when the pointer or focus is still there.
+      The always-present text list of expenses never depended on the card. Behaviour suites warm the
+      chunks in `beforeAll` and re-query the real trigger after a swap; `lazy-boundaries.test.ts` pins
+      every new boundary. Budgets (`performance-budgets.json`) tightened to the new measurement plus
+      about 5%, never raised.
+- [x] Docs: this entry, the ADR 0002 and ADR 0008 amendments, the SETUP owner-actions row for
+      migration 016 (joins the owner's next `db-migrate.yml` run) and the SETUP "Performance budgets"
+      pointer to `ui/lazy-dialog.tsx`. `CLAUDE.md` needed no change (no command, warning or stack row
+      moved; it never listed `motion`).
+
+**Landed (B19b)** — gzipped kB (1024 bytes), `scripts/check-budgets.mjs`, static JS per page, measured on
+the branch tip before the work (`6dd1705`, rebuilt for this note: a few figures differ by 0.1 to 0.4 from
+the B19 table above, which was taken at B19's own last commit) and after it:
+
+| Page | static JS before | after | change | budget before | after |
+|---|---|---|---|---|---|
+| `/friends/` | 258.7 | 235.8 | -22.9 | 279 | 248 |
+| `/profile/` | 259.7 | 235.8 | -23.9 | 279 | 248 |
+| `/settlements/` | 264.6 | 241.6 | -23.0 | 279 | 254 |
+| `/events/list/` | 262.0 | 233.9 | -28.1 | 279 | 246 |
+| `/showcase/` | 270.3 | 170.2 | -100.1 | 284 | 179 |
+| `/` | 227.1 | 227.3 | +0.2 | 239 | 239 |
+| `/404` (app shell) | 129.6 | 129.9 | +0.3 | 137 | 137 |
+| `/auth/signin/` | 209.3 | 209.6 | +0.3 | 220 | 220 |
+| `/expenses/new/` | 263.1 | 263.3 | +0.2 | 279 | 279 |
+| `/expenses/list/` | 256.5 | 256.7 | +0.2 | 279 | 279 |
+| `/events/new/` | 249.0 | 249.2 | +0.2 | 279 | 279 |
+| `/groups/list/`, `/groups/new/` | 214.4, 224.8 | 214.3, 224.8 | -0.1, 0.0 | 237 | 237 |
+| `/landing/`, `/about/`, `/help/` | 2.7 | 2.7 | 0.0 | 40 | 40 |
+
+The dialog stack is about 23 kB and the hover card about 28 kB. `/showcase` fell by 100 kB because its
+reset-button demo pulled the Supabase client, zod and the dialog stack in statically; they now load on
+first use. The +0.2 to +0.3 elsewhere is the toast semantics and the warm-up hook. The other pages keep
+their budget: `/expenses/new` (263.3) is the app group's heaviest page. Gates on the final tree:
+`npm run check` (233 test files, 2580 tests, 0 errors), `check:a11y` (16 pages x 3 configurations, 0
+violations), `check:offline`, `test:live` (all flows, 22 page states x 3 configurations clean),
+`test:rls` (21 files, 280 tests), `test:contract:live`, `test:rls:mutation` (53/53 killed, two of them
+new), and `db:rollback` then `db:migrate` for migration 016.
+
 ### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
 - [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend
       is connected to this repo, disconnect it (or it auto-builds `main` after the merge);
@@ -3158,7 +3271,7 @@ B8a..B15, B17b parallelizable after B7 and B16
   (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B14a;
    B14a after B2d + B8b + B9 + B11b + B13 (it rewrites how their balances and badges are derived); B14 is the island only, on B14a;
    B15 after B16; B13 after B5a (its policies shipped in B2); B8b/B9/B11b after B17a)
-B18 → B19 → B20 → B21 → B22               (B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
+B18 → B19 → B19b → B20 → B21 → B22        (B19b is the polish follow-up batch, with migration 016 and tightened budgets, and lands before the cutover PR; B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
 C1, C2 after B5b; C3 after B1 (independent of the cutover)
 H1 after this spec is approved (no code; unblocks ADR-008 gate 1) → H2 after the hub's gate C1 (Story 0.3) — or upstream the B5a contingency adapter → H3 after H2 + C1
 D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8     (Track D increment 1, all after B22, on main; D2 before any default split is written)

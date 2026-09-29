@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { AttachRowsPanel } from '@/components/features/groups/AttachRowsPanel';
 import { DeleteGroupDialog } from '@/components/features/groups/DeleteGroupDialog';
 import { MembersSection } from '@/components/features/groups/MembersSection';
@@ -42,6 +42,8 @@ function namesFrom(rows: { id: string; name: string | null }[] | undefined): Rec
  * reasoning).
  */
 export default function GroupDetailView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Group</h1>

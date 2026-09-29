@@ -352,6 +352,91 @@ neither implemented, by this amendment or B10's):
   read-then-ungroup client-side choreography having to be correct or
   complete in the first place.
 
+## Amendment (2026-09-29, plan B19b): group member roles are enum-checked
+
+`risk:high`: a migration. ADR 0002 owns the schema and the group-membership
+rows (the B12 amendment above and [ADR 0013](./0013-membership-lifecycle.md)
+changed who may see and edit them, not what `members[]` may contain), so the
+role constraint is recorded here.
+
+### Context
+
+The only place a member role is stored is the `expense_groups.members` jsonb
+array (`[{ userId, displayName, role, joinedAt, invitedBy? }]`). The app parses
+`role` as `owner | admin | moderator | member`, but the database accepted any
+JSON there. The RLS fixtures wrote `'user'`; one such member made
+`ExpenseGroupSchema.parse` throw, so `GroupDetailView` (and every page that loads
+the group: `/events/new?group=`, the dashboard) showed "Something went wrong"
+with no way to recover from the UI.
+
+Authorization never read that field. RLS and `guard_expense_groups` decide from
+`admin_ids`, which `expense_groups_admins_are_members` (`admin_ids <@
+member_ids`, migration 003) keeps inside `member_ids`; the roles are labels the
+app uses to derive `admin_ids` (`computeAdminIds`) on each membership patch.
+
+### Decision
+
+Both sides, so neither trusts the other.
+
+- **Database, migration `20260928000016_group_member_role_check.sql`.** A CHECK
+  constraint `expense_groups_member_roles_valid` calls
+  `public.group_members_roles_valid(jsonb)`: `members` is an array and every entry
+  is an object whose `role` is a JSON string equal to one of the four roles (a
+  missing, null, numeric or array role, a case or whitespace variant and a
+  non-object entry are refused; SQLSTATE `23514`). A constraint, not a trigger:
+  the value lives in jsonb but a CHECK can call an immutable function, it
+  validates existing rows and it holds for every writer, the service role
+  included. Rollout: normalise first (an object entry with a bad or missing role
+  becomes `'member'`), add `NOT VALID`, then `VALIDATE`. The helper reads no
+  table; it is executable by `authenticated` and `service_role` (constraints run
+  with the writer's privileges) and never by `anon` or `PUBLIC`. Full
+  `migrate:down` (constraint and helper; the normalisation is a data fix and is
+  not reversed). Proven in `src/tests/rls/member-roles.test.ts` (each valid role,
+  every rejection shape on insert and update, the service role, the catalog,
+  the normalisation and the down/up round trip in rolled-back transactions);
+  `npm run test:rls:mutation` drops the constraint and neuters the helper.
+- **App.** `ExpenseGroupMemberSchema.role` is `AppRoleSchema.catch('member')`:
+  an unknown, missing or non-string role reads as `'member'`, the lowest role, so
+  the page renders and the member is shown as a plain member. Deny by default:
+  `computeAdminIds` stays an allowlist (`hasMinimumRole`), so an unknown role can
+  never produce an admin, and admin checks read `adminIds`. `AppRoleSchema`
+  itself stays strict. A membership patch that writes the parsed members back
+  therefore also repairs a legacy label.
+- **Fixtures.** `groupRow` writes `'member'`, not `'user'`.
+
+### Alternatives considered
+
+- **A validating trigger.** Needed only if the rule had to see OLD and NEW; it
+  does not, and a trigger does not validate rows already stored.
+- **Tying `role` to `admin_ids` in the same constraint** (a member is labelled
+  owner/admin iff they are in `admin_ids`). The invariant exists only in the app;
+  the suite writes `admin_ids` without touching `members[]`, and the guard trigger
+  gates `admin_ids` changes, not label changes, so a two-way constraint would
+  change what an admin may write. Left as an open question: any member may edit
+  `members[]` (ordinary fields), so a member can relabel someone as `admin`; that
+  changes a badge, never a permission, because nothing authorizes from the label.
+- **Failing the read (status quo).** One bad label blanks the group for everyone.
+
+### Deploy note (owner action)
+
+Migration 016 joins the owner's next `db-migrate.yml` run: `gh workflow run
+db-migrate.yml --ref inceptor -f command=migrate`, then `npm run -s db:audit --
+"$SUPABASE_DB_URL"` must equal the local dump (it now lists the constraint and the
+function). Order does not matter for the app: the tolerant read ships in the same
+build and works before and after the constraint. The migration rewrites any group
+whose `members[]` holds an unknown role (none is expected: the app never wrote
+one), and aborts, changing nothing, if an entry is not an object.
+
+### Stakeholder Analysis
+
+| Stakeholder | Impact | Mitigation |
+|---|---|---|
+| A group member with a legacy or corrupt role | Before: the whole group blanked for them and everyone else. After: the group opens and they read as a plain member; if the label was wrong, their badge changes to "member". | The label is the lowest role, so nothing is granted; `admin_ids`, which decides every permission, is untouched, so nobody gains or loses access. |
+| The group admin | Cannot store an unknown role by any path (client, REST, `batch_write`). A membership patch that round-trips a legacy member fixes the label. | The constraint rejects with `23514` and names itself; the app never builds such a role (`AppRole` in TypeScript). |
+| Every other member | Groups stop blanking because of one bad row. | Tolerant read plus the database check: the bad state cannot be re-created. |
+| The owner running the deploy | A data rewrite and a constraint on a shared production table. | Normalise, `NOT VALID`, then `VALIDATE` (no long write lock), one transaction, a down path, a rolled-back-transaction test of both directions, and a failure that changes nothing. |
+| Future contributors | A new role must be added in three places: `AppRoleSchema`, the `@cyber-eco/types` enum and the helper. | The RLS suite fails on a role the helper does not know, and the mutation check fails if the constraint is dropped. |
+
 ## Supersedes
 
 None.

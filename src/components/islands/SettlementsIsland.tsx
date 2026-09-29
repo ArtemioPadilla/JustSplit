@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { BalancePanel } from '@/components/features/settlements/BalancePanel';
 import { HistoryPanel } from '@/components/features/settlements/HistoryPanel';
 import { PendingPanel } from '@/components/features/settlements/PendingPanel';
@@ -50,6 +50,8 @@ const RETRY_HINT = 'Please try again in a moment. If this keeps happening, you c
  * and shows a "coming soon" note (Track D, D7).
  */
 export default function SettlementsIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10">
       <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Settlements</h1>

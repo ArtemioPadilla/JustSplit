@@ -19,10 +19,23 @@ import type { AppRole, ExpenseGroup as UniversalExpenseGroup, ExpenseGroupMember
  */
 export const AppRoleSchema = z.enum(['owner', 'admin', 'moderator', 'member']);
 
+/**
+ * Tolerant READ of `members[].role` (B19b). The roles live inside a jsonb
+ * column, so a value outside the enum used to fail the parse of the whole
+ * group and blank `GroupDetailView`. An unknown (or missing, or non-string)
+ * role now reads as `'member'`: the lowest role, so it displays as a plain
+ * member and grants nothing (deny by default; `computeAdminIds` and every
+ * admin check stay allowlists, and RLS reads `admin_ids`, never this field).
+ * Migration 016 makes the database reject such a value on write; this is the
+ * safety net for rows written before it, and for a role a future build adds.
+ * `AppRoleSchema` itself stays strict.
+ */
+const TolerantRoleSchema = AppRoleSchema.catch('member');
+
 export const ExpenseGroupMemberSchema = z.object({
   userId: z.string(),
   displayName: z.string(),
-  role: AppRoleSchema,
+  role: TolerantRoleSchema,
   joinedAt: z.string(),
   invitedBy: z.string().optional(),
 });

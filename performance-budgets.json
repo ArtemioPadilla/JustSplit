@@ -16,7 +16,7 @@
       "overrides": { "/auth/callback": 199 }
     },
     "app": {
-      "//": "The signed-in app: React + ReactDOM (react.*.js, 67.8 kB gz) dominates every page, then the Supabase client (supabase.*.js, 57.9 kB) and zod v4 (schemas.*.js, 25.0 kB), then the page's own route island. Measured after the reductions: heaviest is /settlements 265.2 kB (before 317.5); /expenses/new 263.6 (348.7), /events/list 262.5 (302.5), /profile 260.2 (297.2), /friends 259.2 (270.6), /expenses/list 257.0 (332.7), /events/new 249.5 (310.1). +5% => 279. Lighter pages are held to their own figure: / 227.6 (291.0) => 239, /groups/* 225.3 (259.7) => 237, the 404 shell 129.7 (128.3: its route views are lazy) => 137, and the redirect stubs (/expenses, /events, /groups, /friends/add: a meta refresh, no script) => 1.",
+      "//": "The signed-in app: React + ReactDOM (react.*.js, 67.8 kB gz) dominates every page, then the Supabase client (supabase.*.js, 57.9 kB) and zod v4 (schemas.*.js, 25.0 kB), then the page's own route island. Measured after the reductions: heaviest is /settlements 265.2 kB (before 317.5); /expenses/new 263.6 (348.7), /events/list 262.5 (302.5), /profile 260.2 (297.2), /friends 259.2 (270.6), /expenses/list 257.0 (332.7), /events/new 249.5 (310.1). +5% => 279. Lighter pages are held to their own figure: / 227.6 (291.0) => 239, /groups/* 225.3 (259.7) => 237, the 404 shell 129.7 (128.3: its route views are lazy) => 137, and the redirect stubs (/expenses, /events, /groups, /friends/add: a meta refresh, no script) => 1. B19b (dialogs and the timeline hover cards load on first use, so the Base UI dialog stack, ~23 kB gz, and the hover card, ~28 kB, left the static graph): /friends 258.8 => 235.8 => 248, /profile 260.0 => 235.8 => 248, /settlements 264.9 => 241.6 => 254, /events/list 262.3 => 233.9 => 246 (+5% each); the group figure stays 279 for /expenses/new (263.3) and /expenses/list (256.7).",
       "pages": ["/", "/expenses/*", "/events/*", "/groups/*", "/friends*", "/settlements", "/profile", "/404"],
       "maxStaticJsGzKb": 279,
       "dominantChunk": "react",
@@ -27,13 +27,17 @@
         "/friends/add": 1,
         "/": 239,
         "/groups/*": 237,
-        "/404": 137
+        "/404": 137,
+        "/friends": 248,
+        "/profile": 248,
+        "/settlements": 254,
+        "/events/list": 246
       }
     },
     "showcase": {
-      "//": "/showcase: the component gallery, a developer page that statically mounts sixteen islands, so it carries everything the app pages do. React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then supabase.*.js (57.9 kB, pulled in by the reset-local-data demo) and zod v4 (25.0 kB). Measured 270.3 kB (before 291.0; 279.0 until the sign-out wipe stopped importing the Query client chunk); +5% => 284. It is not a user route, but it is built and deployed, so it is gated like one.",
+      "//": "/showcase: the component gallery, a developer page that statically mounts sixteen islands, so it carries everything the app pages do. React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then supabase.*.js (57.9 kB, pulled in by the reset-local-data demo) and zod v4 (25.0 kB). Measured 270.3 kB (before 291.0; 279.0 until the sign-out wipe stopped importing the Query client chunk); +5% => 284. B19b: the reset-button demo now loads its dialog, and with it the Supabase client, zod and the dialog stack, on first use: 270.5 => 170.2 kB; +5% => 179. It is not a user route, but it is built and deployed, so it is gated like one.",
       "pages": ["/showcase"],
-      "maxStaticJsGzKb": 284,
+      "maxStaticJsGzKb": 179,
       "dominantChunk": "react"
     }
   }

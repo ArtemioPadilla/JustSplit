@@ -136,7 +136,7 @@ export function groupRow(creator: Actor, members: Actor[], over: Record<string, 
     members: all.map((m) => ({
       userId: m.id,
       displayName: m.name,
-      role: m.id === creator.id ? 'admin' : 'user',
+      role: m.id === creator.id ? 'admin' : 'member',
       joinedAt: new Date().toISOString(),
     })),
     member_ids: all.map((m) => m.id),

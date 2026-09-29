@@ -5,7 +5,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Editable } from '@/components/ui/editable';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { DeleteExpenseDialog } from '@/components/features/expenses/DeleteExpenseDialog';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import { ReceiptGallery } from '@/components/features/expenses/ReceiptGallery';
@@ -46,6 +46,8 @@ const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
  * reasoning, ADR 0002).
  */
 export default function ExpenseDetailView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Expense</h1>

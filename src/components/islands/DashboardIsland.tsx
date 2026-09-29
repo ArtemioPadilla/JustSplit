@@ -32,6 +32,7 @@ import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import CurrencyExchangeTicker from './CurrencyExchangeTicker';
 import ErrorBoundary from './ErrorBoundary';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 const DashboardCharts = React.lazy(() => import('@/components/features/dashboard/DashboardCharts.lazy'));
 const RECENT_EXPENSES_LIMIT = 5;
@@ -54,6 +55,8 @@ const RECENT_SETTLEMENTS_LIMIT = 3;
  * renders, and a page title isn't one of them).
  */
 export default function DashboardIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Dashboard</h1>

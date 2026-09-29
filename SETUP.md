@@ -124,6 +124,7 @@ numbers go in the plan's B19 Landed note. Each budget carries a comment naming t
 dominates it (the check warns when that stops being true). When the gate fails, look at the row's
 largest chunk and at what the change added to the page's static graph: usually a component that could
 load on first use (a dialog, a menu, a picker, a form inside a dialog) was imported statically.
+Dialogs use the shared stand-in `src/components/ui/lazy-dialog.tsx` (plan B19b).
 `src/tests/lazy-boundaries.test.ts` lists the ones that are deliberately lazy. To investigate,
 build with `rollup-plugin-visualizer` in a scratch config (not committed) and read each module's
 size by package. The Lighthouse budgets (`.lighthouserc.json`, `npm run perf`, run by hand against
@@ -148,6 +149,7 @@ plan's acceptance lines stay verifiable.
 | B2 | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` once `SUPABASE_DB_URL` exists; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B2b | Add `RLS & contract (supabase start)` to the required checks on `inceptor` | ☐ |
 | B2d | After B2d merges, run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` again (migrations `…010`–`…014`: `event_id` columns, foreign keys, membership visibility, edit guards, email-lookup rate limit; ADR 0013), before or together with the app build that reads `event_id`; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
+| B19b | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` for migration `…016` (the `expense_groups.members[].role` check: normalises any unknown role to `member`, then adds and validates the constraint; ADR 0002, B19b amendment); then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
 | B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
 | A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |

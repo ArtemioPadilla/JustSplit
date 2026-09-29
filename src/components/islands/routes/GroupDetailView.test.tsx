@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { AuthUser } from '@cyber-eco/types';
 import type { ExpenseGroup } from '@/schemas/group';
+import { ExpenseGroupSchema } from '@/schemas/group';
 import { $authReady, $profile, $user } from '@/stores/session';
 
 /**
@@ -173,6 +174,27 @@ describe('GroupDetailView', () => {
       expect.objectContaining({ attachableExpenses: [{ id: 'e1', description: 'Mine' }] }),
       undefined,
     );
+  });
+
+  // B19b: the RLS fixtures wrote role 'user' and the database accepted it; one such member used to
+  // fail the parse and blank the page. Parsed through the real schema, the page renders and the
+  // member is a plain 'member' (never an admin).
+  it('renders a group whose stored member role is outside the enum, reading it as a plain member', () => {
+    const group = ExpenseGroupSchema.parse({
+      ...makeGroup(),
+      members: [
+        { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+        { userId: 'u2', displayName: 'Beto', role: 'user', joinedAt: NOW },
+      ],
+    });
+    useGroup.mockReturnValue({ data: group, isLoading: false, isError: false, refetch: vi.fn() });
+    render(<GroupDetailView id="g1" />);
+
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Roommates' })).toBeInTheDocument();
+    const props = (MembersSection.mock.calls[0] as unknown[])[0] as { group: ExpenseGroup };
+    expect(props.group.members.find((m) => m.userId === 'u2')?.role).toBe('member');
+    expect(props.group.adminIds).toEqual(['u1']);
   });
 
   it('gives MembersSection no rows: removing a member no longer needs a "still on N expenses" preflight (ADR 0013)', () => {

@@ -43,6 +43,36 @@ const LAZY: { file: string; module: string; why: string }[] = [
     why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
   },
   {
+    file: 'components/features/friends/RemoveFriendDialog.tsx',
+    module: './RemoveFriendDialogImpl',
+    why: 'the Base UI dialog stack is ~25 kB gz on /friends, /profile and /settlements, for a confirm most visits never open',
+  },
+  {
+    file: 'components/features/settlements/UndoSettlementDialog.tsx',
+    module: './UndoSettlementDialogImpl',
+    why: 'the same dialog stack, on /settlements: an undo confirm most visits never open',
+  },
+  {
+    file: 'components/features/settlements/RecordPaymentDialog.tsx',
+    module: './RecordPaymentDialogImpl',
+    why: 'the same dialog stack, on /settlements, opened only when someone records a payment',
+  },
+  {
+    file: 'components/features/settings/ResetLocalDataButton.tsx',
+    module: './ResetLocalDataButtonImpl',
+    why: 'the same dialog stack, on /profile, for a reset most visits never use',
+  },
+  {
+    file: 'components/features/settlements/RecordPaymentDialogImpl.tsx',
+    module: './RecordPaymentForm',
+    why: 'react-hook-form and the payment form are ~20 kB gz that only the open dialog needs',
+  },
+  {
+    file: 'components/features/events/EventTimeline.tsx',
+    module: './EventTimelineMarkerImpl',
+    why: 'the hover-card stack (Base UI preview card, floating-ui) is ~23 kB gz on /events/list; the marker is a plain button until it is hovered, focused or touched',
+  },
+  {
     file: 'components/ui/data-table-columns-menu.tsx',
     module: '@/components/ui/data-table-columns-menu-impl',
     why: 'the Columns dropdown (Base UI menu, floating-ui, list navigation) was ~50 kB gz on /expenses/list for a control most visits never touch',
@@ -55,6 +85,12 @@ const NEVER_STATIC: { file: string; module: string }[] = [
   { file: 'components/ui/data-table.tsx', module: '@/components/ui/dropdown-menu' },
   { file: 'components/ui/date-picker.tsx', module: '@/components/ui/popover' },
   { file: 'components/ui/date-picker.tsx', module: '@/components/ui/calendar' },
+  // B19b: no back door for the dialog stack or the hover card into the pages' static graph.
+  { file: 'components/features/friends/RemoveFriendDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settlements/UndoSettlementDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settlements/RecordPaymentDialog.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/settings/ResetLocalDataButton.tsx', module: '@/components/ui/dialog' },
+  { file: 'components/features/events/EventTimeline.tsx', module: '@/components/ui/hover-card' },
 ];
 describe.each(NEVER_STATIC)('$file (no back door)', ({ file, module }) => {
   it(`does not import ${module} statically`, () => {
@@ -73,3 +109,60 @@ describe.each(LAZY)('$file', ({ file, module, why }) => {
     expect(dynamicImports(read(file))).toContain(module);
   });
 });
+
+/**
+ * B19b: warming the currency combobox on idle is a dynamic `import()` from the
+ * SAME file that already owns the lazy boundary, so the page's static graph is
+ * exactly what it was (`check:budgets` gates the built figure). The combobox is
+ * still reachable statically from nowhere but its own module, and every island or
+ * route view that renders a `CurrencySelector` (directly, or through a form)
+ * asks for the warm-up.
+ */
+describe('currency combobox warm-up (B19b)', () => {
+  const SELECTOR = 'components/features/currency/CurrencySelector.tsx';
+
+  it('the loader stays a dynamic import in CurrencySelector.tsx, and the warm-up shares it', () => {
+    const source = read(SELECTOR);
+    expect(staticImports(source)).not.toContain('@/components/features/currency/CurrencyCombobox');
+    expect(staticImports(source)).not.toContain('@/components/ui/combobox');
+    expect(dynamicImports(source)).toEqual(['@/components/features/currency/CurrencyCombobox']);
+    expect(source).toMatch(/export function warmCurrencyCombobox/);
+    expect(source).toMatch(/export function useWarmCurrencyCombobox/);
+  });
+
+  it('nothing else imports the combobox modules statically', () => {
+    const offenders = Object.entries(
+      import.meta.glob('../**/*.{ts,tsx,astro}', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+    )
+      .filter(([path]) => !/\.test\.[tj]sx?$/.test(path))
+      .filter(([path]) => !path.endsWith('components/features/currency/CurrencyCombobox.tsx') && !path.endsWith('components/ui/combobox.tsx'))
+      .filter(([, text]) =>
+        staticImports(text).some((spec) => spec === '@/components/features/currency/CurrencyCombobox' || spec === '@/components/ui/combobox'),
+      )
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  // Where a CurrencySelector first renders: the file's default export is the one place that always runs on the page.
+  const WARMERS = [
+    'components/islands/DashboardIsland.tsx',
+    'components/islands/ExpenseFormIsland.tsx',
+    'components/islands/EventFormIsland.tsx',
+    'components/islands/ProfileIsland.tsx',
+    'components/islands/SettlementsIsland.tsx',
+    'components/islands/EventsListIsland.tsx',
+    'components/islands/ExpenseListIsland.tsx',
+    'components/islands/routes/ExpenseDetailView.tsx',
+    'components/islands/routes/ExpenseEditView.tsx',
+    'components/islands/routes/EventDetailView.tsx',
+    'components/islands/routes/EventEditView.tsx',
+    'components/islands/routes/GroupDetailView.tsx',
+    'components/islands/routes/FriendDetailView.tsx',
+  ];
+  it.each(WARMERS)('%s warms the combobox on idle', (file) => {
+    const source = read(file);
+    expect(source).toMatch(/useWarmCurrencyCombobox\(\)/);
+    expect(staticImports(source)).toContain('@/components/features/currency/CurrencySelector');
+  });
+});
+

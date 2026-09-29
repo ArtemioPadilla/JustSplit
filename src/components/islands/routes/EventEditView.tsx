@@ -6,6 +6,7 @@ import { useEvent } from '@/lib/data/hooks/useEvent';
 import AuthGate from '../AuthGate';
 import AuthIsland from '../AuthIsland';
 import NotFoundView from './NotFoundView';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 /**
  * `/events/edit/<id>`'s route view (plan B11b), loaded through
@@ -19,6 +20,8 @@ import NotFoundView from './NotFoundView';
  * (`events_update` = member; there is no client-side gate).
  */
 export default function EventEditView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Edit event</h1>

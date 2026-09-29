@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * Plan B17b: "Restablecer datos locales" — clears every trace of the
+ * Plan B17b: "Reset local data" — clears every trace of the
  * signed-in user's data from this device (idb-keyval Query persister,
  * `justsplit:*` localStorage, the Supabase session via the existing
  * `stores/auth` signOut path, and any registered service worker), then

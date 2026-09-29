@@ -48,7 +48,7 @@ function clearLocalStorageByPrefix(prefix: string): void {
 }
 
 /**
- * "Restablecer datos locales" (plan B17b, ADR 0008) — the local-cache-reset
+ * "Reset local data" (plan B17b, ADR 0008) — the local-cache-reset
  * flow that replaces the legacy Firestore IndexedDB corruption-recovery
  * dance (no equivalent need here: the Query cache is disposable and a
  * failed hydration falls straight back to the network, see

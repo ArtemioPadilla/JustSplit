@@ -3,6 +3,7 @@ import { ProfileForm } from '@/components/features/profile/ProfileForm';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import ErrorBoundary from './ErrorBoundary';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 /**
  * `/profile`'s route island (plan B15, risk:high): `ErrorBoundary >
@@ -14,6 +15,8 @@ import ErrorBoundary from './ErrorBoundary';
  * with no heading of their own.
  */
 export default function ProfileIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Your profile</h1>

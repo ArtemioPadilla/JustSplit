@@ -31,7 +31,7 @@
  *     Playwright's storageState instead of signing in three more times (the
  *     sign-in path itself is exercised above).
  *  Throughout, any console.error, uncaught error or React hydration error
- *  fails the run (scripts/lib/console-policy.mjs: a two-entry allowlist).
+ *  fails the run (scripts/lib/console-policy.mjs: a one-entry allowlist).
  */
 import { rmSync } from 'node:fs';
 import { CONFIGS } from './lib/a11y-configs.mjs';
@@ -179,7 +179,7 @@ async function main() {
 
       const openRecord = () => a.getByRole('button', { name: 'Record payment from you to Beto Smoke' }).click();
       await openRecord();
-      // By name: a toast is a role=dialog too (Base UI), so a bare getByRole('dialog') is ambiguous.
+      // By name, as before: toasts used to be role=dialog too (Base UI), so a bare getByRole('dialog') was ambiguous; since B19b they are role=status/alert, and the name still pins the right dialog.
       const dialog = a.getByRole('dialog', { name: 'Record payment' });
       // Escape from the currency combobox (popup closed) must still dismiss the dialog.
       await dialog.getByRole('combobox', { name: 'Payment currency' }).focus();

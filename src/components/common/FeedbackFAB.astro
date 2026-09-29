@@ -21,7 +21,7 @@ interface Props {
   lang?: 'es' | 'en';
 }
 
-const { lang = 'es' } = Astro.props;
+const { lang = 'en' } = Astro.props;
 
 // Where the feedback issues get filed — single-sourced from site-meta.ts
 // (plan B6), which already reads PUBLIC_REPO_SLUG with the same default
@@ -481,12 +481,12 @@ const tr = {
     // (audit §5.2 — dataset values are DOM-tamperable).
     var repoRaw    = modal.dataset.repo || '';
     var repo       = /^[\w.-]+\/[\w.-]+$/.test(repoRaw) ? repoRaw : '';
-    var lang       = modal.dataset.lang || 'es';
+    var lang       = modal.dataset.lang || 'en';
     var buildSha   = modal.dataset.buildSha || 'dev';
     var appVersion = modal.dataset.appVersion || 'dev';
     var noneLabel  = modal.dataset.lDiagnosticsNone || 'None captured';
-    var copyLabel  = modal.dataset.lCopy || 'Copiar diagnósticos';
-    var copiedLabel= modal.dataset.lCopied || '¡Copiado!';
+    var copyLabel  = modal.dataset.lCopy || 'Copy diagnostics';
+    var copiedLabel= modal.dataset.lCopied || 'Copied!';
     var lSimilarIssues = modal.dataset.lSimilarIssues || 'Similar issues';
     // lFileAnyway: the "File anyway" button text is set statically in the HTML
     // template; it is data-l-file-anyway only for potential future dynamic use.

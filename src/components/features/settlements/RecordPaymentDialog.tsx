@@ -1,14 +1,19 @@
 import * as React from 'react';
 import { buttonVariants } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { LazyDialog } from '@/components/ui/lazy-dialog';
 import { cn } from '@/lib/utils';
 import { personName } from './labels';
 
-// The form (react-hook-form, the zod resolver, the currency selector) loads when
-// the dialog opens (plan B19); `src/tests/lazy-boundaries.test.ts` pins that this
-// file never imports it statically. The trigger warms the chunk on hover/focus/touch.
+// The dialog (Base UI dialog stack) loads on first use (plan B19b): the suggestion
+// rows show a plain "Record payment" button until it is hovered, focused, touched
+// or clicked, and that also warms the payment form (react-hook-form, the zod
+// resolver, the currency selector: plan B19), so opening the dialog is not a
+// second wait. `src/tests/lazy-boundaries.test.ts` pins that this file never
+// imports the dialog stack or the form statically.
+const loadImpl = () => import('./RecordPaymentDialogImpl');
 const loadForm = () => import('./RecordPaymentForm');
-const RecordPaymentForm = React.lazy(loadForm);
+const load = () => Promise.all([loadImpl(), loadForm()]);
+const RecordPaymentDialogImpl = React.lazy(() => loadImpl().then((m) => ({ default: m.RecordPaymentDialogImpl })));
 
 export interface RecordPaymentDialogProps {
   /** One suggested payment, its amount in `displayCurrency`. */
@@ -30,65 +35,26 @@ export interface RecordPaymentDialogProps {
 }
 
 /**
- * "Record payment" for one suggestion (plan B14b): the whole Dialog
- * composition (trigger + content) in this one file (CLAUDE.md compound-component
- * rule), same shape as `RemoveFriendDialog`. The form lives in
- * `RecordPaymentForm`, which mounts only while the dialog is open, so it starts
- * from the current suggestion every time.
- *
- * Trust statement (ADR 0002 / 0014): what is saved is an attestation by the
- * person recording it, not a verified payment, and the copy says so.
+ * "Record payment" for one suggestion (plan B14b): a light shell over
+ * `RecordPaymentDialogImpl`, which keeps the whole Dialog composition (trigger +
+ * content) in one component (CLAUDE.md compound-component rule). The stand-in
+ * carries the same accessible name, which says who pays whom.
  */
-export function RecordPaymentDialog({ suggestion, displayCurrency, viewerId, names, eventId, eventName, returnFocusTo }: RecordPaymentDialogProps) {
-  const [open, setOpen] = React.useState(false);
-  const savedRef = React.useRef(false);
-
+export function RecordPaymentDialog(props: RecordPaymentDialogProps) {
+  const { suggestion, viewerId, names } = props;
   const from = personName(suggestion.fromUser, viewerId, names);
   const to = personName(suggestion.toUser, viewerId, names);
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (next) savedRef.current = false;
-        setOpen(next);
+    <LazyDialog
+      impl={RecordPaymentDialogImpl}
+      load={load}
+      implProps={props}
+      triggerProps={{
+        'aria-label': `Record payment from ${from} to ${to}`,
+        className: cn(buttonVariants({ variant: 'default', size: 'sm' })),
       }}
     >
-      <DialogTrigger
-        aria-label={`Record payment from ${from} to ${to}`}
-        className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
-        onPointerEnter={() => void loadForm()}
-        onFocus={() => void loadForm()}
-        onTouchStart={() => void loadForm()}
-      >
-        Record payment
-      </DialogTrigger>
-      <DialogContent
-        finalFocus={() => (savedRef.current && returnFocusTo?.current ? returnFocusTo.current : true)}
-      >
-        {/* Named from the first frame: the title is part of the fallback, so the dialog is never nameless while the form loads. */}
-        <React.Suspense
-          fallback={
-            <DialogHeader>
-              <DialogTitle>Record payment</DialogTitle>
-              <DialogDescription>Loading the payment form…</DialogDescription>
-            </DialogHeader>
-          }
-        >
-          <RecordPaymentForm
-            suggestion={suggestion}
-            displayCurrency={displayCurrency}
-            viewerId={viewerId}
-            names={names}
-            eventId={eventId}
-            eventName={eventName}
-            onSaved={() => {
-              savedRef.current = true;
-              setOpen(false);
-            }}
-          />
-        </React.Suspense>
-      </DialogContent>
-    </Dialog>
+      Record payment
+    </LazyDialog>
   );
 }

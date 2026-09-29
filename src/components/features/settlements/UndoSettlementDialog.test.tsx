@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -50,6 +50,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// B19b: the dialog opens through a load-on-first-use stand-in. Warm its chunk once, outside any test's
+// own timeout (a saturated full-suite run can exceed a findBy budget on the first transform + import);
+// the behaviour behind the boundary is what these tests pin, and a warm module cache does not change it.
+beforeAll(async () => {
+  await Promise.all([import('./UndoSettlementDialogImpl')]);
+}, 60_000);
+
 describe('UndoSettlementDialog', () => {
   it('has a trigger whose name says which payment, and asks for confirmation naming both people and the amount', async () => {
     const user = userEvent.setup();
@@ -76,12 +83,12 @@ describe('UndoSettlementDialog', () => {
   it('keeping the payment removes nothing and returns focus to the trigger', async () => {
     const user = userEvent.setup();
     renderDialog();
-    const trigger = screen.getByRole('button', { name: /undo/i });
     const dialog = await open(user);
     await user.click(within(dialog).getByRole('button', { name: 'Keep it' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(remove).not.toHaveBeenCalled();
-    await waitFor(() => expect(trigger).toHaveFocus());
+    // B19b: the trigger you clicked was a stand-in; focus goes back to the REAL trigger that replaced it.
+    await waitFor(() => expect(screen.getByRole('button', { name: /undo/i })).toHaveFocus());
   });
 
   it('a failure says so in plain words, never the raw error, and keeps the dialog open', async () => {

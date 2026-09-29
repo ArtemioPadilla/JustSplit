@@ -31,6 +31,29 @@ export interface ToastData {
   variant?: ToastVariant;
 }
 
+/**
+ * Toast semantics (B19b, ADR 0008). Base UI's `Toast.Root` defaults to
+ * `role="dialog"` (`alertdialog` for `priority: 'high'`) with `aria-modal`,
+ * which screen readers treat as a surface that wants attention. A toast is a
+ * transient status, so a plain one is `role="status"`; only an error (Base
+ * UI's `priority: 'high'`, which `notifyError` sets, or the destructive
+ * variant) is `role="alert"` + `aria-live="assertive"`. Nothing here changes
+ * focus: the root keeps Base UI's `tabindex="0"` and its `aria-labelledby` /
+ * `aria-describedby` (a keyboard user who tabs onto a toast hears its
+ * content, which a bare status role would not give them).
+ *
+ * The Viewport stays Base UI's persistent polite "Notifications" region: a
+ * live region that exists BEFORE its content changes is what makes the
+ * insertion announce reliably. For a `priority: 'high'` toast Base UI also
+ * keeps the root `aria-hidden` until it is focused and announces it through
+ * a visually hidden `role="alert"` mirror, so an error is spoken once.
+ */
+function toastSemantics(isError: boolean) {
+  return isError
+    ? ({ role: 'alert', 'aria-live': 'assertive', 'aria-modal': undefined } as const)
+    : ({ role: 'status', 'aria-modal': undefined } as const);
+}
+
 // Inner component that calls useToastManager (must be inside Provider)
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
@@ -39,6 +62,7 @@ function ToastList() {
     <>
       {toasts.map((toast) => {
         const typedToast = toast as BaseToast.Root.ToastObject<ToastData>;
+        const isError = toast.priority === 'high' || typedToast.data?.variant === 'destructive';
         return (
           // Root goes directly inside the Viewport (Base UI's canonical toast
           // pattern). `.bui-toast` (global.css) handles absolute placement +
@@ -47,6 +71,7 @@ function ToastList() {
           <BaseToast.Root
             key={toast.id}
             toast={toast}
+            {...toastSemantics(isError)}
             className={cn(
               'bui-toast',
               // Base UI stores custom data under .data, not at the top level (TS2339).

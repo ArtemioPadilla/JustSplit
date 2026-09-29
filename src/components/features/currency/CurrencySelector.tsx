@@ -9,7 +9,51 @@ import { cn } from '@/lib/utils';
 // selector. Loaded on demand (plan B19) so none of it is in a page's statically
 // loaded JS; the stand-in below shows meanwhile. Not `@/components/ui/combobox`
 // directly: `src/tests/lazy-boundaries.test.ts` pins that.
-const CurrencyCombobox = React.lazy(() => import('@/components/features/currency/CurrencyCombobox'));
+const loadCombobox = () => import('@/components/features/currency/CurrencyCombobox');
+const CurrencyCombobox = React.lazy(loadCombobox);
+
+// Idle warm-up (plan B19b). `React.lazy` only fetches the chunk when a selector
+// first RENDERS, which on a signed-in page is after auth and the first data. The
+// islands that will render one call `useWarmCurrencyCombobox()`, which fetches it
+// in the browser's idle time instead. It is the same dynamic `import()` as above,
+// so the page's STATIC graph is untouched (`lazy-boundaries.test.ts`,
+// `check-budgets`); it only moves when the chunk is requested.
+const IDLE_TIMEOUT_MS = 4000; // an idle slot that never comes (a busy page) still warms it
+const FALLBACK_DELAY_MS = 1500; // Safari has no requestIdleCallback
+let warmed = false;
+
+/** Save-Data users asked not to spend bytes speculatively; the chunk still loads on first use. */
+function saveDataRequested(): boolean {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return connection?.saveData === true;
+}
+
+/**
+ * Fetches the combobox chunk when the browser is idle (`requestIdleCallback`,
+ * `setTimeout` where it is missing). Best effort: a failed warm-up is ignored, the
+ * real load on first render reports its own error. Returns a cancel function.
+ */
+export function warmCurrencyCombobox(): () => void {
+  if (warmed || typeof window === 'undefined' || saveDataRequested()) return () => {};
+  const run = () => {
+    if (warmed) return;
+    warmed = true;
+    loadCombobox().catch(() => {
+      warmed = false; // let a later page or selector try again
+    });
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    const handle = window.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
+    return () => window.cancelIdleCallback?.(handle);
+  }
+  const handle = window.setTimeout(run, FALLBACK_DELAY_MS);
+  return () => window.clearTimeout(handle);
+}
+
+/** Warm the combobox chunk on idle for as long as the calling island is mounted. */
+export function useWarmCurrencyCombobox(): void {
+  React.useEffect(() => warmCurrencyCombobox(), []);
+}
 
 /**
  * CurrencySelector (plan B16, spec D4: replaces the legacy `<select>`-based
