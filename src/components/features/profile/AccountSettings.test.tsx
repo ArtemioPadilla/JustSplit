@@ -126,3 +126,32 @@ describe('AccountSettings', () => {
     expect(screen.getByRole('button', { name: /restablecer datos locales/i })).toBeInTheDocument();
   });
 });
+
+/**
+ * Plan A7 (found by the live smoke's signed-in axe pass on /profile):
+ * `heading-order`. The route island's sr-only `<h1>` is followed by the
+ * "Account" card, whose title was a plain `<div>`, and then by `<h3>`
+ * sections: h1 -> h3 skips a level. The card title is a level-2 heading, so
+ * the sections under it are a valid h1 -> h2 -> h3.
+ */
+describe('AccountSettings heading structure', () => {
+  it('titles the card with a level-2 heading and its sections with level 3, never skipping a level', () => {
+    render(
+      <>
+        <h1>Your profile</h1>
+        <AccountSettings />
+      </>,
+    );
+    const headings = screen.getAllByRole('heading').map((h) => ({
+      level: Number(h.getAttribute('aria-level') ?? h.tagName.slice(1)),
+      name: h.textContent,
+    }));
+    expect(headings).toEqual([
+      { level: 1, name: 'Your profile' },
+      { level: 2, name: 'Account' },
+      { level: 3, name: 'Change password' },
+      { level: 3, name: 'Sign out' },
+      { level: 3, name: 'This device' },
+    ]);
+  });
+});
