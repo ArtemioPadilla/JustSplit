@@ -8,7 +8,7 @@ import { withBase } from '../../lib/href';
 // real list or redirects a signed-out visitor to /landing/ (AuthGate, plan B4).
 ---
 
-<BaseLayout title="Events · JustSplit" description="Every event you're part of, with its timeline, total and settlement progress, and a link to create a new one.">
+<BaseLayout appNav title="Events · JustSplit" description="Every event you're part of, with its timeline, total and settlement progress, and a link to create a new one.">
   <main id="main-content">
     <EventsListIsland client:only="react">
       <div slot="fallback" class="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-10" aria-busy="true">

@@ -10,7 +10,7 @@ import { withBase } from '../lib/href';
 // copy lives only in landing.astro (plan B7) — this page never duplicates it.
 ---
 
-<BaseLayout title="Dashboard · JustSplit" description="Your expenses, events and balances at a glance.">
+<BaseLayout appNav title="Dashboard · JustSplit" description="Your expenses, events and balances at a glance.">
   <main id="main-content">
     <DashboardIsland client:only="react">
       <div slot="fallback" class="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-10" aria-busy="true">

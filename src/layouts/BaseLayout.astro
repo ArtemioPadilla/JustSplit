@@ -31,6 +31,13 @@ interface Props {
    * budget these pages must meet).
    */
   marketing?: boolean;
+  /**
+   * Pages that host an authenticated route island (the signed-in app, plan
+   * B6b): the header shows the six app sections as plain server-rendered
+   * links. Ignored on `marketing` pages, which stay island-free with the
+   * small Home/About/Help header. Not passed by /auth/* or /showcase.
+   */
+  appNav?: boolean;
 }
 
 const {
@@ -43,6 +50,7 @@ const {
   noindex = false,
   jsonLd: extraJsonLd = [],
   marketing = false,
+  appNav = false,
 } = Astro.props;
 
 // Canonical URL — Astro.site + the current path (falls back to null in dev
@@ -95,7 +103,10 @@ const jsonLdBlocks: Record<string, unknown>[] = [
     ))}
   </head>
   <body class="relative min-h-screen bg-background text-foreground antialiased">
-    <SiteHeader static={marketing} />
+    {/* Skip link (plan B6b): first focusable element on every page. Hidden until
+        focused so it never shows for pointer users. */}
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:ring-2 focus:ring-ring">Skip to main content</a>
+    <SiteHeader static={marketing} appNav={!marketing && appNav} />
     <slot />
     <SiteFooter />
     <FeedbackFAB lang={lang} />

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore } from '@nanostores/react';
+import type { ReadableAtom } from 'nanostores';
 // This island is in the header of every page, public ones included. It reads
 // the session atoms from @/stores/session (no SDK) and imports the auth
 // actions, which pull @supabase/supabase-js, only when the user signs out.
@@ -7,6 +7,7 @@ import { useStore } from '@nanostores/react';
 // SDK up front.
 import { $authReady, $profile, $user } from '@/stores/session';
 import { withBase } from '@/lib/href';
+import { useClientPreference } from '@/lib/use-client-preference';
 import ErrorBoundary from './ErrorBoundary';
 
 // The dropdown menu + avatar (Base UI's Menu + Avatar primitives) are ~48.6
@@ -41,10 +42,32 @@ export default function UserMenuIsland() {
   );
 }
 
+/**
+ * Reads a session atom hydration-safely (plan B6b, React error #418).
+ *
+ * This island is SSR'd into every app page and the site is static, so the
+ * server HTML is always the signed-out state. `client:idle` hydrates whenever
+ * the browser is idle, though, and the page's `client:only` route island
+ * (`AuthBridge`) has usually filled `$user`/`$profile`/`$authReady` by then.
+ * `useStore` from `@nanostores/react` reuses the LIVE store value as its
+ * server snapshot, so the hydration render was already the signed-in markup
+ * and disagreed with the server's "Sign in" link, on exactly the signed-in
+ * loads that lost that race. `useClientPreference` (useSyncExternalStore with
+ * a fixed server snapshot) hydrates against the signed-out default, then
+ * switches to the store value in a follow-up render.
+ */
+function useSessionAtom<T>(store: ReadableAtom<T>, serverDefault: T): T {
+  // `subscribe`/`getSnapshot` must keep their identity across renders, or
+  // useSyncExternalStore would resubscribe every render.
+  const subscribe = React.useCallback((onChange: () => void) => store.listen(onChange), [store]);
+  const getSnapshot = React.useCallback(() => store.get(), [store]);
+  return useClientPreference(getSnapshot, serverDefault, subscribe);
+}
+
 function UserMenuInner() {
-  const user = useStore($user);
-  const profile = useStore($profile);
-  const authReady = useStore($authReady);
+  const user = useSessionAtom($user, null);
+  const profile = useSessionAtom($profile, null);
+  const authReady = useSessionAtom($authReady, false);
 
   if (!authReady || !user) {
     return (

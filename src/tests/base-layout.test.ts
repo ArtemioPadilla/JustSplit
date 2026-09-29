@@ -81,3 +81,32 @@ describe('BaseLayout.astro ToasterIsland mount (plan B17b)', () => {
     expect(before).toMatch(/marketing/);
   });
 });
+
+/**
+ * Plan B6b: signed-in app navigation + skip link. `appNav` is opt-in per page
+ * (app pages pass it; marketing, auth and showcase never do), and every page
+ * gets a skip-to-content link as the first focusable element.
+ */
+describe('BaseLayout.astro app nav and skip link (plan B6b)', () => {
+  it('declares an `appNav` prop and hands it to SiteHeader', () => {
+    expect(src).toMatch(/appNav\s*\??:\s*boolean/);
+    expect(src).toMatch(/<SiteHeader[^>]*appNav=\{[^}]*appNav[^}]*\}/);
+  });
+
+  it('never shows the app nav on a marketing page, even if a page passes both', () => {
+    expect(src).toMatch(/appNav=\{\s*!\s*marketing\s*&&\s*appNav\s*\}|appNav=\{\s*appNav\s*&&\s*!\s*marketing\s*\}/);
+  });
+
+  it('starts <body> with a skip link to #main-content, before the header', () => {
+    const skip = src.indexOf('href="#main-content"');
+    expect(skip, 'expected a skip link').toBeGreaterThan(-1);
+    expect(skip).toBeLessThan(src.indexOf('<SiteHeader'));
+    expect(src).toMatch(/Skip to main content/);
+  });
+
+  it('keeps the skip link visually hidden until focused, then visible', () => {
+    const line = src.split('\n').find((l) => l.includes('href="#main-content"')) ?? '';
+    expect(line).toMatch(/sr-only/);
+    expect(line).toMatch(/focus:not-sr-only/);
+  });
+});

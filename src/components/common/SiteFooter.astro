@@ -13,6 +13,8 @@ const year = new Date().getFullYear();
   <div class="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
     <a href={withBase('/')} class="font-display font-semibold text-foreground hover:text-primary">{SITE.name}</a>
     <nav aria-label="Footer" class="flex flex-wrap gap-4">
+      <a href={withBase('/about')} class="hover:text-foreground">About</a>
+      <a href={withBase('/help')} class="hover:text-foreground">Help</a>
       <a href={REPO_URL} rel="noopener" class="hover:text-foreground">GitHub</a>
       <a href={`${REPO_URL}/issues/new/choose`} rel="noopener" class="hover:text-foreground">Report an issue</a>
       <a href="https://github.com/ArtemioPadilla/inceptor" rel="noopener" class="hover:text-foreground">Built with Inceptor</a>

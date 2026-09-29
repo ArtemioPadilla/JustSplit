@@ -2,6 +2,7 @@
 import ThemeToggle from './ThemeToggle.astro';
 import UserMenuIsland from '@/components/islands/UserMenuIsland';
 import { withBase } from '@/lib/href';
+import { APP_NAV, activeNavItem } from '@/lib/app-nav';
 
 interface Props {
   /**
@@ -16,27 +17,106 @@ interface Props {
    * produces, with no island and no React at all.
    */
   static?: boolean;
+  /**
+   * App pages (the ones that host an authenticated route island, plan B6b):
+   * the six app sections instead of Home/About/Help. Plain server-rendered
+   * links, no island: the site is static, so SSR cannot know the session, and
+   * a signed-out visitor who lands on an app page is redirected to /landing by
+   * AuthGate anyway, so the links never lead them anywhere they can be stuck.
+   * Rendering them in a client island instead would need a signed-out default
+   * for SSR and a swap after hydration: extra JS, a layout shift, and the same
+   * hydration-race class as the #418 the header used to have.
+   */
+  appNav?: boolean;
 }
 
-const { static: staticHeader = false } = Astro.props;
+const { static: staticHeader = false, appNav = false } = Astro.props;
+// Marketing pages (`static`) never get the app nav, whatever a page passes.
+const showAppNav = appNav && !staticHeader;
 
-// Expenses/Events/Groups/Friends/Settlements land through Phase 2 — adding
-// them now would put dead links in the header on every page.
-const nav: { href: string; label: string }[] = [
+const siteNav: { href: string; label: string; section?: string }[] = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
   { href: '/help', label: 'Help' },
 ];
+const items: readonly { href: string; label: string; section?: string }[] = showAppNav ? APP_NAV : siteNav;
+
+// Build-time active section for the static pages. Dynamic routes served by
+// 404.html (/expenses/<id>, ...) build as "/404", so nothing is marked here and
+// the inline script below marks them in the browser from location.pathname.
+const active = showAppNav ? activeNavItem(Astro.url.pathname, import.meta.env.BASE_URL) : null;
+
+const linkClass = showAppNav
+  ? 'inline-flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-[current=page]:border-primary aria-[current=page]:font-medium aria-[current=page]:text-foreground md:min-h-9'
+  : 'rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-primary';
 ---
 <header class="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-md">
-  <nav class="mx-auto flex max-w-6xl items-center gap-3 px-5 py-2.5">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 px-5 py-2.5">
     <a href={withBase('/')} class="font-display text-lg font-semibold tracking-tight text-foreground">
       JustSplit
     </a>
-    <div class="ml-auto flex items-center gap-1 font-mono text-xs sm:text-sm">
-      {nav.map((n) => (
-        <a href={withBase(n.href)} class="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-primary">{n.label}</a>
+    {/* One Main landmark per page. App pages: a second row that scrolls sideways on a phone
+        (no JS, native keyboard focus scrolling) and sits inline from md up. The row is
+        full-bleed (-mx-5 cancels the container's px-5), which needs an explicit width: a
+        100% flex-basis alone would leave it as narrow as the padded container. */}
+    <nav
+      aria-label="Main"
+      data-app-nav={showAppNav ? '' : undefined}
+      data-base={showAppNav ? withBase('/').replace(/\/$/, '') : undefined}
+      class:list={[
+        'font-mono text-xs sm:text-sm',
+        showAppNav
+          ? 'relative order-last -mx-5 flex w-[calc(100%+2.5rem)] scroll-px-5 overflow-x-auto px-5 md:order-none md:mx-0 md:w-auto md:scroll-px-0 md:overflow-visible md:px-0'
+          : 'ml-auto flex items-center gap-1',
+      ]}
+    >
+      {items.map((item) => (
+        <a
+          href={withBase(item.href)}
+          data-section={showAppNav ? item.section : undefined}
+          aria-current={active?.href === item.href ? 'page' : undefined}
+          class={linkClass}
+        >
+          {item.label}
+        </a>
       ))}
+    </nav>
+    {showAppNav && (
+      /* Marks the section of a dynamic route (/expenses/<id> ...), which only the browser
+         can know, and scrolls the current link into view on a phone. */
+      <script is:inline data-app-nav-script>
+        (function () {
+          var nav = document.querySelector('nav[data-app-nav]');
+          if (!nav) return;
+          var cur = nav.querySelector('[aria-current="page"]');
+          if (!cur) {
+            var base = nav.getAttribute('data-base') || '';
+            var path = location.pathname;
+            if (base && (path === base || path.indexOf(base + '/') === 0)) path = path.slice(base.length);
+            var seg = path.split('/').filter(Boolean)[0] || '';
+            var links = nav.querySelectorAll('a[data-section]');
+            for (var i = 0; i < links.length; i++) {
+              if (links[i].getAttribute('data-section') === seg) {
+                cur = links[i];
+                cur.setAttribute('aria-current', 'page');
+                break;
+              }
+            }
+          }
+          // Chrome scrolls a container to a focused child only when it is fully hidden, so Tab
+          // could land on a link with a few px showing. Scroll the whole link in. The listener is
+          // on the nav itself (not window), so it goes away with it: nothing to unbind.
+          nav.addEventListener('focusin', function (e) {
+            var a = e.target && e.target.closest ? e.target.closest('a') : null;
+            if (a) a.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+          });
+          if (cur && nav.scrollWidth > nav.clientWidth) {
+            nav.scrollLeft = cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
+          }
+        })();
+      </script>
+    )}
+    <div class:list={['flex items-center gap-1 font-mono text-xs sm:text-sm', showAppNav && 'ml-auto']}>
       {/* static (see Props above) skips the island entirely; otherwise the
           layout island (spec D3) reads $user/$profile/$authReady from
           src/stores/auth.ts only — never mounts AuthIsland/QueryProvider
@@ -56,5 +136,5 @@ const nav: { href: string; label: string }[] = [
       )}
       <span class="ml-1"><ThemeToggle /></span>
     </div>
-  </nav>
+  </div>
 </header>

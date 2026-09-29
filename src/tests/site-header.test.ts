@@ -24,13 +24,76 @@ describe('SiteHeader.astro (plan B6)', () => {
     expect(src).not.toMatch(/<UserMenuIsland\s+client:only/);
   });
 
-  it('has a Home nav link', () => {
-    expect(src).toMatch(/withBase\(['"]\/['"]\)/);
-  });
-
-  it('links About and Help in the nav (plan B7)', () => {
+  it('links Home, About and Help in the header of non-app pages (plan B7)', () => {
+    expect(src).toMatch(/href:\s*['"]\/['"]/);
     expect(src).toMatch(/href:\s*['"]\/about['"]/);
     expect(src).toMatch(/href:\s*['"]\/help['"]/);
+  });
+
+  it('no longer carries the "dead links until Phase 2" comment: the pages exist (plan B6b)', () => {
+    expect(src).not.toMatch(/dead links/i);
+    expect(src).not.toMatch(/until Phase 2/i);
+  });
+});
+
+/**
+ * Plan B6b: signed-in app navigation. Server-rendered plain links on app pages
+ * (option (a)): the site is static, so SSR cannot know the session, but the
+ * links are harmless to a signed-out visitor because AuthGate redirects every
+ * app page to /landing. No island, no JS, no SSR/CSR branch to mismatch.
+ */
+describe('SiteHeader.astro app navigation (plan B6b)', () => {
+  it('takes an `appNav` prop, and never combines it with the static marketing header', () => {
+    expect(src).toMatch(/appNav\s*\??:\s*boolean/);
+    expect(src).toMatch(/appNav\s*&&\s*!\s*staticHeader|!\s*staticHeader\s*&&\s*appNav/);
+  });
+
+  it('renders the six sections from APP_NAV through withBase, in one Main landmark', () => {
+    expect(src).toMatch(/import\s*\{[^}]*APP_NAV[^}]*\}\s*from\s*['"]@\/lib\/app-nav['"]/);
+    expect(src).toMatch(/<nav\b[^>]*aria-label="Main"/);
+    expect(src).toMatch(/withBase\(\s*(n|item|link)\.href\s*\)/);
+  });
+
+  it('marks the active section with aria-current="page", computed at build time from Astro.url.pathname', () => {
+    expect(src).toMatch(/activeNavItem\(\s*Astro\.url\.pathname/);
+    expect(src).toMatch(/aria-current=\{[^}]*"page"|aria-current=\{[^}]*'page'/);
+  });
+
+  it('emits each link\'s section for the client-side marker of dynamic routes', () => {
+    expect(src).toMatch(/data-section=\{/);
+  });
+
+  it('keeps the app nav plain HTML: the only client code is the one inline script, and it is not an island', () => {
+    expect(src).toMatch(/<script is:inline data-app-nav-script>/);
+    // Exactly one hydrated component in the header, and it is UserMenuIsland.
+    const hydrated = src.match(/<[A-Z][A-Za-z]*\b[^>]*\sclient:\w+/g) ?? [];
+    expect(hydrated).toHaveLength(1);
+    expect(hydrated[0]).toMatch(/UserMenuIsland/);
+  });
+
+  it('has 44px tap targets on phones and a visible, unclipped focus ring', () => {
+    expect(src).toMatch(/min-h-11/);
+    // ring-inset: the row scrolls (overflow-x-auto), which would clip an outer ring.
+    expect(src).toMatch(/focus-visible:ring-2/);
+    expect(src).toMatch(/focus-visible:ring-inset/);
+  });
+
+  it('scrolls horizontally on a phone instead of overflowing the page', () => {
+    expect(src).toMatch(/overflow-x-auto/);
+  });
+
+  it('makes the phone row as wide as the viewport: -mx-5 needs an explicit width, not basis-full', () => {
+    // Live check at 375px: `basis-full` + `-mx-5` left the row 335px wide (the padded container),
+    // so the last link sat under the right edge and focusing it did not bring it into view.
+    expect(src).toMatch(/-mx-5/);
+    expect(src).toMatch(/w-\[calc\(100%\+2\.5rem\)\]/);
+    expect(src).not.toMatch(/basis-full/);
+    expect(src).toMatch(/md:w-auto/);
+  });
+
+  it('leaves a gutter when focus scrolls a link into the row (scroll padding matches the row padding)', () => {
+    expect(src).toMatch(/scroll-px-5/);
+    expect(src).toMatch(/md:scroll-px-0/);
   });
 });
 

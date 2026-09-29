@@ -11,9 +11,9 @@ import { withBase } from '../lib/href';
 // routes that crawlers must not index.
 ---
 
-<BaseLayout title="JustSplit" description="Fair expense splitting made simple." noindex>
+<BaseLayout appNav title="JustSplit" description="Fair expense splitting made simple." noindex>
   <AppRouterIsland client:only="react">
-    <div slot="fallback" class="mx-auto flex max-w-3xl flex-col px-4 py-24" aria-busy="true">
+    <main slot="fallback" id="main-content" class="mx-auto flex max-w-3xl flex-col px-4 py-24" aria-busy="true">
       <div class="h-4 w-24 animate-pulse rounded bg-muted"></div>
       <div class="mt-4 h-9 w-2/3 animate-pulse rounded bg-muted"></div>
       <div class="mt-6 h-4 w-full max-w-prose animate-pulse rounded bg-muted"></div>
@@ -24,6 +24,6 @@ import { withBase } from '../lib/href';
           <a class="underline" href={withBase('/')}>back home</a>.
         </p>
       </noscript>
-    </div>
+    </main>
   </AppRouterIsland>
 </BaseLayout>
