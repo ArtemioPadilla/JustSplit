@@ -20,7 +20,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "perf": "npm run build && lhci collect && lhci assert",
+    "perf": "lhci collect && lhci assert",
     "doctor": "bash scripts/doctor.sh",
     "monday": "bash scripts/monday.sh",
     "ship": "bash scripts/ship.sh",
