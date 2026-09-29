@@ -2,6 +2,7 @@ import { ExpenseForm } from '@/components/features/expenses/ExpenseForm';
 import AuthGate from './AuthGate';
 import AuthIsland from './AuthIsland';
 import ErrorBoundary from './ErrorBoundary';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 /**
  * `/expenses/new`'s route island (plan B10, risk:high): `ErrorBoundary >
@@ -12,6 +13,8 @@ import ErrorBoundary from './ErrorBoundary';
  * as `DashboardIsland`/`ExpenseListIsland`'s own `<h1>` placement.
  */
 export default function ExpenseFormIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">New expense</h1>

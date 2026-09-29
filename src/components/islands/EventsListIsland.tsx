@@ -5,7 +5,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { EventCard } from '@/components/features/events/EventCard';
 import {
   eventStats,
@@ -48,6 +48,8 @@ function NewEventLink() {
  * state. Mounted `client:only="react"` from `src/pages/events/list.astro`.
  */
 export default function EventsListIsland() {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

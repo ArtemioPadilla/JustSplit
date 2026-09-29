@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { EventTimeline } from '@/components/features/events/EventTimeline';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
@@ -52,6 +52,8 @@ const RETRY_HINT = 'Please try again in a moment. If this keeps happening, you c
  * "unsettled" badge: only a legacy (imported) `settledAt` earns a "Settled" one.
  */
 export default function EventDetailView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Event</h1>

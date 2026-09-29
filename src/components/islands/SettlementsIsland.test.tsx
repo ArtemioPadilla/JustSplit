@@ -82,6 +82,7 @@ vi.mock('@/stores/preferences', () => ({ $preferredCurrency }));
 
 // The real Combobox is slow and has its own suite; a select keeps this about the island.
 vi.mock('@/components/features/currency/CurrencySelector', () => ({
+  useWarmCurrencyCombobox: () => {},
   CurrencySelector: ({ value, onChange, label, id }: { value: string; onChange: (code: string) => void; label?: string; id?: string }) => (
     <div>
       <label htmlFor={id}>{label}</label>

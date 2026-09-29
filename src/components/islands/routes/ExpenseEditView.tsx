@@ -6,6 +6,7 @@ import { useExpense } from '@/lib/data/hooks/useExpense';
 import AuthGate from '../AuthGate';
 import AuthIsland from '../AuthIsland';
 import NotFoundView from './NotFoundView';
+import { useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 
 /**
  * `/expenses/edit/<id>`'s route view (plan B10, risk:high), loaded through
@@ -18,6 +19,8 @@ import NotFoundView from './NotFoundView';
  * leaked-id reasoning as `ExpenseDetailView` (ADR 0002).
  */
 export default function ExpenseEditView({ id }: { id: string }) {
+  // Fetch the currency combobox chunk in idle time; the selector below renders after auth and data (B19b).
+  useWarmCurrencyCombobox();
   return (
     <>
       <h1 className="sr-only">Edit expense</h1>
