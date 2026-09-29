@@ -64,6 +64,7 @@ describe('QueryProvider persister-restore-failure recovery', () => {
 
     await waitFor(() => expect(screen.getByText(/could not restore/i)).toBeInTheDocument());
     expect(screen.getByText('Route content')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /restablecer datos locales/i })).toBeInTheDocument();
+    // The reset button is code-split (plan B19): it resolves a tick after the banner.
+    expect(await screen.findByRole('button', { name: /restablecer datos locales/i })).toBeInTheDocument();
   });
 });
