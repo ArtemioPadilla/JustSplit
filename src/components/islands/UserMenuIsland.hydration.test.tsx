@@ -62,7 +62,9 @@ async function hydrateAgainst(html: string) {
     container,
     recoverable,
     consoleErrors: consoleError.mock.calls,
-    unmount: () => act(() => root?.unmount()),
+    unmount: () => {
+      act(() => root?.unmount());
+    },
   };
 }
 
@@ -87,7 +89,7 @@ describe('UserMenuIsland hydration (plan B6b, #418)', () => {
     const { recoverable, consoleErrors, unmount } = await hydrateAgainst(serverHtml);
     expect(recoverable).toEqual([]);
     expect(consoleErrors).toEqual([]);
-    await unmount();
+    unmount();
   });
 
   it('still shows the signed-in header once hydration is done (the session is not lost, only deferred a render)', async () => {
@@ -99,7 +101,7 @@ describe('UserMenuIsland hydration (plan B6b, #418)', () => {
     const { container, unmount } = await hydrateAgainst(serverHtml);
     expect(container.textContent).not.toContain('Sign in');
     expect(container.textContent).toContain('Ana');
-    await unmount();
+    unmount();
   });
 
   it('hydrates cleanly with the default (signed-out) stores, and follows a later sign-in', async () => {
@@ -114,6 +116,6 @@ describe('UserMenuIsland hydration (plan B6b, #418)', () => {
       $authReady.set(true);
     });
     expect(container.textContent).not.toContain('Sign in');
-    await unmount();
+    unmount();
   });
 });
