@@ -124,6 +124,7 @@ numbers go in the plan's B19 Landed note. Each budget carries a comment naming t
 dominates it (the check warns when that stops being true). When the gate fails, look at the row's
 largest chunk and at what the change added to the page's static graph: usually a component that could
 load on first use (a dialog, a menu, a picker, a form inside a dialog) was imported statically.
+Dialogs use the shared stand-in `src/components/ui/lazy-dialog.tsx` (plan B19b).
 `src/tests/lazy-boundaries.test.ts` lists the ones that are deliberately lazy. To investigate,
 build with `rollup-plugin-visualizer` in a scratch config (not committed) and read each module's
 size by package. The Lighthouse budgets (`.lighthouserc.json`, `npm run perf`, run by hand against
