@@ -40,6 +40,7 @@
     "check:auth-bundle": "node scripts/check-auth-bundle.mjs",
     "check:charts-bundle": "node scripts/check-charts-bundle.mjs",
     "check:a11y": "node scripts/axe-smoke.mjs",
+    "check:offline": "node scripts/offline-smoke.mjs",
     "test:live": "node scripts/live-smoke.mjs"
   },
   "dependencies": {
