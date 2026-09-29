@@ -1,13 +1,20 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
-import { splitBalances, type BalanceEntry } from '@/domain/settlements';
+import type { BalanceEntry } from '@/domain/settlements';
 import { cn } from '@/lib/utils';
 import { money, personName } from './labels';
 
 export interface BalancePanelProps {
-  /** `netBalances` over the scope, in the display currency (positive = is owed). Only read once `ready`. */
-  balances: Record<string, number>;
+  /**
+   * Two lists of positive amounts in the display currency, already grouped by the
+   * caller: the event scope's net balances ("Owes" / "Is owed"), or the personal
+   * view's pairwise ones ("You owe" / "Owe you"). Only read once `ready`.
+   */
+  owes: BalanceEntry[];
+  owed: BalanceEntry[];
+  owesTitle: string;
+  owedTitle: string;
   viewerId: string;
   names: Record<string, string>;
   avatars: Record<string, string | null>;
@@ -22,13 +29,14 @@ export interface BalancePanelProps {
 const ATTRIBUTION_URL = 'https://www.exchangerate-api.com';
 
 /**
- * The Balances tab's panel (plan B14b): the scope's net balance per person
- * (`ledger.netBalances`, ADR 0014), split into who owes and who is owed, every
- * amount in the display currency, then the table of exchange rates that
+ * The Balances tab's panel (plan B14b): the scope's balances split into who owes
+ * and who is owed — net per person across an event (`ledger.netBalances`, ADR
+ * 0014), or pairwise with the viewer in the personal view — every amount in the
+ * display currency, then the table of exchange rates that
  * conversion used (the legacy page's "Exchange Rates Used"). Words and headings
  * carry the meaning; colour is never the only cue.
  */
-export function BalancePanel({ balances, viewerId, names, avatars, displayCurrency, ready, approximate, rates }: BalancePanelProps) {
+export function BalancePanel({ owes, owed, owesTitle, owedTitle, viewerId, names, avatars, displayCurrency, ready, approximate, rates }: BalancePanelProps) {
   if (!ready) {
     return (
       <section aria-labelledby="balances-heading" className="flex flex-col gap-4" aria-busy="true">
@@ -41,7 +49,6 @@ export function BalancePanel({ balances, viewerId, names, avatars, displayCurren
     );
   }
 
-  const { owes, owed } = splitBalances(balances);
   const rateRows = Object.entries(rates).sort(([a], [b]) => (a < b ? -1 : 1));
 
   return (
@@ -54,8 +61,8 @@ export function BalancePanel({ balances, viewerId, names, avatars, displayCurren
         <p className="text-sm text-foreground">Everyone is settled up.</p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2">
-          <BalanceList id="balances-owes" title="Owes" entries={owes} {...{ viewerId, names, avatars, displayCurrency }} />
-          <BalanceList id="balances-owed" title="Is owed" entries={owed} {...{ viewerId, names, avatars, displayCurrency }} />
+          <BalanceList id="balances-owes" title={owesTitle} entries={owes} {...{ viewerId, names, avatars, displayCurrency }} />
+          <BalanceList id="balances-owed" title={owedTitle} entries={owed} {...{ viewerId, names, avatars, displayCurrency }} />
         </div>
       )}
 

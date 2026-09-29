@@ -17,18 +17,27 @@ export interface PendingPanelProps {
   avatars: Record<string, string | null>;
   displayCurrency: string;
   eventId?: string;
+  /**
+   * True in the event scope, where suggestions are debt-simplified across the
+   * event (every member sees the same rows). The personal view is pairwise: one
+   * row per person, no simplification, so this stays false there.
+   */
+  simplified?: boolean;
   /** Focus lands here after a payment is recorded: the row that held the button is about to change. */
   headingRef: React.RefObject<HTMLHeadingElement | null>;
 }
 
 /**
  * The Pending tab's panel (plan B14b): the scope's suggested payments, worded
- * "X owes Y <amount>", the viewer's own first. Only a party is offered
+ * "X owes Y <amount>", the viewer's own first. In the personal view every row is
+ * pairwise between the viewer and one other person, so the viewer is always a
+ * party; in the event scope rows are debt-simplified and may be between two
+ * other people. Only a party is offered
  * "Record payment" — the insert policy requires the creator to be one of the
  * two people (UX only; RLS decides). The tab composition itself lives in
  * `SettlementsIsland` (CLAUDE.md compound-component rule); this is its content.
  */
-export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, headingRef }: PendingPanelProps) {
+export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, simplified = false, headingRef }: PendingPanelProps) {
   return (
     <section aria-labelledby="pending-heading" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -40,7 +49,16 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
         >
           Suggested payments
         </h2>
-        <p className="text-sm text-muted-foreground">The fewest payments that would settle everyone up.</p>
+        {simplified ? (
+          <>
+            <p className="text-sm text-muted-foreground">The fewest payments that would settle everyone up.</p>
+            <p className="text-sm text-muted-foreground">
+              Suggestions are simplified across the event, so a payment may go to someone other than who paid.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">What you owe each person, and what each person owes you.</p>
+        )}
       </div>
 
       {suggestions.status === 'loading' ? (

@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { calculateSettlementsWithConversion, type ConvertCurrency, type SettlementSuggestion } from '@/domain/expenseCalculator';
+import { calculateSettlementsWithConversion, type ConvertCurrency } from '@/domain/expenseCalculator';
 import type { Convert } from '@/domain/ledger';
+import type { PairwiseSuggestion } from '@/domain/settlements';
 import type { Expense } from '@/schemas/expense';
 import type { Settlement } from '@/schemas/settlement';
 
 export type SuggestionsResult =
   | { status: 'loading' }
-  | { status: 'ready'; suggestions: SettlementSuggestion[] }
+  // The rows every suggestion source shares: the event scope's simplified ones and the personal view's pairwise ones.
+  | { status: 'ready'; suggestions: PairwiseSuggestion[] }
   | { status: 'error' };
 
 export interface UseSuggestionsInput {
@@ -35,7 +37,7 @@ function peopleIn(expenses: readonly Expense[], settlements: readonly Settlement
 }
 
 /**
- * The scope's suggested payments (plan B14b): `calculateSettlementsWithConversion`
+ * The EVENT scope's suggested payments (plan B14b): `calculateSettlementsWithConversion`
  * over its expenses AND settlements (ADR 0014), in the display currency. It is
  * async by contract, but the injected converter reads the already-resolved rates
  * synchronously, so it settles within a microtask.

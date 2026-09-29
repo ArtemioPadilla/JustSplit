@@ -9,10 +9,11 @@ import { CurrencySelector } from '@/components/features/currency/CurrencySelecto
 import { BalancePanel } from '@/components/features/settlements/BalancePanel';
 import { HistoryPanel } from '@/components/features/settlements/HistoryPanel';
 import { PendingPanel } from '@/components/features/settlements/PendingPanel';
-import { useSuggestions } from '@/components/features/settlements/useSuggestions';
+import { useSuggestions, type SuggestionsResult } from '@/components/features/settlements/useSuggestions';
 import { involvingUser } from '@/domain/dashboard';
+import { balancesWithUser } from '@/domain/dashboard';
 import { netBalances, settlementsForEvent } from '@/domain/ledger';
-import { parseSettlementsScope } from '@/domain/settlements';
+import { pairwiseLists, pairwiseSuggestions, parseSettlementsScope, splitBalances } from '@/domain/settlements';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvent } from '@/lib/data/hooks/useEvent';
 import { useEventExpenses, useExpenses } from '@/lib/data/hooks/useExpenses';
@@ -213,8 +214,30 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, names, avata
   );
   const { convert, ready, approximate, rates } = useDisplayConversion(currencies, displayCurrency);
 
-  const suggestions = useSuggestions({ expenses, settlements, displayCurrency, convert, ready, eventId: event?.id });
-  const balances = React.useMemo(() => (ready ? netBalances(expenses, settlements, convert) : {}), [ready, expenses, settlements, convert]);
+  // Two kinds of suggestion (ADR 0014 §5). The EVENT scope is debt-simplified across the event: every member sees the same
+  // rows, so `calculateSettlementsWithConversion` is consistent there. The PERSONAL view is PAIRWISE — one row per other person,
+  // `balancesWithUser` (the dashboard's own maths): both parties see exactly the rows that name both of them, so they always
+  // read the same number for the debt between them. No simplification across people happens in that view.
+  const isEvent = event !== undefined;
+  const eventSuggestions = useSuggestions({ expenses, settlements, displayCurrency, convert, ready: ready && isEvent, eventId: event?.id });
+  const pairwise = React.useMemo(
+    () => (ready && !isEvent ? balancesWithUser(expenses, settlements, viewerId, names, convert) : []),
+    [ready, isEvent, expenses, settlements, viewerId, names, convert],
+  );
+  const suggestions = React.useMemo<SuggestionsResult>(() => {
+    if (isEvent) return eventSuggestions;
+    return ready ? { status: 'ready', suggestions: pairwiseSuggestions(pairwise, viewerId) } : { status: 'loading' };
+  }, [isEvent, eventSuggestions, ready, pairwise, viewerId]);
+
+  const balanceLists = React.useMemo(() => {
+    if (!ready) return { owes: [], owed: [], owesTitle: '', owedTitle: '' };
+    if (!isEvent) {
+      const { youOwe, oweYou } = pairwiseLists(pairwise);
+      return { owes: youOwe, owed: oweYou, owesTitle: 'You owe', owedTitle: 'Owe you' };
+    }
+    const { owes, owed } = splitBalances(netBalances(expenses, settlements, convert));
+    return { owes, owed, owesTitle: 'Owes', owedTitle: 'Is owed' };
+  }, [ready, isEvent, pairwise, expenses, settlements, convert]);
 
   // Focus targets: after a payment is recorded or undone, the row that held the button has changed or gone.
   const pendingHeadingRef = React.useRef<HTMLHeadingElement>(null);
@@ -260,12 +283,13 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, names, avata
             avatars={avatars}
             displayCurrency={displayCurrency}
             eventId={event?.id}
+            simplified={isEvent}
             headingRef={pendingHeadingRef}
           />
         </TabsContent>
         <TabsContent value="balances" className="pt-4">
           <BalancePanel
-            balances={balances}
+            {...balanceLists}
             viewerId={viewerId}
             names={names}
             avatars={avatars}
