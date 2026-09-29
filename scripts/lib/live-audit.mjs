@@ -19,8 +19,11 @@ export const RATES = {
  * (`domain/currency.ts` -> open.er-api.com): CI never depends on it being up
  * or on today's rates, and every other non-local request is aborted, so an
  * unexpected network dependency shows up as a console error instead of
- * passing silently. Fonts are NOT stubbed: BaseLayout's Google Fonts request
- * is the one known, allowlisted noise (console-policy.mjs).
+ * passing silently. BaseLayout's Google Fonts stylesheet is answered with an
+ * empty one: the run must not depend on Google being reachable (in the dev
+ * sandbox it fails TLS or the proxy tunnel, in CI it is one more thing that can
+ * flake). console-policy.mjs still allowlists the sandbox's TLS error for a run
+ * that bypasses this isolation.
  */
 export async function isolateExternalRequests(context) {
   await context.route('**/*', (route) => {
@@ -29,8 +32,9 @@ export async function isolateExternalRequests(context) {
     if (url.hostname === 'open.er-api.com') {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ result: 'success', rates: RATES }) });
     }
-    // Fonts go to the real network (or fail on the sandbox's TLS, which the policy allows).
-    if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) return route.fallback();
+    if (/^fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
+      return route.fulfill({ contentType: 'text/css', body: '/* fonts stubbed by the live smoke */' });
+    }
     return route.abort();
   });
 }
