@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { isLastAdmin, withAddedMembers, withRemovedMember } from '@/domain/groups';
+import { ROLE_LABELS, displayedRole, isLastAdmin, withAddedMembers, withRemovedMember } from '@/domain/groups';
 import { useUpdateGroup } from '@/lib/data/hooks/useUpdateGroup';
 import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
 import { useCanWrite, useSharedWrite, type WriteState } from '@/lib/use-can-write';
@@ -63,7 +63,8 @@ export function MembersSection({ group, names, uid, friendCandidates, write: pag
               <div className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-2 font-medium text-foreground">
                   {name}
-                  <Badge variant="outline">{member.role}</Badge>
+                  {/* From admin_ids and created_by, never the stored members[].role that any member can edit (plan B19c, ADR 0015). */}
+                  <Badge variant="outline">{ROLE_LABELS[displayedRole(group, member.userId)]}</Badge>
                 </span>
                 {isAdmin && !lastAdmin && <RemoveMemberDialog group={group} memberId={member.userId} name={name} write={write} />}
               </div>

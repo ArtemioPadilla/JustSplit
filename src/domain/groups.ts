@@ -24,14 +24,54 @@ export interface GroupMemberCandidate {
 
 /**
  * `adminIds = members.filter(m => hasMinimumRole(m.role, 'admin')).map(m =>
- * m.userId)` (plan B12) — the ONE place this derivation happens, so
- * `adminIds` and `members[].role` never drift. `hasMinimumRole` treats
- * `owner` as satisfying an `admin` requirement (`ROLE_HIERARCHY`,
- * `@cyber-eco/types`), so the creator (always `role: 'owner'`) is always
- * included.
+ * m.userId)` (plan B12) — for a brand-new group ONLY (`buildCreateGroupInput`),
+ * where the roles were just built locally: the creator is `owner`, everyone else
+ * `member`. `hasMinimumRole` treats `owner` as satisfying an `admin` requirement
+ * (`ROLE_HIERARCHY`, `@cyber-eco/types`), so the creator is always included.
+ *
+ * Never call this on a STORED group (plan B19c, ADR 0015): `members[].role` is
+ * user-writable (any member may edit that jsonb), so deriving `admin_ids` from
+ * it would let a forged label become a real admin on the next admin patch.
+ * Once a group exists `admin_ids` is the authority, and the membership patches
+ * below start from it.
  */
 export function computeAdminIds(members: Pick<ExpenseGroupMember, 'userId' | 'role'>[]): string[] {
   return members.filter((m) => hasMinimumRole(m.role, 'admin')).map((m) => m.userId);
+}
+
+/** What the UI shows for a member (plan B19c, ADR 0015). */
+export type DisplayedRole = 'owner' | 'admin' | 'member';
+
+export const ROLE_LABELS: Record<DisplayedRole, string> = { owner: 'Owner', admin: 'Admin', member: 'Member' };
+
+/**
+ * A member's role for display, derived from the authority and never from the
+ * stored `members[].role` (which any member can edit): an admin is whoever is in
+ * `admin_ids` (RLS and `guard_expense_groups` read exactly that); the owner is the
+ * creator (`created_by` is immutable, the guard trigger enforces it) as long as
+ * they are still an admin, so a badge never claims a power the person does not
+ * have. Everyone else, including a stored `moderator` (nothing writes one) and a
+ * person who is not in the group, is a Member: deny by default.
+ */
+export function displayedRole(group: Pick<ExpenseGroup, 'adminIds' | 'createdBy'>, userId: string): DisplayedRole {
+  if (!group.adminIds.includes(userId)) return 'member';
+  return userId === group.createdBy ? 'owner' : 'admin';
+}
+
+/**
+ * The label to STORE in `members[].role` for a member: the displayed role, in the
+ * `AppRole` vocabulary. Written on every membership patch so a forged or stale label
+ * heals whenever an admin touches the group, and so the stored labels always agree with
+ * `admin_ids` (migration 017's constraint: nobody is labelled owner or admin unless
+ * they are in `admin_ids`).
+ */
+function storedRoleFor(group: Pick<ExpenseGroup, 'adminIds' | 'createdBy'>, userId: string): AppRole {
+  return displayedRole(group, userId);
+}
+
+/** Every member with a label consistent with `admin_ids`; every other field is kept as it is. */
+function withConsistentLabels(group: Pick<ExpenseGroup, 'members' | 'adminIds' | 'createdBy'>): ExpenseGroupMember[] {
+  return group.members.map((m) => ({ ...m, role: storedRoleFor(group, m.userId) }));
 }
 
 export interface BuildCreateGroupInputParams {
@@ -98,7 +138,7 @@ export interface GroupMembershipPatch {
  * server-side; this is UX-only construction of the patch).
  */
 export function withAddedMembers(
-  group: Pick<ExpenseGroup, 'members'>,
+  group: Pick<ExpenseGroup, 'members' | 'adminIds' | 'createdBy'>,
   invitees: GroupMemberCandidate[],
   invitedBy: string,
   now: string,
@@ -110,8 +150,9 @@ export function withAddedMembers(
     joinedAt: now,
     invitedBy,
   }));
-  const members = [...group.members, ...added];
-  return { members, memberIds: members.map((m) => m.userId), adminIds: computeAdminIds(members) };
+  const members = [...withConsistentLabels(group), ...added];
+  // `admin_ids` is the authority and adding a member never changes it (plan B19c): never derived from labels.
+  return { members, memberIds: members.map((m) => m.userId), adminIds: group.adminIds };
 }
 
 /**
@@ -123,9 +164,10 @@ export function withAddedMembers(
  * other preflight since B2d (ADR 0013): rows that still name them stay
  * readable and editable.
  */
-export function withRemovedMember(group: Pick<ExpenseGroup, 'members'>, memberId: string): GroupMembershipPatch {
-  const members = group.members.filter((m) => m.userId !== memberId);
-  return { members, memberIds: members.map((m) => m.userId), adminIds: computeAdminIds(members) };
+export function withRemovedMember(group: Pick<ExpenseGroup, 'members' | 'adminIds' | 'createdBy'>, memberId: string): GroupMembershipPatch {
+  const members = withConsistentLabels(group).filter((m) => m.userId !== memberId);
+  // Starts from `admin_ids`, the authority (plan B19c): the removed id leaves it, nobody joins it.
+  return { members, memberIds: members.map((m) => m.userId), adminIds: group.adminIds.filter((id) => id !== memberId) };
 }
 
 /** UX guard (plan B12): never let the last admin remove or demote themselves — a group with no admin can never be managed or deleted again. */
