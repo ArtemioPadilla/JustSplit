@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,8 +13,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { isLastAdmin, withAddedMembers, withRemovedMember } from '@/domain/groups';
+import { ROLE_LABELS, displayedRole, isLastAdmin, withAddedMembers, withRemovedMember } from '@/domain/groups';
 import { useUpdateGroup } from '@/lib/data/hooks/useUpdateGroup';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { cn } from '@/lib/utils';
 import type { ExpenseGroup } from '@/schemas/group';
@@ -26,6 +29,8 @@ export interface MembersSectionProps {
   uid: string;
   /** Accepted friends of `uid` who are not already members — the "Add members" dialog's candidate pool. */
   friendCandidates: { id: string; name: string }[];
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the section reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /**
@@ -38,15 +43,17 @@ export interface MembersSectionProps {
  * express. Removing a member no longer needs a preflight (ADR 0013): rows that
  * still name them stay readable and editable, so nothing is locked.
  */
-export function MembersSection({ group, names, uid, friendCandidates }: MembersSectionProps) {
+export function MembersSection({ group, names, uid, friendCandidates, write: pageWrite }: MembersSectionProps) {
   const isAdmin = group.adminIds.includes(uid);
+  const { write, owned } = useSharedWrite(pageWrite);
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-sm font-medium text-muted-foreground">Members ({group.members.length})</h2>
-        {isAdmin && <AddMembersDialog group={group} candidates={friendCandidates} />}
+        {isAdmin && <AddMembersDialog group={group} candidates={friendCandidates} write={write} />}
       </div>
+      {owned && isAdmin && <OfflineWriteNotice write={write} />}
       <ul className="flex flex-col gap-2">
         {group.members.map((member) => {
           const name = names[member.userId] ?? member.displayName;
@@ -56,9 +63,10 @@ export function MembersSection({ group, names, uid, friendCandidates }: MembersS
               <div className="flex items-center justify-between gap-4">
                 <span className="flex items-center gap-2 font-medium text-foreground">
                   {name}
-                  <Badge variant="outline">{member.role}</Badge>
+                  {/* From admin_ids and created_by, never the stored members[].role that any member can edit (plan B19c, ADR 0015). */}
+                  <Badge variant="outline">{ROLE_LABELS[displayedRole(group, member.userId)]}</Badge>
                 </span>
-                {isAdmin && !lastAdmin && <RemoveMemberDialog group={group} memberId={member.userId} name={name} />}
+                {isAdmin && !lastAdmin && <RemoveMemberDialog group={group} memberId={member.userId} name={name} write={write} />}
               </div>
               {isAdmin && lastAdmin && (
                 <p className="text-xs text-muted-foreground">{name} is the last admin and can&apos;t be removed.</p>
@@ -75,27 +83,38 @@ interface RemoveMemberDialogProps {
   group: ExpenseGroup;
   memberId: string;
   name: string;
+  /** The section's connection state, for the trigger (one sentence for every row). */
+  write: WriteState;
 }
 
 /** Same compound-component shape as `RemoveFriendDialog`/`DeleteExpenseDialog`; the trigger's visible text stays plain "Remove" with an `aria-label` distinguishing WHICH member for a screen-reader user (several rows share the same visible label). */
-function RemoveMemberDialog({ group, memberId, name }: RemoveMemberDialogProps) {
+function RemoveMemberDialog({ group, memberId, name, write }: RemoveMemberDialogProps) {
   const [open, setOpen] = React.useState(false);
   const updateGroup = useUpdateGroup();
+  // The dialog has its own state: it can be open when the connection drops, and its confirm button must say why it is blocked.
+  const inDialog = useCanWrite();
 
   async function handleConfirm() {
+    if (refuseIfOffline()) return;
     const patch = withRemovedMember(group, memberId);
     try {
       await updateGroup.mutateAsync({ id: group.id, patch: patch as Partial<ExpenseGroup> });
       notifySuccess('Member removed');
       setOpen(false);
-    } catch {
-      notifyError('Could not remove this member');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not remove this member'));
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger aria-label={`Remove ${name}`} className={cn(buttonVariants({ variant: 'outline' }))}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next && refuseIfOffline()) return;
+        setOpen(next);
+      }}
+    >
+      <DialogTrigger aria-label={`Remove ${name}`} className={cn(buttonVariants({ variant: 'outline' }))} {...write.blocked}>
         Remove
       </DialogTrigger>
       <DialogContent>
@@ -103,6 +122,7 @@ function RemoveMemberDialog({ group, memberId, name }: RemoveMemberDialogProps) 
           <DialogTitle>Remove {name}?</DialogTitle>
           <DialogDescription>{name} will no longer be a member of this group.</DialogDescription>
         </DialogHeader>
+        <OfflineWriteNotice write={inDialog} />
         <DialogFooter>
           <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
           <button
@@ -111,6 +131,7 @@ function RemoveMemberDialog({ group, memberId, name }: RemoveMemberDialogProps) 
             disabled={updateGroup.isPending}
             aria-busy={updateGroup.isPending}
             className={cn(buttonVariants({ variant: 'destructive' }))}
+            {...inDialog.blocked}
           >
             Remove
           </button>
@@ -123,19 +144,24 @@ function RemoveMemberDialog({ group, memberId, name }: RemoveMemberDialogProps) 
 interface AddMembersDialogProps {
   group: ExpenseGroup;
   candidates: { id: string; name: string }[];
+  /** The section's connection state, for the trigger. */
+  write: WriteState;
 }
 
 /** The whole Dialog composition lives here (CLAUDE.md compound-component rule), same shape as `DeleteExpenseDialog`. */
-function AddMembersDialog({ group, candidates }: AddMembersDialogProps) {
+function AddMembersDialog({ group, candidates, write }: AddMembersDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const updateGroup = useUpdateGroup();
+  // The dialog has its own state: it can be open when the connection drops, and its confirm button must say why it is blocked.
+  const inDialog = useCanWrite();
 
   function toggle(id: string, checked: boolean) {
     setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((existing) => existing !== id)));
   }
 
   async function handleConfirm() {
+    if (refuseIfOffline()) return;
     const invitees = candidates.filter((c) => selectedIds.includes(c.id)).map((c) => ({ userId: c.id, displayName: c.name }));
     const patch = withAddedMembers(group, invitees, group.adminIds[0] ?? group.createdBy, new Date().toISOString());
     try {
@@ -143,14 +169,22 @@ function AddMembersDialog({ group, candidates }: AddMembersDialogProps) {
       notifySuccess('Members added');
       setOpen(false);
       setSelectedIds([]);
-    } catch {
-      notifyError('Could not add these members');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not add these members'));
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className={cn(buttonVariants({ variant: 'outline' }))}>Add members</DialogTrigger>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next && refuseIfOffline()) return;
+        setOpen(next);
+      }}
+    >
+      <DialogTrigger className={cn(buttonVariants({ variant: 'outline' }))} {...write.blocked}>
+        Add members
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add members</DialogTitle>
@@ -172,6 +206,7 @@ function AddMembersDialog({ group, candidates }: AddMembersDialogProps) {
             ))}
           </fieldset>
         )}
+        <OfflineWriteNotice write={inDialog} />
         <DialogFooter>
           <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
           <button
@@ -180,6 +215,7 @@ function AddMembersDialog({ group, candidates }: AddMembersDialogProps) {
             disabled={updateGroup.isPending || selectedIds.length === 0}
             aria-busy={updateGroup.isPending}
             className={cn(buttonVariants({ variant: 'default' }))}
+            {...inDialog.blocked}
           >
             Add
           </button>

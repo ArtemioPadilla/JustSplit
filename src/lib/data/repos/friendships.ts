@@ -1,6 +1,6 @@
 import type { QueryFilter } from '@cyber-eco/types';
 import { CreateFriendshipInputSchema, FriendshipSchema, type CreateFriendshipInput, type Friendship } from '@/schemas/friendship';
-import { requireStorageAdapter } from '../require-adapter';
+import { assertOnline, requireStorageAdapter } from '../require-adapter';
 
 /** `friendships` repo (plan B5a). */
 
@@ -20,6 +20,7 @@ export async function listForUser(uid: string): Promise<Friendship[]> {
 }
 
 export async function create(input: CreateFriendshipInput): Promise<Friendship> {
+  assertOnline();
   const adapter = requireStorageAdapter();
   const parsed = CreateFriendshipInputSchema.parse(input);
   const id = adapter.generateId('friendships');
@@ -35,12 +36,14 @@ export async function create(input: CreateFriendshipInput): Promise<Friendship> 
 
 /** The only legitimate patch in practice is `{ status }` — the recipient accepting/rejecting a request (D10 guard trigger enforces recipient-only). */
 export async function update(id: string, patch: Partial<Friendship>): Promise<Friendship | null> {
+  assertOnline();
   await requireStorageAdapter().updateDocument('friendships', id, patch);
   return get(id);
 }
 
 /** Cancel (the requester deletes a pending row) and Remove (either party deletes an accepted row) are the same primitive (plan B13) — `friendships_delete`'s RLS policy is "either party", with no status distinction. */
 export async function remove(id: string): Promise<void> {
+  assertOnline();
   await requireStorageAdapter().deleteDocument('friendships', id);
 }
 
@@ -81,6 +84,7 @@ export async function existsForPair(a: string, b: string): Promise<boolean> {
  * ADR 0006, not silently claimed to be fully closed.
  */
 export async function request(fromUid: string, toUid: string): Promise<Friendship> {
+  assertOnline();
   if (await existsForPair(fromUid, toUid)) throw new FriendshipAlreadyExistsError();
   return create({ users: [fromUid, toUid], status: 'pending', requestedBy: fromUid });
 }

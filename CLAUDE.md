@@ -130,6 +130,12 @@ Data-layer rules (spec D3, D10; from `cybereco-hub/docs/design/`):
     are flat top-level fields; the SchemaMap routes them into the `extra`
     overflow column. The app never sees the column.
 
+11. ❌ **NEVER write while offline, and never queue a write silently** (ADR 0015).
+    Every data-layer writer starts with `assertOnline()` (`src/lib/offline-write.ts`),
+    and every write control reads `useCanWrite()` (`aria-disabled` plus the visible
+    offline sentence). `src/tests/offline-write-coverage.test.ts` fails if a new
+    writer or write surface skips either.
+
 The machine-readable list of banned imports is
 `.claude/checklists/forbidden-imports.json` (enforced whole-tree by `centinela`
 and `src/tests/forbidden-imports.test.ts` since B1).

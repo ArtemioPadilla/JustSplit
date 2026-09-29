@@ -133,3 +133,53 @@ describe('LazyDialog (B19b)', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Plan B19c (ADR 0015): a write dialog's stand-in can be blocked (`aria-disabled`, set by the shell from
+ * `useCanWrite()`), and a blocked stand-in never asks for the real dialog, whatever the input.
+ */
+describe('LazyDialog — blocked trigger (B19c)', () => {
+  function blocked() {
+    const load = vi.fn(() => Promise.resolve({ default: RealDialog }));
+    const Impl = React.lazy(load);
+    render(
+      <>
+        <p id="why">You&apos;re offline.</p>
+        <LazyDialog
+          impl={Impl}
+          load={load}
+          implProps={{ title: 'Confirm it' }}
+          triggerProps={{ 'aria-label': 'Do the thing', 'aria-disabled': true, 'aria-describedby': 'why' }}
+        >
+          Do it
+        </LazyDialog>
+      </>,
+    );
+    return { load };
+  }
+
+  it('keeps aria-disabled and its description, and a click neither opens nor loads nor goes busy', async () => {
+    const user = userEvent.setup();
+    const { load } = blocked();
+    const trigger = screen.getByRole('button', { name: 'Do the thing' });
+    expect(trigger).toHaveAttribute('aria-disabled', 'true');
+    expect(trigger).not.toHaveAttribute('disabled');
+    expect(trigger).toHaveAccessibleDescription("You're offline.");
+
+    await user.click(trigger);
+    await act(async () => {});
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).not.toHaveAttribute('aria-busy');
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('a keyboard activation is refused too', async () => {
+    const user = userEvent.setup();
+    const { load } = blocked();
+    await act(async () => screen.getByRole('button', { name: 'Do the thing' }).focus());
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(0);
+  });
+});

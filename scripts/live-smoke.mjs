@@ -330,6 +330,98 @@ async function main() {
       assert((await a.locator('#profile-display-name').inputValue()) === 'Ana Renamed', 'the new name must survive a reload');
     });
 
+    // ── 8. Offline (plan B19c, ADR 0015): writes are blocked and explained, then come back ─
+    // Playwright's `setOffline` flips `navigator.onLine` and fires the `offline` event, like DevTools. The page and
+    // the service role are the two witnesses: the page says why, the database proves nothing was written. (Service
+    // workers stay blocked in this smoke, which is fine here: this is about the controls, `check:offline` owns the shell.)
+    const OFFLINE_SENTENCE = "You're offline. Changes can't be saved until you reconnect.";
+    // A blocked control is aria-disabled (never a bare `disabled`) and described by the visible sentence.
+    const assertBlocked = async (control, where) => {
+      assert((await control.getAttribute('aria-disabled')) === 'true', `${where}: not aria-disabled while offline`);
+      assert((await control.getAttribute('disabled')) === null, `${where}: a bare disabled hides the reason from a screen reader`);
+      const describedBy = await control.getAttribute('aria-describedby');
+      assert(describedBy, `${where}: not described by anything`);
+      const description = await control.page().locator(`[id="${describedBy}"]`).textContent();
+      assert(description?.trim() === OFFLINE_SENTENCE, `${where}: described by ${JSON.stringify(description)}`);
+    };
+    const assertWritable = async (control, where) => {
+      assert((await control.getAttribute('aria-disabled')) === null, `${where}: still aria-disabled after reconnecting`);
+      assert((await control.getAttribute('aria-describedby')) === null, `${where}: still described by the offline sentence after reconnecting`);
+    };
+    const goOffline = async () => {
+      await A.context.setOffline(true);
+      // The event reaches the page a moment later; the sentence is what a person sees.
+      await a.getByText(OFFLINE_SENTENCE, { exact: true }).first().waitFor();
+    };
+    const goOnline = async () => {
+      await A.context.setOffline(false);
+      await a.getByText(OFFLINE_SENTENCE, { exact: true }).first().waitFor({ state: 'hidden' });
+    };
+
+    await flow('offline: a form is blocked with the sentence, keeps what was typed, and works again on reconnect', a, async () => {
+      await goto(a, '/expenses/new');
+      await a.locator('#expense-form-description').fill('Offline lunch');
+      await a.locator('#expense-form-amount').fill('25');
+      const save = a.getByRole('button', { name: 'Save expense' });
+      await assertWritable(save, 'online Save expense');
+
+      try {
+        // Inside the try: a failure here must still put the network back for the flows after it.
+        await goOffline();
+        await assertBlocked(save, 'Save expense');
+        // `force`: Playwright treats aria-disabled as "not enabled" and would wait; a person can still click it.
+        await save.click({ force: true });
+        await a.locator('#expense-form-description').press('Enter');
+        await sleep(500);
+        assert(new URL(a.url()).pathname.endsWith('/expenses/new/') || new URL(a.url()).pathname.endsWith('/expenses/new'), `left the form: ${a.url()}`);
+        assert((await a.locator('#expense-form-description').inputValue()) === 'Offline lunch', 'the description was lost');
+        assert((await a.locator('#expense-form-amount').inputValue()) === '25', 'the amount was lost');
+        const rows = (await admin.from('expenses').select('id').eq('description', 'Offline lunch')).data;
+        assert(rows.length === 0, 'an expense was written while offline');
+      } finally {
+        await goOnline();
+      }
+      await assertWritable(save, 'Save expense after reconnecting');
+    });
+
+    await flow('offline: a dialog is blocked with the sentence, keeps what was typed, and works again on reconnect', a, async () => {
+      await goto(a, '/settlements');
+      await waitForText(a, /Suggested payments[\s\S]*Record payment/);
+      const dialog = a.getByRole('dialog', { name: 'Record payment' });
+      // The earlier flows moved the balance, so take the first suggestion whoever it is with.
+      const trigger = a.getByRole('button', { name: /^Record payment from / }).first();
+      await trigger.click();
+      await dialog.getByLabel('Amount').fill('7.00');
+      const save = dialog.getByRole('button', { name: 'Save payment' });
+
+      try {
+        await goOffline();
+        await assertBlocked(save, 'Save payment');
+        await save.click({ force: true });
+        await sleep(500);
+        assert(await dialog.isVisible(), 'the dialog closed');
+        assert((await dialog.getByLabel('Amount').inputValue()) === '7.00', 'the typed amount was lost');
+        const rows = (await admin.from('settlements').select('id').eq('from_user_id', ana.id).eq('to_user_id', beto.id).eq('amount', 7)).data;
+        assert(rows.length === 0, 'a payment was written while offline');
+
+        // Closed, the trigger itself is blocked too, and opens nothing.
+        await dialog.getByRole('button', { name: 'Cancel' }).click();
+        await dialog.waitFor({ state: 'hidden' });
+        await assertBlocked(trigger, 'the Record payment trigger');
+        await trigger.click({ force: true });
+        await sleep(300);
+        assert(!(await dialog.isVisible()), 'a blocked trigger opened the dialog');
+      } finally {
+        await goOnline();
+      }
+      await assertWritable(trigger, 'the Record payment trigger after reconnecting');
+      await trigger.click();
+      await dialog.waitFor();
+      await assertWritable(dialog.getByRole('button', { name: 'Save payment' }), 'Save payment after reconnecting');
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      await dialog.waitFor({ state: 'hidden' });
+    });
+
     // ── Signed-in axe + overflow, in light, dark and 375px ───────────────────
     // A payment on the ledger gives History a row (and an Undo button) to scan.
     await admin.from('settlements').insert({

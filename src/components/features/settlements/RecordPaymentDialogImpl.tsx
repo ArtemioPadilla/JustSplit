@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { refuseIfOffline } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { personName } from './labels';
 import type { RecordPaymentDialogProps } from './RecordPaymentDialog';
@@ -31,9 +33,14 @@ export function RecordPaymentDialogImpl({
   eventId,
   eventName,
   returnFocusTo,
+  write: pageWrite,
   defaultOpen = false,
 }: RecordPaymentDialogProps & { defaultOpen?: boolean }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  // The trigger follows the page's state (one sentence per page); the form has its own (it can be open
+  // when the connection drops), see `RecordPaymentForm`.
+  const ownWrite = useCanWrite();
+  const write = pageWrite ?? ownWrite;
   const savedRef = React.useRef(false);
   // The dialog mounts already open (the shell's stand-in asked for it), so Base UI never saw focus on a
   // trigger before opening; name the trigger explicitly so closing still returns focus to it.
@@ -46,6 +53,7 @@ export function RecordPaymentDialogImpl({
     <Dialog
       open={open}
       onOpenChange={(next) => {
+        if (next && refuseIfOffline()) return;
         if (next) savedRef.current = false;
         setOpen(next);
       }}
@@ -54,6 +62,7 @@ export function RecordPaymentDialogImpl({
         ref={triggerRef}
         aria-label={`Record payment from ${from} to ${to}`}
         className={cn(buttonVariants({ variant: 'default', size: 'sm' }))}
+        {...write.blocked}
         onPointerEnter={() => void loadForm()}
         onFocus={() => void loadForm()}
         onTouchStart={() => void loadForm()}

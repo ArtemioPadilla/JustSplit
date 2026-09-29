@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { removeAvatar, uploadAvatar } from '@/lib/data/storage';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { notifyError, notifyInfo, notifySuccess } from '@/stores/notifications';
 import { updateProfile } from '@/stores/auth';
 
@@ -23,6 +26,8 @@ export interface AvatarUploadFieldProps {
    * which only knows how to resolve a receipts-bucket object path.
    */
   avatarPath: string | null | undefined;
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the field reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /** Object-URL preview for the pending pick, revoked on change/unmount. */
@@ -61,7 +66,8 @@ function usePreviewUrl(file: File | null): string | null {
  * avatar object (an external URL, or another user's path) — no point
  * generating a removal error for something that was never going to work.
  */
-export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldProps) {
+export function AvatarUploadField({ uid, name, avatarPath, write: pageWrite }: AvatarUploadFieldProps) {
+  const { write, owned } = useSharedWrite(pageWrite);
   const [pendingFile, setPendingFile] = React.useState<File | null>(null);
   const [busy, setBusy] = React.useState(false);
   const previewUrl = usePreviewUrl(pendingFile);
@@ -81,22 +87,22 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
   }
 
   async function handleSave() {
-    if (!pendingFile) return;
+    if (!pendingFile || refuseIfOffline()) return;
     setBusy(true);
     const oldPath = avatarPath;
 
     let newPath: string;
     try {
       newPath = await uploadAvatar(uid, pendingFile);
-    } catch {
-      notifyError('Could not upload your photo. Please try again.');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not upload your photo. Please try again.'));
       setBusy(false);
       return;
     }
 
     try {
       await updateProfile({ avatarUrl: newPath });
-    } catch {
+    } catch (error) {
       // The row was never updated to point at newPath — remove it instead
       // of leaving an orphaned object nothing will ever reference.
       try {
@@ -104,7 +110,7 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
       } catch {
         // Best-effort cleanup; the failure below is reported either way.
       }
-      notifyError('Could not update your profile photo. Please try again.');
+      notifyError(writeErrorMessage(error, 'Could not update your profile photo. Please try again.'));
       setBusy(false);
       return;
     }
@@ -126,7 +132,7 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
   }
 
   return (
-    <div className="flex items-center gap-4" aria-busy={busy}>
+    <div className="flex flex-wrap items-center gap-4" aria-busy={busy}>
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-muted">
         {previewUrl ? (
           <img src={previewUrl} alt="" className="h-full w-full object-cover" />
@@ -152,7 +158,7 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
         />
         {pendingFile && (
           <div className="flex items-center gap-2">
-            <Button type="button" size="sm" onClick={() => void handleSave()} disabled={busy} aria-busy={busy}>
+            <Button type="button" size="sm" onClick={() => void handleSave()} disabled={busy} aria-busy={busy} {...write.blocked}>
               {busy ? 'Uploading…' : 'Save photo'}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={clearSelection} disabled={busy}>
@@ -161,6 +167,7 @@ export function AvatarUploadField({ uid, name, avatarPath }: AvatarUploadFieldPr
           </div>
         )}
       </div>
+      {owned && <OfflineWriteNotice write={write} className="basis-full" />}
     </div>
   );
 }

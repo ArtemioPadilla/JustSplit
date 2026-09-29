@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ChevronsUpDownIcon } from 'lucide-react';
 
 import { comboboxIconClass, comboboxInputClass } from '@/components/ui/combobox-styles';
+import type { WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 
 // The Base UI combobox and its popup stack (floating-ui, tabbable, list
@@ -74,12 +75,42 @@ export interface CurrencySelectorProps {
   label?: string;
   id?: string;
   className?: string;
+  /**
+   * Set where choosing a currency WRITES something (the profile's preferred
+   * currency, plan B19c, ADR 0015). While `write.canWrite` is false the selector
+   * is the read-only stand-in with `aria-disabled` and the page's explanation as
+   * its description; nothing opens and no combobox chunk is needed. Leave it out
+   * for a display-only choice that never leaves the browser.
+   */
+  write?: WriteState;
 }
 
-function CurrencyStandIn({ id, value, onFocus, onBlur }: { id: string; value: string; onFocus: () => void; onBlur: () => void }) {
+function CurrencyStandIn({
+  id,
+  value,
+  onFocus,
+  onBlur,
+  blocked,
+}: {
+  id: string;
+  value: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  blocked?: WriteState['blocked'];
+}) {
   return (
     <div className="relative">
-      <input id={id} readOnly value={value} aria-busy="true" onFocus={onFocus} onBlur={onBlur} className={comboboxInputClass} />
+      <input
+        id={id}
+        readOnly
+        value={value}
+        // Loading is only "busy" for the real stand-in; a blocked selector is not waiting for anything.
+        aria-busy={blocked ? undefined : 'true'}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className={comboboxInputClass}
+        {...blocked}
+      />
       <span className={comboboxIconClass}>
         <ChevronsUpDownIcon aria-hidden="true" className="h-4 w-4 opacity-70" />
       </span>
@@ -93,8 +124,19 @@ export function CurrencySelector({
   label = 'Currency',
   id = 'currency-selector',
   className,
+  write,
 }: CurrencySelectorProps) {
   const [standInFocused, setStandInFocused] = React.useState(false);
+  if (write && !write.canWrite) {
+    return (
+      <div className={cn('flex flex-col gap-1', className)}>
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </label>
+        <CurrencyStandIn id={id} value={value} blocked={write.blocked} />
+      </div>
+    );
+  }
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <label htmlFor={id} className="text-sm font-medium text-foreground">

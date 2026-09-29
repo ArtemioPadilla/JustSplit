@@ -1,9 +1,11 @@
 import { PlusIcon, RefreshCw } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import type { CsvNamedEvent, CsvNamedUser } from '@/domain/csvExport';
 import { withBase } from '@/lib/href';
+import { useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/schemas/expense';
 
@@ -18,6 +20,8 @@ export interface DashboardHeaderProps {
   onCurrencyChange: (code: string) => void;
   /** Clears the rate cache and forces a fresh fetch. */
   onRefreshRates: () => void;
+  /** The page's connection state (plan B19c, ADR 0015); standing alone the header reads it itself. */
+  write?: WriteState;
 }
 
 /**
@@ -28,10 +32,16 @@ export interface DashboardHeaderProps {
  * B8b because their pages did not exist yet (a dead link on the landing view of
  * the app), and came back as each page landed.
  */
-export function DashboardHeader({ expenses, users, events, currency, onCurrencyChange, onRefreshRates }: DashboardHeaderProps) {
+export function DashboardHeader({ expenses, users, events, currency, onCurrencyChange, onRefreshRates, write: pageWrite }: DashboardHeaderProps) {
+  // Plan B19c (ADR 0015): choosing the preferred currency writes the profile, so it follows the connection.
+  // Refreshing rates, exporting and the links below are reads or navigation and stay available.
+  const { write } = useSharedWrite(pageWrite);
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <CurrencySelector value={currency} onChange={onCurrencyChange} id="dashboard-currency-selector" />
+      <div className="flex flex-col gap-2">
+        <CurrencySelector value={currency} onChange={onCurrencyChange} id="dashboard-currency-selector" write={write} />
+        <OfflineWriteNotice write={write} />
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" onClick={onRefreshRates}>
           <RefreshCw aria-hidden="true" className="size-4" />

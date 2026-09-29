@@ -9,16 +9,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import { useDeleteGroup } from '@/lib/data/hooks/useDeleteGroup';
 import { GroupDeleteNotAllowedError, GroupDeleteVerificationFailedError } from '@/lib/data/repos/groups';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { cn } from '@/lib/utils';
 
 export interface DeleteGroupDialogProps {
   groupId: string;
   name: string;
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the dialog reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /**
@@ -36,7 +41,7 @@ function messageFor(error: unknown): string {
   if (error instanceof GroupDeleteNotAllowedError) {
     return 'Only a group admin can delete this group.';
   }
-  return 'Could not delete this group';
+  return writeErrorMessage(error, 'Could not delete this group');
 }
 
 /**
@@ -48,11 +53,16 @@ function messageFor(error: unknown): string {
  * RLS is the authority). The group's rows are ungrouped by the database (ADR
  * 0013), not by this dialog.
  */
-export function DeleteGroupDialog({ groupId, name }: DeleteGroupDialogProps) {
+export function DeleteGroupDialog({ groupId, name, write: pageWrite }: DeleteGroupDialogProps) {
   const [open, setOpen] = React.useState(false);
+  // The trigger follows the page's state (one sentence per page); the dialog has its own, because it
+  // can be open when the connection drops and its confirm button must say why it is blocked.
+  const { write, owned } = useSharedWrite(pageWrite);
+  const inDialog = useCanWrite();
   const deleteGroup = useDeleteGroup();
 
   const handleConfirm = React.useCallback(async () => {
+    if (refuseIfOffline()) return;
     try {
       await deleteGroup.mutateAsync(groupId);
       // afterNavigation: true — location.assign() below is a full page
@@ -67,29 +77,42 @@ export function DeleteGroupDialog({ groupId, name }: DeleteGroupDialogProps) {
   }, [deleteGroup, groupId]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className={cn(buttonVariants({ variant: 'destructive' }))}>Delete group</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete &ldquo;{name}&rdquo;?</DialogTitle>
-          <DialogDescription>
-            This ungroups every expense and event in this group (they are kept, just no longer grouped) and permanently deletes the
-            group itself. This cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={deleteGroup.isPending}
-            aria-busy={deleteGroup.isPending}
-            className={cn(buttonVariants({ variant: 'destructive' }))}
-          >
-            Delete
-          </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next && refuseIfOffline()) return;
+          setOpen(next);
+        }}
+      >
+        <DialogTrigger className={cn(buttonVariants({ variant: 'destructive' }))} {...write.blocked}>
+          Delete group
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete &ldquo;{name}&rdquo;?</DialogTitle>
+            <DialogDescription>
+              This ungroups every expense and event in this group (they are kept, just no longer grouped) and permanently deletes the
+              group itself. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <OfflineWriteNotice write={inDialog} />
+          <DialogFooter>
+            <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={deleteGroup.isPending}
+              aria-busy={deleteGroup.isPending}
+              className={cn(buttonVariants({ variant: 'destructive' }))}
+              {...inDialog.blocked}
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {owned && <OfflineWriteNotice write={write} />}
+    </>
   );
 }

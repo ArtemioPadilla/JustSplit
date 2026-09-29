@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   MAX_GROUP_MEMBERS,
   buildCreateGroupInput,
+  ROLE_LABELS,
   computeAdminIds,
+  displayedRole,
   filterAttachableEvents,
   filterAttachableExpenses,
   isEventAttachable,
@@ -201,3 +203,108 @@ describe('isEventAttachable / filterAttachableEvents', () => {
     expect(filterAttachableEvents([attachable, alreadyGrouped, outsideParticipant], g)).toEqual([attachable]);
   });
 });
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the displayed role comes from `admin_ids`, never from the stored
+ * `members[].role`. Any member can edit `members[]` (ordinary jsonb field; `guard_expense_groups` only
+ * gates `member_ids`, `admin_ids` and `created_by`), so that label is user-writable: it can lie in a badge
+ * and, worse, `computeAdminIds` over it used to feed `admin_ids` on the next admin membership patch.
+ * Authority is `admin_ids` (RLS and the guard read it); the owner is the immutable `created_by`.
+ */
+describe('displayedRole', () => {
+  const g = group({
+    members: [
+      member({ userId: 'u1', role: 'owner' }),
+      member({ userId: 'u2', role: 'admin' }), // a forged label: u2 is NOT in adminIds
+      member({ userId: 'u3', role: 'member' }), // an unlabelled admin: u3 IS in adminIds
+      member({ userId: 'u4', role: 'owner' }), // a forged owner
+      member({ userId: 'u5', role: 'moderator' }),
+    ],
+    memberIds: ['u1', 'u2', 'u3', 'u4', 'u5'],
+    adminIds: ['u1', 'u3'],
+    createdBy: 'u1',
+  });
+
+  it('is Admin exactly when the id is in admin_ids, whatever the stored label says', () => {
+    expect(displayedRole(g, 'u3')).toBe('admin');
+    expect(displayedRole(g, 'u2')).toBe('member');
+  });
+
+  it('the creator who is an admin is the Owner (created_by is immutable); nobody else is, whatever they are labelled', () => {
+    expect(displayedRole(g, 'u1')).toBe('owner');
+    expect(displayedRole(g, 'u4')).toBe('member');
+  });
+
+  it('a creator who is no longer an admin is a Member: the label never claims power the person does not have', () => {
+    expect(displayedRole({ ...g, adminIds: ['u3'] }, 'u1')).toBe('member');
+  });
+
+  it('a stored moderator (nothing writes one) reads as Member', () => {
+    expect(displayedRole(g, 'u5')).toBe('member');
+  });
+
+  it('a person who is not in the group at all is a Member (deny by default)', () => {
+    expect(displayedRole(g, 'nobody')).toBe('member');
+  });
+
+  it('has one label per displayed role', () => {
+    expect(ROLE_LABELS).toEqual({ owner: 'Owner', admin: 'Admin', member: 'Member' });
+  });
+});
+
+describe('membership patches never derive admin_ids from the stored labels (B19c)', () => {
+  // u2 edited members[] to call themselves admin; admin_ids (the authority) still says only u1.
+  const forged = group({
+    members: [member({ userId: 'u1', role: 'owner' }), member({ userId: 'u2', role: 'admin' })],
+    adminIds: ['u1'],
+  });
+
+  it('adding a member keeps admin_ids exactly as it is: a forged label is not promoted', () => {
+    const patch = withAddedMembers(forged, [{ userId: 'u3', displayName: 'Caro' }], 'u1', NOW);
+    expect(patch.adminIds).toEqual(['u1']);
+  });
+
+  it('removing a member removes that id from admin_ids and adds nobody: a forged label is not promoted', () => {
+    const patch = withRemovedMember(group({ ...forged, members: [...forged.members, member({ userId: 'u3' })], memberIds: ['u1', 'u2', 'u3'] }), 'u3');
+    expect(patch.adminIds).toEqual(['u1']);
+  });
+
+  it('removing an admin drops them from admin_ids', () => {
+    const g = group({
+      members: [member({ userId: 'u1', role: 'owner' }), member({ userId: 'u2', role: 'member' })],
+      adminIds: ['u1', 'u2'],
+    });
+    expect(withRemovedMember(g, 'u2').adminIds).toEqual(['u1']);
+  });
+
+  it('rewrites every stored label from admin_ids, so a forged one is healed whenever an admin touches membership', () => {
+    const patch = withAddedMembers(forged, [{ userId: 'u3', displayName: 'Caro' }], 'u1', NOW);
+    expect(patch.members.map((m) => [m.userId, m.role])).toEqual([
+      ['u1', 'owner'],
+      ['u2', 'member'],
+      ['u3', 'member'],
+    ]);
+  });
+
+  it('labels an admin who is not the creator "admin" and a creator who lost admin_ids "member", so the stored labels stay consistent with admin_ids', () => {
+    const g = group({
+      members: [member({ userId: 'u1', role: 'owner' }), member({ userId: 'u2', role: 'member' }), member({ userId: 'u3', role: 'owner' })],
+      memberIds: ['u1', 'u2', 'u3'],
+      adminIds: ['u2', 'u3'],
+      createdBy: 'u1',
+    });
+    const patch = withAddedMembers(g, [], 'u2', NOW);
+    expect(patch.members.map((m) => [m.userId, m.role])).toEqual([
+      ['u1', 'member'],
+      ['u2', 'admin'],
+      ['u3', 'admin'],
+    ]);
+  });
+
+  it('keeps every other field of a member (name, joinedAt, invitedBy)', () => {
+    const g = group({ members: [member({ userId: 'u1', role: 'owner' }), member({ userId: 'u2', role: 'member', invitedBy: 'u1' })] });
+    const patch = withRemovedMember({ ...g, members: [...g.members, member({ userId: 'u3' })] }, 'u3');
+    expect(patch.members[1]).toEqual({ userId: 'u2', displayName: 'Ana', role: 'member', joinedAt: NOW, invitedBy: 'u1' });
+  });
+});
+

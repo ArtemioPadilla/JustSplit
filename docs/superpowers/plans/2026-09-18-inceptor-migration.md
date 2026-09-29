@@ -2481,7 +2481,12 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
 
 ### B18. Feature-parity audit
 - [ ] Walk spec §6 checklist on the staging Pages site (dedicated test account), desktop + 375 px
-      viewport; file an issue per gap and block cutover on them
+      viewport; file an issue per gap and block cutover on them. The §6 "Offline" row (last data
+      readable, writes disabled) is proven by B19c's tests, not re-audited here: the per-surface
+      `— offline (plan B19c)` suites, `src/tests/offline-write-coverage.test.ts`,
+      `src/lib/data/offline-guard.test.ts`, `queryClient.test.ts` and the live smoke's offline step;
+      walking it by hand is one pass (DevTools → Network → Offline on one form and one dialog, then
+      back online), see [ADR 0015](../../decisions/0015-writes-require-a-connection.md)
 - [ ] Every row of the Jest suite → owning task table is ticked
 - [ ] Measure time-to-data on a warm navigation ≤ 300 ms on the staging site (Query persister:
       one `QueryProvider` per page, `meta.persist` on collection queries, one `justsplit:query`
@@ -2798,6 +2803,105 @@ their budget: `/expenses/new` (263.3) is the app group's heaviest page. Gates on
 violations), `check:offline`, `test:live` (all flows, 22 page states x 3 configurations clean),
 `test:rls` (21 files, 280 tests), `test:contract:live`, `test:rls:mutation` (53/53 killed, two of them
 new), and `db:rollback` then `db:migrate` for migration 016.
+
+### B19c. Writes require a connection; the displayed role comes from `admin_ids` (`risk:high`, `tdd-tier:strict`; the role items add migration 017)
+Sequencing: after B19b, before B20 (the cutover). It implements, and changes no product decision of, the
+offline rule three places already state as an intention: spec §6 ("mutations disabled with
+`OfflineBanner`"), spec §7 (offline writes out of scope) and [ADR 0004](../../decisions/0004-tanstack-query-over-storage-adapter.md)
+("no offline writes in v1"); each now points at [ADR 0015](../../decisions/0015-writes-require-a-connection.md), and
+B18's offline audit points at this issue's tests. Each item is its own red/green commit pair (`Tdd-Red:`
+trailer; docs and config use `Tdd-Red-Verified: inline`).
+- [x] **Writes are disabled while offline and never queued** (ADR 0015 §1, with the background-sync
+      alternative and why it was rejected). One hook, `useCanWrite()` (`src/lib/use-can-write.ts`: a
+      `useClientPreference` over the window's own `online`/`offline` events, so it is hydration-safe and
+      re-enables on reconnect with no reload, and does not depend on the `$online` store being mounted),
+      returns `{ canWrite, noticeId, blocked }`; `blocked` is `aria-disabled` + `aria-describedby` on the
+      visible sentence "You're offline. Changes can't be saved until you reconnect." (`<OfflineWriteNotice>`),
+      never a bare `disabled`. A page owns ONE state and shows ONE sentence (`useSharedWrite` lets a
+      component stand alone or take the page's); a dialog that can be open when the connection drops has
+      its own for its confirm button. Handlers refuse with a live `refuseIfOffline()` (an `aria-disabled`
+      button still receives a click or Enter); forms keep what was typed; `LazyDialog` never opens or warms a
+      blocked stand-in; `CurrencySelector` takes a write state (blocked = its read-only stand-in);
+      `Editable` gets `readOnly` + `describedBy`; `buttonVariants` styles `aria-disabled`. **Surfaces
+      covered**, each with an "offline: blocked, described, refused, re-enabled on reconnect; a mid-submit
+      drop is the plain failure, never a success" suite: expense form (save, remove receipt) and delete,
+      event form and inline rename, group create, delete, members add/remove and attach, friend request,
+      accept, reject, cancel, undo and remove, record payment and undo, profile save, preferred currency
+      (profile and dashboard), photo, password (account settings and the recovery page), inline expense
+      edits. Not writes, so not blocked: sign in/up/out, the reset-password email, reset local data, every
+      read, export, navigation, refreshing rates.
+- [x] **Defence in depth in the data layer.** `assertOnline()` is the first line of every write entry point
+      (repos, `storage.ts`, `stores/auth.ts`'s `updateProfile`/`updatePassword`/`updateDisplayProfile`) and
+      throws the typed `OfflineWriteError` before any read, upload or RPC, so a control someone missed cannot
+      half-apply a multi-step write; `writeErrorMessage()` maps it to the same sentence in every surface's
+      error path. Tests: `src/lib/data/offline-guard.test.ts` (29 write functions: refused, no adapter,
+      storage, auth or RPC call, including the "does the row exist?" read, and allowed again online),
+      `src/tests/offline-write-coverage.test.ts` (a source scan: every function that performs a write
+      primitive starts with the guard, every component that writes reads `useCanWrite()`/`WriteState`).
+      RLS stays the authority; this is UX and integrity only.
+- [x] **Found while doing it: TanStack's default was a hidden offline queue.** `networkMode: 'online'`
+      PAUSES a mutation started offline (`mutationFn`, and so the guard above, never runs) and RESUMES it on
+      reconnect: a save the person believed failed could replay later, under whatever session is current.
+      `createQueryClient()` now sets `mutations.networkMode: 'always'` (queries keep the default: reads pause
+      offline and serve the cache). Own red/green pair; `queryClient.test.ts` pins both halves.
+- [x] **The displayed role comes from `admin_ids`** (`displayedRole()` in `src/domain/groups.ts`: Admin iff in
+      `admin_ids`; Owner is the immutable `created_by` while still an admin; everyone else, including a stored
+      `moderator`, is Member; `MembersSection` prints that, never the stored `members[].role`). **Found while
+      doing it, and it contradicts B19b's note:** the label DID reach a permission. `withAddedMembers` /
+      `withRemovedMember` derived the next `admin_ids` from the stored labels (`computeAdminIds`), and any
+      member can edit that jsonb, so a member who labelled themselves `admin` became a real admin on the next
+      admin membership patch. The patches now start from the stored `admin_ids` (add keeps it, remove drops
+      the one id) and rewrite every stored label from it (a forged label heals); `computeAdminIds` is for a
+      brand-new group only.
+- [x] **DB constraint: yes**, migration `20260928000017_group_admin_labels_consistent.sql`: CHECK
+      `expense_groups_admin_labels_consistent` over the immutable, total helper
+      `public.group_admin_labels_consistent(jsonb, text[])` (a member labelled `owner` or `admin` must be in
+      `admin_ids`; `23514`, every writer, the service role included; grants as 016's helper: `authenticated` and
+      `service_role`, never `anon` or `PUBLIC`). **One-way on purpose**: an `admin_ids` entry with a plain label
+      stays valid, because `admin_ids` is the authority, the UI shows Admin for it and the RLS suite and
+      `batch_write` promote by writing `admin_ids` alone (B19b's report); a two-way rule would change what an
+      admin may write. Demoting changes both in one UPDATE (`withRemovedMember` does). Why display derivation
+      alone is not enough is in ADR 0015 §5 (other clients of the shared database, the forged value stays stored,
+      one migration is cheap). Rollout in one transaction: demote any forged `owner`/`admin` label to `member`
+      without touching `admin_ids` (nobody is promoted), `NOT VALID`, `VALIDATE`; full `migrate:down` (016 left
+      alone). Tests: `src/tests/rls/admin-labels.test.ts` (insert and update, the forgery, promote and demote
+      both ways, malformed members still `23514`, catalog, grants, volatility, the down/up round trip and the
+      rollout in rolled-back transactions); `member-roles.test.ts` now gives an owner/admin label an `admin_ids`
+      entry; `test:rls:mutation` drops the constraint and neuters the helper (both killed).
+- [x] **Live smoke** (`scripts/live-smoke.mjs`, flow 8): `context.setOffline(true)` on one form (new expense)
+      and one dialog (record payment): `aria-disabled` and not `disabled`, described by the sentence, a click
+      and Enter do nothing, the typed values stay, the service role finds no row, and everything is enabled again
+      on reconnect. It failed on the tree before the surfaces went green (`443dad5`) and passes now. Service
+      workers stay blocked there, which is fine for this.
+- [x] **Docs**: this entry, [ADR 0015](../../decisions/0015-writes-require-a-connection.md) (with the
+      Stakeholder Analysis), the ADR 0002 B19c amendment (which also corrects B19b's claim), one-line pointers in
+      spec §6 and §7 and ADR 0004, B18's offline wording, the sequencing line, the SETUP owner-actions row for
+      migration 017 and the SETUP `test:live` description. `CLAUDE.md` gains rule 11 (writers start with
+      `assertOnline()`, write controls read `useCanWrite()`), enforced by the hardened coverage test.
+
+**Landed (B19c)** — gzipped kB (1024 bytes), `scripts/check-budgets.mjs`, static JS per page, measured on the
+branch tip before the work (`7d01bb6`, the B19b table above) and on the final tree; **no budget was raised**
+(the hook, the sentence and the guards fit the existing ones):
+
+| Page | static JS before | after | change | budget |
+|---|---|---|---|---|
+| `/friends/` | 235.8 | 237.0 | +1.2 | 248 |
+| `/profile/` | 235.8 | 236.9 | +1.1 | 248 |
+| `/settlements/` | 241.6 | 242.9 | +1.3 | 254 |
+| `/events/list/` | 233.9 | 234.4 | +0.5 | 246 |
+| `/expenses/new/` | 263.3 | 264.6 | +1.3 | 279 |
+| `/expenses/list/` | 256.7 | 257.2 | +0.5 | 279 |
+| `/events/new/` | 249.2 | 250.4 | +1.2 | 279 |
+| `/groups/list/`, `/groups/new/` | 214.3, 224.8 | 214.8, 225.9 | +0.5, +1.1 | 237 |
+| `/` | 227.3 | 228.4 | +1.1 | 239 |
+| `/showcase/` | 170.2 | 170.5 | +0.3 | 179 |
+| `/404` (app shell), `/auth/signin/` | 129.9, 209.6 | 130.1, 210.0 | +0.2, +0.4 | 137, 220 |
+| `/landing/`, `/about/`, `/help/` | 2.7 | 2.7 | 0.0 | 40 |
+
+Gates on the final tree: `npm run check` (238 test files, 2750 tests, 0 errors), `check:a11y` (16 pages x 3
+configurations, 0 violations), `check:offline`, `test:live` (all flows including the two offline ones, 22 page
+states x 3 configurations clean), `test:rls` (22 files, 305 tests), `test:contract:live`, `test:rls:mutation`
+(55/55 killed, two of them new), and `db:rollback` then `db:migrate` for migration 017.
 
 ### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
 - [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend
@@ -3271,7 +3375,7 @@ B8a..B15, B17b parallelizable after B7 and B16
   (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B14a;
    B14a after B2d + B8b + B9 + B11b + B13 (it rewrites how their balances and badges are derived); B14 is the island only, on B14a;
    B15 after B16; B13 after B5a (its policies shipped in B2); B8b/B9/B11b after B17a)
-B18 → B19 → B19b → B20 → B21 → B22        (B19b is the polish follow-up batch, with migration 016 and tightened budgets, and lands before the cutover PR; B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
+B18 → B19 → B19b → B19c → B20 → B21 → B22        (B19b is the polish follow-up batch, with migration 016 and tightened budgets, and lands before the cutover PR; B19c makes writes require a connection and adds migration 017, also before the cutover; B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
 C1, C2 after B5b; C3 after B1 (independent of the cutover)
 H1 after this spec is approved (no code; unblocks ADR-008 gate 1) → H2 after the hub's gate C1 (Story 0.3) — or upstream the B5a contingency adapter → H3 after H2 + C1
 D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8     (Track D increment 1, all after B22, on main; D2 before any default split is written)

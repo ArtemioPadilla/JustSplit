@@ -5,6 +5,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `UndoSettlementDialog` (plan B14b): "Undo" on a settlement the viewer
@@ -148,5 +150,72 @@ describe('UndoSettlementDialog', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Undo payment' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Payment history' })).toHaveFocus());
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx` for the contract; Undo deletes a ledger row. */
+describe('UndoSettlementDialog — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('the stand-in trigger is blocked and explained offline, opens nothing, and opens on reconnect', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    setOnLine(false);
+    const trigger = screen.getByRole('button', { name: /undo/i });
+    expectBlocked(trigger);
+    expect(visibleNotices()).toHaveLength(1);
+    await user.click(trigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(trigger);
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a dialog open when the connection drops blocks "Undo payment", removes nothing, and works on reconnect', async () => {
+    remove.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+
+    setOnLine(false);
+    const confirm = within(dialog).getByRole('button', { name: 'Undo payment' });
+    expectBlocked(confirm);
+    expect(visibleNotices(dialog)).toHaveLength(1);
+    await user.click(confirm);
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(confirm);
+    await user.click(confirm);
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('s1'));
+  });
+
+  it('a connection that drops mid-undo shows the plain failure, never success', async () => {
+    remove.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Undo payment' }));
+    const sentence = "We couldn't undo this payment. Check your connection and try again.";
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(sentence);
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    remove.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    renderDialog();
+    const dialog = await open(user);
+    await user.click(within(dialog).getByRole('button', { name: 'Undo payment' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(OFFLINE_SENTENCE);
+    expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE);
   });
 });

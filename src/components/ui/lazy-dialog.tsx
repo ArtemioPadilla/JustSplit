@@ -37,8 +37,14 @@ export interface LazyDialogProps<P extends object> {
 export function LazyDialog<P extends object>({ impl: Impl, load, implProps, triggerProps, children }: LazyDialogProps<P>) {
   // Set by the first click: from then on the real dialog mounts already open.
   const [requested, setRequested] = React.useState(false);
+  // A blocked stand-in (`aria-disabled`, e.g. a write while offline, plan B19c) stays focusable so its
+  // reason can be read, but never asks for the dialog and never warms it: a chunk fetch that fails
+  // offline could otherwise be remembered as failed for the rest of the page's life.
+  const blocked = triggerProps?.['aria-disabled'] === true || triggerProps?.['aria-disabled'] === 'true';
   // Warming is best effort: a failed load surfaces through the real mount, not from a hover.
-  const warm = () => void load().catch(() => {});
+  const warm = () => {
+    if (!blocked) void load().catch(() => {});
+  };
 
   const standIn = (busy: boolean) => (
     <button
@@ -48,6 +54,10 @@ export function LazyDialog<P extends object>({ impl: Impl, load, implProps, trig
       {...triggerProps}
       aria-busy={busy || undefined}
       onClick={(event) => {
+        if (blocked) {
+          event.preventDefault();
+          return;
+        }
         triggerProps?.onClick?.(event);
         setRequested(true);
       }}

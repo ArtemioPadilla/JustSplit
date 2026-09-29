@@ -8,6 +8,8 @@ import type { AuthUser } from '@cyber-eco/types';
 import type { Event } from '@/schemas/event';
 import type { ExpenseGroup } from '@/schemas/group';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 
 /**
  * `EventForm` (plan B11b): `/events/new` and `/events/edit/<id>` share it.
@@ -477,5 +479,74 @@ describe('EventForm — accessibility', () => {
   it('the edit form\'s Cancel goes back to the event, not the list', () => {
     render(<EventForm mode="edit" event={makeEvent()} />);
     expect(screen.getByRole('link', { name: /cancel/i })).toHaveAttribute('href', '/events/e1');
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx`; same contract for events. */
+describe('EventForm — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('create: the button is blocked and explained, keeps the typed name, and works again on reconnect', async () => {
+    render(<EventForm mode="create" />);
+    await fillName('Trip');
+
+    setOnLine(false);
+    const create = screen.getByRole('button', { name: /create event/i });
+    expectBlocked(create);
+    expect(screen.getByText(OFFLINE_SENTENCE)).toBeVisible();
+
+    await userEvent.click(create);
+    await userEvent.type(screen.getByLabelText(/event name/i), '{Enter}');
+    expect(createMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/event name/i)).toHaveValue('Trip');
+    expect(location.assign).not.toHaveBeenCalled();
+
+    setOnLine(true);
+    expectWritable(create);
+    expect(screen.queryByText(OFFLINE_SENTENCE)).not.toBeInTheDocument();
+    await userEvent.click(create);
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('create: a connection that drops mid-submit shows the plain failure, never success', async () => {
+    createMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    render(<EventForm mode="create" />);
+    await fillName('Trip');
+    await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not create this event. Please try again.'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(location.assign).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/event name/i)).toHaveValue('Trip');
+  });
+
+  it('create: the repo refusing an offline write reads as the shared sentence', async () => {
+    createMutateAsync.mockRejectedValueOnce(new OfflineWriteError());
+    render(<EventForm mode="create" />);
+    await fillName('Trip');
+    await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+  });
+
+  it('edit: Save changes is blocked and explained, then enabled on reconnect', async () => {
+    render(<EventForm mode="edit" event={makeEvent()} />);
+    await fillName('Renamed');
+
+    setOnLine(false);
+    const save = screen.getByRole('button', { name: /save changes/i });
+    expectBlocked(save);
+    await userEvent.click(save);
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+    expect(location.assign).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/event name/i)).toHaveValue('Renamed');
+
+    setOnLine(true);
+    expectWritable(save);
+    await userEvent.click(save);
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
   });
 });

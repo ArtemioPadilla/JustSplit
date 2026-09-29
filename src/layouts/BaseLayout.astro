@@ -89,6 +89,25 @@ const jsonLdBlocks: Record<string, unknown>[] = [
         } catch (_) {}
       })();
     </script>
+    {/* Cross-document View Transitions (global.css `@view-transition`) reject their
+        promises when the browser aborts a transition (a navigation that starts before
+        the last one settled, or a page that doesn't opt in). Nothing awaits them, so
+        each abort became an unhandled rejection in the console. Handle them on both
+        sides of a navigation; the navigation itself is unaffected. Inline and in
+        <head> so it is installed before `pagereveal` fires (plan B19c). */}
+    <script is:inline>
+      (function () {
+        function quiet(event) {
+          var vt = event && event.viewTransition;
+          if (!vt) return;
+          ['ready', 'finished', 'updateCallbackDone'].forEach(function (key) {
+            if (vt[key] && typeof vt[key].catch === 'function') vt[key].catch(function () {});
+          });
+        }
+        addEventListener('pageswap', quiet);
+        addEventListener('pagereveal', quiet);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />

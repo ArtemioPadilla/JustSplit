@@ -49,7 +49,7 @@ comes with `npm ci`.
 | `npm run db:audit [-- <url>]` | read-only dump of RLS, policies, triggers, function grants, table grants, Realtime and buckets; diff local against the project (B18) |
 | `npm run test:rls` | the B2b RLS suite against the running stack |
 | `npm run test:rls:mutation` | drops each policy and guard trigger in turn and requires the suite to fail |
-| `npm run test:live` | the A7 live end-to-end smoke: builds `dist` against the running stack (keys from `supabase status`, into a temporary directory, so `dist/` is untouched), seeds and removes its own users through the service role, then drives Chromium — see §3 |
+| `npm run test:live` | the A7 live end-to-end smoke: builds `dist` against the running stack (keys from `supabase status`, into a temporary directory, so `dist/` is untouched), seeds and removes its own users through the service role, then drives Chromium (its offline step, plan B19c, takes the network away from one form and one dialog and checks the controls are blocked with the shared sentence and back on reconnect) — see §3 |
 | `npm run db:rollback` / `db:status` / `db:stop` | dbmate rollback of the last file, status, stop the stack |
 
 Migrations live in `db/migrations/` and **never** in `supabase/migrations/`
@@ -150,6 +150,7 @@ plan's acceptance lines stay verifiable.
 | B2b | Add `RLS & contract (supabase start)` to the required checks on `inceptor` | ☐ |
 | B2d | After B2d merges, run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` again (migrations `…010`–`…014`: `event_id` columns, foreign keys, membership visibility, edit guards, email-lookup rate limit; ADR 0013), before or together with the app build that reads `event_id`; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B19b | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` for migration `…016` (the `expense_groups.members[].role` check: normalises any unknown role to `member`, then adds and validates the constraint; ADR 0002, B19b amendment); then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
+| B19c | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` for migration `…017` (a member labelled `owner`/`admin` in `expense_groups.members[]` must be in `admin_ids`: demotes any forged label to `member` without touching `admin_ids`, then adds and validates the constraint; ADR 0002 and ADR 0015); then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump. The app is safe to deploy before or after it | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
 | B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
 | A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |

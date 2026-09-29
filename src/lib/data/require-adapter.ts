@@ -4,6 +4,15 @@ import { SupabaseDisabledError } from './client';
 import { $user } from '@/stores/session';
 
 /**
+ * Writes require a connection (plan B19c, ADR 0015): every write function in
+ * `repos/*` calls `assertOnline()` first, so an offline write throws the typed
+ * `OfflineWriteError` before any read, upload or RPC starts and a missed control
+ * can never half-apply a multi-step write. Re-exported here so the repos keep
+ * importing one boundary module.
+ */
+export { OfflineWriteError, assertOnline } from '@/lib/offline-write';
+
+/**
  * Every `src/lib/data/repos/*` function calls this instead of importing
  * `storageAdapter` directly (plan B5a) — one place to throw the same guarded
  * error every other data-layer entry point throws

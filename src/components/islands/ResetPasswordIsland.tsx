@@ -30,9 +30,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { createDisposer } from '@/lib/disposer';
 import { onPasswordRecovery } from '@/lib/data/client';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { resetPassword, updatePassword } from '@/stores/auth';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -126,8 +129,13 @@ function RequestResetForm() {
   );
 }
 
+const RECOVERY_FAILED = 'Could not update your password. The recovery link may have expired.';
+
 function UpdatePasswordForm() {
   const [status, setStatus] = React.useState<Status>('idle');
+  const [failure, setFailure] = React.useState(RECOVERY_FAILED);
+  // Plan B19c (ADR 0015): setting the new password is a write; with no connection it is blocked and explained.
+  const write = useCanWrite();
   const form = useForm<UpdateValues>({
     resolver: zodResolver(UpdateSchema),
     defaultValues: { newPassword: '' },
@@ -139,14 +147,23 @@ function UpdatePasswordForm() {
       await updatePassword(values.newPassword);
       setStatus('success');
       location.assign(withBase('/'));
-    } catch {
+    } catch (error) {
+      // Offline is not an expired link: say what it is.
+      setFailure(writeErrorMessage(error, RECOVERY_FAILED));
       setStatus('error');
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <form
+        onSubmit={(event) => {
+          if (refuseIfOffline(event)) return;
+          return form.handleSubmit(onSubmit)(event);
+        }}
+        noValidate
+        className="space-y-4"
+      >
         <h2 className="text-lg font-semibold text-foreground">Choose a new password</h2>
         <FormField
           control={form.control}
@@ -163,10 +180,11 @@ function UpdatePasswordForm() {
         />
         {status === 'error' && (
           <p role="alert" className="text-sm text-destructive">
-            Could not update your password. The recovery link may have expired.
+            {failure}
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={status === 'submitting'}>
+        <OfflineWriteNotice write={write} />
+        <Button type="submit" className="w-full" disabled={status === 'submitting'} {...write.blocked}>
           {status === 'submitting' ? 'Updating…' : 'Update password'}
         </Button>
       </form>

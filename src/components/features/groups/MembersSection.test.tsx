@@ -2,9 +2,11 @@
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ExpenseGroup } from '@/schemas/group';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * `MembersSection` (plan B12, risk:high) — the group detail island's
@@ -67,9 +69,9 @@ describe('MembersSection', () => {
       />,
     );
     expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getByText('owner')).toBeInTheDocument();
+    expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Beto')).toBeInTheDocument();
-    expect(screen.getByText('member')).toBeInTheDocument();
+    expect(screen.getByText('Member')).toBeInTheDocument();
   });
 
   it('a non-admin viewer sees no "Add members" trigger and no "Remove" buttons', () => {
@@ -150,5 +152,196 @@ describe('MembersSection', () => {
     expect(call.id).toBe('g1');
     expect(call.patch.memberIds).toEqual(['u1', 'u2', 'u3']);
     expect(call.patch.members[2]).toMatchObject({ userId: 'u3', displayName: 'Caro', role: 'member', invitedBy: 'u1' });
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): membership changes are writes; see `ExpenseForm.test.tsx` for the contract. */
+describe('MembersSection — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  function renderAdmin() {
+    return render(
+      <MembersSection group={group()} names={{ u1: 'Ana', u2: 'Beto' }} uid="u1" friendCandidates={[{ id: 'u3', name: 'Caro' }]} />,
+    );
+  }
+
+  it('blocks Add members and Remove with one visible explanation, opens nothing, and re-enables on reconnect', async () => {
+    renderAdmin();
+    setOnLine(false);
+    const add = screen.getByRole('button', { name: /add members/i });
+    const remove = screen.getByRole('button', { name: /remove beto/i });
+    expectBlocked(add);
+    expectBlocked(remove);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+
+    await userEvent.click(add);
+    await userEvent.click(remove);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(add);
+    expectWritable(remove);
+    expect(visibleNotices()).toHaveLength(0);
+    await userEvent.click(remove);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a Remove dialog that is open when the connection drops blocks its confirm button, keeps the dialog, and works on reconnect', async () => {
+    renderAdmin();
+    await userEvent.click(screen.getByRole('button', { name: /remove beto/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    setOnLine(false);
+    const confirm = within(dialog).getByRole('button', { name: /^remove$/i });
+    expectBlocked(confirm);
+    expect(visibleNotices(dialog)).toHaveLength(1);
+    await userEvent.click(confirm);
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(confirm);
+    await userEvent.click(confirm);
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('an Add dialog blocks its confirm button offline and keeps the ticked friend', async () => {
+    renderAdmin();
+    await userEvent.click(screen.getByRole('button', { name: /add members/i }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: 'Caro' }));
+
+    setOnLine(false);
+    const confirm = within(dialog).getByRole('button', { name: /^add$/i });
+    expectBlocked(confirm);
+    await userEvent.click(confirm);
+    expect(updateMutateAsync).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole('checkbox', { name: 'Caro' })).toBeChecked();
+
+    setOnLine(true);
+    expectWritable(confirm);
+    await userEvent.click(confirm);
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('a connection that drops mid-confirm shows the plain failure, never success', async () => {
+    updateMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    renderAdmin();
+    await userEvent.click(screen.getByRole('button', { name: /remove beto/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not remove this member'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    updateMutateAsync.mockRejectedValueOnce(new OfflineWriteError());
+    renderAdmin();
+    await userEvent.click(screen.getByRole('button', { name: /remove beto/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the badge comes from `admin_ids` (and `created_by` for the owner), never from
+ * the stored `members[].role`, which any member can edit. A badge that says "Admin" for someone who is not one
+ * misleads people; the reverse hides a real admin.
+ */
+describe('MembersSection — displayed role comes from admin_ids (plan B19c)', () => {
+  function badges() {
+    return screen.getAllByRole('listitem').map((item) => item.textContent);
+  }
+
+  it('a member whose stored role says admin but who is not in admin_ids shows as Member', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'admin', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[1]).toContain('Member');
+    expect(badges()[1]).not.toMatch(/admin/i);
+  });
+
+  it('a member in admin_ids whose stored role says member shows as Admin', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'member', joinedAt: NOW },
+          ],
+          adminIds: ['u1', 'u2'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[1]).toContain('Admin');
+  });
+
+  it('the Owner is the creator (created_by), not whoever a label says: a forged owner label shows as Member', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'admin', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'owner', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+          createdBy: 'u1',
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[0]).toContain('Owner');
+    expect(badges()[1]).toContain('Member');
+    expect(screen.getAllByText('Owner')).toHaveLength(1);
+  });
+
+  it('adding a member does not promote someone whose label was forged: admin_ids in the patch is unchanged', async () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'admin', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[{ id: 'u3', name: 'Caro' }]}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /add members/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Caro' }));
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalled());
+    const { patch } = updateMutateAsync.mock.calls[0][0];
+    expect(patch.adminIds).toEqual(['u1']);
+    expect(patch.members.map((m: { userId: string; role: string }) => [m.userId, m.role])).toEqual([
+      ['u1', 'owner'],
+      ['u2', 'member'],
+      ['u3', 'member'],
+    ]);
   });
 });

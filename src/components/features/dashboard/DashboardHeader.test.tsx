@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Expense } from '@/schemas/expense';
 import { DashboardHeader } from './DashboardHeader';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * Ported from `Dashboard/__tests__/DashboardHeader.test.tsx` (plan B8b), but
@@ -129,5 +130,36 @@ describe('DashboardHeader', () => {
       />,
     );
     expect(screen.getByRole('link', { name: /create event/i })).toHaveAttribute('href', '/events/new');
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the preferred-currency selector writes the profile, so it is blocked offline. Refreshing
+ * exchange rates, exporting and the quick-action links are reads or navigation and stay available.
+ */
+describe('DashboardHeader — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('blocks the currency selector with one visible explanation, and leaves every read action alone', () => {
+    const onCurrencyChange = vi.fn();
+    render(
+      <DashboardHeader expenses={[makeExpense()]} users={users} events={events} currency="USD" onCurrencyChange={onCurrencyChange} onRefreshRates={vi.fn()} />,
+    );
+    const selector = screen.getByLabelText(/currency/i);
+    expectWritable(selector);
+
+    setOnLine(false);
+    expectBlocked(screen.getByLabelText(/currency/i));
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    expect(screen.getByRole('button', { name: /refresh rates/i })).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByRole('button', { name: 'Export as CSV' })).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByRole('link', { name: /add expense/i })).not.toHaveAttribute('aria-disabled');
+
+    setOnLine(true);
+    expectWritable(screen.getByLabelText(/currency/i));
+    expect(visibleNotices()).toHaveLength(0);
   });
 });

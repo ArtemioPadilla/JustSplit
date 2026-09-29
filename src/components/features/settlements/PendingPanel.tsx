@@ -1,10 +1,12 @@
 import * as React from 'react';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { isParty, viewerFirst, type RecordingRoute } from '@/domain/settlements';
 import { withBase } from '@/lib/href';
+import type { WriteState } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import { money, personName } from './labels';
 import { RecordPaymentDialog } from './RecordPaymentDialog';
@@ -33,6 +35,8 @@ export interface PendingPanelProps {
   eventNames?: Record<string, string>;
   /** Focus lands here after a payment is recorded: the row that held the button is about to change. */
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+  /** The page's connection state (plan B19c, ADR 0015): "Record payment" on every row is described by the one sentence shown here. */
+  write: WriteState;
 }
 
 function eventLabel(eventNames: Record<string, string>, id: string): string {
@@ -49,7 +53,7 @@ function eventLabel(eventNames: Record<string, string>, id: string): string {
  * two people (UX only; RLS decides). The tab composition itself lives in
  * `SettlementsIsland` (CLAUDE.md compound-component rule); this is its content.
  */
-export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, simplified = false, routes, eventNames = {}, headingRef }: PendingPanelProps) {
+export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, simplified = false, routes, eventNames = {}, headingRef, write }: PendingPanelProps) {
   // What sits next to a row's amount. Never a button RLS is bound to deny (a dead end): a party is offered "Record payment" only
   // where `settlements_insert` accepts it, otherwise the row says where to go.
   function action(suggestion: { fromUser: string; toUser: string; amount: number }): React.ReactNode {
@@ -62,6 +66,7 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
         eventId={dialogEventId}
         eventName={dialogEventId ? eventLabel(eventNames, dialogEventId) : undefined}
         returnFocusTo={headingRef}
+        write={write}
       />
     );
 
@@ -131,6 +136,8 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
           <p className="text-sm text-muted-foreground">What you owe each person, and what each person owes you.</p>
         )}
       </div>
+
+      {suggestions.status === 'ready' && suggestions.suggestions.length > 0 && <OfflineWriteNotice write={write} />}
 
       {suggestions.status === 'loading' ? (
         // Row-shaped blocks, so nothing jumps when the real rows arrive.

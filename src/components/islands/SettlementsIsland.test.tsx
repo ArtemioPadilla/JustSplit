@@ -5,6 +5,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 import type { AuthUser } from '@cyber-eco/types';
 import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import type { Event } from '@/schemas/event';
@@ -999,5 +1000,67 @@ describe('SettlementsIsland — history tab', () => {
     expect(rows('Payment history')).toHaveLength(1);
     expect(rows('Payment history')[0]).toHaveTextContent('Caro → Dan');
     expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the page shares ONE connection state and shows ONE sentence; every
+ * row control ("Record payment", "Undo") is blocked and described by it, on every tab.
+ */
+describe('SettlementsIsland — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('Pending: every "Record payment" is blocked under one sentence, opens nothing, and re-enables on reconnect', async () => {
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    const record = await screen.findByRole('button', { name: 'Record payment from Beto to you' });
+
+    setOnLine(false);
+    expectBlocked(record);
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    await user.click(record);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(settle).not.toHaveBeenCalled();
+
+    setOnLine(true);
+    expectWritable(record);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(record);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('History: "Undo" is blocked under the same one sentence, opens nothing, and re-enables on reconnect', async () => {
+    useSettlements.mockReturnValue(
+      live([makeSettlement({ id: 's2', fromUserId: 'u1', toUserId: 'u2', amount: 5, date: '2026-09-20', createdBy: 'u1' })]),
+    );
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('tab', { name: 'History' }));
+    const undo = screen.getByRole('button', { name: /^undo payment from you to beto/i });
+
+    setOnLine(false);
+    expectBlocked(undo);
+    expect(visibleNotices()).toHaveLength(1);
+    await user.click(undo);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+
+    setOnLine(true);
+    expectWritable(undo);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(undo);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('Balances and reading everything else stay available offline: no sentence when nothing on the tab can write', async () => {
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('tab', { name: 'Balances' }));
+    setOnLine(false);
+    expect(screen.getByRole('tabpanel', { name: 'Balances' })).toBeInTheDocument();
+    expect(visibleNotices()).toHaveLength(0);
   });
 });

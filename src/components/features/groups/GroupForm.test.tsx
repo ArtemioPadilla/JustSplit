@@ -6,6 +6,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 
 /**
  * `GroupForm` (plan B12, risk:high): `/groups/new`'s create form. Members
@@ -134,5 +136,57 @@ describe('GroupForm', () => {
     useFriends.mockReturnValue({ data: [], isError: false, isRetrying: false, refetch: vi.fn() });
     render(<GroupForm />);
     expect(screen.getByText(/add a friend first/i)).toBeInTheDocument();
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx`; same contract for group creation. */
+describe('GroupForm — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('Create group is blocked and explained, keeps the typed name and ticked friend, and works again on reconnect', async () => {
+    render(<GroupForm />);
+    await userEvent.type(screen.getByLabelText(/group name/i), 'Roommates');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Beto' }));
+
+    setOnLine(false);
+    const create = screen.getByRole('button', { name: /create group/i });
+    expectBlocked(create);
+    expect(screen.getByText(OFFLINE_SENTENCE)).toBeVisible();
+
+    await userEvent.click(create);
+    await userEvent.type(screen.getByLabelText(/group name/i), '{Enter}');
+    expect(createMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/group name/i)).toHaveValue('Roommates');
+    expect(screen.getByRole('checkbox', { name: 'Beto' })).toBeChecked();
+
+    setOnLine(true);
+    expectWritable(create);
+    expect(screen.queryByText(OFFLINE_SENTENCE)).not.toBeInTheDocument();
+    await userEvent.click(create);
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalledTimes(1));
+  });
+
+  it('a connection that drops mid-submit shows the plain failure, never success', async () => {
+    createMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    render(<GroupForm />);
+    await userEvent.type(screen.getByLabelText(/group name/i), 'Roommates');
+    await userEvent.click(screen.getByRole('button', { name: /create group/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not create this group'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+    expect(location.assign).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/group name/i)).toHaveValue('Roommates');
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    createMutateAsync.mockRejectedValueOnce(new OfflineWriteError());
+    render(<GroupForm />);
+    await userEvent.type(screen.getByLabelText(/group name/i), 'Roommates');
+    await userEvent.click(screen.getByRole('button', { name: /create group/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });

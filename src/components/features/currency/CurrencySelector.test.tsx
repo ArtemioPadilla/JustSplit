@@ -107,3 +107,52 @@ describe('CurrencySelector', () => {
     });
   });
 });
+
+/**
+ * Plan B19c (ADR 0015): where choosing a currency writes something (the profile's preferred currency), the selector takes the page's
+ * `write` state. Blocked, it is the read-only stand-in (no combobox chunk needed, nothing to open) with `aria-disabled` and the
+ * description; when the connection is back the real combobox takes over.
+ */
+describe('CurrencySelector — write state (B19c)', () => {
+  const blockedWrite = { canWrite: false, noticeId: 'why', blocked: { 'aria-disabled': true as const, 'aria-describedby': 'why' } };
+  const openWrite = { canWrite: true, noticeId: 'why', blocked: undefined };
+
+  it('is blocked and described while writes are impossible, and opens nothing', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <p id="why">You&apos;re offline.</p>
+        <CurrencySelector value="USD" onChange={vi.fn()} write={blockedWrite} />
+      </>,
+    );
+    const input = screen.getByLabelText(/Currency/i);
+    expect(input).toHaveValue('USD');
+    expect(input).toHaveAttribute('aria-disabled', 'true');
+    expect(input).toHaveAttribute('readonly');
+    expect(input).not.toHaveAttribute('disabled');
+    expect(input).toHaveAccessibleDescription("You're offline.");
+
+    await user.click(input);
+    await user.keyboard('{ArrowDown}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it(
+    'becomes the real combobox again once writes are possible',
+    async () => {
+      const { rerender } = render(<CurrencySelector value="USD" onChange={vi.fn()} write={blockedWrite} />);
+      rerender(<CurrencySelector value="USD" onChange={vi.fn()} write={openWrite} />);
+      const combobox = await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS);
+      expect(combobox).not.toHaveAttribute('aria-disabled');
+      expect(combobox).not.toHaveAttribute('aria-describedby');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it('without a write prop it behaves exactly as before (a read-only display or a local-only choice)', async () => {
+    render(<CurrencySelector value="USD" onChange={vi.fn()} />);
+    const input = await screen.findByRole('combobox', { name: /Currency/i }, WAIT_OPTS);
+    expect(input).not.toHaveAttribute('aria-disabled');
+  });
+});

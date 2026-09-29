@@ -4,6 +4,8 @@ import * as React from 'react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Friendship } from '@/schemas/friendship';
 import { $authReady, $profile, $user } from '@/stores/session';
@@ -311,5 +313,86 @@ describe('FriendsIsland', () => {
     expect(screen.queryByRole('heading', { name: /declined requests/i })).not.toBeInTheDocument();
     expect(screen.queryByText('Caro')).not.toBeInTheDocument();
     expect(screen.queryByText(/declined/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the whole page shares ONE connection state and shows ONE sentence;
+ * every write control on it (add, accept, reject, cancel, undo, remove) is blocked and described by it.
+ */
+describe('FriendsIsland — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  function everyRow() {
+    useFriends.mockReturnValue({
+      data: [
+        friendship({ id: 'f1', users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u2' }),
+        friendship({ id: 'f2', users: ['u1', 'u3'], status: 'pending', requestedBy: 'u3' }),
+        friendship({ id: 'f3', users: ['u1', 'u4'], status: 'pending', requestedBy: 'u1' }),
+        friendship({ id: 'f5', users: ['u1', 'u5'], status: 'rejected', requestedBy: 'u5' }),
+      ],
+      isError: false,
+      isRetrying: false,
+      refetch: vi.fn(),
+    });
+  }
+
+  it('blocks every write control under one sentence, calls nothing, and re-enables them all on reconnect', async () => {
+    everyRow();
+    render(<FriendsIsland />);
+    emit(USER);
+    const user = userEvent.setup();
+    await screen.findByRole('heading', { name: /declined requests/i });
+
+    setOnLine(false);
+    const controls = [
+      screen.getByRole('button', { name: /send request/i }),
+      screen.getByRole('button', { name: /^accept$/i }),
+      screen.getByRole('button', { name: /^reject$/i }),
+      screen.getByRole('button', { name: /^remove$/i }),
+      screen.getByRole('button', { name: /^cancel$/i }),
+      screen.getByRole('button', { name: /^undo$/i }),
+    ];
+    expect(visibleNotices()).toHaveLength(1);
+    expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+    for (const control of controls) {
+      expectBlocked(control);
+      await user.click(control);
+    }
+    expect(updateStatusMutateAsync).not.toHaveBeenCalled();
+    expect(removeMutateAsync).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expect(visibleNotices()).toHaveLength(0);
+    for (const control of controls) expectWritable(control);
+    await user.click(screen.getByRole('button', { name: /^accept$/i }));
+    await waitFor(() => expect(updateStatusMutateAsync).toHaveBeenCalledWith({ id: 'f2', status: 'accepted' }));
+  });
+
+  it('a connection that drops mid-accept shows the plain failure, never success', async () => {
+    everyRow();
+    updateStatusMutateAsync.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    render(<FriendsIsland />);
+    emit(USER);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^accept$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not update this request'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    everyRow();
+    removeMutateAsync.mockRejectedValueOnce(new OfflineWriteError());
+    render(<FriendsIsland />);
+    emit(USER);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^cancel$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });

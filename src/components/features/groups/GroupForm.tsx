@@ -12,7 +12,10 @@ import { MAX_GROUP_MEMBERS, buildCreateGroupInput } from '@/domain/groups';
 import { useCreateGroup } from '@/lib/data/hooks/useCreateGroup';
 import { useFriends } from '@/lib/data/hooks/useFriends';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { $preferredCurrency } from '@/stores/preferences';
 import { $profile, $user } from '@/stores/auth';
 import { notifyError, notifySuccess } from '@/stores/notifications';
@@ -49,6 +52,8 @@ export function GroupForm() {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [formError, setFormError] = React.useState<string | null>(null);
 
+  // Plan B19c (ADR 0015): with no connection Create is blocked and explained; what was typed stays put.
+  const write = useCanWrite();
   const createGroup = useCreateGroup();
 
   function toggle(id: string, checked: boolean) {
@@ -57,6 +62,7 @@ export function GroupForm() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (refuseIfOffline()) return;
     setFormError(null);
 
     const trimmedName = name.trim();
@@ -88,8 +94,8 @@ export function GroupForm() {
       // before it renders (plan B17b amendment, ADR 0008).
       notifySuccess('Group created', { afterNavigation: true });
       window.location.assign(withBase(`/groups/${created.id}`));
-    } catch {
-      notifyError('Could not create this group');
+    } catch (error) {
+      notifyError(writeErrorMessage(error, 'Could not create this group'));
     }
   }
 
@@ -158,7 +164,8 @@ export function GroupForm() {
         </p>
       )}
 
-      <Button type="submit" disabled={createGroup.isPending} aria-busy={createGroup.isPending}>
+      <OfflineWriteNotice write={write} />
+      <Button type="submit" disabled={createGroup.isPending} aria-busy={createGroup.isPending} {...write.blocked}>
         Create group
       </Button>
     </form>

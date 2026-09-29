@@ -7,6 +7,8 @@ import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Expense } from '@/schemas/expense';
 import { $authReady, $profile, $user } from '@/stores/session';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * ExpenseDetailView (plan B9) — the `/expenses/<id>` route view, loaded
@@ -367,4 +369,79 @@ describe('ExpenseDetailView', () => {
     await screen.findByText('Tacos');
     expect(screen.getByRole('button', { name: /receipt 1/i })).toBeInTheDocument();
   });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the page shares ONE connection state and shows ONE sentence for the inline edits
+ * (description, notes) and Delete. Reading the expense is untouched.
+ */
+describe('ExpenseDetailView — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  function arrange() {
+    useExpense.mockReturnValue({
+      data: makeExpense({ id: 'e1', description: 'Tacos', amount: 100, paidBy: 'u1', date: '2026-05-10', notes: 'Original note', splits: [{ userId: 'u1', amount: 100 }] }),
+      isLoading: false,
+      isError: false,
+    });
+    useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+    render(<ExpenseDetailView id="e1" />);
+    emit(USER);
+  }
+
+  it(
+    'blocks both inline edits and Delete under one sentence, starts no edit, and re-enables them on reconnect',
+    async () => {
+      const user = userEvent.setup();
+      arrange();
+      await screen.findByText('Tacos');
+
+      setOnLine(false);
+      const edits = screen.getAllByRole('button', { name: 'Edit' });
+      const remove = screen.getByRole('button', { name: /delete expense/i });
+      expect(edits).toHaveLength(2);
+      for (const control of [...edits, remove]) expectBlocked(control);
+      expect(visibleNotices()).toHaveLength(1);
+      expect(visibleNotices()[0]).toHaveTextContent(OFFLINE_SENTENCE);
+
+      await user.click(screen.getByText('Tacos'));
+      await user.click(edits[0]!);
+      await user.click(remove);
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Tacos')).toBeInTheDocument();
+      expect(screen.getByText('Original note')).toBeInTheDocument();
+
+      setOnLine(true);
+      for (const control of [...screen.getAllByRole('button', { name: 'Edit' }), screen.getByRole('button', { name: /delete expense/i })]) expectWritable(control);
+      expect(visibleNotices()).toHaveLength(0);
+      await user.click(screen.getByText('Tacos'));
+      expect(await screen.findByRole('textbox', {}, WAIT_OPTS)).toHaveValue('Tacos');
+    },
+    TEST_TIMEOUT,
+  );
+
+  it(
+    'an edit already open when the connection drops is refused by the data layer: the text reverts and the sentence is shown, never a silent "saved"',
+    async () => {
+      updateMutateAsync.mockRejectedValue(new OfflineWriteError());
+      const user = userEvent.setup();
+      arrange();
+      await screen.findByText('Tacos');
+      await user.click(screen.getByText('Tacos'));
+      const input = await screen.findByRole('textbox', {}, WAIT_OPTS);
+      await user.clear(input);
+      await user.type(input, 'Pizza');
+      await waitFor(() => expect(input).toHaveValue('Pizza'), WAIT_OPTS);
+      setOnLine(false);
+      await user.type(input, '{Enter}');
+
+      await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE), WAIT_OPTS);
+      expect(await screen.findByText('Tacos', {}, WAIT_OPTS)).toBeInTheDocument();
+      expect(screen.queryByText('Pizza')).not.toBeInTheDocument();
+    },
+    TEST_TIMEOUT,
+  );
 });

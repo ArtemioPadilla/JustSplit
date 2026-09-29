@@ -9,15 +9,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { buttonVariants } from '@/components/ui/button';
 import { useDeleteExpense } from '@/lib/data/hooks/useDeleteExpense';
 import { withBase } from '@/lib/href';
+import { refuseIfOffline, writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite, useSharedWrite, type WriteState } from '@/lib/use-can-write';
 import { notifyError, notifySuccess } from '@/stores/notifications';
 import { cn } from '@/lib/utils';
 
 export interface DeleteExpenseDialogProps {
   id: string;
   description: string;
+  /** The page's connection state (plan B19c, ADR 0015); standing alone, the dialog reads it and shows its own sentence. */
+  write?: WriteState;
 }
 
 /**
@@ -32,11 +37,20 @@ export interface DeleteExpenseDialogProps {
  * to the creator/payer in the first place (UX only; RLS is the authority),
  * but a denial here still surfaces as the same generic failure toast.
  */
-export function DeleteExpenseDialog({ id, description }: DeleteExpenseDialogProps) {
+export function DeleteExpenseDialog({
+  id,
+  description,
+  write: pageWrite,
+}: DeleteExpenseDialogProps) {
   const [open, setOpen] = React.useState(false);
+  // The trigger follows the page's state (one sentence per page); the dialog has its own, because it
+  // can be open when the connection drops and its confirm button must say why it is blocked.
+  const { write, owned } = useSharedWrite(pageWrite);
+  const inDialog = useCanWrite();
   const deleteExpense = useDeleteExpense();
 
   const handleConfirm = React.useCallback(async () => {
+    if (refuseIfOffline()) return;
     try {
       await deleteExpense.mutateAsync(id);
       // afterNavigation: true — location.assign() below is a full page
@@ -45,37 +59,54 @@ export function DeleteExpenseDialog({ id, description }: DeleteExpenseDialogProp
       notifySuccess('Expense deleted', { afterNavigation: true });
       setOpen(false);
       window.location.assign(withBase('/expenses/list'));
-    } catch {
+    } catch (error) {
       // Generic on purpose (CLAUDE.md: never raw error/SQL/policy text) —
       // covers both the typed ExpenseDeleteNotAllowedError/ExpenseNotFoundError
-      // preflight failures and a genuine network/RLS failure alike.
-      notifyError('Could not delete this expense');
+      // preflight failures and a genuine network/RLS failure alike. Offline is
+      // the one specific case: the shared sentence (plan B19c).
+      notifyError(writeErrorMessage(error, 'Could not delete this expense'));
     }
   }, [deleteExpense, id]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className={cn(buttonVariants({ variant: 'destructive' }))}>Delete expense</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete &ldquo;{description}&rdquo;?</DialogTitle>
-          <DialogDescription>
-            This permanently deletes the expense and its receipts. This cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={deleteExpense.isPending}
-            aria-busy={deleteExpense.isPending}
-            className={cn(buttonVariants({ variant: 'destructive' }))}
-          >
-            Delete
-          </button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (next && refuseIfOffline()) return;
+          setOpen(next);
+        }}
+      >
+        <DialogTrigger
+          className={cn(buttonVariants({ variant: 'destructive' }))}
+          {...write.blocked}
+        >
+          Delete expense
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete &ldquo;{description}&rdquo;?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes the expense and its receipts. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <OfflineWriteNotice write={inDialog} />
+          <DialogFooter>
+            <DialogClose className={cn(buttonVariants({ variant: 'outline' }))}>Cancel</DialogClose>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={deleteExpense.isPending}
+              aria-busy={deleteExpense.isPending}
+              className={cn(buttonVariants({ variant: 'destructive' }))}
+              {...inDialog.blocked}
+            >
+              Delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {owned && <OfflineWriteNotice write={write} />}
+    </>
   );
 }

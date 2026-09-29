@@ -1,3 +1,4 @@
+import { assertOnline } from '@/lib/offline-write';
 import { requireSupabase } from './client';
 
 /**
@@ -158,6 +159,7 @@ export interface UploadDeps {
  * client-side first.
  */
 export async function uploadReceipt(expenseId: string, file: Blob, deps: UploadDeps = {}): Promise<string> {
+  assertOnline(); // plan B19c: refuse before any storage call (ADR 0015)
   const resize = deps.resize ?? resizeImage;
   const resized = await resize(file);
   const path = receiptPath(expenseId);
@@ -179,6 +181,7 @@ export async function uploadReceipt(expenseId: string, file: Blob, deps: UploadD
  * live session (`auth.getUser()`) and compares.
  */
 export async function uploadAvatar(uid: string, file: Blob, deps: UploadDeps = {}): Promise<string> {
+  assertOnline(); // plan B19c: refuse before any storage call (ADR 0015)
   const client = requireSupabase();
   const { data, error: sessionError } = await client.auth.getUser();
   if (sessionError) throw sessionError;
@@ -209,6 +212,7 @@ export async function uploadAvatar(uid: string, file: Blob, deps: UploadDeps = {
  * `repos.expenses.remove` from deleting the row in that case.
  */
 export async function removeReceipts(expenseId: string): Promise<void> {
+  assertOnline(); // plan B19c: refuse before any storage call (ADR 0015)
   const client = requireSupabase();
   const bucket = client.storage.from(RECEIPTS_BUCKET);
   const prefix = `expenses/${expenseId}`;
@@ -233,6 +237,7 @@ export async function removeReceipts(expenseId: string): Promise<void> {
 
 /** Shared single-path removal — `removeAvatar`/`removeReceiptObject` differ only in name/doc, not behavior. */
 async function removeObject(path: string): Promise<void> {
+  assertOnline(); // plan B19c: covers removeAvatar and removeReceiptObject
   const { error } = await requireSupabase().storage.from(RECEIPTS_BUCKET).remove([path]);
   if (error) throw error;
 }

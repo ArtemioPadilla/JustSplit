@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { EmptyState } from '@/components/ui/empty-state';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { parseCalendarDate } from '@/domain/dates';
 import { newestFirst } from '@/domain/settlements';
+import type { WriteState } from '@/lib/use-can-write';
 import type { Settlement } from '@/schemas/settlement';
 import { money, personName } from './labels';
 import { UndoSettlementDialog } from './UndoSettlementDialog';
@@ -19,6 +21,8 @@ export interface HistoryPanelProps {
   ready: boolean;
   /** Focus lands here after an undo: the row that held the button is gone. */
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+  /** The page's connection state (plan B19c, ADR 0015): "Undo" on every row is described by the one sentence shown here. */
+  write: WriteState;
 }
 
 /**
@@ -29,7 +33,7 @@ export interface HistoryPanelProps {
  * says "paid" as a fact. "Undo" is offered only on the viewer's own rows
  * (`settlements_delete` is creator-only in RLS).
  */
-export function HistoryPanel({ settlements, viewerId, names, avatars, displayCurrency, convert, ready, headingRef }: HistoryPanelProps) {
+export function HistoryPanel({ settlements, viewerId, names, avatars, displayCurrency, convert, ready, headingRef, write }: HistoryPanelProps) {
   return (
     <section aria-labelledby="history-heading" className="flex flex-col gap-4">
       <h2
@@ -40,6 +44,8 @@ export function HistoryPanel({ settlements, viewerId, names, avatars, displayCur
       >
         Payment history
       </h2>
+
+      {settlements.some((settlement) => settlement.createdBy === viewerId) && <OfflineWriteNotice write={write} />}
 
       {settlements.length === 0 ? (
         <EmptyState title="No payments recorded yet." description="Payments you record will show up here." />
@@ -81,6 +87,7 @@ export function HistoryPanel({ settlements, viewerId, names, avatars, displayCur
                       viewerId={viewerId}
                       names={names}
                       returnFocusTo={headingRef}
+                      write={write}
                     />
                   )}
                 </div>

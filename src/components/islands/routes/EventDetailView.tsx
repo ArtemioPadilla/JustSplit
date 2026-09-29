@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector, useWarmCurrencyCombobox } from '@/components/features/currency/CurrencySelector';
 import { EventTimeline } from '@/components/features/events/EventTimeline';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
+import { OfflineWriteNotice } from '@/components/features/OfflineWriteNotice';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { parseCalendarDate } from '@/domain/dates';
 import { eventBalances, eventStartDate, eventStats, settlementProgressPercent } from '@/domain/events';
@@ -21,6 +22,8 @@ import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useEventSettlements } from '@/lib/data/hooks/useSettlements';
 import { useUpdateEvent } from '@/lib/data/hooks/useUpdateEvent';
 import { withBase } from '@/lib/href';
+import { writeErrorMessage } from '@/lib/offline-write';
+import { useCanWrite } from '@/lib/use-can-write';
 import { cn } from '@/lib/utils';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
@@ -162,6 +165,8 @@ function EventDetailLoaded({ event }: { event: Event }) {
     setNameDraft(event.name);
   }
 
+  // Plan B19c (ADR 0015): renaming the event inline is a write; with no connection it is blocked and explained.
+  const write = useCanWrite();
   const updateEvent = useUpdateEvent();
   const handleNameCommit = React.useCallback(
     async (value: string) => {
@@ -169,9 +174,9 @@ function EventDetailLoaded({ event }: { event: Event }) {
       setNameDraft(value);
       try {
         await updateEvent.mutateAsync({ id: event.id, patch: { name: value } });
-      } catch {
+      } catch (error) {
         setNameDraft(previous);
-        notifyError('Could not rename the event');
+        notifyError(writeErrorMessage(error, 'Could not rename the event'));
       }
     },
     [updateEvent, event.id, nameDraft],
@@ -186,12 +191,16 @@ function EventDetailLoaded({ event }: { event: Event }) {
           key={nameDraft}
           defaultValue={nameDraft}
           onValueCommit={handleNameCommit}
+          readOnly={!write.canWrite}
+          describedBy={write.noticeId}
           className="font-display text-2xl font-semibold text-foreground"
         />
         <a href={withBase('/events/list')} className={cn(buttonVariants({ variant: 'ghost' }))}>
           Back to events
         </a>
       </div>
+
+      <OfflineWriteNotice write={write} />
 
       {event.description && <p className="text-muted-foreground">{event.description}</p>}
 

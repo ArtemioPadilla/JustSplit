@@ -5,6 +5,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RemoveFriendDialog } from './RemoveFriendDialog';
+import { OfflineWriteError } from '@/lib/offline-write';
+import { OFFLINE_SENTENCE, expectBlocked, expectWritable, restoreOnLine, setOnLine, visibleNotices } from '@/tests/offline-helpers';
 
 /**
  * Plan B13: the Friends section's Remove-with-confirm — a Base UI Dialog,
@@ -87,5 +89,94 @@ describe('RemoveFriendDialog', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole('button', { name: /^remove$/i })).toHaveFocus());
+  });
+});
+
+/** Plan B19c (risk:high, ADR 0015): see `ExpenseForm.test.tsx` for the contract. The trigger is the load-on-first-use stand-in until clicked, then the real one; both must hold. */
+describe('RemoveFriendDialog — offline (plan B19c)', () => {
+  afterEach(() => {
+    restoreOnLine();
+  });
+
+  it('the stand-in trigger is blocked and explained offline, loads and opens nothing, and opens on reconnect', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    setOnLine(false);
+    const trigger = screen.getByRole('button', { name: /^remove$/i });
+    expectBlocked(trigger);
+    expect(visibleNotices()).toHaveLength(1);
+    await user.click(trigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).not.toHaveAttribute('aria-busy');
+
+    setOnLine(true);
+    expectWritable(trigger);
+    expect(visibleNotices()).toHaveLength(0);
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('the real trigger (after the first open) is blocked offline too, and opens nothing', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^remove$/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: /^cancel$/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    setOnLine(false);
+    const trigger = await screen.findByRole('button', { name: /^remove$/i });
+    expectBlocked(trigger);
+    await user.click(trigger);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    setOnLine(true);
+    expectWritable(trigger);
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('a dialog open when the connection drops blocks Remove with its own explanation, removes nothing, and works on reconnect', async () => {
+    remove.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^remove$/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    setOnLine(false);
+    const confirm = within(dialog).getByRole('button', { name: /^remove$/i });
+    expectBlocked(confirm);
+    expect(visibleNotices(dialog)).toHaveLength(1);
+    await user.click(confirm);
+    expect(remove).not.toHaveBeenCalled();
+
+    setOnLine(true);
+    expectWritable(confirm);
+    await user.click(confirm);
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('f1'));
+  });
+
+  it('a connection that drops mid-remove shows the plain failure, never success', async () => {
+    remove.mockImplementation(async () => {
+      setOnLine(false);
+      throw new TypeError('Failed to fetch');
+    });
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^remove$/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(await within(dialog).findByRole('button', { name: /^remove$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('Could not remove this friend'));
+    expect(notifySuccess).not.toHaveBeenCalled();
+  });
+
+  it('the repo refusing an offline write reads as the shared sentence', async () => {
+    remove.mockRejectedValue(new OfflineWriteError());
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^remove$/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(await within(dialog).findByRole('button', { name: /^remove$/i }));
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
   });
 });
