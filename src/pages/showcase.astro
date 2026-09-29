@@ -8,6 +8,7 @@ import ShowcaseExportCsvButton from '@/components/islands/ShowcaseExportCsvButto
 import ShowcaseDashboardCharts from '@/components/islands/ShowcaseDashboardCharts';
 import ShowcaseEventTimeline from '@/components/islands/ShowcaseEventTimeline';
 import ShowcaseResetLocalDataButton from '@/components/islands/ShowcaseResetLocalDataButton';
+import ShowcaseTabs from '@/components/islands/ShowcaseTabs';
 import { ProgressBar } from '@/components/ui/progress-bar';
 // /showcase — every reusable widget JustSplit ships must appear here
 // (CLAUDE.md quality bar). Track B islands add their widgets as they land.
@@ -122,6 +123,20 @@ import { ProgressBar } from '@/components/ui/progress-bar';
       </p>
       <div class="rounded-md border border-border bg-card p-4">
         <ShowcaseEventTimeline client:visible />
+      </div>
+    </section>
+
+    <section class="mt-10 space-y-3 border-t border-border pt-8">
+      <h2 class="text-xl font-semibold">Tabs <span class="text-sm font-normal text-muted-foreground">(A7)</span></h2>
+      <p class="text-sm text-muted-foreground">
+        Base UI <code>Tabs</code> (<code>ui/tabs.tsx</code>), the primitive behind /settlements. The
+        selected tab is the raised, foreground-coloured pill: Base UI 1.0.0-rc.0 marks it
+        <code>data-active</code> (not <code>data-selected</code>), which the styles key off — B14 fixed
+        a version where every tab looked alike. Tabs, list, triggers and panels share state, so the
+        whole composition is one island (<code>ShowcaseTabs.tsx</code>) hydrated once.
+      </p>
+      <div class="max-w-md rounded-md border border-border bg-card p-3">
+        <ShowcaseTabs client:visible />
       </div>
     </section>
 
