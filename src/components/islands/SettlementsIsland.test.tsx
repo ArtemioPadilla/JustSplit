@@ -6,6 +6,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AuthUser } from '@cyber-eco/types';
+import { balancesWithUser, involvingUser } from '@/domain/dashboard';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
 import type { Settlement } from '@/schemas/settlement';
@@ -27,6 +28,11 @@ import { $authReady, $profile, $user } from '@/stores/session';
  * `?event=` scope; "Completed" to "Marked as paid by <name>" (a settlement is
  * an attestation, never a verified payment, ADR 0002). NEW: ?group= note,
  * overpayment notice, Undo, party-only actions.
+ *
+ * Two scopes, two kinds of suggestion (ADR 0014 §5): the PERSONAL view is
+ * pairwise — one row per other person, the dashboard's `balancesWithUser`, so both
+ * parties of a debt see the same number; the EVENT scope keeps the debt-simplified
+ * `calculateSettlementsWithConversion`, which every event member sees identically.
  */
 vi.mock('./AuthIsland', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('./AuthGate', () => ({
@@ -133,6 +139,15 @@ const EVENT_EXPENSES: Expense[] = [
   makeExpense({ id: 'y2', eventId: 'ev1', paidBy: 'u1', amount: 60, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }] }),
 ];
 
+// The live-run fixture behind the coordinator's must-fix: Ana paid 90 for Ana, Beto and Carla; in the Oaxaca event Carla paid 40 for
+// Beto and Carla, and Ana paid 60 for Ana and Beto. Simplified over everything, Beto would have been told "You owe Ana 80" while
+// Ana (whose rows do not include the Beto-Carla expense) saw "Beto owes you 60". Pairwise, both read 60.
+const LIVE_EXPENSES: Expense[] = [
+  makeExpense({ id: 'p1', paidBy: 'u1', amount: 90, memberIds: ['u1', 'u2', 'u3'], splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }, { userId: 'u3', amount: 30 }] }),
+  makeExpense({ id: 'e1', eventId: 'ev1', paidBy: 'u3', amount: 40, memberIds: ['u2', 'u3'], splits: [{ userId: 'u2', amount: 20 }, { userId: 'u3', amount: 20 }] }),
+  makeExpense({ id: 'e2', eventId: 'ev1', paidBy: 'u1', amount: 60, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }] }),
+];
+
 const PROFILES = [
   { id: 'u1', name: 'Ana', avatarUrl: null },
   { id: 'u2', name: 'Beto', avatarUrl: null },
@@ -153,6 +168,16 @@ function query<T>(data: T | null | undefined, overrides: Record<string, unknown>
 
 function setUrl(search: string) {
   window.history.replaceState({}, '', `/settlements${search}`);
+}
+
+/** The event scope with its own rows (hooks for the personal scope are disabled by their undefined id). */
+function eventScope(expenses: Expense[] = EVENT_EXPENSES, settlements: Settlement[] = []) {
+  setUrl('?event=ev1');
+  useExpenses.mockReturnValue(live<Expense>(undefined));
+  useSettlements.mockReturnValue(live<Settlement>(undefined));
+  useEvent.mockReturnValue(query(EVENT));
+  useEventExpenses.mockReturnValue(live(expenses));
+  useEventSettlements.mockReturnValue(live(settlements));
 }
 
 // `hidden: true`: while a modal dialog is open everything behind it is `aria-hidden`, which is what a screen reader should get.
@@ -265,7 +290,7 @@ describe('SettlementsIsland — scope', () => {
     expect(useEventExpenses).toHaveBeenCalledWith(undefined);
     expect(useEventSettlements).toHaveBeenCalledWith(undefined);
     await screen.findByRole('list', { name: 'Suggested payments' });
-    expect(rows('Suggested payments')).toHaveLength(2);
+    expect(rows('Suggested payments')).toHaveLength(1);
     expect(document.body).not.toHaveTextContent(/999|499/);
   });
 
@@ -352,11 +377,25 @@ describe('SettlementsIsland — pending tab', () => {
   it('words each suggestion "X owes Y <amount>" with the amount in the display currency, and marks the viewer "You"', async () => {
     render(<SettlementsIsland />);
     await screen.findByRole('list', { name: 'Suggested payments' });
-    const [mine, others] = rows('Suggested payments');
+    const [mine] = rows('Suggested payments');
     expect(mine).toHaveTextContent('Beto owes you');
     expect(mine).toHaveTextContent('USD 30.00');
-    expect(others).toHaveTextContent('Dan owes Caro');
-    expect(others).toHaveTextContent('USD 50.00');
+  });
+
+  it('is pairwise: one row per other person, and no simplification across people (Dan owes Caro is not the viewer\'s business)', async () => {
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    expect(rows('Suggested payments')).toHaveLength(1);
+    expect(document.body).not.toHaveTextContent(/Dan|Caro/);
+    expect(screen.queryByText(/simplified across the event/i)).not.toBeInTheDocument();
+  });
+
+  it('every row is one the viewer is a party to, so each has "Record payment"', async () => {
+    useExpenses.mockReturnValue(live(LIVE_EXPENSES));
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    for (const row of rows('Suggested payments')) expect(within(row).getByRole('button', { name: /record payment/i })).toBeInTheDocument();
+    expect(screen.queryByText(/can mark this as paid/i)).not.toBeInTheDocument();
   });
 
   it("avatars carry each person's own initial — the viewer is \"A\" for Ana, never \"Y\" for \"You\"", async () => {
@@ -376,14 +415,6 @@ describe('SettlementsIsland — pending tab', () => {
     expect(rows('Suggested payments')[0]).toHaveTextContent('USD 20.00');
   });
 
-  it("puts the viewer's own suggestions first", async () => {
-    render(<SettlementsIsland />);
-    await screen.findByRole('list', { name: 'Suggested payments' });
-    const texts = rows('Suggested payments').map((row) => row.textContent ?? '');
-    expect(texts[0]).toMatch(/Beto owes you/);
-    expect(texts[1]).toMatch(/Dan owes Caro/);
-  });
-
   it('nets the scope\'s settlements: a recorded payment leaves only what is still owed', async () => {
     useSettlements.mockReturnValue(live([makeSettlement({ id: 's1', fromUserId: 'u2', toUserId: 'u1', amount: 10 })]));
     render(<SettlementsIsland />);
@@ -399,16 +430,6 @@ describe('SettlementsIsland — pending tab', () => {
     render(<SettlementsIsland />);
     await screen.findByRole('list', { name: 'Suggested payments' });
     expect(rows('Suggested payments')[0]).toHaveTextContent('USD 20.00');
-  });
-
-  it('offers "Record payment" only where the viewer is a party, and says who can otherwise', async () => {
-    render(<SettlementsIsland />);
-    await screen.findByRole('list', { name: 'Suggested payments' });
-    const [mine, others] = rows('Suggested payments');
-    expect(within(mine!).getByRole('button', { name: 'Record payment from Beto to you' })).toBeInTheDocument();
-    expect(within(others!).queryByRole('button')).not.toBeInTheDocument();
-    expect(others).toHaveTextContent('Only Dan and Caro can mark this as paid.');
-    expect(screen.getAllByRole('button', { name: /record payment/i })).toHaveLength(1);
   });
 
   it('records a suggestion: settle() is called once with the suggestion rounded to 2 dp, and nothing else is written', async () => {
@@ -483,7 +504,7 @@ describe('SettlementsIsland — pending tab', () => {
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(sentence));
     expect(notifySuccess).not.toHaveBeenCalled();
     expect(document.body).not.toHaveTextContent(/row-level|violates/i);
-    expect(rows('Suggested payments')).toHaveLength(2);
+    expect(rows('Suggested payments')).toHaveLength(1);
   });
 
   it('when nothing is left to settle it says so and links to adding an expense', async () => {
@@ -514,8 +535,32 @@ describe('SettlementsIsland — balances tab', () => {
     return user;
   }
 
-  it('splits net balances into who owes and who is owed, in the display currency, with the viewer as "You"', async () => {
+  it('personal view: pairwise per person — people you owe and people who owe you, in the display currency', async () => {
+    useExpenses.mockReturnValue(live(LIVE_EXPENSES));
+    useProfiles.mockReturnValue({ data: PROFILES, isError: false, isFetching: false, refetch: vi.fn() });
+    $user.set({ ...USER, uid: 'u2', displayName: 'Beto' });
     await openBalances();
+    const items = (name: string) => within(screen.getByRole('list', { name })).getAllByRole('listitem');
+    // Beto owes Ana 60 (Groceries 30 + Hotel 30) and Caro 20 (Mezcal tour); nobody owes Beto.
+    expect(items('You owe')).toHaveLength(2);
+    expect(items('You owe')[0]).toHaveTextContent(/Ana.*USD 60\.00/);
+    expect(items('You owe')[1]).toHaveTextContent(/Caro.*USD 20\.00/);
+    expect(screen.queryByRole('list', { name: 'Owe you' })).not.toBeInTheDocument();
+  });
+
+  it('personal view: the fixture with one person who owes the viewer', async () => {
+    await openBalances();
+    const oweYou = screen.getByRole('list', { name: 'Owe you' });
+    expect(within(oweYou).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(oweYou).getByRole('listitem')).toHaveTextContent(/Beto.*USD 30\.00/);
+    expect(screen.queryByRole('list', { name: 'You owe' })).not.toBeInTheDocument();
+  });
+
+  it('event scope keeps the net balances: who owes and who is owed across the event, with the viewer as "You"', async () => {
+    eventScope();
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('tab', { name: 'Balances' }));
     const owes = screen.getByRole('list', { name: 'Owes' });
     const owed = screen.getByRole('list', { name: 'Is owed' });
     const items = (list: HTMLElement) => within(list).getAllByRole('listitem');
@@ -533,7 +578,7 @@ describe('SettlementsIsland — balances tab', () => {
       live([makeExpense({ id: 'x9', currency: 'EUR', paidBy: 'u1', amount: 20, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 10 }, { userId: 'u2', amount: 10 }] })]),
     );
     await openBalances();
-    expect(within(screen.getByRole('list', { name: 'Owes' })).getByText('USD 20.00')).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Owe you' })).getByText('USD 20.00')).toBeInTheDocument();
   });
 
   it('lists the exchange rates used for every currency that was converted, and marks a fallback as approximate', async () => {
@@ -569,6 +614,142 @@ describe('SettlementsIsland — balances tab', () => {
     view.rerender(<SettlementsIsland />);
     expect(screen.queryByRole('list', { name: 'Owes' })).not.toBeInTheDocument();
     expect(document.body).not.toHaveTextContent(/USD \d/);
+  });
+});
+
+describe('SettlementsIsland — the personal view is pairwise, so both parties see the same number', () => {
+  const EXPECTED: Record<string, string[]> = {
+    u1: ['Beto owes you USD 60.00', 'Caro owes you USD 30.00'],
+    u2: ['You owe Ana USD 60.00', 'You owe Caro USD 20.00'],
+    u3: ['You owe Ana USD 30.00', 'Beto owes you USD 20.00'],
+  };
+  const NAME: Record<string, string> = { u1: 'Ana', u2: 'Beto', u3: 'Caro' };
+
+  function renderAs(uid: string) {
+    $user.set({ ...USER, uid, displayName: NAME[uid] ?? uid });
+    // Every viewer's query returns every row RLS lets them see: the same three rows, event expenses included.
+    useExpenses.mockReturnValue(live(LIVE_EXPENSES));
+    return render(<SettlementsIsland />);
+  }
+
+  const shown = () => rows('Suggested payments').map((row) => (row.textContent ?? '').replace(/^[A-Z]{2}/, '').replace(/Record payment$/, '').replace('USD', ' USD').replace(/\s+/g, ' ').trim());
+
+  it.each(Object.keys(EXPECTED))('%s sees exactly the rows that name them, one per person', async (uid) => {
+    renderAs(uid);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    expect(shown()).toEqual(EXPECTED[uid]);
+  });
+
+  it('for every pair, the two people read the same amount for the debt between them (the live-run 80 vs 60 case)', async () => {
+    const amountBetween = async (viewer: string, other: string) => {
+      const { unmount } = renderAs(viewer);
+      await screen.findByRole('list', { name: 'Suggested payments' });
+      const row = rows('Suggested payments').find((r) => r.textContent?.includes(NAME[other]!));
+      const amount = row?.textContent?.match(/USD (\d+\.\d{2})/)?.[1];
+      unmount();
+      return amount;
+    };
+    for (const [x, y] of [['u1', 'u2'], ['u1', 'u3'], ['u2', 'u3']] as const) {
+      const seenByX = await amountBetween(x, y);
+      const seenByY = await amountBetween(y, x);
+      expect(seenByX, `${NAME[x]} with ${NAME[y]}`).toBeDefined();
+      expect(seenByX).toBe(seenByY);
+    }
+  });
+
+  it('agrees with the dashboard: every amount is what balancesWithUser (the dashboard\'s selector) computes for the same rows', async () => {
+    for (const uid of ['u1', 'u2', 'u3']) {
+      const expected = balancesWithUser(involvingUser(LIVE_EXPENSES, uid), [], uid, {}, convert);
+      const { unmount } = renderAs(uid);
+      await screen.findByRole('list', { name: 'Suggested payments' });
+      expect(rows('Suggested payments')).toHaveLength(expected.length);
+      for (const { userId, balance } of expected) {
+        const row = rows('Suggested payments').find((r) => r.textContent?.includes(NAME[userId]!));
+        expect(row, `${NAME[uid]} with ${NAME[userId]}`).toHaveTextContent(`USD ${Math.abs(balance).toFixed(2)}`);
+        expect(row).toHaveTextContent(balance > 0 ? /owes you/ : /You owe/);
+      }
+      unmount();
+    }
+  });
+
+  it('a settlement between two people lowers the same debt for both of them', async () => {
+    const paid = [makeSettlement({ id: 's1', fromUserId: 'u2', toUserId: 'u1', amount: 25, eventId: 'ev1' })];
+    for (const [uid, expected] of [['u1', 'Beto owes you USD 35.00'], ['u2', 'You owe Ana USD 35.00']] as const) {
+      useSettlements.mockReturnValue(live(paid));
+      const { unmount } = renderAs(uid);
+      await screen.findByRole('list', { name: 'Suggested payments' });
+      expect(shown()[0]).toBe(expected);
+      unmount();
+    }
+  });
+
+  it('records the pairwise amount: the dialog is pre-filled with it and the overpay notice compares against it', async () => {
+    const user = userEvent.setup();
+    renderAs('u2');
+    await user.click(await screen.findByRole('button', { name: 'Record payment from you to Ana' }));
+    const dialog = await screen.findByRole('dialog');
+    // Simplified, Beto would have been offered 80 (60 to Ana plus what Caro owes her).
+    const amount = within(dialog).getByLabelText('Amount');
+    expect(amount).toHaveValue('60.00');
+    await user.clear(amount);
+    await user.type(amount, '70');
+    expect(await within(dialog).findByText('This is more than you owe. The difference will show as owed back to you.')).toBeInTheDocument();
+    await user.clear(amount);
+    await user.type(amount, '60');
+    await waitFor(() => expect(within(dialog).queryByText(/more than you owe/i)).not.toBeInTheDocument());
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    await waitFor(() => expect(settle).toHaveBeenCalledWith(expect.objectContaining({ fromUserId: 'u2', toUserId: 'u1', amount: 60 })));
+    expect(settle.mock.calls[0]![0]).not.toHaveProperty('eventId');
+  });
+});
+
+describe('SettlementsIsland — the event scope keeps the debt-simplified suggestions', () => {
+  it("puts the viewer's own suggestions first, and offers Record payment only where the viewer is a party", async () => {
+    eventScope();
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    const [mine, others] = rows('Suggested payments');
+    expect(rows('Suggested payments')).toHaveLength(2);
+    expect(mine).toHaveTextContent('Beto owes you');
+    expect(mine).toHaveTextContent('USD 30.00');
+    expect(within(mine!).getByRole('button', { name: 'Record payment from Beto to you' })).toBeInTheDocument();
+    expect(others).toHaveTextContent('Dan owes Caro');
+    expect(others).toHaveTextContent('USD 50.00');
+    expect(within(others!).queryByRole('button')).not.toBeInTheDocument();
+    expect(others).toHaveTextContent('Only Dan and Caro can mark this as paid.');
+    expect(screen.getAllByRole('button', { name: /record payment/i })).toHaveLength(1);
+  });
+
+  it('simplifies across people: a debt routed through a third person becomes one payment to whoever is owed', async () => {
+    // Beto owes Ana 30 (Hotel) and Caro owes Beto 30 (Taxi): Caro can pay Ana directly.
+    eventScope([
+      makeExpense({ id: 'y1', eventId: 'ev1', paidBy: 'u1', amount: 60, memberIds: ['u1', 'u2'], splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }] }),
+      makeExpense({ id: 'y2', eventId: 'ev1', paidBy: 'u2', amount: 60, memberIds: ['u2', 'u3'], splits: [{ userId: 'u2', amount: 30 }, { userId: 'u3', amount: 30 }] }),
+    ]);
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    expect(rows('Suggested payments')).toHaveLength(1);
+    expect(rows('Suggested payments')[0]).toHaveTextContent('Caro owes you');
+    expect(rows('Suggested payments')[0]).toHaveTextContent('USD 30.00');
+    expect(document.body).not.toHaveTextContent(/Beto owes/);
+  });
+
+  it('says so under the heading: suggestions are simplified, so a payment may go to someone other than who paid', async () => {
+    eventScope();
+    render(<SettlementsIsland />);
+    await screen.findByRole('list', { name: 'Suggested payments' });
+    expect(screen.getByText('Suggestions are simplified across the event, so a payment may go to someone other than who paid.')).toBeInTheDocument();
+  });
+
+  it('records a suggestion with the event id, unchanged', async () => {
+    eventScope();
+    const user = userEvent.setup();
+    render(<SettlementsIsland />);
+    await user.click(await screen.findByRole('button', { name: 'Record payment from Beto to you' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Amount')).toHaveValue('30.00');
+    await user.click(within(dialog).getByRole('button', { name: /save payment/i }));
+    await waitFor(() => expect(settle).toHaveBeenCalledWith(expect.objectContaining({ fromUserId: 'u2', toUserId: 'u1', amount: 30, eventId: 'ev1' })));
   });
 });
 
