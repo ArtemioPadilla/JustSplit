@@ -123,7 +123,7 @@ function BalanceList({ id, title, entries, viewerId, names, avatars, displayCurr
               <li key={entry.userId} className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3 text-sm">
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true">
-                    <UserAvatar src={avatars[entry.userId]} name={name} alt="" className="size-7" />
+                    <UserAvatar src={avatars[entry.userId]} name={names[entry.userId] ?? 'Unknown'} alt="" className="size-7" />
                   </span>
                   <span className="font-medium text-foreground">{name}</span>
                 </span>

@@ -76,8 +76,8 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
               >
                 <div className="flex items-center gap-3">
                   <span aria-hidden="true" className="flex -space-x-2">
-                    <UserAvatar src={avatars[suggestion.fromUser]} name={from} alt="" className="size-8 ring-2 ring-background" />
-                    <UserAvatar src={avatars[suggestion.toUser]} name={to} alt="" className="size-8 ring-2 ring-background" />
+                    <UserAvatar src={avatars[suggestion.fromUser]} name={names[suggestion.fromUser] ?? 'Unknown'} alt="" className="size-8 ring-2 ring-background" />
+                    <UserAvatar src={avatars[suggestion.toUser]} name={names[suggestion.toUser] ?? 'Unknown'} alt="" className="size-8 ring-2 ring-background" />
                   </span>
                   <p className="text-foreground">
                     <span className="font-medium">{from}</span> {viewerOwes ? 'owe' : 'owes'} <span className="font-medium">{to}</span>

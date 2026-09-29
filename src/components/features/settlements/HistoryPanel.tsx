@@ -57,8 +57,8 @@ export function HistoryPanel({ settlements, viewerId, names, avatars, displayCur
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span aria-hidden="true" className="flex -space-x-2">
-                      <UserAvatar src={avatars[settlement.fromUserId]} name={from} alt="" className="size-7 ring-2 ring-background" />
-                      <UserAvatar src={avatars[settlement.toUserId]} name={to} alt="" className="size-7 ring-2 ring-background" />
+                      <UserAvatar src={avatars[settlement.fromUserId]} name={names[settlement.fromUserId] ?? 'Unknown'} alt="" className="size-7 ring-2 ring-background" />
+                      <UserAvatar src={avatars[settlement.toUserId]} name={names[settlement.toUserId] ?? 'Unknown'} alt="" className="size-7 ring-2 ring-background" />
                     </span>
                     <span className="font-medium text-foreground">
                       {from} → {to}
