@@ -55,7 +55,9 @@ describe('formatDate', () => {
     });
 
     afterAll(() => {
-      process.env.TZ = originalTZ;
+      // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
     });
 
     it('shows the 1st for a 2026-03-01 calendar-date string, not the last day of February', () => {

@@ -217,7 +217,9 @@ describe('expensesToCSV', () => {
     });
 
     afterAll(() => {
-      process.env.TZ = originalTZ;
+      // Unset stays unset: assigning undefined would leave the string "undefined" (plan A7).
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
     });
 
     it('renders the Date column as the calendar date, not the previous day', () => {
