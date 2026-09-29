@@ -9,7 +9,8 @@ describe('date-picker', () => {
 
   it('composes Popover + Calendar (no new root primitive)', () => {
     expect(source).toMatch(/from ['"]@\/components\/ui\/popover['"]/);
-    expect(source).toMatch(/from ['"]@\/components\/ui\/calendar['"]/);
+    // the Calendar is code-split (plan B19), so it is reached through import(), not a static import
+    expect(source).toMatch(/(?:from\s+|import\(\s*)['"]@\/components\/ui\/calendar['"]/);
   });
 
   it('DateRangePicker uses react-day-picker range mode', () => {

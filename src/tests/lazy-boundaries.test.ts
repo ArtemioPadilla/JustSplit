@@ -32,6 +32,11 @@ const LAZY: { file: string; module: string; why: string }[] = [
     module: '@/components/features/currency/CurrencyCombobox',
     why: 'the Base UI combobox and its popup stack are ~45 kB gz on nearly every app page; a same-looking read-only stand-in shows until it loads',
   },
+  {
+    file: 'components/ui/date-picker.tsx',
+    module: '@/components/ui/calendar',
+    why: 'react-day-picker, date-fns and @date-fns/tz are ~15 kB gz that only the open popover needs',
+  },
 ];
 
 // The selector's own file must not reach the combobox by any other route either.
