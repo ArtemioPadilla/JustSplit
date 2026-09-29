@@ -14,7 +14,8 @@ import { DashboardHeader } from './DashboardHeader';
  *     exist yet — new dead links, the same reasoning B6 applied to the header
  *     nav) and are RESTORED as their pages land: "Add expense" in B10, "Create
  *     event" in B11b (WelcomeScreen, the dashboard's OWN empty state, always
- *     had both);
+ *     had both), and "Settle up" (the legacy dashboard's other quick action,
+ *     which linked `/settlements`) in B14b;
  *   - `exportExpensesToCSV` -> the shared `ExportCsvButton` (B17a);
  *   - the legacy `CurrencySelector`'s baked-in refresh button/`isConverting`
  *     toggle -> the B16 `CurrencySelector` (`value`/`onChange` only) plus a
@@ -100,6 +101,20 @@ describe('DashboardHeader', () => {
       />,
     );
     expect(screen.getByRole('link', { name: /add expense/i })).toHaveAttribute('href', '/expenses/new');
+  });
+
+  it('renders a "Settle up" link to /settlements now that plan B14b shipped it (the legacy dashboard linked it too)', () => {
+    render(
+      <DashboardHeader
+        expenses={[]}
+        users={users}
+        events={events}
+        currency="USD"
+        onCurrencyChange={vi.fn()}
+        onRefreshRates={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('link', { name: /^settle up$/i })).toHaveAttribute('href', '/settlements');
   });
 
   it('renders a "Create event" link to /events/new now that plan B11b shipped it (the legacy quick action, restored like "Add expense" was in B10)', () => {
