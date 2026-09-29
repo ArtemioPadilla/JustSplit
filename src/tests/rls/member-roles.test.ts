@@ -39,8 +39,15 @@ const member = (a: Actor, role: unknown) => ({
   joinedAt: new Date().toISOString(),
 });
 
-/** A group A creates with C as a friend-member carrying `role` (A stays an admin). */
-const groupWithRole = (role: unknown) => groupRow(A, [C], { members: [member(A, 'owner'), member(C, role)] });
+/**
+ * A group A creates with C as a friend-member carrying `role` (A stays an admin). An owner or admin label is
+ * only accepted for someone in admin_ids (migration 017, `admin-labels.test.ts`), so C is made an admin for those.
+ */
+const groupWithRole = (role: unknown) =>
+  groupRow(A, [C], {
+    members: [member(A, 'owner'), member(C, role)],
+    admin_ids: role === 'owner' || role === 'admin' ? [A.id, C.id] : [A.id],
+  });
 
 describe('expense_groups.members[].role · insert', () => {
   it.each(ROLES)('accepts the role %s', async (role) => {
