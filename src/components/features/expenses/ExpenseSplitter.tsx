@@ -53,10 +53,11 @@ export function ExpenseSplitter({
     <div className="flex flex-col gap-4">
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-foreground">Split method</legend>
+        {/* Wraps: three options in one non-wrapping row are wider than a 375px card (plan A7). */}
         <RadioGroup
           value={splitType}
           onValueChange={(value) => onSplitTypeChange(value as SplitType)}
-          className="grid grid-flow-col auto-cols-max gap-4"
+          className="flex flex-wrap gap-x-4 gap-y-2"
         >
           {SPLIT_TYPE_OPTIONS.map((option) => (
             <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
