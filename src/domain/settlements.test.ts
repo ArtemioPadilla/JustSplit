@@ -9,6 +9,7 @@ import {
   pairwiseLists,
   pairwiseSuggestions,
   parseSettlementsScope,
+  recordingRoute,
   splitBalances,
   viewerFirst,
 } from './settlements';
@@ -271,5 +272,91 @@ describe('pairwise personal view', () => {
         { userId: 'a', amount: 10 },
       ],
     });
+  });
+});
+
+/**
+ * Where a pairwise row can be recorded (plan B14b, review): `settlements_insert`
+ * lets the creator name an accepted friend with no event, or a fellow member of
+ * the event the row carries (migration 015). A button that RLS always denies is a
+ * dead end, so each row gets exactly one route: record directly, record inside
+ * its one event, or go to the event(s) to settle.
+ */
+describe('recordingRoute', () => {
+  const V = 'v';
+  const P = 'p';
+  const owedBy = (id: string, paidBy: string, debtor: string, eventId?: string | null) => ({
+    id,
+    paidBy,
+    splits: [{ userId: paidBy, amount: 10 }, { userId: debtor, amount: 10 }],
+    eventId,
+  });
+  const paid = (id: string, from: string, to: string, eventId?: string | null) => ({ id, fromUserId: from, toUserId: to, eventId });
+  const route = (over: Partial<Parameters<typeof recordingRoute>[0]>) =>
+    recordingRoute({ viewerId: V, otherId: P, isFriend: false, expenses: [], settlements: [], ...over });
+
+  it('a friend is recorded directly, whatever events the debt came from', () => {
+    expect(route({ isFriend: true, expenses: [owedBy('a', V, P, 'e1'), owedBy('b', P, V, 'e2')] })).toEqual({ kind: 'direct' });
+    expect(route({ isFriend: true, expenses: [owedBy('a', V, P, null)] })).toEqual({ kind: 'direct' });
+    expect(route({ isFriend: true })).toEqual({ kind: 'direct' });
+  });
+
+  it('not a friend, and everything linking the two carries the same event: record inside that event', () => {
+    expect(route({ expenses: [owedBy('a', V, P, 'e1'), owedBy('b', P, V, 'e1')], settlements: [paid('s', V, P, 'e1')] })).toEqual({
+      kind: 'event',
+      eventId: 'e1',
+    });
+  });
+
+  it('a single expense in one event is enough', () => {
+    expect(route({ expenses: [owedBy('a', P, V, 'e1')] })).toEqual({ kind: 'event', eventId: 'e1' });
+  });
+
+  it('not a friend and the debt spans several events: settle from the events (sorted, unique)', () => {
+    expect(route({ expenses: [owedBy('a', V, P, 'e2'), owedBy('b', V, P, 'e1'), owedBy('c', P, V, 'e2')] })).toEqual({
+      kind: 'from-events',
+      eventIds: ['e1', 'e2'],
+    });
+  });
+
+  it('a settlement in another event counts as linking the two', () => {
+    expect(route({ expenses: [owedBy('a', V, P, 'e1')], settlements: [paid('s', P, V, 'e2')] })).toEqual({
+      kind: 'from-events',
+      eventIds: ['e1', 'e2'],
+    });
+  });
+
+  it('one row with no event among event rows is not "the same event": settle from the events that exist', () => {
+    expect(route({ expenses: [owedBy('a', V, P, 'e1'), owedBy('b', V, P, null)] })).toEqual({ kind: 'from-events', eventIds: ['e1'] });
+    expect(route({ expenses: [owedBy('a', V, P, 'e1')], settlements: [paid('s', V, P, undefined)] })).toEqual({ kind: 'from-events', eventIds: ['e1'] });
+  });
+
+  it('not a friend and no event anywhere: no route into an event at all', () => {
+    expect(route({ expenses: [owedBy('a', V, P, null)] })).toEqual({ kind: 'from-events', eventIds: [] });
+    expect(route({})).toEqual({ kind: 'from-events', eventIds: [] });
+  });
+
+  it('ignores what does not link the two: an expense with no split between them, a legacy settled one, a payment between others', () => {
+    const bystander = { id: 'x', paidBy: 'q', splits: [{ userId: 'q', amount: 5 }, { userId: P, amount: 5 }], eventId: 'other' };
+    const legacy = { ...owedBy('l', V, P, 'legacy'), settledAt: '2026-01-01T00:00:00.000Z' };
+    expect(route({ expenses: [owedBy('a', V, P, 'e1'), bystander, legacy], settlements: [paid('s', 'q', P, 'other')] })).toEqual({
+      kind: 'event',
+      eventId: 'e1',
+    });
+  });
+
+  it('the payer\'s own share is not a link: an expense where only V and a third person split does not name P', () => {
+    const own = { id: 'o', paidBy: V, splits: [{ userId: V, amount: 10 }, { userId: 'q', amount: 10 }], eventId: 'e9' };
+    expect(route({ expenses: [own, owedBy('a', V, P, 'e1')] })).toEqual({ kind: 'event', eventId: 'e1' });
+  });
+
+  it('every route is exactly one of direct, event or from-events (no branch is left without a next step)', () => {
+    const cases = [
+      route({ isFriend: true }),
+      route({ expenses: [owedBy('a', V, P, 'e1')] }),
+      route({ expenses: [owedBy('a', V, P, 'e1'), owedBy('b', V, P, 'e2')] }),
+      route({}),
+    ];
+    for (const c of cases) expect(['direct', 'event', 'from-events']).toContain(c.kind);
   });
 });
