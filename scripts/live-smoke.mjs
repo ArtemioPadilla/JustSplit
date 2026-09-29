@@ -31,7 +31,7 @@
  *     Playwright's storageState instead of signing in three more times (the
  *     sign-in path itself is exercised above).
  *  Throughout, any console.error, uncaught error or React hydration error
- *  fails the run (scripts/lib/console-policy.mjs: a two-entry allowlist).
+ *  fails the run (scripts/lib/console-policy.mjs: a one-entry allowlist).
  */
 import { rmSync } from 'node:fs';
 import { CONFIGS } from './lib/a11y-configs.mjs';

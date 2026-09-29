@@ -8,15 +8,13 @@
  * resource that produces it, so the same text from another resource (a
  * Supabase call, a missing asset) still fails. Do not add an entry to make a
  * run green: fix the defect, or raise it as an open question.
+ *
+ * There used to be a second entry for the sandbox's TLS interception of Google
+ * Fonts. The smoke answers those hosts with a stub (`isolateExternalRequests`,
+ * live-audit.mjs), so nothing reaches the page and the entry was dead (B19b).
  */
 
 export const CONSOLE_ALLOWLIST = [
-  {
-    id: 'google-fonts-tls',
-    reason: 'The dev sandbox intercepts TLS, so BaseLayout’s Google Fonts stylesheet and font files fail certificate checks.',
-    text: /^Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID$/,
-    resource: (url) => /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url ?? ''),
-  },
   {
     id: 'shell-404-status',
     reason: 'The 404 app shell (AppRouterIsland) is served with a real 404 status for /expenses/<id> etc., like GitHub Pages.',
