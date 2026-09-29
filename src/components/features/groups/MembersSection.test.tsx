@@ -69,9 +69,9 @@ describe('MembersSection', () => {
       />,
     );
     expect(screen.getByText('Ana')).toBeInTheDocument();
-    expect(screen.getByText('owner')).toBeInTheDocument();
+    expect(screen.getByText('Owner')).toBeInTheDocument();
     expect(screen.getByText('Beto')).toBeInTheDocument();
-    expect(screen.getByText('member')).toBeInTheDocument();
+    expect(screen.getByText('Member')).toBeInTheDocument();
   });
 
   it('a non-admin viewer sees no "Add members" trigger and no "Remove" buttons', () => {
@@ -245,5 +245,103 @@ describe('MembersSection — offline (plan B19c)', () => {
     await userEvent.click(screen.getByRole('button', { name: /remove beto/i }));
     await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }));
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(OFFLINE_SENTENCE));
+  });
+});
+
+/**
+ * Plan B19c (risk:high, ADR 0015): the badge comes from `admin_ids` (and `created_by` for the owner), never from
+ * the stored `members[].role`, which any member can edit. A badge that says "Admin" for someone who is not one
+ * misleads people; the reverse hides a real admin.
+ */
+describe('MembersSection — displayed role comes from admin_ids (plan B19c)', () => {
+  function badges() {
+    return screen.getAllByRole('listitem').map((item) => item.textContent);
+  }
+
+  it('a member whose stored role says admin but who is not in admin_ids shows as Member', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'admin', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[1]).toContain('Member');
+    expect(badges()[1]).not.toMatch(/admin/i);
+  });
+
+  it('a member in admin_ids whose stored role says member shows as Admin', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'member', joinedAt: NOW },
+          ],
+          adminIds: ['u1', 'u2'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[1]).toContain('Admin');
+  });
+
+  it('the Owner is the creator (created_by), not whoever a label says: a forged owner label shows as Member', () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'admin', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'owner', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+          createdBy: 'u1',
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[]}
+      />,
+    );
+    expect(badges()[0]).toContain('Owner');
+    expect(badges()[1]).toContain('Member');
+    expect(screen.getAllByText('Owner')).toHaveLength(1);
+  });
+
+  it('adding a member does not promote someone whose label was forged: admin_ids in the patch is unchanged', async () => {
+    render(
+      <MembersSection
+        group={group({
+          members: [
+            { userId: 'u1', displayName: 'Ana', role: 'owner', joinedAt: NOW },
+            { userId: 'u2', displayName: 'Beto', role: 'admin', joinedAt: NOW },
+          ],
+          adminIds: ['u1'],
+        })}
+        names={{ u1: 'Ana', u2: 'Beto' }}
+        uid="u1"
+        friendCandidates={[{ id: 'u3', name: 'Caro' }]}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /add members/i }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Caro' }));
+    await userEvent.click(screen.getByRole('button', { name: /^add$/i }));
+
+    await waitFor(() => expect(updateMutateAsync).toHaveBeenCalled());
+    const { patch } = updateMutateAsync.mock.calls[0][0];
+    expect(patch.adminIds).toEqual(['u1']);
+    expect(patch.members.map((m: { userId: string; role: string }) => [m.userId, m.role])).toEqual([
+      ['u1', 'owner'],
+      ['u2', 'member'],
+      ['u3', 'member'],
+    ]);
   });
 });
