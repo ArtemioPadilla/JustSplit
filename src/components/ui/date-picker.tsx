@@ -4,8 +4,49 @@ import type { DateRange } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import type { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+// The Calendar (react-day-picker, date-fns, @date-fns/tz: ~15 kB gz) is only
+// needed once the popover is open, so it is loaded then (plan B19), with a
+// same-size placeholder meanwhile. `src/tests/lazy-boundaries.test.ts` pins that
+// this file never imports it statically. The trigger warms the chunk on
+// hover/focus/touch, so it is usually there before the click lands.
+const loadCalendar = () => import('@/components/ui/calendar');
+const Calendar = React.lazy(() => loadCalendar().then((m) => ({ default: m.Calendar })));
+type CalendarProps = React.ComponentProps<typeof CalendarComponent>;
+
+function CalendarFallback({ months = 1 }: { months?: number }) {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      className={cn('flex h-[17.5rem] items-center justify-center p-3 text-sm text-muted-foreground', months > 1 ? 'w-[34rem] max-w-full' : 'w-[17.5rem]')}
+    >
+      Loading calendar…
+    </div>
+  );
+}
+
+/** Warms the calendar chunk from the trigger, and still calls whatever handlers the caller passed. */
+function withPreload(triggerProps: React.ComponentPropsWithoutRef<'button'> | undefined) {
+  const warm = () => void loadCalendar();
+  return {
+    ...triggerProps,
+    onPointerEnter: (event: React.PointerEvent<HTMLButtonElement>) => {
+      warm();
+      triggerProps?.onPointerEnter?.(event);
+    },
+    onFocus: (event: React.FocusEvent<HTMLButtonElement>) => {
+      warm();
+      triggerProps?.onFocus?.(event);
+    },
+    onTouchStart: (event: React.TouchEvent<HTMLButtonElement>) => {
+      warm();
+      triggerProps?.onTouchStart?.(event);
+    },
+  };
+}
 
 // Date Picker + Date Range Picker — a Popover + Calendar composition,
 // following shadcn's Base UI date-picker pattern near-verbatim (ROADMAP
@@ -31,7 +72,7 @@ export interface DatePickerProps {
   disabled?: boolean;
   className?: string;
   /** Forwarded to the underlying react-day-picker Calendar (e.g. `disabled`, `fromDate`, `toDate`). */
-  calendarProps?: Omit<React.ComponentProps<typeof Calendar>, 'mode' | 'selected' | 'onSelect'>;
+  calendarProps?: Omit<CalendarProps, 'mode' | 'selected' | 'onSelect'>;
   /** Forwarded onto the Popover trigger button — e.g. `id`/`aria-describedby`/`aria-invalid` from a `<FormControl>` wrapper (see field-type/form-item.tsx). */
   triggerProps?: React.ComponentPropsWithoutRef<'button'>;
 }
@@ -65,7 +106,7 @@ function DatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         disabled={disabled}
-        {...triggerProps}
+        {...withPreload(triggerProps)}
         render={
           <Button
             variant="outline"
@@ -81,7 +122,9 @@ function DatePicker({
         {selected ? formatDate(selected) : <span>{placeholder}</span>}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <Calendar mode="single" selected={selected} onSelect={handleSelect} {...calendarProps} />
+        <React.Suspense fallback={<CalendarFallback />}>
+          <Calendar mode="single" selected={selected} onSelect={handleSelect} {...calendarProps} />
+        </React.Suspense>
       </PopoverContent>
     </Popover>
   );
@@ -95,7 +138,7 @@ export interface DateRangePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  calendarProps?: Omit<React.ComponentProps<typeof Calendar>, 'mode' | 'selected' | 'onSelect'>;
+  calendarProps?: Omit<CalendarProps, 'mode' | 'selected' | 'onSelect'>;
   /** Forwarded onto the Popover trigger button — e.g. `id`/`aria-describedby`/`aria-invalid` from a `<FormControl>` wrapper (see field-type/form-item.tsx). */
   triggerProps?: React.ComponentPropsWithoutRef<'button'>;
 }
@@ -137,7 +180,7 @@ function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         disabled={disabled}
-        {...triggerProps}
+        {...withPreload(triggerProps)}
         render={
           <Button
             variant="outline"
@@ -153,13 +196,15 @@ function DateRangePicker({
         {selected?.from ? formatRange(selected) : <span>{placeholder}</span>}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="range"
-          selected={selected}
-          onSelect={handleSelect}
-          numberOfMonths={2}
-          {...calendarProps}
-        />
+        <React.Suspense fallback={<CalendarFallback months={calendarProps?.numberOfMonths ?? 2} />}>
+          <Calendar
+            mode="range"
+            selected={selected}
+            onSelect={handleSelect}
+            numberOfMonths={2}
+            {...calendarProps}
+          />
+        </React.Suspense>
       </PopoverContent>
     </Popover>
   );
