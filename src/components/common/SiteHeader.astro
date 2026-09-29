@@ -66,7 +66,7 @@ const linkClass = showAppNav
       class:list={[
         'font-mono text-xs sm:text-sm',
         showAppNav
-          ? 'relative order-last -mx-5 flex w-[calc(100%+2.5rem)] overflow-x-auto px-5 md:order-none md:mx-0 md:w-auto md:overflow-visible md:px-0'
+          ? 'relative order-last -mx-5 flex w-[calc(100%+2.5rem)] scroll-px-5 overflow-x-auto px-5 md:order-none md:mx-0 md:w-auto md:scroll-px-0 md:overflow-visible md:px-0'
           : 'ml-auto flex items-center gap-1',
       ]}
     >
@@ -103,6 +103,13 @@ const linkClass = showAppNav
               }
             }
           }
+          // Chrome scrolls a container to a focused child only when it is fully hidden, so Tab
+          // could land on a link with a few px showing. Scroll the whole link in. The listener is
+          // on the nav itself (not window), so it goes away with it: nothing to unbind.
+          nav.addEventListener('focusin', function (e) {
+            var a = e.target && e.target.closest ? e.target.closest('a') : null;
+            if (a) a.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+          });
           if (cur && nav.scrollWidth > nav.clientWidth) {
             nav.scrollLeft = cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
           }
