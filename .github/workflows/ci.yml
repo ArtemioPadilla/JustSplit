@@ -62,6 +62,13 @@ jobs:
         run: npx playwright-core install --with-deps chromium
       - name: Accessibility smoke (axe-core)
         run: npm run check:a11y
+      # Offline shell smoke (plan B19): builds its own copy under the staging base
+      # path (`/JustSplit`), lets the service worker install in a real Chromium,
+      # then goes offline and asserts what the worker answers (scripts/offline-smoke.mjs).
+      # Its own step for the same reason as the axe smoke (needs a browser), and no
+      # Supabase stack, so it belongs here and not in the RLS job.
+      - name: Offline shell smoke (service worker)
+        run: npm run check:offline
 
   # ---------------------------------------------------------------------------
   # RLS suite (plan B2b): the dbmate migrations applied to a real local

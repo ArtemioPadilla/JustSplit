@@ -113,8 +113,44 @@ for (const page of ['dist/landing/index.html', 'dist/about/index.html', 'dist/he
   if (existsSync(page)) need(!/<astro-island/.test(readFileSync(page, 'utf8')), `${page} mounts an island`);
 }
 
+// ---- PWA (plan B19) --------------------------------------------------------
+// The cheap, base-agnostic half of what scripts/offline-smoke.mjs proves in a real
+// browser: the worker exists, its navigation fallback is a URL it precached
+// EXACTLY (else createHandlerBoundToURL throws at start-up and no worker ever
+// installs), queries do not defeat the precache, Supabase is never cached, and
+// every page links the manifest.
+const sw = 'dist/sw.js';
+need(existsSync(sw), `${sw} is missing (the PWA integration did not run)`);
+if (existsSync(sw)) {
+  const text = readFileSync(sw, 'utf8');
+  const fallback = /createHandlerBoundToURL\("([^"]+)"\)/.exec(text)?.[1];
+  need(fallback === at('/404.html'), `${sw}: navigateFallback is ${fallback}, expected ${at('/404.html')}`);
+  need(
+    /\{url:"404\.html",/.test(text),
+    `${sw}: 404.html is not precached under that exact URL, so createHandlerBoundToURL would throw and no worker would install (vite-pwa's directory handler renames it to "404")`,
+  );
+  need(text.includes('ignoreURLParametersMatching:[/.*/]'), `${sw}: ignoreURLParametersMatching is not [/.*/] (a query string would miss the precache)`);
+  need(/NetworkOnly/.test(text) && text.includes('supabase\\.co'), `${sw}: no NetworkOnly route for *.supabase.co`);
+  need(!/self\.skipWaiting\(\)\s*,/.test(text), `${sw}: skipWaiting runs unconditionally; an update must wait for the user (UpdateToast)`);
+  const precached = [...text.matchAll(/\{url:"([^"]+)"/g)].length;
+  need(precached > 100, `${sw}: only ${precached} precache entries (the glob found nothing: a wrong outDir?)`);
+}
+const manifestPath = 'dist/manifest.webmanifest';
+need(existsSync(manifestPath), `${manifestPath} is missing`);
+if (existsSync(manifestPath)) {
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  need(manifest.name === 'JustSplit', `${manifestPath}: name is ${manifest.name}`);
+  need(manifest.start_url === at('/') || manifest.start_url === `${at('')}/`, `${manifestPath}: start_url is ${manifest.start_url}`);
+  need(!/inceptor/i.test(JSON.stringify(manifest)), `${manifestPath} still mentions Inceptor`);
+}
+for (const page of ['dist/index.html', 'dist/landing/index.html', 'dist/auth/signin/index.html', 'dist/404.html']) {
+  if (existsSync(page)) {
+    need(readFileSync(page, 'utf8').includes(`<link rel="manifest" href="${at('/manifest.webmanifest')}"`), `${page}: does not link the web app manifest`);
+  }
+}
+
 if (failures.length) {
   console.error(`check:dist failed:\n  - ${failures.join('\n  - ')}`);
   process.exit(1);
 }
-console.log('check:dist ok (404 shell, redirect pages, app nav + skip links)');
+console.log('check:dist ok (404 shell, redirect pages, app nav + skip links, PWA worker + manifest)');

@@ -26,9 +26,8 @@
  *   fetch('https://x.supabase.co/rest/v1/...') -> a network error, nothing cached
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { launchChromium } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 
@@ -37,13 +36,18 @@ const failures = [];
 const fail = (where, message) => failures.push(`${where}: ${message}`);
 const log = (message) => console.log(`offline-smoke ${message}`);
 
+// A private build next to `dist/` (never over it: `npm run check` and check:a11y
+// use that one, built without a base). astro.config.mjs's ASTRO_OUT_DIR must be
+// project-relative; see the comment there.
+const OUT_DIR = './dist-offline';
+
 function build() {
-  const outDir = mkdtempSync(join(tmpdir(), 'justsplit-offline-dist-'));
-  execFileSync('npx', ['astro', 'build', '--outDir', outDir], {
+  rmSync(OUT_DIR, { recursive: true, force: true });
+  execFileSync('npx', ['astro', 'build'], {
     stdio: ['ignore', 'ignore', 'inherit'],
-    env: { ...process.env, ASTRO_BASE: BASE },
+    env: { ...process.env, ASTRO_BASE: BASE, ASTRO_OUT_DIR: OUT_DIR },
   });
-  return outDir;
+  return resolve(OUT_DIR);
 }
 
 /** Island names a served document mounts: `SettlementsIsland.Ab12.js` -> `SettlementsIsland`. */

@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { $online } from '@/stores/online';
+import ErrorBoundary from './ErrorBoundary';
 
 /**
  * Renders a fixed bottom banner when the browser goes offline.
@@ -12,7 +13,7 @@ import { $online } from '@/stores/online';
  * - role="status" + aria-live="polite" announces the message to screen readers
  *   without interrupting ongoing speech.
  */
-export default function OfflineBanner() {
+function OfflineBannerContent() {
   const online = useStore($online);
   if (online) return null;
 
@@ -25,5 +26,13 @@ export default function OfflineBanner() {
       <span aria-hidden="true">●</span>{' '}
       <span>You're offline — using cached data.</span>
     </div>
+  );
+}
+
+export default function OfflineBanner() {
+  return (
+    <ErrorBoundary name="OfflineBanner">
+      <OfflineBannerContent />
+    </ErrorBoundary>
   );
 }
