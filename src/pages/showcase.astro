@@ -148,7 +148,9 @@ import { ProgressBar } from '@/components/ui/progress-bar';
         clears the idb-keyval Query persister and every <code>justsplit:*</code>/supabase-session
         localStorage key, unregisters service workers, then reloads. This is also the recovery
         action <code>QueryProvider</code> shows when the persister fails to restore. Confirming
-        here performs the real reset — not a fictional demo.
+        here performs the real reset — not a fictional demo. The button is also the live demo of
+        <code>ui/lazy-dialog.tsx</code> (B19b): a plain button that reads like the trigger until it
+        is hovered, focused, touched or clicked, when the dialog stack loads and opens.
       </p>
       <div class="inline-flex rounded-md border border-border bg-card p-3">
         <ShowcaseResetLocalDataButton client:idle />

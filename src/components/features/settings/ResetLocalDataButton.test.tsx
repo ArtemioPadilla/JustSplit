@@ -30,7 +30,8 @@ describe('ResetLocalDataButton', () => {
     await user.click(screen.getByRole('button', { name: /reset local data/i }));
     expect(resetLocalData).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    // The dialog arrives a moment after the click (load-on-first-use, B19b).
+    await user.click(await screen.findByRole('button', { name: /^cancel$/i }));
     expect(resetLocalData).not.toHaveBeenCalled();
   });
 

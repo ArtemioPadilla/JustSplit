@@ -1,8 +1,18 @@
 import * as React from 'react';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/domain/formatters';
 import { calculateTimelineProgress, formatTimelineDate, groupNearbyExpenses, type TimelineEventInput } from '@/domain/timeline';
+import {
+  STATUS_LABEL,
+  STATUS_MARKER_CLASSES,
+  expenseAriaLabel,
+  groupStatus,
+  isSettled,
+  type EventTimelineExpense,
+  type SettlementStatus,
+} from './event-timeline-shared';
+import type { MarkerButtonProps, TimelineMarkerCard } from './EventTimelineMarkerImpl';
+
+export type { EventTimelineExpense };
 
 /**
  * `EventTimeline` (plan B11a — legacy `src/components/ui/Timeline` + `HoverCard`
@@ -55,22 +65,18 @@ import { calculateTimelineProgress, formatTimelineDate, groupNearbyExpenses, typ
  *    placement are each conveyed by an `aria-label` and the legend's text
  *    labels, not by marker color alone.
  *
+ * Load-on-first-use (plan B19b): the hover-card stack (Base UI preview card,
+ * floating-ui) is ~23 kB gz, so a marker is a plain `<button>` with the real
+ * marker's accessible name and look until it is hovered, focused or touched;
+ * that warms `EventTimelineMarkerImpl` and the marker swaps to the real hover-card
+ * trigger, which takes keyboard focus over if the plain one had it. The text list
+ * below never depended on the card and is untouched. `lazy-boundaries.test.ts`
+ * pins that this file never imports the hover card statically.
+ *
  * Positioning is 100% delegated to the pure `domain/timeline` helpers
  * (`groupNearbyExpenses`/`calculateTimelineProgress`) — this component only
  * reads `.position` off their output and turns it into a CSS `left`/`width`.
  */
-
-export interface EventTimelineExpense {
-  id: string;
-  description: string;
-  amount: number;
-  currency: string;
-  /** Calendar-date string (`YYYY-MM-DD`), per `domain/dates.ts#formatCalendarDate`. */
-  date: string;
-  paidBy: string;
-  /** `null`/`undefined` = unsettled — the project-wide `settledAt == null` convention. */
-  settledAt: string | null | undefined;
-}
 
 export type EventTimelineEvent = TimelineEventInput;
 
@@ -97,41 +103,55 @@ export interface EventTimelineProps {
   className?: string;
 }
 
-type SettlementStatus = 'settled' | 'unsettled' | 'mixed' | 'neutral';
+type MarkerImpl = typeof import('./EventTimelineMarkerImpl').EventTimelineMarkerImpl;
 
-function isSettled(expense: EventTimelineExpense): boolean {
-  return expense.settledAt != null;
-}
+// Set once the marker chunk has loaded anywhere on the page: markers rendered from
+// then on are the real thing from their first render.
+let loadedMarkerImpl: MarkerImpl | undefined;
+const loadMarkerImpl = () =>
+  import('./EventTimelineMarkerImpl').then((m) => {
+    loadedMarkerImpl = m.EventTimelineMarkerImpl;
+    return m.EventTimelineMarkerImpl;
+  });
 
-function groupStatus(expenses: EventTimelineExpense[]): SettlementStatus {
-  const settledCount = expenses.filter(isSettled).length;
-  if (settledCount === 0) return 'unsettled';
-  if (settledCount === expenses.length) return 'settled';
-  return 'mixed';
-}
+/** A marker that looks and reads like the real one; asks for the real one when reached for. */
+function TimelineMarker({ markerProps, card }: { markerProps: MarkerButtonProps; card: TimelineMarkerCard }) {
+  // The real marker plus where the user's pointer and focus were WHEN IT ARRIVED (read in the load callback,
+  // never during render), so it opens at once for a hover or focus that is still going on.
+  const [real, setReal] = React.useState<{ Impl: MarkerImpl; open: boolean; focus: boolean } | undefined>(() =>
+    loadedMarkerImpl ? { Impl: loadedMarkerImpl, open: false, focus: false } : undefined,
+  );
+  const hovered = React.useRef(false);
+  const focused = React.useRef(false);
+  const request = () => {
+    // A failed warm-up is ignored: the marker stays a plain button and the text list is unaffected.
+    loadMarkerImpl()
+      .then((Impl) => setReal({ Impl, open: hovered.current || focused.current, focus: focused.current }))
+      .catch(() => {});
+  };
 
-const STATUS_LABEL: Record<SettlementStatus, string> = {
-  settled: 'settled',
-  unsettled: 'unsettled',
-  mixed: 'partially settled',
-  neutral: '',
-};
-
-const STATUS_MARKER_CLASSES: Record<SettlementStatus, string> = {
-  settled: 'bg-chart-2',
-  unsettled: 'bg-destructive',
-  mixed: 'bg-chart-4',
-  neutral: 'bg-primary',
-};
-
-function paidByName(users: Record<string, string>, paidBy: string): string {
-  return users[paidBy] ?? 'Unknown';
-}
-
-function expenseAriaLabel(expense: EventTimelineExpense, convert: EventTimelineProps['convert'], currency: string, showStatus: boolean): string {
-  const amount = formatCurrency(convert(expense.amount, expense.currency), currency);
-  const status = showStatus ? `${isSettled(expense) ? 'Settled' : 'Unsettled'}, ` : '';
-  return `View expense: ${expense.description}, ${amount}, ${status}${formatTimelineDate(expense.date)}`;
+  if (real) return <real.Impl markerProps={markerProps} card={card} defaultOpen={real.open} focusOnMount={real.focus} />;
+  return (
+    <button
+      type="button"
+      {...markerProps}
+      onPointerEnter={() => {
+        hovered.current = true;
+        request();
+      }}
+      onPointerLeave={() => {
+        hovered.current = false;
+      }}
+      onFocus={() => {
+        focused.current = true;
+        request();
+      }}
+      onBlur={() => {
+        focused.current = false;
+      }}
+      onTouchStart={request}
+    />
+  );
 }
 
 export function EventTimeline({ event, expenses, users, convert, currency, onNavigate, showSettlementStatus = true, className }: EventTimelineProps) {
@@ -180,61 +200,24 @@ export function EventTimeline({ event, expenses, users, convert, currency, onNav
                 }`;
 
             return (
-              <HoverCard key={`group-${index}-${group.expenses[0]?.id ?? index}`}>
-                <HoverCardTrigger
-                  render={<button type="button" />}
-                  delay={0}
-                  data-testid="timeline-marker"
-                  aria-label={label}
-                  data-pre-event={isPreEvent || undefined}
-                  data-post-event={isPostEvent || undefined}
-                  data-status={status}
-                  className={cn(
+              <TimelineMarker
+                key={`group-${index}-${group.expenses[0]?.id ?? index}`}
+                markerProps={{
+                  'data-testid': 'timeline-marker',
+                  'aria-label': label,
+                  'data-pre-event': isPreEvent || undefined,
+                  'data-post-event': isPostEvent || undefined,
+                  'data-status': status,
+                  className: cn(
                     'absolute top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background shadow transition-transform motion-reduce:transition-none hover:scale-125 focus-visible:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     STATUS_MARKER_CLASSES[status],
                     isGrouped && 'ring-2 ring-foreground/40',
                     (isPreEvent || isPostEvent) && 'border-dashed border-foreground',
-                  )}
-                  style={{ left: `${clampedLeft}%` }}
-                />
-                <HoverCardContent className="w-72">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-popover-foreground">
-                        {isGrouped ? `${group.expenses.length} expenses` : 'Expense details'}
-                      </p>
-                      {isGrouped && showSettlementStatus && (
-                        <p className="text-xs text-muted-foreground">
-                          {group.expenses.filter(isSettled).length} settled, {group.expenses.filter((e) => !isSettled(e)).length} unsettled
-                        </p>
-                      )}
-                    </div>
-                    <ul className="flex flex-col gap-1">
-                      {group.expenses.map((expense) => (
-                        <li key={expense.id}>
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            onClick={() => onNavigate(expense.id)}
-                            aria-label={expenseAriaLabel(expense, convert, currency, showSettlementStatus)}
-                            className="flex w-full flex-col gap-0.5 rounded-md p-2 text-left text-xs hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
-                          >
-                            <span className="flex items-center justify-between gap-2 font-medium text-popover-foreground">
-                              <span>{expense.description}</span>
-                              {showSettlementStatus && <span>{isSettled(expense) ? 'Settled' : 'Unsettled'}</span>}
-                            </span>
-                            <span className="flex items-center justify-between gap-2 text-muted-foreground">
-                              <span>{formatTimelineDate(expense.date)}</span>
-                              <span>{formatCurrency(convert(expense.amount, expense.currency), currency)}</span>
-                            </span>
-                            <span className="text-muted-foreground">Paid by {paidByName(users, expense.paidBy)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
+                  ),
+                  style: { left: `${clampedLeft}%` },
+                }}
+                card={{ group, users, convert, currency, onNavigate, showSettlementStatus }}
+              />
             );
           })}
         </div>

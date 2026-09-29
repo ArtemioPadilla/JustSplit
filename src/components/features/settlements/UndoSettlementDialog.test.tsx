@@ -83,12 +83,12 @@ describe('UndoSettlementDialog', () => {
   it('keeping the payment removes nothing and returns focus to the trigger', async () => {
     const user = userEvent.setup();
     renderDialog();
-    const trigger = screen.getByRole('button', { name: /undo/i });
     const dialog = await open(user);
     await user.click(within(dialog).getByRole('button', { name: 'Keep it' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(remove).not.toHaveBeenCalled();
-    await waitFor(() => expect(trigger).toHaveFocus());
+    // B19b: the trigger you clicked was a stand-in; focus goes back to the REAL trigger that replaced it.
+    await waitFor(() => expect(screen.getByRole('button', { name: /undo/i })).toHaveFocus());
   });
 
   it('a failure says so in plain words, never the raw error, and keeps the dialog open', async () => {

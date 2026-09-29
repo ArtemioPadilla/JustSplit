@@ -315,21 +315,21 @@ describe('RecordPaymentDialog', () => {
     it('Cancel closes it and returns focus to the trigger', async () => {
       const user = userEvent.setup();
       renderDialog();
-      const trigger = screen.getByRole('button', { name: /record payment/i });
       const dialog = await open(user);
       await user.click(within(dialog).getByRole('button', { name: /cancel/i }));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-      await waitFor(() => expect(trigger).toHaveFocus());
+      // B19b: the trigger you clicked was a stand-in; focus goes back to the REAL trigger that replaced it.
+      await waitFor(() => expect(screen.getByRole('button', { name: /record payment/i })).toHaveFocus());
     });
 
     it('Escape closes it and returns focus to the trigger', async () => {
       const user = userEvent.setup();
       renderDialog();
-      const trigger = screen.getByRole('button', { name: /record payment/i });
       await open(user);
       await user.keyboard('{Escape}');
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-      await waitFor(() => expect(trigger).toHaveFocus());
+      // B19b: the trigger you clicked was a stand-in; focus goes back to the REAL trigger that replaced it.
+      await waitFor(() => expect(screen.getByRole('button', { name: /record payment/i })).toHaveFocus());
     });
 
     it('after a successful save focus goes to the element the caller named (the row is about to change)', async () => {
