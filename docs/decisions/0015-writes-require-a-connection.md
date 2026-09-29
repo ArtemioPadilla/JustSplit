@@ -117,7 +117,12 @@ work from the cache as before, writes wait for a connection.
   payment and undo; profile save, preferred currency (profile and dashboard), photo, password
   (account settings and the recovery page); inline expense edits.
   `src/tests/offline-write-coverage.test.ts` scans the source so a write added later cannot skip the
-  rule.
+  rule. Its scope was hardened after review. It scans every top-level function (declarations
+  and `const f = …` arrow or function expressions) in every non-test module under
+  `src/lib/data` (hooks excepted: they only call the guarded repos) and `src/stores`. Modules
+  that implement the primitives or touch only this device are exempted by an explicit list
+  with a reason per entry. The UI half derives the write hooks from `useMutation(` rather
+  than a name pattern, so a new hook is covered automatically.
 
 ### 4. Defence in depth: the data layer refuses too
 

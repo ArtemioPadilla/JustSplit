@@ -36,23 +36,60 @@ const isSource = (path: string) => /\.(ts|tsx)$/.test(path) && !/\.test\.(ts|tsx
 const WRITE_PRIMITIVE =
   /\.(setDocument|updateDocument|deleteDocument|batchWrite|upload|remove|update|updatePassword|updateDisplayProfile)\(/;
 
-function functionBodies(file: string): Array<{ name: string; body: string }> {
-  const text = readFileSync(file, 'utf8');
+/**
+ * Every top-level function in a module: `function f() {}` declarations AND
+ * `const f = (async) (…) => …` / `const f = function (…) {…}` (hardened after
+ * centinela's B19c review: an arrow-function writer used to slip past the scan).
+ * An expression-bodied arrow has no statement to put `assertOnline()` in, so if it
+ * writes it is always an offender.
+ */
+function functionBodiesFromText(file: string, text: string): Array<{ name: string; body: string }> {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const found: Array<{ name: string; body: string }> = [];
   source.forEachChild((node) => {
     if (ts.isFunctionDeclaration(node) && node.body && node.name) {
       found.push({ name: node.name.text, body: node.body.getText(source) });
+    } else if (ts.isVariableStatement(node)) {
+      for (const decl of node.declarationList.declarations) {
+        const init = decl.initializer;
+        if (!init || !ts.isIdentifier(decl.name)) continue;
+        if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) {
+          found.push({ name: decl.name.text, body: init.body.getText(source) });
+        }
+      }
     }
   });
   return found;
 }
 
+function functionBodies(file: string): Array<{ name: string; body: string }> {
+  return functionBodiesFromText(file, readFileSync(file, 'utf8'));
+}
+
+const GUARDED_FIRST = /^\{\s*(\/\/[^\n]*\n\s*)*assertOnline\(\);/;
+const unguardedWriters = (fns: Array<{ name: string; body: string }>) =>
+  fns.filter((fn) => WRITE_PRIMITIVE.test(fn.body)).filter((fn) => !GUARDED_FIRST.test(fn.body)).map((fn) => fn.name);
+
+/**
+ * Files that implement the primitives or only touch this device, so they are not
+ * "writers" in the ADR 0015 sense. Everything else under src/lib/data and src/stores
+ * is scanned, so a NEW data or store module that writes must either guard or be
+ * listed here with its reason.
+ */
+const NOT_SERVER_WRITERS: Record<string, string> = {
+  'lib/data/relational-adapter.ts': 'implements the adapter primitives the repos call',
+  'lib/data/adapter.ts': 'injects the adapter; no calls',
+  'lib/data/require-adapter.ts': 'resolves the adapter; no calls',
+  'lib/data/client.ts': 'Supabase client + auth session plumbing (sign in/out is deliberately not blocked)',
+  'lib/data/reset-local.ts': 'resets THIS device (ADR 0008); deliberately not blocked',
+  'stores/theme.ts': 'toggles a CSS class / localStorage on this device',
+};
+
+// Hooks only delegate to the (guarded) repos, so they are covered by the UI half below.
 const DATA_LAYER_FILES = [
-  ...walk(join(SRC, 'lib/data/repos'), isSource),
-  join(SRC, 'lib/data/storage.ts'),
-  join(SRC, 'stores/auth.ts'),
-];
+  ...walk(join(SRC, 'lib/data'), (path) => isSource(path) && !path.includes('/lib/data/hooks/')),
+  ...walk(join(SRC, 'stores'), isSource),
+].filter((file) => !(relative(SRC, file) in NOT_SERVER_WRITERS));
 
 describe('offline write coverage: data layer', () => {
   it('finds the write functions it is meant to guard (the scan itself works)', () => {
@@ -65,18 +102,41 @@ describe('offline write coverage: data layer', () => {
   it.each(DATA_LAYER_FILES.map((file) => [relative(SRC, file), file] as const))(
     '%s: every function that writes calls assertOnline() first',
     (_name, file) => {
-      const offenders = functionBodies(file)
-        .filter((fn) => WRITE_PRIMITIVE.test(fn.body))
-        .filter((fn) => !/^\{\s*(\/\/[^\n]*\n\s*)*assertOnline\(\);/.test(fn.body))
-        .map((fn) => fn.name);
-      expect(offenders).toEqual([]);
+      expect(unguardedWriters(functionBodies(file))).toEqual([]);
     },
   );
+
+  it('the scan catches arrow-function and function-expression writers too (self-test)', () => {
+    const src = [
+      "export const guardedArrow = async (id: string) => { assertOnline(); await adapter.deleteDocument('x', id); };",
+      "export const unguardedArrow = async (id: string) => { await adapter.deleteDocument('x', id); };",
+      "export const exprArrow = (id: string) => adapter.updateDocument('x', id, {});",
+      "export const fnExpr = async function (id: string) { await storage.upload(id); };",
+      "export async function lateGuard(id: string) { await read(id); assertOnline(); await adapter.setDocument('x', id, {}); }",
+    ].join('\n');
+    expect(unguardedWriters(functionBodiesFromText('synthetic.ts', src)).sort()).toEqual(['exprArrow', 'fnExpr', 'lateGuard', 'unguardedArrow']);
+  });
+
+  it('every excluded file is real and still justified (no stale exemptions)', () => {
+    for (const path of Object.keys(NOT_SERVER_WRITERS)) {
+      expect(() => statSync(join(SRC, path)), path).not.toThrow();
+    }
+  });
 });
 
 describe('offline write coverage: UI', () => {
-  // `useSettlements` is a read; only the `useSettleUp` mutation is a write.
-  const WRITE_HOOK_IMPORT = /from '@\/lib\/data\/hooks\/use(Create|Update|Delete|Remove|Send|Add|Attach)[A-Za-z]*'|from '@\/lib\/data\/hooks\/useSettleUp'/;
+  // Write hooks are DERIVED, not named: any hook module that calls `useMutation(` is a
+  // write hook, so a new one (say `useAcceptInvite`) is covered without editing a regex.
+  const WRITE_HOOKS = walk(join(SRC, 'lib/data/hooks'), isSource)
+    .filter((file) => readFileSync(file, 'utf8').includes('useMutation('))
+    .map((file) => file.replace(/^.*\/(use[A-Za-z]+)\.tsx?$/, '$1'));
+  const WRITE_HOOK_IMPORT = new RegExp(`from '@/lib/data/hooks/(${WRITE_HOOKS.join('|')})'`);
+
+  it('derives the write hooks from useMutation (the derivation itself works)', () => {
+    expect(WRITE_HOOKS).toEqual(expect.arrayContaining(['useSettleUp', 'useCreateExpense', 'useRemoveFriendship', 'useUpdateFriendshipStatus']));
+    expect(WRITE_HOOKS).not.toContain('useSettlements');
+    expect(WRITE_HOOKS).not.toContain('useLiveQuery');
+  });
   const WRITE_CALL = /\b(updateProfile|updatePassword|updateDisplayProfile|uploadAvatar|removeAvatar|uploadReceipt)\(/;
 
   const components = walk(join(SRC, 'components'), isSource);

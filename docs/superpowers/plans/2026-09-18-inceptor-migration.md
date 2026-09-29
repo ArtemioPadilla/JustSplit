@@ -2876,7 +2876,8 @@ trailer; docs and config use `Tdd-Red-Verified: inline`).
 - [x] **Docs**: this entry, [ADR 0015](../../decisions/0015-writes-require-a-connection.md) (with the
       Stakeholder Analysis), the ADR 0002 B19c amendment (which also corrects B19b's claim), one-line pointers in
       spec §6 and §7 and ADR 0004, B18's offline wording, the sequencing line, the SETUP owner-actions row for
-      migration 017 and the SETUP `test:live` description. `CLAUDE.md` needed no change.
+      migration 017 and the SETUP `test:live` description. `CLAUDE.md` gains rule 11 (writers start with
+      `assertOnline()`, write controls read `useCanWrite()`), enforced by the hardened coverage test.
 
 **Landed (B19c)** — gzipped kB (1024 bytes), `scripts/check-budgets.mjs`, static JS per page, measured on the
 branch tip before the work (`7d01bb6`, the B19b table above) and on the final tree; **no budget was raised**
