@@ -45,8 +45,8 @@ const TabsTrigger = React.forwardRef<
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
       'disabled:pointer-events-none disabled:opacity-50',
       // Hover highlight for the non-selected tabs (selected keeps its solid bg).
-      'not-data-[selected]:hover:bg-background/60 not-data-[selected]:hover:text-foreground',
-      'data-[selected]:bg-background data-[selected]:text-foreground data-[selected]:shadow-sm',
+      'not-data-[active]:hover:bg-background/60 not-data-[active]:hover:text-foreground',
+      'data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm',
       className,
     )}
     {...props}
