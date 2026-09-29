@@ -112,7 +112,8 @@ describe('RecordPaymentDialog', () => {
     renderDialog();
     const dialog = await open(user);
     expect(within(dialog).getByText(/doesn't move money/i)).toBeInTheDocument();
-    expect(within(dialog).getByText(/marked as paid by you/i)).toBeInTheDocument();
+    // Others see the recorder's NAME, never "you" — the copy must say what they will read.
+    expect(within(dialog).getByText(/others will see it as "Marked as paid by Ana"/i)).toBeInTheDocument();
   });
 
   it('inside an event it says where it is recorded, by name, and "the event" when the name is unknown', async () => {
