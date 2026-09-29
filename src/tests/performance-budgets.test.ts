@@ -88,6 +88,24 @@ describe('performance-budgets.json', () => {
     }
   });
 
+  // B19b: the dialogs on /friends, /profile and /settlements and the timeline hover cards on /events/list load
+  // on first use, and the showcase no longer drags the Supabase client in through its reset-button demo. Each
+  // ceiling is the measurement after that work plus ~5%; it may only ever go DOWN from here.
+  it.each([
+    ['/friends/', 248],
+    ['/profile/', 248],
+    ['/settlements/', 254],
+    ['/events/list/', 246],
+    ['/showcase/', 179],
+  ])('holds %s to at most %i kB static JS (tightened by B19b, never raised)', async (route, ceiling) => {
+    const lib = (await import(/* @vite-ignore */ LIB)) as {
+      groupsFor: (r: string, b: unknown) => string[];
+      budgetFor: (g: unknown, r: string) => number;
+    };
+    const [name] = lib.groupsFor(route, budgets);
+    expect(lib.budgetFor(budgets.groups[name!], route)).toBeLessThanOrEqual(ceiling);
+  });
+
   it('holds the redirect stubs (meta refresh, no script) to almost nothing', () => {
     const overrides = budgets.groups.app.overrides ?? {};
     for (const stub of ['/expenses', '/events', '/groups', '/friends/add']) expect(overrides[stub], stub).toBeLessThanOrEqual(1);
