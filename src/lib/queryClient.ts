@@ -74,14 +74,6 @@ export function shouldPersistQuery(query: {
 }
 
 /**
- * Attach the idb-keyval persister to a QueryClient. Returns a cleanup function
- * that detaches and removes the persisted cache.
- *
- * Only successfully-settled queries with `meta.persist === true` are written
- * to disk (see `shouldPersistQuery`).
- */
-
-/**
  * Thrown when the idb-keyval persister fails to restore the cached Query
  * client (plan B17b, ADR 0008) — e.g. IndexedDB is blocked, over quota, or
  * the stored payload is corrupt. `@tanstack/query-persist-client-core`'s
@@ -99,6 +91,13 @@ export class QueryCacheRestoreError extends Error {
   }
 }
 
+/**
+ * Attach the idb-keyval persister to a QueryClient. Returns a cleanup function
+ * that detaches and removes the persisted cache.
+ *
+ * Only successfully-settled queries with `meta.persist === true` are written
+ * to disk (see `shouldPersistQuery`).
+ */
 export function attachPersister(
   client: QueryClient,
   options?: {

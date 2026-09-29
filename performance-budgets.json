@@ -31,9 +31,9 @@
       }
     },
     "showcase": {
-      "//": "/showcase: the component gallery, a developer page that statically mounts sixteen islands, so it carries everything the app pages do. React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then supabase.*.js (57.9 kB, pulled in by the reset-local-data demo) and zod v4 (25.0 kB). Measured 279.0 kB (before 291.0); +5% => 293. It is not a user route, but it is built and deployed, so it is gated like one.",
+      "//": "/showcase: the component gallery, a developer page that statically mounts sixteen islands, so it carries everything the app pages do. React + ReactDOM (react.*.js, 67.8 kB gz) dominates, then supabase.*.js (57.9 kB, pulled in by the reset-local-data demo) and zod v4 (25.0 kB). Measured 270.3 kB (before 291.0; 279.0 until the sign-out wipe stopped importing the Query client chunk); +5% => 284. It is not a user route, but it is built and deployed, so it is gated like one.",
       "pages": ["/showcase"],
-      "maxStaticJsGzKb": 293,
+      "maxStaticJsGzKb": 284,
       "dominantChunk": "react"
     }
   }
