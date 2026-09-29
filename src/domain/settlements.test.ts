@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
+import { balancesWithUser } from './dashboard';
 import {
   exceedsOwed,
   isParty,
   newestFirst,
+  pairwiseLists,
+  pairwiseSuggestions,
   parseSettlementsScope,
   splitBalances,
   viewerFirst,
@@ -141,5 +146,130 @@ describe('exceedsOwed', () => {
   it('compares whole cents, so float noise never flags an exact payment', () => {
     expect(exceedsOwed(0.1 + 0.2, 0.3)).toBe(false);
     expect(exceedsOwed(10.01, 10.0)).toBe(true);
+  });
+});
+
+/**
+ * The personal view is PAIRWISE (plan B14b, ADR 0014 §5): one row per other
+ * person, from `balancesWithUser` — the dashboard's own maths — with no
+ * cross-person simplification. Two people therefore always see the same number
+ * for the debt between them.
+ */
+describe('pairwise personal view', () => {
+  const ANA = 'u1';
+  const BETO = 'u2';
+  const CARLA = 'u3';
+  const expense = (over: Partial<Expense> & Pick<Expense, 'id' | 'paidBy' | 'amount' | 'splits' | 'memberIds'>): Expense => ({
+    groupId: null,
+    description: 'x',
+    currency: 'USD',
+    splitType: 'equal',
+    date: '2026-09-01',
+    createdBy: over.paidBy,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    ...over,
+  });
+  // The live-run fixture that showed Beto "You owe Ana 80" and Ana "Beto owes you 60".
+  const EXPENSES: Expense[] = [
+    expense({ id: 'p1', paidBy: ANA, amount: 90, memberIds: [ANA, BETO, CARLA], splits: [{ userId: ANA, amount: 30 }, { userId: BETO, amount: 30 }, { userId: CARLA, amount: 30 }] }),
+    expense({ id: 'e1', paidBy: CARLA, amount: 40, memberIds: [BETO, CARLA], splits: [{ userId: BETO, amount: 20 }, { userId: CARLA, amount: 20 }] }),
+    expense({ id: 'e2', paidBy: ANA, amount: 60, memberIds: [ANA, BETO], splits: [{ userId: ANA, amount: 30 }, { userId: BETO, amount: 30 }] }),
+  ];
+  const ids = (rows: { memberIds: string[] }[], uid: string) => rows.filter((r) => r.memberIds.includes(uid));
+  const identity = (amount: number) => amount;
+  const suggestionsFor = (uid: string, settlements: Settlement[] = []) =>
+    pairwiseSuggestions(balancesWithUser(ids(EXPENSES, uid) as Expense[], ids(settlements, uid) as Settlement[], uid, {}, identity), uid);
+
+  it('is one row per person with a non-zero balance, "You owe P" or "P owes you", with no cross-person simplification', () => {
+    expect(suggestionsFor(BETO)).toEqual([
+      { fromUser: BETO, toUser: ANA, amount: 60 },
+      { fromUser: BETO, toUser: CARLA, amount: 20 },
+    ]);
+    expect(suggestionsFor(ANA)).toEqual([
+      { fromUser: CARLA, toUser: ANA, amount: 30 },
+      { fromUser: BETO, toUser: ANA, amount: 60 },
+    ].sort((a, b) => b.amount - a.amount));
+  });
+
+  it('two people see the same number, in opposite directions, for the debt between them', () => {
+    const amountBetween = (rows: ReturnType<typeof pairwiseSuggestions>, a: string, b: string) =>
+      rows.find((row) => (row.fromUser === a && row.toUser === b) || (row.fromUser === b && row.toUser === a));
+    for (const [x, y] of [[ANA, BETO], [ANA, CARLA], [BETO, CARLA]] as const) {
+      const seenByX = amountBetween(suggestionsFor(x), x, y);
+      const seenByY = amountBetween(suggestionsFor(y), x, y);
+      expect(seenByX, `${x} sees ${y}`).toBeDefined();
+      expect(seenByX).toEqual(seenByY);
+    }
+  });
+
+  it('counts a settlement between exactly the two people, whatever its event, and ignores one between two others', () => {
+    const settlements = [
+      { id: 's1', fromUserId: BETO, toUserId: ANA, amount: 10, currency: 'USD', date: '2026-09-02', memberIds: [BETO, ANA], createdBy: BETO, createdAt: 'x', groupId: null, eventId: 'ev1' },
+      { id: 's2', fromUserId: CARLA, toUserId: BETO, amount: 5, currency: 'USD', date: '2026-09-02', memberIds: [CARLA, BETO], createdBy: CARLA, createdAt: 'x', groupId: null },
+    ] as Settlement[];
+    expect(suggestionsFor(BETO, settlements)).toEqual([
+      { fromUser: BETO, toUser: ANA, amount: 50 },
+      { fromUser: BETO, toUser: CARLA, amount: 25 },
+    ]);
+    // Ana does not see the Beto-Carla payment, and the Beto-Ana one lowers what Beto owes her by the same 10.
+    expect(suggestionsFor(ANA, settlements)).toEqual([
+      { fromUser: BETO, toUser: ANA, amount: 50 },
+      { fromUser: CARLA, toUser: ANA, amount: 30 },
+    ].sort((a, b) => b.amount - a.amount));
+  });
+
+  it('a partial payment leaves the rest, and paying it all removes the row', () => {
+    const paid = (amount: number) =>
+      [{ id: 's', fromUserId: BETO, toUserId: ANA, amount, currency: 'USD', date: '2026-09-02', memberIds: [BETO, ANA], createdBy: BETO, createdAt: 'x', groupId: null }] as Settlement[];
+    expect(suggestionsFor(BETO, paid(60)).map((row) => row.toUser)).toEqual([CARLA]);
+  });
+
+  it('agrees with balancesWithUser for every person (what the dashboard shows)', () => {
+    for (const uid of [ANA, BETO, CARLA]) {
+      const balances = balancesWithUser(ids(EXPENSES, uid) as Expense[], [], uid, {}, identity);
+      const rows = pairwiseSuggestions(balances, uid);
+      expect(rows).toHaveLength(balances.length);
+      for (const { userId, balance } of balances) {
+        const row = rows.find((r) => (balance > 0 ? r.fromUser === userId : r.toUser === userId));
+        expect(row?.amount, `${uid} with ${userId}`).toBe(Math.abs(balance));
+      }
+    }
+  });
+
+  it('orders largest first, ties by person', () => {
+    const rows = pairwiseSuggestions(
+      [
+        { userId: 'b', name: 'b', balance: -10 },
+        { userId: 'a', name: 'a', balance: 10 },
+        { userId: 'c', name: 'c', balance: 25 },
+      ],
+      'me',
+    );
+    expect(rows.map((row) => row.amount)).toEqual([25, 10, 10]);
+    expect(rows.map((row) => (row.fromUser === 'me' ? row.toUser : row.fromUser))).toEqual(['c', 'a', 'b']);
+  });
+
+  it('is empty when nobody has a balance with the viewer', () => {
+    expect(pairwiseSuggestions([], 'me')).toEqual([]);
+  });
+
+  it('pairwiseLists splits the same rows into people you owe and people who owe you, largest first', () => {
+    expect(
+      pairwiseLists([
+        { userId: 'a', name: 'a', balance: 10 },
+        { userId: 'b', name: 'b', balance: -30 },
+        { userId: 'c', name: 'c', balance: 25 },
+        { userId: 'd', name: 'd', balance: -5 },
+      ]),
+    ).toEqual({
+      youOwe: [
+        { userId: 'b', amount: 30 },
+        { userId: 'd', amount: 5 },
+      ],
+      oweYou: [
+        { userId: 'c', amount: 25 },
+        { userId: 'a', amount: 10 },
+      ],
+    });
   });
 });
