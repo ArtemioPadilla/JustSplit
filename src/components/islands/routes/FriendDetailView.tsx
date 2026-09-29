@@ -183,6 +183,10 @@ function FriendDetailLoaded({
         <a href={withBase(`/expenses/new?friend=${friendId}`)} className={cn(buttonVariants({ variant: 'default' }))}>
           Add shared expense
         </a>
+        {/* The personal settlements view (plan B14b): this friend's balance is one of its rows. */}
+        <a href={withBase('/settlements')} className={cn(buttonVariants({ variant: 'outline' }))}>
+          Settle up
+        </a>
         <RemoveFriendDialog friendshipId={friendshipId} name={name} />
       </div>
 

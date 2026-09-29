@@ -22,11 +22,11 @@ export interface DashboardHeaderProps {
 
 /**
  * Dashboard header (plan B8b; "Add expense" restored by plan B10, "Create
- * event" by plan B11b): the preferred-currency selector, a "Refresh rates"
- * action, the two quick-action links the legacy component had, and the
- * all-expenses CSV export. Both links were dropped in B8b because their pages
- * did not exist yet (a dead link on the landing view of the app), and came
- * back as each page landed.
+ * event" by plan B11b, "Settle up" by plan B14b): the preferred-currency
+ * selector, a "Refresh rates" action, the quick-action links the legacy
+ * component had, and the all-expenses CSV export. The links were dropped in
+ * B8b because their pages did not exist yet (a dead link on the landing view of
+ * the app), and came back as each page landed.
  */
 export function DashboardHeader({ expenses, users, events, currency, onCurrencyChange, onRefreshRates }: DashboardHeaderProps) {
   return (
@@ -44,6 +44,9 @@ export function DashboardHeader({ expenses, users, events, currency, onCurrencyC
         <a href={withBase('/events/new')} className={cn(buttonVariants({ variant: 'outline' }))}>
           <PlusIcon aria-hidden="true" className="size-4" />
           Create event
+        </a>
+        <a href={withBase('/settlements')} className={cn(buttonVariants({ variant: 'outline' }))}>
+          Settle up
         </a>
         <ExportCsvButton
           expenses={expenses}
