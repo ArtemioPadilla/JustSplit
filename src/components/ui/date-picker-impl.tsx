@@ -62,7 +62,9 @@ function DatePicker({
         {selected ? formatDate(selected) : <span>{placeholder}</span>}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
-        <Calendar mode="single" selected={selected} onSelect={handleSelect} {...calendarProps} />
+        {/* Open on the selected date's month (today's when nothing is selected, since an
+            undefined defaultMonth means today). `calendarProps` comes last so a caller can still choose. */}
+        <Calendar mode="single" selected={selected} defaultMonth={selected} onSelect={handleSelect} {...calendarProps} />
       </PopoverContent>
     </Popover>
   );
@@ -113,6 +115,7 @@ function DateRangePicker({
         <Calendar
           mode="range"
           selected={selected}
+          defaultMonth={selected?.from}
           onSelect={handleSelect}
           numberOfMonths={2}
           {...calendarProps}
