@@ -3,7 +3,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
-import { isParty, viewerFirst } from '@/domain/settlements';
+import { isParty, viewerFirst, type RecordingRoute } from '@/domain/settlements';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import { money, personName } from './labels';
@@ -23,8 +23,20 @@ export interface PendingPanelProps {
    * row per person, no simplification, so this stays false there.
    */
   simplified?: boolean;
+  /**
+   * Personal view only: how each row can be recorded, keyed by the OTHER person's
+   * id (`recordingRoute`). Absent in the event scope, where a party can always
+   * record inside the event.
+   */
+  routes?: Record<string, RecordingRoute>;
+  /** Event names by id, for the dialog and the "settle from the event" links; unknown ids read "the event". */
+  eventNames?: Record<string, string>;
   /** Focus lands here after a payment is recorded: the row that held the button is about to change. */
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+}
+
+function eventLabel(eventNames: Record<string, string>, id: string): string {
+  return eventNames[id] ?? 'the event';
 }
 
 /**
@@ -37,7 +49,60 @@ export interface PendingPanelProps {
  * two people (UX only; RLS decides). The tab composition itself lives in
  * `SettlementsIsland` (CLAUDE.md compound-component rule); this is its content.
  */
-export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, simplified = false, headingRef }: PendingPanelProps) {
+export function PendingPanel({ suggestions, viewerId, names, avatars, displayCurrency, eventId, simplified = false, routes, eventNames = {}, headingRef }: PendingPanelProps) {
+  // What sits next to a row's amount. Never a button RLS is bound to deny (a dead end): a party is offered "Record payment" only
+  // where `settlements_insert` accepts it, otherwise the row says where to go.
+  function action(suggestion: { fromUser: string; toUser: string; amount: number }): React.ReactNode {
+    const dialog = (dialogEventId: string | undefined) => (
+      <RecordPaymentDialog
+        suggestion={suggestion}
+        displayCurrency={displayCurrency}
+        viewerId={viewerId}
+        names={names}
+        eventId={dialogEventId}
+        eventName={dialogEventId ? eventLabel(eventNames, dialogEventId) : undefined}
+        returnFocusTo={headingRef}
+      />
+    );
+
+    if (!routes) {
+      // Event scope (simplified rows): fellow members can record inside the event; only a party may.
+      if (isParty(suggestion, viewerId)) return dialog(eventId);
+      return (
+        <span className="text-xs text-muted-foreground">
+          Only {personName(suggestion.fromUser, viewerId, names)} and {personName(suggestion.toUser, viewerId, names)} can mark this as paid.
+        </span>
+      );
+    }
+
+    const other = suggestion.fromUser === viewerId ? suggestion.toUser : suggestion.fromUser;
+    const route = routes[other];
+    if (route?.kind === 'direct') return dialog(undefined);
+    if (route?.kind === 'event') return dialog(route.eventId);
+
+    const who = personName(other, viewerId, names);
+    const eventIds = route?.kind === 'from-events' ? route.eventIds : [];
+    return (
+      <span className="text-xs text-muted-foreground">
+        {eventIds.length === 0 ? (
+          <>You and {who} aren&apos;t friends, so this can&apos;t be settled here.</>
+        ) : (
+          <>
+            You and {who} aren&apos;t friends, so settle this from the event:{' '}
+            {eventIds.map((id, index) => (
+              <React.Fragment key={id}>
+                {index > 0 && ', '}
+                <a href={withBase(`/settlements?event=${id}`)} className="text-foreground underline underline-offset-2">
+                  {eventLabel(eventNames, id)}
+                </a>
+              </React.Fragment>
+            ))}
+          </>
+        )}
+      </span>
+    );
+  }
+
   return (
     <section aria-labelledby="pending-heading" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -103,20 +168,7 @@ export function PendingPanel({ suggestions, viewerId, names, avatars, displayCur
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-base font-semibold text-foreground">{money(suggestion.amount, displayCurrency)}</span>
-                  {isParty(suggestion, viewerId) ? (
-                    <RecordPaymentDialog
-                      suggestion={suggestion}
-                      displayCurrency={displayCurrency}
-                      viewerId={viewerId}
-                      names={names}
-                      eventId={eventId}
-                      returnFocusTo={headingRef}
-                    />
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Only {personName(suggestion.fromUser, viewerId, names)} and {personName(suggestion.toUser, viewerId, names)} can mark this as paid.
-                    </span>
-                  )}
+                  {action(suggestion)}
                 </div>
               </li>
             );

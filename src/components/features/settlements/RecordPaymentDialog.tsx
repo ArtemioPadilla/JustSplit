@@ -39,6 +39,8 @@ export interface RecordPaymentDialogProps {
   names: Record<string, string>;
   /** Set in the event scope; written on the settlement so migration 015 lets non-friend co-members record it. */
   eventId?: string;
+  /** The event's name, for "Recorded in <name>"; unknown names read "the event". */
+  eventName?: string;
   /**
    * Where focus goes after a SAVE. The suggestion's row is about to shrink or
    * disappear, so returning to its trigger would drop focus on `<body>`. Cancel
@@ -57,7 +59,7 @@ export interface RecordPaymentDialogProps {
  * Trust statement (ADR 0002 / 0014): what is saved is an attestation by the
  * person recording it, not a verified payment, and the copy says so.
  */
-export function RecordPaymentDialog({ suggestion, displayCurrency, viewerId, names, eventId, returnFocusTo }: RecordPaymentDialogProps) {
+export function RecordPaymentDialog({ suggestion, displayCurrency, viewerId, names, eventId, eventName, returnFocusTo }: RecordPaymentDialogProps) {
   const [open, setOpen] = React.useState(false);
   const savedRef = React.useRef(false);
 
@@ -87,6 +89,7 @@ export function RecordPaymentDialog({ suggestion, displayCurrency, viewerId, nam
           viewerId={viewerId}
           names={names}
           eventId={eventId}
+          eventName={eventName}
           onSaved={() => {
             savedRef.current = true;
             setOpen(false);
@@ -101,7 +104,7 @@ interface RecordPaymentFormProps extends Omit<RecordPaymentDialogProps, 'returnF
   onSaved: () => void;
 }
 
-function RecordPaymentForm({ suggestion, displayCurrency, viewerId, names, eventId, onSaved }: RecordPaymentFormProps) {
+function RecordPaymentForm({ suggestion, displayCurrency, viewerId, names, eventId, eventName, onSaved }: RecordPaymentFormProps) {
   const settleUp = useSettleUp();
   const [failure, setFailure] = React.useState<string | null>(null);
 
@@ -157,6 +160,7 @@ function RecordPaymentForm({ suggestion, displayCurrency, viewerId, names, event
         <DialogDescription>
           Mark that {from} paid {to}. JustSplit doesn&apos;t move money or check it: this is a note that everyone who can see it will read as
           &quot;Marked as paid by {personName(viewerId, viewerId, names)}&quot;.
+          {eventId && <> Recorded in {eventName ?? 'the event'}.</>}
         </DialogDescription>
       </DialogHeader>
 

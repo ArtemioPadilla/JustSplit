@@ -13,16 +13,20 @@ import { useSuggestions, type SuggestionsResult } from '@/components/features/se
 import { involvingUser } from '@/domain/dashboard';
 import { balancesWithUser } from '@/domain/dashboard';
 import { netBalances, settlementsForEvent } from '@/domain/ledger';
-import { pairwiseLists, pairwiseSuggestions, parseSettlementsScope, splitBalances } from '@/domain/settlements';
+import { acceptedFriendIds } from '@/domain/friends';
+import { pairwiseLists, pairwiseSuggestions, parseSettlementsScope, recordingRoute, splitBalances, type RecordingRoute } from '@/domain/settlements';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvent } from '@/lib/data/hooks/useEvent';
+import { useEvents } from '@/lib/data/hooks/useEvents';
 import { useEventExpenses, useExpenses } from '@/lib/data/hooks/useExpenses';
+import { useFriends } from '@/lib/data/hooks/useFriends';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
 import { useEventSettlements, useSettlements } from '@/lib/data/hooks/useSettlements';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Friendship } from '@/schemas/friendship';
 import type { Settlement } from '@/schemas/settlement';
 import { $user } from '@/stores/auth';
 import { $preferredCurrency } from '@/stores/preferences';
@@ -74,7 +78,13 @@ function SettlementsContent() {
   const eventQuery = useEvent(eventId);
   const eventExpensesQuery = useEventExpenses(eventId);
   const eventSettlementsQuery = useEventSettlements(eventId);
-  const dataQueries = personal ? [expensesQuery, settlementsQuery] : [eventExpensesQuery, eventSettlementsQuery];
+  // Personal view only: who is an accepted friend and what the events are called, to decide where each row can be recorded
+  // (`recordingRoute`) and to name the events. The event scope never needs them: a fellow member can be recorded inside the event.
+  const friendsQuery = useFriends(personal ? uid || undefined : undefined);
+  const eventsQuery = useEvents(personal ? uid || undefined : undefined);
+  const dataQueries = personal
+    ? [expensesQuery, settlementsQuery, friendsQuery, eventsQuery]
+    : [eventExpensesQuery, eventSettlementsQuery];
 
   // ADR 0013: the personal queries return every row the viewer can SEE; the personal view is about the rows that name them.
   // The event scope is that event's expenses and settlements, whoever they name (ADR 0014).
@@ -177,6 +187,8 @@ function SettlementsContent() {
         event={event}
         expenses={expenses}
         settlements={settlements}
+        friendships={friendsQuery.data ?? []}
+        events={eventsQuery.data ?? []}
         names={names}
         avatars={avatars}
       />
@@ -197,12 +209,15 @@ interface SettlementsBoardProps {
   event: Event | undefined;
   expenses: Expense[];
   settlements: Settlement[];
+  /** Personal view only (empty in the event scope). */
+  friendships: Friendship[];
+  events: Event[];
   names: Record<string, string>;
   avatars: Record<string, string | null>;
 }
 
 /** Everything that depends on the scope's rows: currency, the three tabs and their panels. */
-function SettlementsBoard({ viewerId, event, expenses, settlements, names, avatars }: SettlementsBoardProps) {
+function SettlementsBoard({ viewerId, event, expenses, settlements, friendships, events, names, avatars }: SettlementsBoardProps) {
   const preferredCurrency = useStore($preferredCurrency);
   // This island's OWN display currency (same one-way seed as every other island): the visitor's preferred one, never written back.
   const [displayCurrency, setDisplayCurrency] = React.useState(event?.preferredCurrency ?? preferredCurrency);
@@ -228,6 +243,20 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, names, avata
     if (isEvent) return eventSuggestions;
     return ready ? { status: 'ready', suggestions: pairwiseSuggestions(pairwise, viewerId) } : { status: 'loading' };
   }, [isEvent, eventSuggestions, ready, pairwise, viewerId]);
+
+  // Personal view: how each pairwise row can be recorded, by the other person. A friend is recorded directly; a non-friend only
+  // inside the one event their whole debt belongs to (migration 015); otherwise the row links to the event(s) instead of a button.
+  const routes = React.useMemo<Record<string, RecordingRoute> | undefined>(() => {
+    if (isEvent) return undefined;
+    const friends = new Set(acceptedFriendIds(friendships, viewerId));
+    const map: Record<string, RecordingRoute> = {};
+    for (const row of pairwiseSuggestions(pairwise, viewerId)) {
+      const other = row.fromUser === viewerId ? row.toUser : row.fromUser;
+      map[other] = recordingRoute({ viewerId, otherId: other, isFriend: friends.has(other), expenses, settlements });
+    }
+    return map;
+  }, [isEvent, friendships, viewerId, pairwise, expenses, settlements]);
+  const eventNames = React.useMemo(() => Object.fromEntries(events.map((e) => [e.id, e.name])), [events]);
 
   const balanceLists = React.useMemo(() => {
     if (!ready) return { owes: [], owed: [], owesTitle: '', owedTitle: '' };
@@ -284,6 +313,8 @@ function SettlementsBoard({ viewerId, event, expenses, settlements, names, avata
             displayCurrency={displayCurrency}
             eventId={event?.id}
             simplified={isEvent}
+            routes={routes}
+            eventNames={isEvent ? { [event.id]: event.name } : eventNames}
             headingRef={pendingHeadingRef}
           />
         </TabsContent>
