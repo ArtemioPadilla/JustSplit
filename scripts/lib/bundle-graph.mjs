@@ -141,6 +141,14 @@ export function groupsFor(route, budgets) {
 
 export const groupFor = (route, budgets) => groupsFor(route, budgets)[0];
 
+/** The budget one route is held to: the first matching override (always a tightening), else the group's. */
+export function budgetFor(group, route) {
+  for (const [pattern, kb] of Object.entries(group.overrides ?? {})) {
+    if (matches(pattern, route)) return kb;
+  }
+  return group.maxStaticJsGzKb;
+}
+
 /**
  * Budgets vs measurements. Failures are hard (the build fails); warnings are
  * not. A page nothing budgets, and a budget entry no page matches, both fail:
@@ -162,9 +170,10 @@ export function evaluate(measurements, budgets) {
     }
     const group = budgets.groups[groups[0]];
     const jsKb = m.jsGz / KB;
-    if (jsKb > group.maxStaticJsGzKb) {
+    const budgetKb = budgetFor(group, m.route);
+    if (jsKb > budgetKb) {
       failures.push(
-        `${m.route}: static JS ${jsKb.toFixed(1)} kB gz is over budget ${group.maxStaticJsGzKb} kB (group "${groups[0]}"; ` +
+        `${m.route}: static JS ${jsKb.toFixed(1)} kB gz is over budget ${budgetKb} kB (group "${groups[0]}"; ` +
           `largest chunk ${m.chunks[0]?.name ?? 'none'}). Fix the regression; never raise a budget to absorb it.`,
       );
     }
@@ -180,6 +189,16 @@ export function evaluate(measurements, budgets) {
     }
   }
   for (const [name, group] of Object.entries(budgets.groups)) {
+    for (const [pattern, kb] of Object.entries(group.overrides ?? {})) {
+      if (kb > group.maxStaticJsGzKb) {
+        failures.push(
+          `override "${pattern}" (${kb} kB) is higher than group "${name}" (${group.maxStaticJsGzKb} kB) — an override may only tighten a budget`,
+        );
+      }
+      if (!measurements.some((m) => groupsFor(m.route, budgets)[0] === name && matches(pattern, m.route))) {
+        failures.push(`override "${pattern}" (group "${name}") matches no built page — remove or fix the override`);
+      }
+    }
     for (const pattern of group.pages) {
       if (!measurements.some((m) => matches(pattern, m.route))) {
         failures.push(`${pattern} (group "${name}") matches no built page — remove or fix the budget entry`);

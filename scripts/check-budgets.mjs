@@ -17,7 +17,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { evaluate, groupFor, listPages, measurePage } from './lib/bundle-graph.mjs';
+import { budgetFor, evaluate, groupFor, listPages, measurePage } from './lib/bundle-graph.mjs';
 
 const kb = (bytes) => (bytes / 1024).toFixed(1).padStart(7);
 
@@ -38,7 +38,7 @@ export function run({ dist, budgetsPath, report = false, log = console.log, erro
   log(`  ${'page'.padEnd(26)} ${'static JS'.padStart(9)} ${'budget'.padStart(7)} ${'JS+CSS'.padStart(8)} ${'+lazy JS'.padStart(9)}  largest chunk`);
   for (const m of measurements) {
     const group = hasBudgets ? groupFor(m.route, budgets) : undefined;
-    const budget = group ? String(budgets.groups[group].maxStaticJsGzKb).padStart(7) : ' '.repeat(7);
+    const budget = group ? String(budgetFor(budgets.groups[group], m.route)).padStart(7) : ' '.repeat(7);
     log(
       `  ${m.route.padEnd(26)} ${kb(m.jsGz)} kB ${budget} ${kb(m.totalGz)} ${kb(m.withLazyGz)}  ${m.chunks[0]?.name ?? '(no JS)'}`,
     );
