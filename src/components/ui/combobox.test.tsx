@@ -85,7 +85,7 @@ describe('Combobox: Escape (plan A7)', () => {
       const user = userEvent.setup();
       const onAncestorKeyDown = vi.fn();
       render(
-        <div onKeyDown={(e) => onAncestorKeyDown(e.key)}>
+        <div role="presentation" onKeyDown={(e) => onAncestorKeyDown(e.key)}>
           <Combobox items={items} value="USD" onValueChange={vi.fn()} />
         </div>,
       );
@@ -107,7 +107,7 @@ describe('Combobox: Escape (plan A7)', () => {
       const user = userEvent.setup();
       const onAncestorKeyDown = vi.fn();
       render(
-        <div onKeyDown={(e) => onAncestorKeyDown(e.key)}>
+        <div role="presentation" onKeyDown={(e) => onAncestorKeyDown(e.key)}>
           <Combobox items={items} value="USD" onValueChange={vi.fn()} />
         </div>,
       );
