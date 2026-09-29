@@ -120,7 +120,7 @@ describe('admin_ids stays a subset of member_ids (the existing invariant)', () =
 
 describe('migration 016 catalog', () => {
   it('is a CHECK constraint on expense_groups and is validated', () => {
-    const rows = sql(`select contype || '|' || convalidated::text from pg_constraint
+    const rows = sql(`select contype::text || '|' || convalidated::text from pg_constraint
                        where conrelid = 'public.expense_groups'::regclass and conname = '${CONSTRAINT}'`);
     expect(rows).toEqual(['c|true']);
   });
@@ -163,5 +163,34 @@ describe('migration 016 down path', () => {
       'constraint=1', 'function=1', // after up again
       'constraint=1', 'function=1', // after rollback: the live database is untouched
     ]);
+  });
+
+  it('up normalises rows written before it: an unknown or missing role becomes "member", order and valid roles kept, then it validates', () => {
+    const { up, down } = sections();
+    const members = JSON.stringify([
+      { userId: 'u1', displayName: 'One', role: 'owner', joinedAt: 'x' },
+      { userId: 'u2', displayName: 'Two', role: 'user', joinedAt: 'x' },
+      { userId: 'u3', displayName: 'Three', joinedAt: 'x' },
+      { userId: 'u4', displayName: 'Four', role: 'moderator', joinedAt: 'x' },
+      { userId: 'u5', displayName: 'Five', role: 7, joinedAt: 'x' },
+    ]);
+    const script = `begin;
+${down}
+insert into public.expense_groups (id, name, currency, members, member_ids, admin_ids, created_by)
+  values ('b19b-normalise', 'Legacy', 'MXN', '${members}'::jsonb, '{u1,u2,u3,u4,u5}', '{u1}', 'u1');
+${up}
+select 'roles=' || (select string_agg(e ->> 'role', ',' order by ord)
+                      from public.expense_groups g, jsonb_array_elements(g.members) with ordinality as t(e, ord)
+                     where g.id = 'b19b-normalise');
+select 'validated=' || convalidated::text from pg_constraint where conname = '${CONSTRAINT}';
+rollback;
+`;
+    const out = execFileSync('psql', [LOCAL.dbUrl, '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-f', '-'], {
+      encoding: 'utf8',
+      input: script,
+    })
+      .split('\n')
+      .filter((l) => /^(roles|validated)=/.test(l));
+    expect(out).toEqual(['roles=owner,member,member,moderator,member', 'validated=true']);
   });
 });
