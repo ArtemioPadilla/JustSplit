@@ -56,6 +56,16 @@ const PAGES = [
   '/settlements',
 ];
 
+const CONFIGS = [
+  { name: 'light', contextOptions: { colorScheme: 'light' }, checkOverflow: false },
+  { name: 'dark', contextOptions: { colorScheme: 'dark' }, checkOverflow: false },
+  {
+    name: '375px',
+    contextOptions: { colorScheme: 'light', viewport: { width: 375, height: 812 } },
+    checkOverflow: true,
+  },
+];
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -126,27 +136,44 @@ async function main() {
 
   const failures = [];
   try {
-    const context = await browser.newContext();
-    for (const path of PAGES) {
-      const page = await context.newPage();
-      const target = `${origin}${BASE}${path}`;
-      const response = await page.goto(target, { waitUntil: 'networkidle' });
-      if (!response || response.status() >= 400) {
-        failures.push(`${path}: HTTP ${response ? response.status() : 'no response'} (${target})`);
-        await page.close();
-        continue;
-      }
-      const results = await new AxeBuilder({ page }).analyze();
-      if (results.violations.length > 0) {
-        for (const v of results.violations) {
-          failures.push(
-            `${path}: [${v.impact ?? 'unknown'}] ${v.id} — ${v.help} (${v.nodes.length} node(s)): ${v.helpUrl}`,
-          );
+    // Every page in three configurations (plan B6b): the default light desktop
+    // view, the dark theme (BaseLayout's head script follows
+    // prefers-color-scheme when no theme is stored), and a 375px phone, where
+    // the header's app nav must not push the page sideways.
+    for (const config of CONFIGS) {
+      const context = await browser.newContext(config.contextOptions);
+      for (const path of PAGES) {
+        const label = `${path} [${config.name}]`;
+        const page = await context.newPage();
+        const target = `${origin}${BASE}${path}`;
+        const response = await page.goto(target, { waitUntil: 'networkidle' });
+        if (!response || response.status() >= 400) {
+          failures.push(`${label}: HTTP ${response ? response.status() : 'no response'} (${target})`);
+          await page.close();
+          continue;
         }
-      } else {
-        console.log(`check:a11y ok — ${path} (0 violations)`);
+        const results = await new AxeBuilder({ page }).analyze();
+        if (results.violations.length > 0) {
+          for (const v of results.violations) {
+            failures.push(
+              `${label}: [${v.impact ?? 'unknown'}] ${v.id} — ${v.help} (${v.nodes.length} node(s)): ${v.helpUrl}`,
+            );
+          }
+        } else {
+          console.log(`check:a11y ok — ${label} (0 violations)`);
+        }
+        if (config.checkOverflow) {
+          const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+          }));
+          if (scrollWidth > clientWidth) {
+            failures.push(`${label}: page overflows horizontally (${scrollWidth}px > ${clientWidth}px)`);
+          }
+        }
+        await page.close();
       }
-      await page.close();
+      await context.close();
     }
   } finally {
     await browser.close();
@@ -157,7 +184,7 @@ async function main() {
     console.error(`check:a11y failed:\n  - ${failures.join('\n  - ')}`);
     process.exit(1);
   }
-  console.log(`check:a11y ok — ${PAGES.length} page(s) clean`);
+  console.log(`check:a11y ok — ${PAGES.length} page(s) x ${CONFIGS.length} configurations clean`);
 }
 
 main().catch((err) => {
