@@ -32,7 +32,17 @@ type Lib = {
   evaluate: (measurements: Measurement[], budgets: Budgets) => { failures: string[]; warnings: string[] };
 };
 type Budgets = {
-  groups: Record<string, { pages: string[]; maxStaticJsGzKb: number; maxTotalGzKb?: number; dominantChunk: string }>;
+  groups: Record<
+    string,
+    {
+      pages: string[];
+      maxStaticJsGzKb: number;
+      maxTotalGzKb?: number;
+      dominantChunk: string;
+      /** Tighter per-page budgets inside the group: pattern -> kB. First match wins. */
+      overrides?: Record<string, number>;
+    }
+  >;
 };
 
 async function lib(): Promise<Lib> {
@@ -203,6 +213,57 @@ describe('evaluate', () => {
     const { failures } = evaluate([m('/', 5)], budgets);
     expect(failures).toHaveLength(1);
     expect(failures[0]).toMatch(/\/landing\/.*matches no built page/);
+  });
+
+  describe('per-page overrides inside a group', () => {
+    const withOverrides: Budgets = {
+      groups: {
+        app: {
+          pages: ['/', '/groups/*', '/settlements'],
+          maxStaticJsGzKb: 280,
+          dominantChunk: 'react',
+          overrides: { '/': 240, '/groups/*': 230 },
+        },
+      },
+    };
+    it('gates a page against its own, tighter budget', async () => {
+      const { evaluate } = await lib();
+      const ok = evaluate([m('/', 240), m('/groups/list/', 230), m('/settlements/', 280)], withOverrides);
+      expect(ok.failures).toEqual([]);
+      const over = evaluate([m('/', 241), m('/groups/list/', 231), m('/settlements/', 281)], withOverrides).failures;
+      expect(over).toHaveLength(3);
+      expect(over[0]).toMatch(/\/: static JS 241\.0 kB.*budget 240 kB/);
+      expect(over[1]).toMatch(/\/groups\/list\/.*budget 230 kB/);
+      expect(over[2]).toMatch(/\/settlements\/.*budget 280 kB/);
+    });
+
+    it('lets the first matching override win, so an exact page can sit before its family', async () => {
+      const { evaluate } = await lib();
+      const budgets: Budgets = {
+        groups: {
+          app: { pages: ['/groups/*'], maxStaticJsGzKb: 280, dominantChunk: 'react', overrides: { '/groups': 1, '/groups/*': 230 } },
+        },
+      };
+      expect(evaluate([m('/groups/', 1), m('/groups/list/', 230)], budgets).failures).toEqual([]);
+      expect(evaluate([m('/groups/', 2), m('/groups/list/', 230)], budgets).failures).toHaveLength(1);
+    });
+
+    it('rejects an override that is not tighter than its group: a budget is never raised through the side door', async () => {
+      const { evaluate } = await lib();
+      const raised: Budgets = {
+        groups: { app: { pages: ['/'], maxStaticJsGzKb: 100, dominantChunk: 'react', overrides: { '/': 150 } } },
+      };
+      const { failures } = evaluate([m('/', 10)], raised);
+      expect(failures.join('\n')).toMatch(/override.*150.*group.*100/i);
+    });
+
+    it('rejects an override that matches no page of the group', async () => {
+      const { evaluate } = await lib();
+      const stale: Budgets = {
+        groups: { app: { pages: ['/'], maxStaticJsGzKb: 100, dominantChunk: 'react', overrides: { '/gone': 10 } } },
+      };
+      expect(evaluate([m('/', 10)], stale).failures.join('\n')).toMatch(/override "\/gone".*matches no built page/i);
+    });
   });
 
   it('warns, without failing, when the largest chunk is not the one the budget names', async () => {
