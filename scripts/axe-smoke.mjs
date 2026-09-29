@@ -24,12 +24,11 @@
  * route island, deterministic and accessible in every auth state a CI build
  * without Supabase env vars can reach).
  */
-import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
-import { chromium } from 'playwright-core';
+import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
+import { launchChromium } from './lib/browser.mjs';
+import { startStaticServer } from './lib/static-server.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const DIST = join(ROOT, 'dist');
@@ -66,73 +65,17 @@ const CONFIGS = [
   },
 ];
 
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
-  '.webmanifest': 'application/manifest+json',
-  '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml',
-};
-
-/** Astro's `build.format: 'directory'` default: `/x` and `/x/` both serve `x/index.html`. */
-async function resolveFile(urlPath) {
-  const withoutBase = BASE && urlPath.startsWith(BASE) ? urlPath.slice(BASE.length) || '/' : urlPath;
-  const clean = normalize(withoutBase).replace(/^(\.\.[/\\])+/, '');
-  const direct = join(DIST, clean);
-  const candidates = clean.endsWith('/')
-    ? [join(direct, 'index.html')]
-    : [direct, `${direct}.html`, join(direct, 'index.html')];
-  for (const candidate of candidates) {
-    if (existsSync(candidate) && (await stat(candidate)).isFile()) return candidate;
-  }
-  return null;
-}
-
-function startServer() {
-  const server = createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    const file = await resolveFile(url.pathname);
-    if (!file) {
-      res.writeHead(404, { 'content-type': 'text/plain' });
-      res.end('not found');
-      return;
-    }
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
-    res.end(body);
-  });
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => resolve(server));
-  });
-}
-
 async function main() {
   if (!existsSync(DIST)) {
     console.error('check:a11y failed: dist/ does not exist — run `npm run build` first.');
     process.exit(1);
   }
 
-  const server = await startServer();
+  const server = await startStaticServer({ dist: DIST, base: BASE });
   const { port } = server.address();
   const origin = `http://127.0.0.1:${port}`;
 
-  // Prefer a preinstalled Chromium (this sandbox ships one at
-  // /opt/pw-browsers/chromium — no download, works fully offline) but fall
-  // back to Playwright's own resolution when it isn't there (CI installs one
-  // with `npx playwright-core install chromium --with-deps` first; local
-  // dev without either path set gets whatever `playwright-core install`
-  // already put in its default cache).
-  const sandboxChromium = process.env.PW_CHROMIUM_PATH || '/opt/pw-browsers/chromium';
-  const launchOptions = { args: ['--no-sandbox'] };
-  if (existsSync(sandboxChromium)) launchOptions.executablePath = sandboxChromium;
-  const browser = await chromium.launch(launchOptions);
+  const browser = await launchChromium();
 
   const failures = [];
   try {
