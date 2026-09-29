@@ -81,6 +81,15 @@ describe('SiteHeader.astro app navigation (plan B6b)', () => {
   it('scrolls horizontally on a phone instead of overflowing the page', () => {
     expect(src).toMatch(/overflow-x-auto/);
   });
+
+  it('makes the phone row as wide as the viewport: -mx-5 needs an explicit width, not basis-full', () => {
+    // Live check at 375px: `basis-full` + `-mx-5` left the row 335px wide (the padded container),
+    // so the last link sat under the right edge and focusing it did not bring it into view.
+    expect(src).toMatch(/-mx-5/);
+    expect(src).toMatch(/w-\[calc\(100%\+2\.5rem\)\]/);
+    expect(src).not.toMatch(/basis-full/);
+    expect(src).toMatch(/md:w-auto/);
+  });
 });
 
 /**
