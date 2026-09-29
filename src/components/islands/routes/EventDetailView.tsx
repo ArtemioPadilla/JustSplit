@@ -12,16 +12,19 @@ import { EventTimeline } from '@/components/features/events/EventTimeline';
 import { ExportCsvButton } from '@/components/features/export/ExportCsvButton';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { parseCalendarDate } from '@/domain/dates';
-import { eventBalances, eventStartDate, eventStats } from '@/domain/events';
+import { eventBalances, eventStartDate, eventStats, settlementProgressPercent } from '@/domain/events';
+import { isLegacySettled } from '@/domain/ledger';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvent } from '@/lib/data/hooks/useEvent';
 import { useEventExpenses } from '@/lib/data/hooks/useExpenses';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
+import { useEventSettlements } from '@/lib/data/hooks/useSettlements';
 import { useUpdateEvent } from '@/lib/data/hooks/useUpdateEvent';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 import { $preferredCurrency } from '@/stores/preferences';
 import { notifyError } from '@/stores/notifications';
 import AuthGate from '../AuthGate';
@@ -43,6 +46,10 @@ const RETRY_HINT = 'Please try again in a moment. If this keeps happening, you c
  * of the event's expenses (`useEventExpenses` — `eventId == id`, which RLS
  * already limits to what this viewer may see, i.e. all of them for a member) and
  * are the same for every viewer. Nothing is narrowed to the viewer.
+ *
+ * Plan B14a (ADR 0014): they are a ledger — those expenses minus the event's
+ * settlements (`useEventSettlements`, `eventId == id`). There is no per-expense
+ * "unsettled" badge: only a legacy (imported) `settledAt` earns a "Settled" one.
  */
 export default function EventDetailView({ id }: { id: string }) {
   return (
@@ -104,11 +111,14 @@ function EventDetailLoaded({ event }: { event: Event }) {
   const preferredCurrency = useStore($preferredCurrency);
 
   const expensesQuery = useEventExpenses(event.id);
+  const settlementsQuery = useEventSettlements(event.id);
   // Newest first, like the legacy page; `date` is a calendar date, so a plain string compare orders it.
   const expenses = React.useMemo(
     () => [...(expensesQuery.data ?? [])].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
     [expensesQuery.data],
   );
+
+  const settlements = React.useMemo(() => settlementsQuery.data ?? [], [settlementsQuery.data]);
 
   const profileIds = React.useMemo(() => {
     const ids = new Set<string>(event.memberIds);
@@ -116,8 +126,12 @@ function EventDetailLoaded({ event }: { event: Event }) {
       ids.add(expense.paidBy);
       for (const split of expense.splits) ids.add(split.userId);
     }
+    for (const settlement of settlements) {
+      ids.add(settlement.fromUserId);
+      ids.add(settlement.toUserId);
+    }
     return Array.from(ids);
-  }, [event.memberIds, expenses]);
+  }, [event.memberIds, expenses, settlements]);
   const profilesQuery = useProfiles(profileIds);
   const names = React.useMemo(() => namesFrom(profilesQuery.data), [profilesQuery.data]);
   const avatars = React.useMemo(() => {
@@ -130,7 +144,10 @@ function EventDetailLoaded({ event }: { event: Event }) {
   // view, B9/B12): the event's preferred currency, else the visitor's — never
   // written back to the event.
   const [displayCurrency, setDisplayCurrency] = React.useState(event.preferredCurrency ?? preferredCurrency);
-  const currencies = React.useMemo(() => expenses.map((expense) => expense.currency), [expenses]);
+  const currencies = React.useMemo(
+    () => [...expenses.map((expense) => expense.currency), ...settlements.map((settlement) => settlement.currency)],
+    [expenses, settlements],
+  );
   const { convert, ready, approximate } = useDisplayConversion(currencies, displayCurrency);
 
   // `Editable` is UNCONTROLLED (`defaultValue`), so `key={draft}` remounts it
@@ -209,17 +226,25 @@ function EventDetailLoaded({ event }: { event: Event }) {
         )}
       </dl>
 
-      {expensesQuery.isError ? (
+      {expensesQuery.isError || settlementsQuery.isError ? (
         <ErrorState
-          title="Something went wrong loading this event's expenses"
+          title="Something went wrong loading this event's expenses and settlements"
           hint={RETRY_HINT}
           action={
-            <Button type="button" onClick={() => expensesQuery.refetch()} disabled={expensesQuery.isRetrying} aria-busy={expensesQuery.isRetrying}>
+            <Button
+              type="button"
+              onClick={() => {
+                expensesQuery.refetch();
+                settlementsQuery.refetch();
+              }}
+              disabled={Boolean(expensesQuery.isRetrying || settlementsQuery.isRetrying)}
+              aria-busy={Boolean(expensesQuery.isRetrying || settlementsQuery.isRetrying)}
+            >
               Retry
             </Button>
           }
         />
-      ) : expensesQuery.data === undefined ? (
+      ) : expensesQuery.data === undefined || settlementsQuery.data === undefined ? (
         // Same blocks, same heights as the loaded sections below, so nothing jumps when they arrive.
         <div className="flex flex-col gap-8" aria-busy="true">
           <Skeleton className="h-28 w-full" />
@@ -230,6 +255,7 @@ function EventDetailLoaded({ event }: { event: Event }) {
         <EventFigures
           event={event}
           expenses={expenses}
+          settlements={settlements}
           names={names}
           avatars={avatars}
           displayCurrency={displayCurrency}
@@ -246,6 +272,7 @@ function EventDetailLoaded({ event }: { event: Event }) {
 interface EventFiguresProps {
   event: Event;
   expenses: Expense[];
+  settlements: Settlement[];
   names: Record<string, string>;
   avatars: Record<string, string | null>;
   displayCurrency: string;
@@ -256,10 +283,10 @@ interface EventFiguresProps {
 }
 
 /** Everything that depends on the event's expenses: timeline, summary, balances and the list. */
-function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisplayCurrencyChange, convert, ready, approximate }: EventFiguresProps) {
-  const stats = React.useMemo(() => eventStats(expenses, convert), [expenses, convert]);
-  const balances = React.useMemo(() => eventBalances(expenses, convert), [expenses, convert]);
-  const settledPercent = Math.round(stats.settledPercentage);
+function EventFigures({ event, expenses, settlements, names, avatars, displayCurrency, onDisplayCurrencyChange, convert, ready, approximate }: EventFiguresProps) {
+  const stats = React.useMemo(() => eventStats(expenses, settlements, convert), [expenses, settlements, convert]);
+  const balances = React.useMemo(() => eventBalances(expenses, settlements, convert), [expenses, settlements, convert]);
+  const progressPercent = settlementProgressPercent(stats);
 
   // Every current member, then anyone else an expense names (a former member with a balance).
   const participantIds = React.useMemo(() => Array.from(new Set([...event.memberIds, ...Object.keys(balances)])), [event.memberIds, balances]);
@@ -293,6 +320,7 @@ function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisp
             users={names}
             convert={convert}
             currency={displayCurrency}
+            showSettlementStatus={false}
             onNavigate={(expenseId) => window.location.assign(withBase(`/expenses/${expenseId}`))}
           />
         ) : (
@@ -302,9 +330,12 @@ function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisp
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Settlement progress</span>
-            <span className="text-foreground">{settledPercent}% settled</span>
+            {/* Not 0% and not 100% when there is nothing to settle: that would claim something happened. */}
+            <span className="text-foreground">
+              {!ready ? <Skeleton className="h-4 w-20" /> : progressPercent === null ? 'Nothing to settle' : progressPercent === 100 ? 'Settled up' : `${progressPercent}% settled`}
+            </span>
           </div>
-          <ProgressBar value={settledPercent} label="Settlement progress" />
+          {ready && progressPercent !== null && <ProgressBar value={progressPercent} label="Settlement progress" />}
         </div>
       </section>
 
@@ -329,8 +360,8 @@ function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisp
             <dd className="text-2xl font-semibold text-foreground">{ready ? money(stats.total) : <Skeleton className="h-8 w-28" />}</dd>
           </div>
           <div>
-            <dt className="text-sm text-muted-foreground">Unsettled</dt>
-            <dd className="text-2xl font-semibold text-foreground">{ready ? money(stats.unsettled) : <Skeleton className="h-8 w-28" />}</dd>
+            <dt className="text-sm text-muted-foreground">Still owed</dt>
+            <dd className="text-2xl font-semibold text-foreground">{ready ? money(stats.outstanding) : <Skeleton className="h-8 w-28" />}</dd>
           </div>
         </dl>
         {ready && approximate && <p className="text-xs text-muted-foreground">* Some amounts use approximate rates</p>}
@@ -409,7 +440,8 @@ function EventFigures({ event, expenses, names, avatars, displayCurrency, onDisp
                       (Originally: {expense.amount.toFixed(2)} {expense.currency})
                     </span>
                   )}
-                  {expense.settledAt != null ? <Badge>Settled</Badge> : <Badge variant="outline">Unsettled</Badge>}
+                  {/* Only a legacy (imported) settledAt: nothing else is derivable per expense (ADR 0014). */}
+                  {isLegacySettled(expense) && <Badge>Settled</Badge>}
                 </div>
               </li>
             ))}

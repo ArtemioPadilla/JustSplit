@@ -193,6 +193,84 @@ describe('DashboardIsland', () => {
     expect(screen.queryByText('Their group lunch')).not.toBeInTheDocument();
   });
 
+  describe('the open-balances tile follows the ledger (plan B14a, ADR 0014)', () => {
+    // Ana (u1) paid 90 for herself, Beto (u2) and Carla (u3).
+    const dinner = () =>
+      makeExpense({
+        id: 'exp1',
+        description: 'Dinner',
+        amount: 90,
+        paidBy: 'u1',
+        date: '2026-05-10',
+        memberIds: ['u1', 'u2', 'u3'],
+        splits: [
+          { userId: 'u1', amount: 30 },
+          { userId: 'u2', amount: 30 },
+          { userId: 'u3', amount: 30 },
+        ],
+      });
+    const settlement = (overrides: Record<string, unknown>) => ({
+      id: 's1',
+      groupId: null,
+      fromUserId: 'u2',
+      toUserId: 'u1',
+      amount: 30,
+      currency: 'USD',
+      date: '2026-05-12',
+      memberIds: ['u2', 'u1'],
+      createdBy: 'u2',
+      createdAt: '2026-05-12T00:00:00.000Z',
+      eventId: null,
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      useEvents.mockReturnValue({ data: [] });
+      useProfiles.mockReturnValue({ data: [{ id: 'u1', name: 'Ana', avatarUrl: null }] });
+    });
+
+    it('with two debtors and no payments: "2 People to settle up with"', async () => {
+      useExpenses.mockReturnValue({ data: [dinner()] });
+      useSettlements.mockReturnValue({ data: [] });
+      render(<DashboardIsland />);
+      emit(USER);
+      expect(await screen.findByText('People to settle up with')).toBeInTheDocument();
+      expect(screen.getByText('2')).toBeInTheDocument();
+    });
+
+    it('one pair settles: the third person is still counted, not the whole expense marked settled', async () => {
+      useExpenses.mockReturnValue({ data: [dinner()] });
+      useSettlements.mockReturnValue({ data: [settlement({})] });
+      render(<DashboardIsland />);
+      emit(USER);
+      expect(await screen.findByText('Person to settle up with')).toBeInTheDocument();
+      expect(screen.queryByText(/unsettled/i)).not.toBeInTheDocument();
+    });
+
+    it('everyone paid: "All settled up"', async () => {
+      useExpenses.mockReturnValue({ data: [dinner()] });
+      useSettlements.mockReturnValue({
+        data: [settlement({}), settlement({ id: 's2', fromUserId: 'u3', memberIds: ['u3', 'u1'], createdBy: 'u3' })],
+      });
+      render(<DashboardIsland />);
+      emit(USER);
+      expect(await screen.findByText('All settled up')).toBeInTheDocument();
+    });
+
+    it('a settlement made inside an event counts here too (money moved), and one between other people does not', async () => {
+      useExpenses.mockReturnValue({ data: [dinner()] });
+      useSettlements.mockReturnValue({
+        data: [
+          settlement({ eventId: 'ev1' }),
+          settlement({ id: 's9', fromUserId: 'u2', toUserId: 'u3', memberIds: ['u2', 'u3'], createdBy: 'u2', amount: 30 }),
+        ],
+      });
+      render(<DashboardIsland />);
+      emit(USER);
+      expect(await screen.findByText('Person to settle up with')).toBeInTheDocument();
+    });
+  });
+
   it(
     'renders an error state with a working Retry when a query fails, instead of an endless skeleton ' +
       '(coordinator review, plan B8b)',

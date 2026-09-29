@@ -2010,35 +2010,109 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       own view showing nothing at all for the same row. The `friendships` RLS suite in
       `src/tests/rls/` is unchanged by this issue (no migration) and stays green in its own CI job —
       not runnable here. `/friends` added to `scripts/axe-smoke.mjs`.
-### B14. Settlements island (`/settlements`, reads `?event=` from `location.search`)
+### B14a. Settlements are payments on a ledger (`risk:high`, `tdd-tier:strict`)
+- [x] Decision (ADR `docs/decisions/0014-settlements-ledger.md`, owner: "best engineering and best
+      UX"): the original B14 settle-up — write a `Settlement` **and** set `settledAt = now` on every
+      covered expense — is wrong for any expense with three or more people (Ana pays 90 for Ana,
+      Beto, Carla; Beto pays Ana; the expense is marked settled; **Carla's debt disappears**), for a
+      partial payment and for a debt-simplified suggestion (A pays C for a debt that came from B's
+      expense). A person's balance in a scope is the sum of their split debts and credits over
+      **every** expense in it **minus the settlements in it**; a settlement F→T for X raises F and
+      lowers T, converted like an expense amount. **Settle-up never writes `settledAt`**; a
+      settlement is a single insert. `settledAt` is legacy and read-only (kept in case rows carrying
+      it ever arrive; no import is planned, B20): an expense with `settledAt != null` counts as fully settled and is excluded from
+      balances, as before. Scopes: event = `eventId == id` expenses and settlements (a real column
+      since B2d); personal/global = rows that name the viewer (`involvingUser`), where a settlement
+      counts whatever its `eventId`/`groupId` (money moved); friend = expenses and settlements that
+      involve both people. A settlement made in an event therefore also counts globally and in the
+      friend view. Rounding per displayed figure with `round2`, tolerance 0.01 everywhere.
+- [x] `src/domain/ledger.ts` (new; `ledger.test.ts`): `netBalances` (**zero-sum by construction**: per
+      split, each non-payer split credits the payer and debits that user by the same converted
+      amount; `expense.amount` is never read, so a row whose splits disagree with its amount, a
+      rounding remainder or a conversion cannot leave a phantom "Still owed" or stall progress
+      below 100%; `calculateSettlementsWithConversion` pairs the same way), `isSettledUp`,
+      `settlementProgress` (settled ÷ (settled + outstanding); `null` percentage = "nothing to
+      settle"), `settlementsForEvent`, `settlementsBetween`, `isLegacySettled`, `round2`.
+      `calculateSettlements` / `calculateSettlementsWithConversion` take the scope's settlements
+      (second argument), net them, then run the unchanged greedy pass; `expenseIds` on a suggestion
+      is informational only.
+- [x] Consumers, each behind red tests: `dashboard.ts` `balancesWithUser(expenses, settlements, …)`,
+      `unsettledCount` replaced by `openBalanceCount` (people you have a non-zero balance with;
+      tile copy "N People to settle up with" / "All settled up · No open balances");
+      `events.ts` `eventStats` / `eventBalances(expenses, settlements, …)` + `settlementsByEvent` +
+      `settlementProgressPercent` (`unsettled` → `outstanding`; copy "Still owed"; "N% settled" /
+      "Settled up" / "Nothing to settle" with no bar); `EventsListIsland`, `EventCard`,
+      `EventDetailView` (settlements via `useSettlements` / new `useEventSettlements`, skeleton /
+      error / Retry until they load); `FriendDetailView` and `DashboardIsland` (settlements from
+      `useSettlements`, narrowed with `involvingUser` / `settlementsBetween`); settlement currencies
+      join the rate resolution everywhere.
+- [x] Per-expense state: the B9 detail badge and the list's Status column show "Settled" **only for a
+      legacy `settledAt`** (the column is hidden when no row has one; no "Unsettled" anywhere), the
+      CSV `Status` cell is `Settled` for a legacy row and empty otherwise, and `EventTimeline` takes
+      `showSettlementStatus` (default `true`; the event islands pass `false`).
+- [x] `repos.settlements.settle(input)`: Zod-validates (`SettleInputSchema` in
+      `src/schemas/settlement.ts`: two different parties, positive whole-cent amount, ISO currency
+      and date), refuses a caller who is neither party (`SettlementPartyNotAllowedError`), then ONE
+      `setDocument` on `settlements` — no batch, no expense write; `createdBy` from `requireUid()`,
+      `memberIds` exactly the two parties, `groupId: null` (group scope is Track D D7), `eventId`
+      only for an event scope; returns the created row. `repos.settlements.remove(id)`: fresh-read
+      creator preflight (`SettlementNotFoundError` / `SettlementDeleteNotAllowedError`), delete,
+      re-read (`SettlementDeleteVerificationFailedError` — a denied delete is a silent 0-row
+      result); RLS `settlements_delete` is creator-only. Hooks: `useEventSettlements`,
+      `useSettleUp`, `useRemoveSettlement`. **Deviation:** the StorageAdapter has no
+      `createDocument`; the single insert is `setDocument` with a generated id, as every repo `create`.
+- [x] Trust statement (ADR 0002, restated in ADR 0014): a settlement is an attestation by
+      `created_by`, not a verified payment; either party may record one; the history says "Marked as
+      paid by <name>"; deleting it is creator-only.
+- [x] Migration `db/migrations/20260928000015_settlements_event_counterparty.sql` (full down;
+      `settlements_insert` only): with a null `group_id` **and** an `event_id`, the counterparty may
+      be a member of THAT event **or** an accepted friend of the creator — matching what an event
+      expense may already name (B2d) — so B14's event settle-up never suggests a payment the payer
+      cannot record. The group branch, the friends-only rule with no event, `event_id is null or
+      is_event_member(event_id)`, `created_by`/party/`member_ids` clauses and creator-only delete
+      are unchanged. `src/tests/rls/settlements-event-counterparty.test.ts` (non-friend co-members
+      allowed with the event_id; the same pair without it, an event the counterparty is not in, an
+      event the creator is not in, a stranger and the group branch denied), two new mutations in
+      `scripts/rls-mutation-check.mjs` (event branch removed; event co-member check widened; 51/51
+      mutations killed); verified against Postgres 17: red before the migration, green after, and
+      `db:rollback` → `db:migrate` round-trips to the identical policy text.
+- [x] Tests: ledger, calculator, dashboard, events, csv selectors; `settle()` writes exactly one
+      settlement document and no expense update / batch / delete; `remove()` preflight and verify
+      (silent delete raises); the event scope counts only event settlements and global counts all
+      settlements involving the viewer; the three-person case, a partial payment, a foreign-currency
+      payment, a recorded debt-simplified suggestion zeroing the scope, a legacy `settledAt` expense
+      excluded, progress including "nothing to settle"; the legacy
+      `context/__tests__/SettlementCurrency.test.tsx` intent ported against the memory adapter,
+      adapted to the ledger (`repos/settlements.settle.test.ts`: currency stored, expense untouched
+      and the balance moves by exactly the paid amount, mixed currencies, history in both
+      directions).
+### B14. Settlements island (`/settlements`, reads `?event=` from `location.search`) — the island only, built on B14a
 - [ ] Tabs pending / balance / history (port from `settlements/page.tsx`); display-currency
       selector (`CurrencySelector`, B16) + the exchange-rates table with every amount converted;
       party names via `useProfiles` ("X owes Y")
-- [ ] "Settle up" calls `repos.settlements.settle()` → one `batchWrite`: `set` a universal
-      `Settlement` `{ id, groupId (null outside a group scope), fromUserId, toUserId, amount,
-      currency, date, memberIds: [from, to], createdBy, expenseIds, eventId? }` (`expenseIds` and
-      `eventId` are overflow keys; `createdAt`/`updatedAt` come from `metadata.strategy: 'server'`
-      in the B5a `SchemaMap` and are omitted from the literal — the Zod write-input schema marks
-      them optional) **and** `update` each settled expense with `settledAt = now` (mirrors
-      `AppContext.addSettlement`, which the current UI never calls — today it dispatches a
-      local-only `ADD_SETTLEMENT` that the next snapshot wipes). The update is a partial patch
-      whose overflow key merges into `extra`, so the settled expense **keeps** its `eventId` and
-      stays in its event. Atomic under RLS via `batch_write`; a denied operation rolls back the
-      whole batch and surfaces a toast
-- [ ] Trust statement (ADR 0002): `settledAt` and `settlements` rows are attestations by
-      `created_by`, not verified payments — any member may write them. History shows "marcado como
-      pagado por <name>" (names via `useProfiles`), never "paid"; the ETHICS checklist in the PR
-      records it
-- [ ] `useSettlements(uid)` = `settlements where memberIds array-contains uid` (one query; both
-      directions, ADR 0002)
+- [ ] "Settle up" calls `repos.settlements.settle()` (B14a): **one insert, no expense is marked and
+      `settledAt` is never written**. The pending tab is `calculateSettlementsWithConversion`
+      over the scope's expenses and settlements (B14a); recording a suggestion writes a settlement
+      for its amount (`round2`), and a partial payment is just a smaller amount. `eventId` is
+      passed when the scope is `?event=` (migration 015 lets non-friend event co-members record
+      it). A denied insert (RLS) surfaces a toast; the
+      denial of a settlement the payer may not record reads as a plain sentence, never a raw error. The
+      history tab offers "Undo" on the viewer's own settlements (`useRemoveSettlement`; creator-only)
+- [ ] Trust statement (ADR 0002 / 0014): `settlements` rows are attestations by `created_by`, not
+      verified payments — only a party may record one. History shows "Marked as paid by <name>"
+      (names via `useProfiles`), never "paid"; the ETHICS checklist in the PR records it
+- [ ] Reads: `useSettlements(uid)` is the **unfiltered B2d query** (every row RLS lets the viewer see:
+      the two parties, group and event members), plus scoping in the domain — `?event=` uses
+      `useEventSettlements` (`eventId == id`); the personal view narrows with `involvingUser`
+      (a settlement counts whatever its `eventId`/`groupId`); a friend pair with
+      `settlementsBetween`
 - [ ] `?group=` (already linked from today's group page) is out of scope here: the island ignores
       it with a visible "próximamente" note; Track D D7 implements the group scope and writes
       `settlement.groupId`
-- [ ] `expenseCalculator` minimal-transactions, multi-currency conversion (over `splits[]`, B3)
-- [ ] Tests: settle-up persists and marks expenses settled in one batch (port
-      `context/__tests__/SettlementCurrency.test.tsx` against the memory adapter); the settled
-      expense keeps its `eventId`; a rejected batch leaves every expense unsettled; history lists
-      settlements for both directions
+- [ ] Tests (island level; the ledger, `settle()` and `remove()` are proven in B14a): settle-up from a
+      suggestion and from a partial amount calls `settle()` once and nothing else; history lists
+      settlements for both directions with "Marked as paid by"; Undo is offered only on the
+      viewer's own rows; a rejected insert leaves the lists unchanged and toasts
 ### B15. Profile island — editable profile, avatar upload, preferred currency
 - [x] `updateProfile` = `profileStore.update(uid, partial)` + `adapter.updateDisplayProfile`
       (B4); avatar via `FileUpload` + B5b `uploadAvatar` (object path
@@ -2338,7 +2412,10 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       the Hosting preview channels, delete the App Hosting backend if any; day 14, window closed —
       the owner picks one of two recorded end states: **(a)** delete project `justsplit-eef51`
       outright (the `*.web.app` URL dies; no "we moved" page; export Firestore first to a private
-      archive, nothing is imported anywhere; the 30-day Google grace period is the last safety
+      archive, nothing is imported anywhere — and if a future issue ever imports Firestore rows, an
+      expense's `settledAt` and the `Settlement` rows that covered it are carried **either/or,
+      never both** (the ledger, ADR 0014, already excludes a `settledAt` expense, so a covering
+      settlement would be counted twice); the 30-day Google grace period is the last safety
       net), or **(b)** keep Hosting alive as a stub: deploy the static "we moved" page from a
       throwaway directory with a minimal `firebase.json` (`{"hosting":{"public":"site"}}` —
       today's `frameworksBackend` config cannot deploy a plain static page — `firebase deploy
@@ -2654,6 +2731,10 @@ D0 exists only if a migration ever adds a policy or `check` constraint that insp
       columns with `kind = 'trip'` (+ `groupId`/`preferredCurrency` as today)
 
 ### D7. Settlements: `?group=` scope, `settlement.groupId`, couple single transfer, period presets (`tdd-tier:strict`)
+> **Superseded in part by B14a / ADR 0014:** settle-up writes no `settledAt`, so the "unsettled expenses"
+> scope and the "settled exclusion across scopes" below become "the group's expenses and settlements
+> (`groupId`, plus its events' by `eventId`) netted as a ledger, deduplicated by id"; the single write
+> is a `Settlement` insert carrying `groupId`; a period is settled up when its balances net to zero.
 - [ ] `SettlementsIsland` reads `?group=` beside `?event=`; group scope =
       `settlementScopeForGroup` (D1) = **unsettled** expenses with `groupId === id` ∪ expenses
       whose `eventId` is one of the group's events (`useGroupEvents`), deduplicated by id;
@@ -2768,14 +2849,15 @@ A1 (done, 6a32c4d) → [Firebase workflows deleted in the docs PR #2, 0ba4348] �
                                           (serial, one PR each, ~1 week; A1–A3a by the main session; zero workflows run on main between #2 and A3b)
 B1 → B2a → B2 → B2b → B3 → B4 → B5a → B5b → B6 → B7   (foundation, serial; B2 migrations applied to the justsplit project via `--ref inceptor` before B2b; B2b RLS suite green before B3)
   B2c after B1 (parallel with B2a/B2/B2b)
-  B2d after B15 and before B11b/B14 (migrations C–D change who can see and edit expense rows; the
-   events islands (B11b) and settle-up (B14) are built against the new `event_id` columns and
+  B2d after B15 and before B11b/B14a/B14 (migrations C–D change who can see and edit expense rows; the
+   events islands (B11b) and settle-up (B14a/B14) are built against the new `event_id` columns and
    visibility, so they must not land first; deployed with `db-migrate.yml --ref inceptor`)
   B5a: if relational mode (H2) is not published when B5a starts → ship the contingency adapter behind StorageAdapter (spec D1); never document mode
 B16 after B5b (needs $preferredCurrency/$rateCache from B5b, domain/currency from B3, combobox/editable/progress-bar from the B1 manifest); may run alongside B6/B7
 B17a after B7 (shared ExportCsvButton + /showcase entry; B8b/B9/B11b mount it)
 B8a..B15, B17b parallelizable after B7 and B16
-  (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B9+B11b;
+  (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B14a;
+   B14a after B2d + B8b + B9 + B11b + B13 (it rewrites how their balances and badges are derived); B14 is the island only, on B14a;
    B15 after B16; B13 after B5a (its policies shipped in B2); B8b/B9/B11b after B17a)
 B18 → B19 → B20 → B21 → B22               (B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
 C1, C2 after B5b; C3 after B1 (independent of the cutover)

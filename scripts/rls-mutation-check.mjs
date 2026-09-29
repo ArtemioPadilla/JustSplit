@@ -26,7 +26,7 @@ const dir = 'src/tests/rls/';
 const FILES = {
   expense_groups: [`${dir}expense-groups.test.ts`, `${dir}fk-lifecycle.test.ts`],
   expenses: [`${dir}expenses.test.ts`, `${dir}visibility.test.ts`, `${dir}membership-edit.test.ts`],
-  settlements: [`${dir}settlements.test.ts`, `${dir}visibility.test.ts`],
+  settlements: [`${dir}settlements.test.ts`, `${dir}settlements-event-counterparty.test.ts`, `${dir}visibility.test.ts`],
   events: [`${dir}events.test.ts`, `${dir}membership-edit.test.ts`, `${dir}fk-lifecycle.test.ts`],
   friendships: [`${dir}friendships.test.ts`],
   profiles: [`${dir}profiles.test.ts`],
@@ -132,6 +132,34 @@ const clauseMutations = [
     restore: `alter policy settlements_insert on public.settlements with check (${settlementInsert})`,
   },
 ];
+// B14a (migration 015): the event branch of settlements_insert, removed and widened.
+const EVENT_BRANCH_START = '((group_id IS NULL) AND (event_id IS NOT NULL) AND ';
+const branchStart = settlementInsert.indexOf(EVENT_BRANCH_START);
+if (branchStart < 0) throw new Error('settlements_insert has no event branch to mutate (migration 015)');
+let depth = 0;
+let branchEnd = branchStart;
+for (; branchEnd < settlementInsert.length; branchEnd += 1) {
+  if (settlementInsert[branchEnd] === '(') depth += 1;
+  else if (settlementInsert[branchEnd] === ')' && (depth -= 1) === 0) break;
+}
+const EVENT_MEMBER_CHECK = 'm.uid = ANY (ev.member_ids)';
+if (!settlementInsert.includes(EVENT_MEMBER_CHECK)) throw new Error('settlements_insert event branch has no co-member check to mutate');
+clauseMutations.push(
+  {
+    label: 'policy settlements_insert without its event co-member branch',
+    table: 'settlements',
+    files: FILES.settlements,
+    drop: `alter policy settlements_insert on public.settlements with check (${settlementInsert.slice(0, branchStart)}false${settlementInsert.slice(branchEnd + 1)})`,
+    restore: `alter policy settlements_insert on public.settlements with check (${settlementInsert})`,
+  },
+  {
+    label: 'policy settlements_insert event branch accepting a counterparty who is not in the event',
+    table: 'settlements',
+    files: FILES.settlements,
+    drop: `alter policy settlements_insert on public.settlements with check (${settlementInsert.replace(EVENT_MEMBER_CHECK, 'true')})`,
+    restore: `alter policy settlements_insert on public.settlements with check (${settlementInsert})`,
+  },
+);
 for (const fn of ['guard_expenses', 'guard_events']) {
   const original = psql(`select pg_get_functiondef('public.${fn}'::regproc)`).trim();
   if (!original.includes('pg_trigger_depth() <= 1')) throw new Error(`${fn} has no pg_trigger_depth() check to mutate`);

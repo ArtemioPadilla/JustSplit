@@ -100,6 +100,10 @@ the row and is never protected by RLS.
 
 ### `settledAt` and settlements are attestations
 
+> **Superseded in part by [0014](./0014-settlements-ledger.md) (B14a):** settle-up no longer writes
+> `settledAt`; a settlement is a single insert and `settledAt` is legacy and read-only. The trust
+> statement below stands.
+
 `settledAt` is an overflow key on expenses written by settle-up in the same
 batch as the `Settlement` insert. Both are **attestations by `created_by`, not
 verified payments**: B14 shows "marcado como pagado por <name>", never "paid",

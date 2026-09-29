@@ -5,16 +5,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EventTimeline } from '@/components/features/events/EventTimeline';
 import { UserAvatar } from '@/components/features/profile/UserAvatar';
 import { parseCalendarDate } from '@/domain/dates';
-import { eventStartDate, eventStats } from '@/domain/events';
+import { eventStartDate, eventStats, settlementProgressPercent } from '@/domain/events';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 
 export interface EventCardProps {
   event: Event;
   /** Exactly this event's expenses (ADR 0013: all of them, whoever is looking). */
   expenses: Expense[];
+  /** Exactly this event's settlements (`eventId == event.id`); a payment in another event, or in none, is not part of it. */
+  settlements: Settlement[];
   /** id -> display name; a member with no entry reads "Unknown". */
   names: Record<string, string>;
   avatars: Record<string, string | null>;
@@ -37,17 +40,18 @@ function dateRange(event: Event): string {
 
 /**
  * One event on `/events/list` (plan B11b): name, dates, description, timeline,
- * total / participants / unsettled, settlement progress, a participants
+ * total / participants / still owed, settlement progress (settled over
+ * settled plus still owed — ADR 0014, no per-expense flag), a participants
  * disclosure and the link to the detail page. Purely presentational — the
  * island owns the data, the display currency and the rates.
  */
-export function EventCard({ event, expenses, names, avatars, displayCurrency, convert, ready }: EventCardProps) {
+export function EventCard({ event, expenses, settlements, names, avatars, displayCurrency, convert, ready }: EventCardProps) {
   const [showParticipants, setShowParticipants] = React.useState(false);
   const headingId = React.useId();
   const participantsId = React.useId();
 
-  const stats = React.useMemo(() => eventStats(expenses, convert), [expenses, convert]);
-  const settledPercent = Math.round(stats.settledPercentage);
+  const stats = React.useMemo(() => eventStats(expenses, settlements, convert), [expenses, settlements, convert]);
+  const progressPercent = settlementProgressPercent(stats);
   const money = (amount: number) => `${displayCurrency} ${amount.toFixed(2)}`;
   const participantCount = event.memberIds.length;
 
@@ -85,6 +89,7 @@ export function EventCard({ event, expenses, names, avatars, displayCurrency, co
           users={names}
           convert={convert}
           currency={displayCurrency}
+          showSettlementStatus={false}
           onNavigate={(expenseId) => window.location.assign(withBase(`/expenses/${expenseId}`))}
         />
       ) : (
@@ -104,17 +109,20 @@ export function EventCard({ event, expenses, names, avatars, displayCurrency, co
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Unsettled</dt>
-          <dd className="font-semibold text-foreground">{ready ? money(stats.unsettled) : <Skeleton className="h-5 w-24" />}</dd>
+          <dt className="text-muted-foreground">Still owed</dt>
+          <dd className="font-semibold text-foreground">{ready ? money(stats.outstanding) : <Skeleton className="h-5 w-24" />}</dd>
         </div>
       </dl>
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Settlement progress</span>
-          <span className="text-foreground">{settledPercent}% settled</span>
+          {/* Not 0% and not 100% when there is nothing to settle: that would claim something happened. */}
+          <span className="text-foreground">
+            {!ready ? <Skeleton className="h-4 w-20" /> : progressPercent === null ? 'Nothing to settle' : progressPercent === 100 ? 'Settled up' : `${progressPercent}% settled`}
+          </span>
         </div>
-        <ProgressBar value={settledPercent} label="Settlement progress" />
+        {ready && progressPercent !== null && <ProgressBar value={progressPercent} label="Settlement progress" />}
       </div>
 
       <div className="flex flex-col gap-2">

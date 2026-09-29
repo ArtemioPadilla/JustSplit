@@ -2,14 +2,15 @@
  * CSV export (plan B3). Ported from the legacy Next tree's
  * `src/utils/csvExport.ts`, re-typed onto the `src/schemas/expense.ts`
  * `Expense` (spec D10): `participants` reads from `splits[].userId` instead
- * of the retired `participants` array, and `status` reads `settledAt != null`
- * instead of the retired `settled` boolean. `users`/`events` stay small,
+ * of the retired `participants` array, and `status` is "Settled" for a legacy
+ * `settledAt != null` only, empty otherwise (B14a, ADR 0014). `users`/`events` stay small,
  * schema-independent lookup shapes (`{ id, name }`) — a `User` collection
  * doesn't exist in the universal types; only names are needed here.
  */
 import type { Expense } from '../schemas/expense';
 import { ensureCSVExtension } from './fileUtils';
 import { parseCalendarDate } from './dates';
+import { isLegacySettled } from './ledger';
 
 export interface CsvNamedUser {
   id: string;
@@ -61,7 +62,10 @@ export const expensesToCSV = (expenses: Expense[], users: CsvNamedUser[], events
 
   const rows = expenses.map((expense) => {
     const participantNames = expense.splits.map((split) => getUserName(split.userId)).join(', ');
-    const status = expense.settledAt != null ? 'Settled' : 'Unsettled';
+    // Plan B14a (ADR 0014): only a legacy (imported) `settledAt` says "Settled".
+    // Settling up is a payment on a ledger, so no per-expense status can be derived
+    // honestly; the cell stays empty rather than claiming "Unsettled".
+    const status = isLegacySettled(expense) ? 'Settled' : '';
 
     return [
       // Date, amount, currency and status are never user-controlled text —

@@ -7,11 +7,21 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CurrencySelector } from '@/components/features/currency/CurrencySelector';
 import { EventCard } from '@/components/features/events/EventCard';
-import { eventStats, eventYears, expensesByEvent, filterEventsByYear, sortEvents, type EventSortField, type SortOrder } from '@/domain/events';
+import {
+  eventStats,
+  eventYears,
+  expensesByEvent,
+  filterEventsByYear,
+  settlementsByEvent,
+  sortEvents,
+  type EventSortField,
+  type SortOrder,
+} from '@/domain/events';
 import { useDisplayConversion } from '@/lib/currency/useDisplayConversion';
 import { useEvents } from '@/lib/data/hooks/useEvents';
 import { useExpenses } from '@/lib/data/hooks/useExpenses';
 import { useProfiles } from '@/lib/data/hooks/useProfiles';
+import { useSettlements } from '@/lib/data/hooks/useSettlements';
 import { withBase } from '@/lib/href';
 import { cn } from '@/lib/utils';
 import { $preferredCurrency } from '@/stores/preferences';
@@ -74,12 +84,16 @@ function EventsListContent() {
 
   const eventsQuery = useEvents(uid);
   const expensesQuery = useExpenses(uid);
+  // Every settlement the viewer can see (RLS); each event's card counts only the ones whose `eventId` is its own (ADR 0014).
+  const settlementsQuery = useSettlements(uid);
 
   const events = React.useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
   const expenses = React.useMemo(() => expensesQuery.data ?? [], [expensesQuery.data]);
   // Every expense that belongs to an event, grouped by it. Since ADR 0013 a member sees ALL of an event's
   // expenses, so these are the same rows for every viewer (unlike a list narrowed to the viewer's own).
   const byEvent = React.useMemo(() => expensesByEvent(expenses), [expenses]);
+  const settlements = React.useMemo(() => settlementsQuery.data ?? [], [settlementsQuery.data]);
+  const settlementsOfEvent = React.useMemo(() => settlementsByEvent(settlements), [settlements]);
 
   const profileIds = React.useMemo(() => {
     const ids = new Set<string>();
@@ -89,9 +103,13 @@ function EventsListContent() {
         ids.add(expense.paidBy);
         for (const split of expense.splits) ids.add(split.userId);
       }
+      for (const settlement of settlementsOfEvent.get(event.id) ?? []) {
+        ids.add(settlement.fromUserId);
+        ids.add(settlement.toUserId);
+      }
     }
     return Array.from(ids);
-  }, [events, byEvent]);
+  }, [events, byEvent, settlementsOfEvent]);
   const profilesQuery = useProfiles(profileIds);
   const names = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -109,8 +127,9 @@ function EventsListContent() {
   const currencies = React.useMemo(() => {
     const list: string[] = [];
     for (const rows of byEvent.values()) for (const expense of rows) list.push(expense.currency);
+    for (const rows of settlementsOfEvent.values()) for (const settlement of rows) list.push(settlement.currency);
     return list;
-  }, [byEvent]);
+  }, [byEvent, settlementsOfEvent]);
   const { convert, ready, approximate } = useDisplayConversion(currencies, displayCurrency);
 
   const [sortField, setSortField] = React.useState<EventSortField>('date');
@@ -119,20 +138,21 @@ function EventsListContent() {
 
   const totals = React.useMemo(() => {
     const map: Record<string, number> = {};
-    for (const event of events) map[event.id] = eventStats(byEvent.get(event.id) ?? [], convert).total;
+    for (const event of events) map[event.id] = eventStats(byEvent.get(event.id) ?? [], settlementsOfEvent.get(event.id) ?? [], convert).total;
     return map;
-  }, [events, byEvent, convert]);
+  }, [events, byEvent, settlementsOfEvent, convert]);
   const years = React.useMemo(() => eventYears(events), [events]);
   const visible = React.useMemo(
     () => sortEvents(filterEventsByYear(events, year === ALL_DATES ? 'all' : Number(year)), { field: sortField, order: sortOrder }, totals),
     [events, year, sortField, sortOrder, totals],
   );
 
-  const isError = Boolean(eventsQuery.isError || expensesQuery.isError || profilesQuery.isError);
-  const isRetrying = Boolean(eventsQuery.isRetrying || expensesQuery.isRetrying || profilesQuery.isFetching);
+  const isError = Boolean(eventsQuery.isError || expensesQuery.isError || settlementsQuery.isError || profilesQuery.isError);
+  const isRetrying = Boolean(eventsQuery.isRetrying || expensesQuery.isRetrying || settlementsQuery.isRetrying || profilesQuery.isFetching);
   function handleRetry() {
     eventsQuery.refetch();
     expensesQuery.refetch();
+    settlementsQuery.refetch();
     void profilesQuery.refetch();
   }
 
@@ -150,7 +170,7 @@ function EventsListContent() {
     );
   }
 
-  if (eventsQuery.data === undefined || expensesQuery.data === undefined) {
+  if (eventsQuery.data === undefined || expensesQuery.data === undefined || settlementsQuery.data === undefined) {
     // Card-shaped blocks, so the list does not jump when the real cards arrive.
     return (
       <div className="flex flex-col gap-4" aria-busy="true">
@@ -255,6 +275,7 @@ function EventsListContent() {
               <EventCard
                 event={event}
                 expenses={byEvent.get(event.id) ?? []}
+                settlements={settlementsOfEvent.get(event.id) ?? []}
                 names={names}
                 avatars={avatars}
                 displayCurrency={displayCurrency}

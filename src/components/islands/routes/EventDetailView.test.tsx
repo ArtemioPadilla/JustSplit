@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import type { AuthUser } from '@cyber-eco/types';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 import { $authReady, $profile, $user } from '@/stores/session';
 
 /**
@@ -36,15 +37,17 @@ import { $authReady, $profile, $user } from '@/stores/session';
 vi.mock('../AuthIsland', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('../AuthGate', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
-const { useEvent, useEventExpenses, useProfiles, useUpdateEvent, useDisplayConversion } = vi.hoisted(() => ({
+const { useEvent, useEventExpenses, useEventSettlements, useProfiles, useUpdateEvent, useDisplayConversion } = vi.hoisted(() => ({
   useEvent: vi.fn(),
   useEventExpenses: vi.fn(),
+  useEventSettlements: vi.fn(),
   useProfiles: vi.fn(),
   useUpdateEvent: vi.fn(),
   useDisplayConversion: vi.fn(),
 }));
 vi.mock('@/lib/data/hooks/useEvent', () => ({ useEvent }));
 vi.mock('@/lib/data/hooks/useExpenses', () => ({ useEventExpenses }));
+vi.mock('@/lib/data/hooks/useSettlements', () => ({ useEventSettlements }));
 vi.mock('@/lib/data/hooks/useProfiles', () => ({ useProfiles }));
 vi.mock('@/lib/data/hooks/useUpdateEvent', () => ({ useUpdateEvent }));
 vi.mock('@/lib/currency/useDisplayConversion', () => ({ useDisplayConversion }));
@@ -161,9 +164,24 @@ const convert = (amount: number, currency: string) => (currency === 'EUR' ? amou
 
 let updateMutateAsync: ReturnType<typeof vi.fn>;
 
-function loaded(overrides: { event?: Event; expenses?: Expense[] } = {}) {
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  return {
+    id: 's1',
+    groupId: null,
+    currency: 'USD',
+    date: '2025-01-09',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: NOW,
+    eventId: 'e1',
+    ...overrides,
+  };
+}
+
+function loaded(overrides: { event?: Event; expenses?: Expense[]; settlements?: Settlement[] } = {}) {
   useEvent.mockReturnValue({ data: overrides.event ?? makeEvent(), isLoading: false, isError: false, refetch: vi.fn() });
   useEventExpenses.mockReturnValue({ data: overrides.expenses ?? EXPENSES, isError: false, isRetrying: false, refetch: vi.fn() });
+  useEventSettlements.mockReturnValue({ data: overrides.settlements ?? [], isError: false, isRetrying: false, refetch: vi.fn() });
 }
 
 beforeEach(() => {
@@ -232,6 +250,24 @@ describe('EventDetailView — states', () => {
     expect(screen.getByText('Test Event')).toBeInTheDocument();
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
     expect(screen.queryByText(/USD 0\.00/)).not.toBeInTheDocument();
+  });
+
+  it('shows a skeleton, not figures computed without payments, while the settlements load', () => {
+    useEventSettlements.mockReturnValue({ data: undefined, isError: false, isRetrying: false, refetch: vi.fn() });
+    const { container } = render(<EventDetailView id="e1" />);
+    expect(screen.getByText('Test Event')).toBeInTheDocument();
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.queryByRole('list', { name: /balances/i })).not.toBeInTheDocument();
+  });
+
+  it('shows an error state with a working Retry when the settlements fail (the figures would be wrong without them)', async () => {
+    const refetch = vi.fn();
+    useEventSettlements.mockReturnValue({ data: undefined, isError: true, isRetrying: false, refetch });
+    render(<EventDetailView id="e1" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/settlements/i);
+    expect(screen.queryByRole('list', { name: /balances/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('shows an empty state with an "Add expense" action for an event with no expenses', () => {
@@ -307,13 +343,15 @@ describe('EventDetailView — ported from EventDetail.test.tsx', () => {
 });
 
 describe('EventDetailView — figures cover ALL of the event\'s expenses (ADR 0013)', () => {
-  it('counts, totals and sums the unsettled expenses over every expense, including one that does not name the viewer', () => {
+  it('counts, totals and sums what is still owed over every expense, including one that does not name the viewer', () => {
     render(<EventDetailView id="e1" />);
-    // 100 USD + 50 EUR (x2) + 40 USD = 240; unsettled = exp1 + exp3 = 140.
+    // 100 USD + 50 EUR (x2) + 40 USD = 240; still owed = the positive balances = Ana's 50 (exp2 is legacy settled).
     const summary = screen.getByRole('region', { name: /summary/i });
     expect(within(summary).getByText('3')).toBeInTheDocument();
     expect(within(summary).getByText('USD 240.00')).toBeInTheDocument();
-    expect(within(summary).getByText('USD 140.00')).toBeInTheDocument();
+    expect(within(summary).getByText('Still owed')).toBeInTheDocument();
+    expect(within(summary).getByText('USD 50.00')).toBeInTheDocument();
+    expect(within(summary).queryByText('Unsettled')).not.toBeInTheDocument();
   });
 
   it('shows the same figures and the same balances to every viewer', () => {
@@ -366,10 +404,69 @@ describe('EventDetailView — figures cover ALL of the event\'s expenses (ADR 00
     expect(within(screen.getByRole('list', { name: /balances/i })).getAllByText('Unknown').length).toBeGreaterThan(0);
   });
 
-  it('reports settlement progress from the settled share of the expenses (1 of 3), with a labelled progress bar', () => {
+  it('reports settlement progress as settled over settled plus still owed, with a labelled progress bar', () => {
     render(<EventDetailView id="e1" />);
-    expect(screen.getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '33');
-    expect(screen.getByText(/33% settled/i)).toBeInTheDocument();
+    // Only the legacy settled expense has moved money (Ana's 25 EUR = 50 USD): 50 / (50 + 50).
+    expect(screen.getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByText(/50% settled/i)).toBeInTheDocument();
+  });
+
+  it('subscribes to the event\'s own settlements (useEventSettlements), so the event scope counts only them', () => {
+    render(<EventDetailView id="e1" />);
+    expect(useEventSettlements).toHaveBeenCalledWith('e1');
+  });
+
+  describe('a settlement is a payment on the ledger (plan B14a, ADR 0014)', () => {
+    it('lowers the payer\'s debt and the still-owed total, and raises the progress, by exactly the paid amount', () => {
+      loaded({ settlements: [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 30 })] });
+      render(<EventDetailView id="e1" />);
+      const list = screen.getByRole('list', { name: /balances/i });
+      // Ana +50 -30 = 20 ; Beto -30 +30 = 0 ; Caro -20 (her debt is intact).
+      expect(within(list).getByText('is owed USD 20.00')).toBeInTheDocument();
+      expect(within(list).getByText('settled up')).toBeInTheDocument();
+      expect(within(list).getByText('owes USD 20.00')).toBeInTheDocument();
+      expect(within(screen.getByRole('region', { name: /summary/i })).getByText('USD 20.00')).toBeInTheDocument();
+      // Settled 30 + 50 (legacy) = 80 of 80 + 20.
+      expect(screen.getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '80');
+      expect(screen.getByText(/80% settled/i)).toBeInTheDocument();
+    });
+
+    it('converts a settlement in another currency into the display currency', () => {
+      loaded({ settlements: [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 10, currency: 'EUR' })] });
+      render(<EventDetailView id="e1" />);
+      // 10 EUR = 20 USD: Ana +50 -20 = 30, Beto -30 +20 = -10.
+      const list = screen.getByRole('list', { name: /balances/i });
+      expect(within(list).getByText('is owed USD 30.00')).toBeInTheDocument();
+      expect(within(list).getByText('owes USD 10.00')).toBeInTheDocument();
+      expect(useDisplayConversion).toHaveBeenLastCalledWith(expect.arrayContaining(['USD', 'EUR']), 'USD');
+    });
+
+    it('reads "Settled up" at 100% once every debt is paid', () => {
+      loaded({
+        settlements: [
+          makeSettlement({ id: 's1', fromUserId: 'u2', toUserId: 'u1', amount: 30 }),
+          makeSettlement({ id: 's2', fromUserId: 'u3', toUserId: 'u1', amount: 20 }),
+        ],
+      });
+      render(<EventDetailView id="e1" />);
+      expect(screen.getByRole('progressbar', { name: /settlement progress/i })).toHaveAttribute('aria-valuenow', '100');
+      // Scoped to the progress section: every balance row also reads "settled up".
+      expect(within(screen.getByRole('region', { name: /event timeline/i })).getByText(/^settled up$/i)).toBeInTheDocument();
+    });
+
+    it('reads "Nothing to settle" (no bar, not 0% and not 100%) when nothing is owed and nothing was settled', () => {
+      loaded({ expenses: [makeExpense({ id: 'solo', description: 'Solo', amount: 10, paidBy: 'u1', date: '2025-01-03', splits: [{ userId: 'u1', amount: 10 }] })] });
+      render(<EventDetailView id="e1" />);
+      expect(screen.getByText(/nothing to settle/i)).toBeInTheDocument();
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.queryByText(/% settled/i)).not.toBeInTheDocument();
+    });
+
+    it('an event with no expenses at all is also "nothing to settle"', () => {
+      loaded({ expenses: [] });
+      render(<EventDetailView id="e1" />);
+      expect(screen.getByText(/nothing to settle/i)).toBeInTheDocument();
+    });
   });
 
   it('subscribes to the event\'s own expenses (useEventExpenses), never a viewer-scoped list', () => {
@@ -416,7 +513,7 @@ describe('EventDetailView — display currency', () => {
 });
 
 describe('EventDetailView — expenses, timeline, links', () => {
-  it('lists every expense newest first with a link, the payer, the locale date, the split size and a text status badge', () => {
+  it('lists every expense newest first with a link, the payer, the locale date, the split size and a badge only for a legacy settled one', () => {
     render(<EventDetailView id="e1" />);
     const items = screen.getAllByRole('listitem').filter((li) => li.querySelector('a[href^="/expenses/exp"]'));
     expect(items.map((li) => within(li).getByRole('link').textContent)).toEqual(['Expense Three', 'Expense Two', 'Expense One']);
@@ -426,8 +523,10 @@ describe('EventDetailView — expenses, timeline, links', () => {
     expect(within(two).getByText(localDate('2025-01-05'))).toBeInTheDocument();
     expect(within(two).getByText(/paid by beto/i)).toBeInTheDocument();
     expect(within(two).getByText(/2 people/i)).toBeInTheDocument();
+    // Only a legacy (imported) settledAt earns a badge; nothing else can be derived honestly per expense (ADR 0014).
     expect(within(two).getByText('Settled')).toBeInTheDocument();
-    expect(within(screen.getByText('Expense One').closest('li')!).getByText('Unsettled')).toBeInTheDocument();
+    expect(within(screen.getByText('Expense One').closest('li')!).queryByText(/settled/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsettled')).not.toBeInTheDocument();
   });
 
   it('gives the timeline every expense, the display currency and names; navigating goes to the expense through withBase', () => {
@@ -446,6 +545,8 @@ describe('EventDetailView — expenses, timeline, links', () => {
       expect(props.currency).toBe('USD');
       expect(props.users).toMatchObject({ u1: 'Ana', u2: 'Beto', u3: 'Caro' });
       expect(props.event).toMatchObject({ startDate: '2025-01-01', endDate: '2025-01-10' });
+      // No per-expense settled state exists on the ledger (ADR 0014): the timeline must not invent one.
+      expect((props as unknown as { showSettlementStatus?: boolean }).showSettlementStatus).toBe(false);
 
       screen.getByTestId('event-timeline').click();
       expect(assign).toHaveBeenCalledWith('/expenses/exp1');

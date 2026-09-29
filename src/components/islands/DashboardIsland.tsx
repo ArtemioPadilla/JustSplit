@@ -14,8 +14,8 @@ import {
   categoryDistribution,
   involvingUser,
   monthlyTotals,
+  openBalanceCount,
   totalSpent,
-  unsettledCount,
   upcomingEvents as selectUpcomingEvents,
 } from '@/domain/dashboard';
 import { parseCalendarDate } from '@/domain/dates';
@@ -89,7 +89,11 @@ function DashboardContent() {
   const settlements = React.useMemo(() => involvingUser(settlementsQuery.data ?? [], uid ?? ''), [settlementsQuery.data, uid]);
   const dataLoading = expensesQuery.data === undefined || eventsQuery.data === undefined || settlementsQuery.data === undefined;
 
-  const currencies = React.useMemo(() => expenses.map((expense) => expense.currency), [expenses]);
+  // Settlements convert like expenses, so their currencies need resolved rates before `ready` too.
+  const currencies = React.useMemo(
+    () => [...expenses.map((expense) => expense.currency), ...settlements.map((settlement) => settlement.currency)],
+    [expenses, settlements],
+  );
   const { convert, ready, approximate, refresh } = useDisplayConversion(currencies);
 
   const participantIds = React.useMemo(() => {
@@ -182,6 +186,9 @@ function DashboardContent() {
     return <WelcomeScreen />;
   }
 
+  // One ledger read feeds both the tile and the balance chart (plan B14a, ADR 0014).
+  // Only once rates resolved: `convert` is not meaningful before that.
+  const balances = ready ? balancesWithUser(expenses, settlements, uid ?? '', names, convert) : [];
   const csvUsers = Object.entries(names).map(([id, name]) => ({ id, name }));
   const csvEvents = events.map((event) => ({ id: event.id, name: event.name }));
 
@@ -209,7 +216,7 @@ function DashboardContent() {
         <>
           <FinancialSummary
             totalSpent={totalSpent(expenses, convert)}
-            unsettledCount={unsettledCount(expenses)}
+            openBalanceCount={openBalanceCount(balances)}
             currency={preferredCurrency}
           />
 
@@ -224,7 +231,7 @@ function DashboardContent() {
             <DashboardCharts
               monthlyTrends={{ data: monthlyTotals(expenses, convert), currency: preferredCurrency }}
               expenseDistribution={{ data: categoryDistribution(expenses, convert), currency: preferredCurrency }}
-              balanceOverview={{ balances: balancesWithUser(expenses, uid ?? '', names, convert), currency: preferredCurrency }}
+              balanceOverview={{ balances, currency: preferredCurrency }}
             />
           </React.Suspense>
 

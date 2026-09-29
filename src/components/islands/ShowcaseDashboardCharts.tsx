@@ -99,7 +99,7 @@ export default function ShowcaseDashboardCharts() {
         <DashboardCharts
           monthlyTrends={{ data: monthlyTotals(SAMPLE_EXPENSES, identity), currency: 'USD' }}
           expenseDistribution={{ data: categoryDistribution(SAMPLE_EXPENSES, identity), currency: 'USD' }}
-          balanceOverview={{ balances: balancesWithUser(SAMPLE_EXPENSES, YOU, NAMES, identity), currency: 'USD' }}
+          balanceOverview={{ balances: balancesWithUser(SAMPLE_EXPENSES, [], YOU, NAMES, identity), currency: 'USD' }}
         />
       </React.Suspense>
     </ErrorBoundary>

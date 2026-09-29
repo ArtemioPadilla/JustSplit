@@ -137,7 +137,9 @@ JustSplit moves to **Supabase, consumed through the CyberEco data layer**:
 Firebase — Auth, Firestore, Hosting, project `justsplit-eef51` — is retired
 at cutover (plan B20). **No existing data is worth migrating**: JustSplit
 starts from a clean schema (D10); the Firestore documents, the stale rules
-and the base64 images of §2 are not ported.
+and the base64 images of §2 are not ported. (Should a future issue ever import any of it: an
+expense's legacy `settledAt` and the `Settlement` rows that covered it are carried either/or, never
+both — ADR 0014.)
 
 Rationale:
 
@@ -731,7 +733,8 @@ period close) is scoped to two items that ride on the same object:
 - **Period close is not built:** "Cerrar mes" / "Liquidar viaje" is the
   existing settle-up island (B14) pre-filtered by date range or
   `?group=`/`?event=`, writing ordinary `Settlement` rows; a period is closed
-  when its expenses carry `settledAt`. No `closedAt`, no lock, no
+  when its expenses carry `settledAt` *(superseded by ADR 0014: a period is settled
+  up when its scope's balances net to zero — derived, not flagged)*. No `closedAt`, no lock, no
   reopen flow — a lock the policies cannot enforce would be a UI fiction. A
   period "closed" by `settledAt` is a member-asserted state, not a verified
   one (D10 Splits).
@@ -994,7 +997,9 @@ construction (D9). Old JustSplit concepts map as: `participants` =
 `splits.map(s => s.userId)`; `paidBy` unchanged (must be ∈ `member_ids`, not
 necessarily ∈ `splits`); `settled` → `settledAt: string | null` (an overflow
 key), written by settle-up in the same `batchWrite` as the `Settlement`
-insert (the universal `Expense` has no settled flag; deriving it from
+insert **(superseded by [ADR 0014](../../decisions/0014-settlements-ledger.md), plan B14a: settle-up
+writes no `settledAt`, it is legacy and read-only; balances are a ledger of splits minus
+settlements)** (the universal `Expense` has no settled flag; deriving it from
 settlements would cost a join on every list, and a stored `settledAt` is one
 indexed jsonb key that mirrors today's UI). Trust statement: every overflow
 key is writable by any member of the row and is never protected by RLS;
@@ -1066,7 +1071,7 @@ supabase/config.toml          local CLI only ([db.migrations] and [db.seed] disa
 - [ ] Events: list (sort by date/name/total, date filter, per-event timeline, per-event total in the display currency), create, detail (inline-editable name, timeline, Settlement Progress bar, total/unsettled stats, per-member balances in the display currency, expense list with settled badges, "View Settlements", "Add expense", CSV export), edit; delete event: not built (no page calls `deleteEvent` today)
 - [ ] Groups: list, create (creator `role: 'owner'`, members from accepted friends), detail (members with names from `find_profiles_by_ids`, events, expenses via `group_id`, display-currency selector), attach an existing event or expense to the group (only expenses whose participants ⊆ the group's members), admin member management, delete group (admin; rows survive ungrouped)
 - [ ] Friends: list with Friend Requests / Friends / Sent Requests (Cancel) sections, request by exact email (kept — today's `/friends` form, now through `find_profile_by_email` on `auth.users`), accept/reject/remove (`friendships` table, universal `Friendship`), detail with names from `find_profiles_by_ids`, "Add shared expense" → `/expenses/new?friend=`, unregistered email → mailto/copy-link invitation (new); **dropped**: the browsable name/email directory search (own-row `profiles`), the local-only add-by-name form, the legacy `User.friends*` arrays
-- [ ] Settlements: who-owes-whom, minimal-transaction algorithm, mark as paid **persisted (new — today it is local-only and lost on the next snapshot)** as a `Settlement` row + `settledAt` on the expenses in one `batchWrite` (shown as "marcado como pagado por <name>", an attestation), display-currency selector + exchange-rates table, multi-currency conversion, `?event=` deep link, history with both parties' names
+- [ ] Settlements: who-owes-whom, minimal-transaction algorithm, mark as paid **persisted (new — today it is local-only and lost on the next snapshot)** as a `Settlement` row + `settledAt` on the expenses in one `batchWrite` *(superseded by ADR 0014 / plan B14a: a single `Settlement` insert, no expense is marked)* (shown as "marcado como pagado por <name>", an attestation), display-currency selector + exchange-rates table, multi-currency conversion, `?event=` deep link, history with both parties' names
 - [ ] Currency: preferred currency (`profiles.preferences` is the source of truth), live exchange ticker with fallback table, rate cache; a display-currency selector with live conversion of every listed amount on the expenses list, expense detail, events list/detail (default: the event's `preferredCurrency`), settlements and group detail; conversion is always on (the `isConvertingCurrencies` toggle is dropped)
 - [ ] CSV export from the dashboard, the filtered expense list, the expense detail and the event detail page (one `ExportCsvButton`, names via `find_profiles_by_ids`)
 - [ ] Notifications/toasts (topology per plan B17b ADR)

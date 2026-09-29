@@ -122,6 +122,52 @@ describe('EventTimeline — settlement status, never by color alone (ported from
   });
 });
 
+describe('EventTimeline — showSettlementStatus={false} (plan B14a, ADR 0014: no per-expense settled state exists to show)', () => {
+  it('shows no settled / unsettled / mixed legend, and the markers carry a neutral status', () => {
+    renderTimeline({ showSettlementStatus: false });
+    expect(screen.queryByText('Settled')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsettled')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mixed settlement')).not.toBeInTheDocument();
+    for (const marker of screen.getAllByTestId('timeline-marker')) {
+      expect(marker).toHaveAttribute('data-status', 'neutral');
+    }
+  });
+
+  it('never claims a settlement state in an accessible name, single or grouped, or in the text alternative', () => {
+    renderTimeline({ showSettlementStatus: false });
+    for (const marker of screen.getAllByTestId('timeline-marker')) {
+      expect(marker.getAttribute('aria-label')).not.toMatch(/settled/i);
+    }
+    for (const entry of screen.getAllByTestId('timeline-sr-expense')) {
+      expect(entry.textContent).not.toMatch(/settled/i);
+    }
+    // Still names the expense and its amount.
+    // Once as the marker, once in the text alternative.
+    expect(screen.getAllByRole('button', { name: /View expense: Start date expense, \$50\.00, Jun 1, 2023/ })).toHaveLength(2);
+  });
+
+  it('keeps the pre-/post-event legend and every expense reachable', () => {
+    renderTimeline({ showSettlementStatus: false });
+    expect(screen.getByText('Before the event')).toBeInTheDocument();
+    expect(screen.getAllByTestId('timeline-sr-expense')).toHaveLength(EXPENSES.length);
+  });
+
+  it('the hover card lists the expenses without a settled state', async () => {
+    renderTimeline({ showSettlementStatus: false });
+    const grouped = screen.getAllByTestId('timeline-marker').find((m) => m.getAttribute('aria-label')?.includes('2 expenses'))!;
+    await userEvent.hover(grouped);
+    expect(await screen.findByText('Mid-event expense')).toBeInTheDocument();
+    expect(screen.queryByText('Settled')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsettled')).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+ settled, \d+ unsettled/)).not.toBeInTheDocument();
+  });
+
+  it('defaults to showing the legacy settled state (unchanged for existing callers and the showcase)', () => {
+    renderTimeline();
+    expect(screen.getByText('Settled')).toBeInTheDocument();
+  });
+});
+
 describe('EventTimeline — pre-/post-event expenses shown distinctly (ported from postEventExpenses.test.tsx)', () => {
   it('flags the pre-event marker and clamps it visually to the start of the track', () => {
     renderTimeline();

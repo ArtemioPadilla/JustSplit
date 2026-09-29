@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Event } from '@/schemas/event';
 import type { Expense } from '@/schemas/expense';
+import type { Settlement } from '@/schemas/settlement';
 import {
   buildCreateEventInput,
   buildEventPatch,
@@ -11,6 +12,8 @@ import {
   eventYears,
   expensesByEvent,
   filterEventsByYear,
+  settlementProgressPercent,
+  settlementsByEvent,
   sortEvents,
   validateEventDates,
 } from './events';
@@ -34,6 +37,20 @@ function makeEvent(overrides: Partial<Event> & Pick<Event, 'id' | 'name'>): Even
     kind: 'event',
     createdBy: 'u1',
     createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function makeSettlement(overrides: Partial<Settlement> & Pick<Settlement, 'fromUserId' | 'toUserId' | 'amount'>): Settlement {
+  return {
+    id: 's1',
+    groupId: null,
+    currency: 'USD',
+    date: '2026-06-05',
+    memberIds: [overrides.fromUserId, overrides.toUserId],
+    createdBy: overrides.fromUserId,
+    createdAt: '2026-06-05T00:00:00.000Z',
+    eventId: 'e1',
     ...overrides,
   };
 }
@@ -133,30 +150,85 @@ describe('expensesByEvent', () => {
   });
 });
 
-describe('eventStats (over ALL the event\'s expenses, ADR 0013 — no viewer argument)', () => {
-  const expenses = [
-    makeExpense({ id: '1', amount: 100, paidBy: 'u1' }),
-    makeExpense({ id: '2', amount: 50, paidBy: 'u2', settledAt: '2026-06-03T00:00:00.000Z' }),
-    makeExpense({ id: '3', amount: 25, paidBy: 'u2' }),
-  ];
-
-  it('counts, totals (settled and not), sums the unsettled ones and reports the settled share', () => {
-    expect(eventStats(expenses, identity)).toEqual({ count: 3, total: 175, unsettled: 125, settledPercentage: (1 / 3) * 100 });
-  });
-
-  it('converts every amount into the display currency before summing, and rounds to cents', () => {
-    const mixed = [makeExpense({ id: '1', amount: 10, paidBy: 'u1', currency: 'EUR' }), makeExpense({ id: '2', amount: 10, paidBy: 'u1', currency: 'USD' })];
-    const stats = eventStats(mixed, (amount, currency) => (currency === 'EUR' ? amount * 1.111 : amount));
-    expect(stats.total).toBe(21.11);
-    expect(stats.unsettled).toBe(21.11);
-  });
-
-  it('is all zeros for an event with no expenses', () => {
-    expect(eventStats([], identity)).toEqual({ count: 0, total: 0, unsettled: 0, settledPercentage: 0 });
+describe('settlementsByEvent', () => {
+  it('groups settlements by eventId and drops the ones with none (null, undefined) — the event scope counts only its own', () => {
+    const grouped = settlementsByEvent([
+      makeSettlement({ id: '1', fromUserId: 'u2', toUserId: 'u1', amount: 1, eventId: 'e1' }),
+      makeSettlement({ id: '2', fromUserId: 'u2', toUserId: 'u1', amount: 1, eventId: 'e2' }),
+      makeSettlement({ id: '3', fromUserId: 'u2', toUserId: 'u1', amount: 1, eventId: 'e1' }),
+      makeSettlement({ id: '4', fromUserId: 'u2', toUserId: 'u1', amount: 1, eventId: null }),
+      makeSettlement({ id: '5', fromUserId: 'u2', toUserId: 'u1', amount: 1, eventId: undefined }),
+    ]);
+    expect(grouped.get('e1')?.map((x) => x.id)).toEqual(['1', '3']);
+    expect(grouped.get('e2')?.map((x) => x.id)).toEqual(['2']);
+    expect(grouped.size).toBe(2);
   });
 });
 
-describe('eventBalances (unsettled expenses, over splits[] not an equal division)', () => {
+describe('eventStats (over ALL the event\'s expenses and settlements, ADR 0013 + 0014 — no viewer argument)', () => {
+  // u1 paid 100 split 50/50 with u2 (u2 owes 50); u2 paid a legacy-settled 50 split 25/25 (u1's 25 was settled);
+  // u2 paid 25 for u2 alone.
+  const expenses = [
+    makeExpense({ id: '1', amount: 100, paidBy: 'u1', splits: [{ userId: 'u1', amount: 50 }, { userId: 'u2', amount: 50 }] }),
+    makeExpense({ id: '2', amount: 50, paidBy: 'u2', settledAt: '2026-06-03T00:00:00.000Z', splits: [{ userId: 'u1', amount: 25 }, { userId: 'u2', amount: 25 }] }),
+    makeExpense({ id: '3', amount: 25, paidBy: 'u2', splits: [{ userId: 'u2', amount: 25 }] }),
+  ];
+
+  it('counts, totals (legacy settled included) and reports what is still owed, what has been settled and the share', () => {
+    expect(eventStats(expenses, [], identity)).toEqual({
+      count: 3,
+      total: 175,
+      outstanding: 50,
+      settled: 25,
+      settledPercentage: 33.33,
+      settledUp: false,
+    });
+  });
+
+  it('a payment lowers what is still owed and raises the settled share by exactly its amount', () => {
+    const stats = eventStats(expenses, [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 20 })], identity);
+    expect(stats).toMatchObject({ outstanding: 30, settled: 45, settledPercentage: 60, settledUp: false });
+  });
+
+  it('is settled up (100) once every debt is paid', () => {
+    const stats = eventStats(expenses, [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 50 })], identity);
+    expect(stats).toMatchObject({ outstanding: 0, settled: 75, settledPercentage: 100, settledUp: true });
+  });
+
+  it('converts every amount and settlement into the display currency before summing, and rounds to cents', () => {
+    const mixed = [
+      makeExpense({ id: '1', amount: 10, paidBy: 'u1', currency: 'EUR', splits: [{ userId: 'u1', amount: 5 }, { userId: 'u2', amount: 5 }] }),
+      makeExpense({ id: '2', amount: 10, paidBy: 'u1', currency: 'USD', splits: [{ userId: 'u1', amount: 5 }, { userId: 'u2', amount: 5 }] }),
+    ];
+    const stats = eventStats(mixed, [], (amount, currency) => (currency === 'EUR' ? amount * 1.111 : amount));
+    expect(stats.total).toBe(21.11);
+    expect(Number.isInteger(Math.round(stats.outstanding * 100))).toBe(true);
+    expect(stats.outstanding * 100).toBeCloseTo(Math.round(stats.outstanding * 100), 6); // whole cents, no float dust
+  });
+
+  it('reads "nothing to settle" (null percentage) for an event with nothing owed and nothing settled', () => {
+    expect(eventStats([], [], identity)).toEqual({ count: 0, total: 0, outstanding: 0, settled: 0, settledPercentage: null, settledUp: true });
+    const solo = [makeExpense({ id: '1', amount: 10, paidBy: 'u1', splits: [{ userId: 'u1', amount: 10 }] })];
+    expect(eventStats(solo, [], identity)).toMatchObject({ outstanding: 0, settled: 0, settledPercentage: null });
+  });
+
+  it('a legacy settled expense alone reads as fully settled', () => {
+    const legacy = [makeExpense({ id: '1', amount: 100, paidBy: 'u1', settledAt: '2026-06-03T00:00:00.000Z', splits: [{ userId: 'u1', amount: 50 }, { userId: 'u2', amount: 50 }] })];
+    expect(eventStats(legacy, [], identity)).toMatchObject({ outstanding: 0, settled: 50, settledPercentage: 100, settledUp: true });
+  });
+});
+
+describe('settlementProgressPercent (what the bar shows)', () => {
+  it('is null for "nothing to settle", 100 only when settled up, and never rounds an open balance up to 100', () => {
+    expect(settlementProgressPercent({ settledPercentage: null, settledUp: true })).toBeNull();
+    expect(settlementProgressPercent({ settledPercentage: 100, settledUp: true })).toBe(100);
+    expect(settlementProgressPercent({ settledPercentage: 99.6, settledUp: false })).toBe(99);
+    expect(settlementProgressPercent({ settledPercentage: 66.67, settledUp: false })).toBe(67);
+    expect(settlementProgressPercent({ settledPercentage: 0, settledUp: false })).toBe(0);
+  });
+});
+
+describe('eventBalances (the ledger: over splits[], net of the event\'s settlements)', () => {
   it('credits the payer the whole amount and debits each participant their own split', () => {
     const balances = eventBalances(
       [
@@ -171,23 +243,25 @@ describe('eventBalances (unsettled expenses, over splits[] not an equal division
           ],
         }),
       ],
+      [],
       identity,
     );
     expect(balances).toEqual({ u1: 80, u2: -80 });
   });
 
   it('counts a payer who is not in the split (they paid for the others)', () => {
-    const balances = eventBalances([makeExpense({ id: '1', amount: 30, paidBy: 'u3', splits: [{ userId: 'u1', amount: 15 }, { userId: 'u2', amount: 15 }] })], identity);
+    const balances = eventBalances([makeExpense({ id: '1', amount: 30, paidBy: 'u3', splits: [{ userId: 'u1', amount: 15 }, { userId: 'u2', amount: 15 }] })], [], identity);
     expect(balances).toEqual({ u3: 30, u1: -15, u2: -15 });
   });
 
-  it('skips settled expenses and nets several expenses together', () => {
+  it('skips legacy settled expenses and nets several expenses together', () => {
     const balances = eventBalances(
       [
         makeExpense({ id: '1', amount: 40, paidBy: 'u1', splits: [{ userId: 'u1', amount: 20 }, { userId: 'u2', amount: 20 }] }),
         makeExpense({ id: '2', amount: 20, paidBy: 'u2', splits: [{ userId: 'u1', amount: 10 }, { userId: 'u2', amount: 10 }] }),
         makeExpense({ id: '3', amount: 999, paidBy: 'u2', settledAt: '2026-06-03T00:00:00.000Z', splits: [{ userId: 'u1', amount: 999 }] }),
       ],
+      [],
       identity,
     );
     expect(balances).toEqual({ u1: 10, u2: -10 });
@@ -196,13 +270,27 @@ describe('eventBalances (unsettled expenses, over splits[] not an equal division
   it('converts each expense from its own currency, and rounds away float dust', () => {
     const balances = eventBalances(
       [makeExpense({ id: '1', amount: 10, paidBy: 'u1', currency: 'EUR', splits: [{ userId: 'u1', amount: 3.3333 }, { userId: 'u2', amount: 6.6667 }] })],
+      [],
       (amount) => amount * 1.1,
     );
     expect(balances).toEqual({ u1: 7.33, u2: -7.33 });
   });
 
-  it('is empty when nothing is unsettled', () => {
-    expect(eventBalances([makeExpense({ id: '1', amount: 5, paidBy: 'u1', settledAt: '2026-06-03T00:00:00.000Z' })], identity)).toEqual({});
+  it('is empty when nothing is owed and nothing was paid', () => {
+    expect(eventBalances([makeExpense({ id: '1', amount: 5, paidBy: 'u1', settledAt: '2026-06-03T00:00:00.000Z' })], [], identity)).toEqual({});
+  });
+
+  it('three-person expense, one pair settles: the third person\'s debt is intact', () => {
+    const dinner = makeExpense({ id: '1', amount: 90, paidBy: 'u1', splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }, { userId: 'u3', amount: 30 }] });
+    const balances = eventBalances([dinner], [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 30 })], identity);
+    expect(balances).toEqual({ u1: 30, u2: 0, u3: -30 });
+  });
+
+  it('a partial payment, and a payment in another currency, move balances by the converted amount', () => {
+    const dinner = makeExpense({ id: '1', amount: 90, paidBy: 'u1', splits: [{ userId: 'u1', amount: 30 }, { userId: 'u2', amount: 30 }, { userId: 'u3', amount: 30 }] });
+    const eurToUsd = (amount: number, currency: string) => (currency === 'EUR' ? amount * 2 : amount);
+    const balances = eventBalances([dinner], [makeSettlement({ fromUserId: 'u2', toUserId: 'u1', amount: 10, currency: 'EUR' })], eurToUsd);
+    expect(balances).toEqual({ u1: 40, u2: -10, u3: -30 });
   });
 });
 

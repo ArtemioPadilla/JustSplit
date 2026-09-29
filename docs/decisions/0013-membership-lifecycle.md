@@ -105,7 +105,10 @@ an event expense without a group takes event members or the creator's friends, a
 the creator must belong to the event; `settlements_insert` gets the same
 `event_id is null or is_event_member(event_id)` clause (event members see an
 event's settlements and their amounts, so a stranger's event must not accept
-one). `created_by` stays immutable everywhere.
+one). `created_by` stays immutable everywhere. *Amended by [0014](./0014-settlements-ledger.md) /
+migration 015: a settlement with an `event_id` and no group may now name an event
+co-member too, matching the event expense rule above; with neither it stays
+friends-only.*
 
 **Leaving a group or event is privileged like joining one.** Visibility follows
 `group_id`/`event_id`, so nulling (or moving away from) the link pulls the row out
