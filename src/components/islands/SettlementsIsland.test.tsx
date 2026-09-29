@@ -788,14 +788,15 @@ describe('SettlementsIsland — where each personal row can be recorded (no dead
     expect(links[1]).toHaveAttribute('href', '/settlements?event=ev2');
   });
 
-  it('not a friend and no event at all: no button and no false promise of one, just why', async () => {
+  it('not a friend and no event at all: no button, says why, and offers the way forward (add them as a friend)', async () => {
     asBeto([...LIVE_EXPENSES.slice(0, 1), makeExpense({ id: 'x2', paidBy: 'u3', amount: 40, memberIds: ['u2', 'u3'], splits: [{ userId: 'u3', amount: 20 }, { userId: 'u2', amount: 20 }] })]);
     render(<SettlementsIsland />);
     await screen.findByRole('list', { name: 'Suggested payments' });
     const row = rowFor('Caro');
     expect(within(row).queryByRole('button')).not.toBeInTheDocument();
-    expect(within(row).queryByRole('link')).not.toBeInTheDocument();
-    expect(row).toHaveTextContent("You and Caro aren't friends, so this can't be settled here.");
+    expect(row).toHaveTextContent("You and Caro aren't friends anymore. Add them as a friend to record this payment.");
+    const link = within(row).getByRole('link', { name: 'Add them as a friend' });
+    expect(link).toHaveAttribute('href', '/friends');
   });
 
   it('no branch leaves a button that always fails: every row is either recordable (friend, or one event) or explains where to go instead', async () => {
