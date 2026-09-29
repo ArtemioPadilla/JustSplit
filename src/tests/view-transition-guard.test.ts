@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 describe('BaseLayout view-transition guard', () => {
-  it('is an inline script in <head>, before any module script', () => {
+  it('is an inline script in <head>, right after the zero-flash theme script', () => {
     const head = layout.slice(0, layout.indexOf('</head>'));
     expect(head).toMatch(/<script is:inline>[\s\S]*pagereveal[\s\S]*<\/script>/);
   });
