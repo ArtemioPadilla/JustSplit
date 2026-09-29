@@ -49,6 +49,14 @@ export function createQueryClient(): QueryClient {
         refetchOnWindowFocus: false,
         retry: 1,
       },
+      mutations: {
+        // Plan B19c (ADR 0015): never queue a write silently. The default 'online' mode PAUSES a
+        // mutation started while offline (mutationFn is never called, so the data layer's
+        // OfflineWriteError guard never runs) and RESUMES it on reconnect. 'always' runs it, the
+        // guard refuses it, and the caller's error path says so. Queries keep the default, so reads
+        // pause offline and are served from the cache.
+        networkMode: 'always',
+      },
     },
   });
 }
