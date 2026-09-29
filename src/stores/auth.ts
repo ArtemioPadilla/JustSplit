@@ -4,7 +4,6 @@ import type { GuardUser } from '@/lib/route-guard';
 import { authAdapter, profileStore } from '@/lib/data/adapter';
 import { SupabaseDisabledError, signInWithOAuthRedirect, waitForSession } from '@/lib/data/client';
 import { safeNext, withBase } from '@/lib/href';
-import { clearPersistedQueryCache } from '@/lib/queryClient';
 
 /**
  * Cross-island session state (plan B4, spec D3: Nano Stores, never React
@@ -55,6 +54,10 @@ export async function signUp(email: string, password: string, displayName: strin
  */
 export async function signOut(): Promise<void> {
   await requireAuthAdapter().signOut();
+  // Loaded here, not at the top: this module is on the sign-in page too, which has
+  // no Query cache to clear, and the persister (TanStack Query core included) is
+  // ~40 kB of JS it never needs (plan B19).
+  const { clearPersistedQueryCache } = await import('@/lib/queryClient');
   await clearPersistedQueryCache();
 }
 
