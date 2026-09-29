@@ -169,3 +169,24 @@ describe('AvatarUploadField', () => {
     expect(uploadAvatar).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Plan A7 (found by the live smoke on /profile at 375px): the dropzone had a
+ * fixed `w-64` (256px) next to the 64px avatar, so the row was 336px wide
+ * inside a ~293px card and the page scrolled sideways by 2px. jsdom has no
+ * layout, so this pins the classes that make the row able to shrink: the
+ * dropzone is `w-full` with a `max-w-64` cap, and the column that holds it
+ * may shrink below its content (`min-w-0`); the live smoke measures the
+ * real overflow.
+ */
+describe('AvatarUploadField layout (375px)', () => {
+  it('lets the dropzone shrink instead of forcing a fixed 256px width', () => {
+    render(<AvatarUploadField uid="u1" name="Ana" avatarPath={null} />);
+    const dropzone = screen.getByRole('button', { name: /add files/i });
+    const upload = dropzone.parentElement as HTMLElement;
+    expect(upload.className).not.toMatch(/(^|\s)w-64(\s|$)/);
+    expect(upload.className).toMatch(/(^|\s)w-full(\s|$)/);
+    expect(upload.className).toMatch(/(^|\s)max-w-64(\s|$)/);
+    expect((upload.parentElement as HTMLElement).className).toMatch(/(^|\s)min-w-0(\s|$)/);
+  });
+});
