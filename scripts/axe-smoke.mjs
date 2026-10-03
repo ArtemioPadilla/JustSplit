@@ -11,6 +11,11 @@
  * of check", CLAUDE.md); this follows the same precedent with its own
  * `npm run check:a11y` script and CI job (`ci.yml`).
  *
+ * Every page is also held to the accessibility-tree invariants of
+ * `scripts/lib/aria-invariants.mjs` (plan B19d, layer 3) in the same three
+ * configurations. Layer 2 (live-region announcements) needs real flows, so it
+ * lives in the live smoke only.
+ *
  * Requires a production build (`npm run build`) to exist at `dist/`. Serves
  * it with a minimal static file server (no new runtime dependency for that
  * part) and drives the preinstalled Chromium at `/opt/pw-browsers/chromium`
@@ -29,6 +34,7 @@ import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { CONFIGS } from './lib/a11y-configs.mjs';
 import { launchChromium } from './lib/browser.mjs';
+import { ariaTreeViolations } from './lib/live-audit.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -97,6 +103,12 @@ async function main() {
           }
         } else {
           console.log(`check:a11y ok — ${label} (0 violations)`);
+        }
+        // Plan B19d, layer 3: the structural invariants over Chromium's accessibility tree (one main and
+        // one h1, named controls and dialogs, distinct navigation labels, nothing focused inside
+        // aria-hidden), the same function the live smoke runs on every signed-in state.
+        for (const violation of await ariaTreeViolations(page)) {
+          failures.push(`${label}: accessibility tree ${violation}`);
         }
         if (config.checkOverflow) {
           const { scrollWidth, clientWidth } = await page.evaluate(() => ({

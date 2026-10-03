@@ -1,10 +1,13 @@
 /**
  * Browser-side helpers of the live smoke (`scripts/live-smoke.mjs`, plan A7):
- * console capture, external-request isolation, settling, axe and the 375px
- * overflow check.
+ * console capture, external-request isolation, settling, axe, the 375px
+ * overflow check, and the screen-reader layers of plan B19d (the live-region
+ * announcement log and the accessibility-tree invariants).
  */
 import AxeBuilder from '@axe-core/playwright';
 import { classifyConsoleEntry } from './console-policy.mjs';
+import { installLiveRegionObserver } from './live-announcements.mjs';
+import { checkAriaInvariants, readFocusFacts } from './aria-invariants.mjs';
 
 // Every currency the ticker asks for (SUPPORTED_CURRENCIES): a partial answer
 // would put the app in its "approximate rates" fallback, which is a state of
@@ -104,4 +107,33 @@ export async function overflowOf(page) {
     clientWidth: document.documentElement.clientWidth,
   }));
   return scrollWidth > clientWidth ? `overflows horizontally (${scrollWidth}px > ${clientWidth}px)` : null;
+}
+
+/**
+ * Plan B19d, layer 2: records every live-region announcement of every page in
+ * `context` into `entries` (each tagged with the context's `label` and the URL of
+ * the frame). The observer is injected with `addInitScript`, so it runs from the
+ * first byte of every document; the entries travel through an `exposeBinding`
+ * call instead of being read back, so they survive the full page load this static
+ * MPA does on every navigation. Classification is `classifyAnnouncements`
+ * (live-announcements.mjs), asserted per flow by the caller.
+ */
+export async function watchAnnouncements(context, label, entries) {
+  await context.exposeBinding('__liveAnnounce', ({ frame }, entry) => {
+    entries.push({ ...entry, label, url: frame.url() });
+  });
+  await context.addInitScript(installLiveRegionObserver);
+}
+
+/**
+ * Plan B19d, layer 3: Chromium's accessibility tree of the page
+ * (`page.ariaSnapshotJSON()`; `page.accessibility.snapshot()` is gone in
+ * Playwright 1.5x) through the invariants of aria-invariants.mjs, plus the one DOM
+ * fact the tree cannot carry (a focused element inside an aria-hidden subtree).
+ * Returns human-readable violation lines; an empty array is clean.
+ */
+export async function ariaTreeViolations(page) {
+  const tree = await page.ariaSnapshotJSON();
+  const focus = await page.evaluate(readFocusFacts);
+  return checkAriaInvariants(tree, { focus }).map((v) => `[${v.invariant}] ${v.message}`);
 }
