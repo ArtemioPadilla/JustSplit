@@ -356,6 +356,18 @@ describe('classifyAnnouncements: double announcements fail', () => {
     expect(found[0]!.message).toContain('p[role=status]');
   });
 
+  it('tells two regions apart even when they describe themselves the same (two toasts)', async () => {
+    const { classifyAnnouncements } = await load();
+    const found = classifyAnnouncements([
+      entry({ text: 'Payment recorded', at: 1000, region: 'div[role=status]', regionKey: 4 }),
+      entry({ text: 'Payment recorded', at: 1010, region: 'div[role=status]', regionKey: 7 }),
+    ]);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ kind: 'two-regions' });
+    expect(found[0]!.regions).toEqual(['div[role=status] (#4)', 'div[role=status] (#7)']);
+    expect(found[0]!.message).toContain('div[role=status] (#4) and div[role=status] (#7)');
+  });
+
   it('does not mix up different documents, or different texts', async () => {
     const { classifyAnnouncements } = await load();
     expect(
