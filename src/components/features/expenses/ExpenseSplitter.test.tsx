@@ -16,6 +16,43 @@ import type { Shares } from '@/domain/expenseSplitter';
  */
 const NAMES = { u1: 'Ana', u2: 'Beto' };
 
+describe('ExpenseSplitter: before the participants are known (plan B19d)', () => {
+  const props = {
+    splitType: 'equal' as const,
+    onSplitTypeChange: vi.fn(),
+    participantIds: [] as string[],
+    amount: 0,
+    shares: {},
+    onSharesChange: vi.fn(),
+    names: NAMES,
+  };
+
+  it('keeps its status region in the document but says nothing while `ready` is false', () => {
+    render(<ExpenseSplitter {...props} ready={false} />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('still says "Select at least one participant." once ready, and again when the person clears everyone', () => {
+    const view = render(<ExpenseSplitter {...props} ready />);
+    expect(screen.getByRole('status')).toHaveTextContent('Select at least one participant.');
+    view.rerender(<ExpenseSplitter {...props} participantIds={['u1']} ready />);
+    expect(screen.getByRole('status')).toHaveTextContent(/balanced/i);
+  });
+
+  it('speaks its balanced sentence into the region that was already there when it becomes ready', () => {
+    const view = render(<ExpenseSplitter {...props} ready={false} />);
+    const region = screen.getByRole('status');
+    view.rerender(<ExpenseSplitter {...props} participantIds={['u1', 'u2']} ready />);
+    expect(screen.getByRole('status')).toBe(region);
+    expect(region).toHaveTextContent('Balanced — split evenly among 2 participants.');
+  });
+
+  it('is ready by default, so every other caller is unchanged', () => {
+    render(<ExpenseSplitter {...props} participantIds={['u1']} />);
+    expect(screen.getByRole('status')).toHaveTextContent(/balanced/i);
+  });
+});
+
 describe('ExpenseSplitter', () => {
   it('equal: shows a balanced status with no per-participant share inputs', () => {
     render(

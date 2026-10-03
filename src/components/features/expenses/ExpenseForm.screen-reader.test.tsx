@@ -127,6 +127,35 @@ describe('ExpenseForm: a submit with invalid fields', () => {
   });
 });
 
+describe('ExpenseForm: loading', () => {
+  it('announces no validation message before the person has done anything, then says the split is balanced', async () => {
+    // The friends query has not answered yet: nobody is selected, which is "loading", not "invalid".
+    useFriends.mockReturnValue({ data: undefined, isSuccess: false });
+    const view = render(
+      <>
+        <ExpenseForm mode="create" />
+        <Toaster />
+      </>,
+    );
+    await announcements.settled();
+    expect(announcements.log.filter((entry) => /select at least one participant/i.test(entry.text))).toEqual([]);
+
+    useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' }], isSuccess: true });
+    view.rerender(
+      <>
+        <ExpenseForm mode="create" />
+        <Toaster />
+      </>,
+    );
+    await screen.findByRole('checkbox', { name: 'Ana' });
+    const log = await announcements.settled();
+
+    expect(log.filter((entry) => /select at least one participant/i.test(entry.text))).toEqual([]);
+    expect(log.filter((entry) => /balanced/i.test(entry.text))).toHaveLength(1);
+    expect(announcements.problems()).toEqual([]);
+  });
+});
+
 describe('ExpenseForm: shares that do not add up', () => {
   it('is announced once, assertively, naming what is left, without moving focus off the button', async () => {
     await renderForm();
