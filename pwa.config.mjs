@@ -112,7 +112,9 @@ export function pwaOptions(base) {
       globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
       // The maskable SVG is only the source `npm run icons` renders the maskable and
       // apple-touch PNGs from; nothing references it at runtime, so it is not precached.
-      globIgnores: ['icons/logo-maskable.svg'],
+      // images/ holds the pre-migration logo files (one PNG is 1.2 MB): no page uses
+      // them, so they are not precached either.
+      globIgnores: ['icons/logo-maskable.svg', 'images/**'],
       directoryIndex: 'index.html',
       manifestTransforms: [directoryAliasTransform(base)],
       // The offline shell (spec D2): an offline navigation to an app route with no
