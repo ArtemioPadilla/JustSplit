@@ -6,13 +6,13 @@
  * src/lib/site-meta.ts re-exports the same value; src/tests/site-meta.test.ts
  * asserts both stay in sync.
  *
- * Spec D2: GitHub Pages. Until a custom domain is configured the site lives at
- * https://artemiopadilla.github.io/JustSplit/ (base '/JustSplit', set at build
- * time via ASTRO_BASE in .github/workflows/deploy.yml). With a custom domain:
- * change SITE_ORIGIN here + in site-meta.ts + public/robots.txt, and set the
- * repository variable ASTRO_BASE to '/'.
+ * ADR 0016 (supersedes spec D2's GitHub Pages): production is Cloudflare Pages at
+ * https://split.cybere.co, served from the root of its own host (base '/').
+ * `justsplit.cybere.co` is only a zone redirect to this origin; it never serves
+ * a page, so no canonical link, sitemap or JSON-LD may ever name it. Changing the
+ * origin: here + src/lib/site-meta.ts + public/robots.txt.
  */
-export const SITE_ORIGIN = 'https://artemiopadilla.github.io';
+export const SITE_ORIGIN = 'https://split.cybere.co';
 
 /** Canonical URL for the site root (origin + base subpath). */
 export function canonicalUrl(base = '/') {

@@ -34,7 +34,7 @@ describe('production origin and base (plan B20a)', () => {
 
   it('no workflow falls back to a subpath', () => {
     const dir = resolve(ROOT, '.github/workflows');
-    for (const f of readdirSync(dir)) expect(readFileSync(resolve(dir, f), 'utf8'), f).not.toMatch(/JustSplit'|ASTRO_BASE/);
+    for (const f of readdirSync(dir)) expect(readFileSync(resolve(dir, f), 'utf8'), f).not.toMatch(/'\/JustSplit'|ASTRO_BASE/);
   });
 
   it('the offline smoke exercises the production base `/`, with an opt-in override for a subpath', () => {

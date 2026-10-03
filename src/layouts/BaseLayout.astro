@@ -112,6 +112,10 @@ const jsonLdBlocks: Record<string, unknown>[] = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
+    {/* Canonical URL (plan B20a): Astro.site is SITE_ORIGIN, so the
+        redirect-only alias host and every *.pages.dev preview name the one
+        canonical origin. Not on noindex pages (the 404 shell serves many URLs). */}
+    {!noindex && canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />

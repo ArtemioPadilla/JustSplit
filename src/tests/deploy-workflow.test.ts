@@ -60,8 +60,10 @@ describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
     expect(existsSync(resolve(DIR, 'deploy-staging.yml'))).toBe(false);
     for (const f of files) {
       expect(text(f), f).not.toMatch(/actions\/(deploy-pages|upload-pages-artifact|configure-pages)/);
-      expect(text(f), f).not.toMatch(/^\s*(pages|id-token):\s*write/m);
+      expect(text(f), f).not.toMatch(/^\s*pages:\s*write/m);
     }
+    // id-token: write was GitHub Pages' OIDC deploy grant; claude.yml's own use is unrelated
+    for (const f of ['ci.yml', 'deploy.yml', 'db-migrate.yml']) expect(text(f), f).not.toMatch(/^\s*id-token:\s*write/m);
     expect(files.filter((f) => /cloudflare\/wrangler-action/.test(text(f)))).toEqual(['deploy.yml']);
   });
 
@@ -98,7 +100,7 @@ describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
       CLOUDFLARE_API_TOKEN: '${{ secrets.CLOUDFLARE_API_TOKEN }}',
       CLOUDFLARE_ACCOUNT_ID: '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}',
     });
-    expect(text('ci.yml')).not.toMatch(/secrets:\s*inherit/);
+    expect(ci.jobs.deploy!.secrets).not.toBe('inherit');
     expect(parse(text('deploy.yml')).on.workflow_call.secrets).toEqual({
       CLOUDFLARE_API_TOKEN: { required: true },
       CLOUDFLARE_ACCOUNT_ID: { required: true },

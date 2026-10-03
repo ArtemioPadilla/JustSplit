@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://artemiopadilla.github.io/JustSplit/sitemap-index.xml
+Sitemap: https://split.cybere.co/sitemap-index.xml

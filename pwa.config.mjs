@@ -1,8 +1,8 @@
 /**
  * The PWA configuration (`@vite-pwa/astro`), as plain functions of the deploy
  * base so `astro.config.mjs` and `src/tests/pwa-config.test.ts` share one source.
- * Plan B19. `base` is `BASE` from astro.config.mjs (`/JustSplit` on Pages, `/`
- * on a custom domain or locally); `withBase()` / `import.meta.env.BASE_URL`
+ * Plan B19. `base` is `BASE` from astro.config.mjs (`/` in production, on
+ * Cloudflare Pages and locally; a subpath only for a fork on GitHub project pages); `withBase()` / `import.meta.env.BASE_URL`
  * cannot be evaluated in a config file, hence the helper below.
  */
 
@@ -16,7 +16,7 @@ export const assetUrl = (base, path) => `${base.replace(/\/$/, '')}/${path.repla
  * from it (directoryIndex), but the navigation links carry no trailing slash
  * (`/settlements`, `trailingSlash: 'ignore'`), and offline that URL would miss
  * the precache and land on the 404 shell, which cannot render a static page.
- * GitHub Pages redirects `/x` to `/x/` online; the worker has to do it offline.
+ * Cloudflare Pages (like GitHub Pages) redirects `/x` to `/x/` online; the worker has to do it offline.
  * So every `x/index.html` also gets an `x` entry, and `index.html` one for the
  * scope root (with and without the trailing slash).
  *

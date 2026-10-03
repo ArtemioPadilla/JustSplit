@@ -8,10 +8,11 @@ import { SITE_ORIGIN } from './site.config.mjs';
 import { manualChunks, pureCyberEcoAuthSchemas } from './build.config.mjs';
 import { pwaOptions } from './pwa.config.mjs';
 
-// Subpath the site is served under. GitHub *project* pages live at
-// <domain>/<repo>/, so the Pages build sets ASTRO_BASE=/JustSplit (repository
-// variable, see .github/workflows/deploy.yml); a custom domain sets it to '/'.
-// Local dev leaves it unset → base '/'. Never hardcode it (spec D2).
+// Subpath the site is served under. Production (Cloudflare Pages, split.cybere.co,
+// ADR 0016) is served from the root, so the default is '/' everywhere and the
+// deploy sets nothing. ASTRO_BASE stays for experiments and for a fork on GitHub
+// project pages (<domain>/<repo>/); withBase() keeps working for any base
+// (src/tests/production-base.test.ts). Never hardcode a base.
 const BASE = process.env.ASTRO_BASE || '/';
 
 export default defineConfig({
@@ -22,8 +23,8 @@ export default defineConfig({
   // the project: with an absolute one outside it, @vite-pwa's precache glob finds
   // nothing but the public assets (8 entries instead of ~225) and the worker is empty.
   outDir: process.env.ASTRO_OUT_DIR || './dist',
-  // Dev and GitHub Pages must agree on trailing slashes; 'ignore' serves both
-  // /expenses/list and /expenses/list/ (spec D2).
+  // Dev and Cloudflare Pages must agree on trailing slashes; 'ignore' serves both
+  // /expenses/list and /expenses/list/ (Pages redirects /x to /x/ itself).
   trailingSlash: 'ignore',
   integrations: [
     sitemap({

@@ -62,9 +62,10 @@ jobs:
         run: npx playwright-core install --with-deps chromium
       - name: Accessibility smoke (axe-core)
         run: npm run check:a11y
-      # Offline shell smoke (plan B19): builds its own copy under the staging base
-      # path (`/JustSplit`), lets the service worker install in a real Chromium,
-      # then goes offline and asserts what the worker answers (scripts/offline-smoke.mjs).
+      # Offline shell smoke (plan B19): builds its own copy at the production base
+      # (`/`), serves it under the real `_headers` (CSP included), lets the service
+      # worker install in a real Chromium, then goes offline and asserts what the
+      # worker answers (scripts/offline-smoke.mjs).
       # Its own step for the same reason as the axe smoke (needs a browser), and no
       # Supabase stack, so it belongs here and not in the RLS job.
       - name: Offline shell smoke (service worker)
@@ -184,3 +185,25 @@ jobs:
             exit 1
           fi
           echo "OK: all third-party action refs appear to be SHA-pinned."
+
+  # ---------------------------------------------------------------------------
+  # Deploy (plan B20a, ADR 0016): Cloudflare Pages, via the reusable deploy.yml.
+  # `needs` is the gate: a commit whose Build & Check or RLS & contract job did
+  # not pass is never deployed (no always()/!cancelled(): a skipped or failed
+  # dependency skips this job). Pushes only, so a pull request, and with it every
+  # fork PR, never reaches a secret; `main` is the production deployment, any
+  # other branch a preview (scripts/pages-target.mjs). The repository check keeps
+  # a fork that enabled Actions from failing on missing credentials. Branches
+  # outside this file's push filter are never built, so they are never deployed.
+  # Secrets are passed by name, never `secrets: inherit`.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy
+    needs: [build, rls]
+    if: github.event_name == 'push' && github.repository == 'ArtemioPadilla/JustSplit'
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

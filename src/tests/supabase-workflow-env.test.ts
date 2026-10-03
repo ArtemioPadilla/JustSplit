@@ -84,8 +84,10 @@ describe('ci.yml live smoke (plan A7)', () => {
     const step = rls.steps[runs('npm run test:live')]!;
     expect(step.env).toBeUndefined();
     expect(text).not.toMatch(/PUBLIC_SUPABASE_/);
-    // The only secret in ci.yml is the package-registry token used by `npm ci`.
-    const secrets = [...text.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]);
+    // The only secret in the build and RLS jobs is the package-registry token used by
+    // `npm ci`. The Cloudflare credentials appear only on the `deploy` job (plan B20a).
+    const { build, rls: rlsJob } = wf.jobs as unknown as Record<string, unknown>;
+    const secrets = [...JSON.stringify([build, rlsJob]).matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]);
     expect(new Set(secrets)).toEqual(new Set(['GH_PACKAGES_TOKEN']));
   });
 
