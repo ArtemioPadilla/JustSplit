@@ -27,6 +27,7 @@ interface Entry {
   regionKey: number;
   text: string;
   inserted?: boolean;
+  hidden?: boolean;
 }
 interface Violation {
   kind: 'repeat' | 'two-regions' | 'assertive-non-error';
@@ -39,7 +40,7 @@ interface Module {
   classifyAnnouncements: (entries: Entry[], options?: { windowMs?: number }) => Violation[];
   normalizeAnnouncement: (text: string) => string;
   isErrorText: (text: string) => boolean;
-  announcementsMatching: (entries: Entry[], pattern: RegExp, filter?: { politeness?: string; doc?: string }) => Entry[];
+  announcementsMatching: (entries: Entry[], pattern: RegExp, filter?: { politeness?: string; doc?: string; hidden?: boolean }) => Entry[];
   DOUBLE_ANNOUNCEMENT_WINDOW_MS: number;
 }
 const load = async () =>
@@ -263,6 +264,29 @@ describe('observeLiveRegions: what counts as an announcement', () => {
     expect(log[0]!.inserted).toBeFalsy();
   });
 
+  it.each([
+    ['aria-hidden="true"', '<div aria-hidden="true"><div role="status" id="r"></div></div>'],
+    ['inert', '<div inert><div role="status" id="r"></div></div>'],
+    ['hidden', '<div hidden><div role="status" id="r"></div></div>'],
+  ])('marks an announcement hidden when an ancestor is %s: assistive technology never hears it', async (_name, html) => {
+    const log = await start();
+    document.body.innerHTML = html;
+    await flush();
+    document.getElementById('r')!.textContent = 'You are offline';
+    await flush();
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ text: 'You are offline', hidden: true });
+  });
+
+  it('does not mark an announcement hidden when nothing hides it', async () => {
+    const log = await start();
+    document.body.innerHTML = '<div role="status" id="r"></div>';
+    await flush();
+    document.getElementById('r')!.textContent = 'Saved';
+    await flush();
+    expect(log[0]!.hidden).toBe(false);
+  });
+
   it('hands every entry to window.__liveAnnounce (the Playwright binding) and keeps its own log', async () => {
     const calls: Entry[] = [];
     (window as unknown as { __liveAnnounce: (e: Entry) => void }).__liveAnnounce = (e) => void calls.push(e);
@@ -368,6 +392,17 @@ describe('classifyAnnouncements: double announcements fail', () => {
     expect(classifyAnnouncements([entry({ text: 'Could not save', politeness: 'polite' })])).toEqual([]);
   });
 
+  it('ignores announcements that were hidden from assistive technology: nobody heard them', async () => {
+    const { classifyAnnouncements } = await load();
+    expect(
+      classifyAnnouncements([
+        entry({ text: 'Saved', at: 1000, hidden: true }),
+        entry({ text: 'Saved', at: 1100, hidden: false }),
+        entry({ text: 'Expense saved', politeness: 'assertive', hidden: true }),
+      ]),
+    ).toEqual([]);
+  });
+
   it('ignores empty announcements', async () => {
     const { classifyAnnouncements } = await load();
     expect(classifyAnnouncements([entry({ text: '' }), entry({ text: '   ', at: 1001 })])).toEqual([]);
@@ -408,6 +443,14 @@ describe('helpers', () => {
     for (const text of ['Expense saved', 'Receipt removed', 'Payment recorded', 'Update available']) {
       expect(isErrorText(text)).toBe(false);
     }
+  });
+
+  it('announcementsMatching leaves out what was hidden from assistive technology unless asked for', async () => {
+    const { announcementsMatching } = await load();
+    const log = [entry({ text: 'Saved' }), entry({ text: 'Saved', hidden: true })];
+    expect(announcementsMatching(log, /saved/i)).toHaveLength(1);
+    expect(announcementsMatching(log, /saved/i, { hidden: true })).toHaveLength(1);
+    expect(announcementsMatching(log, /saved/i, { hidden: true })[0]!.hidden).toBe(true);
   });
 
   it('announcementsMatching filters a log by pattern, politeness and document', async () => {
