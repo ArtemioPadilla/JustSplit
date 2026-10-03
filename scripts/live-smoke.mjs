@@ -18,8 +18,10 @@
  *     secret) and builds the site with them into a throwaway directory, so the
  *     `dist/` that `npm run check` built without Supabase is left alone.
  *     `LIVE_SMOKE_DIST=<dir>` reuses an existing build (local iteration only).
- *  2. Serves it with the shared static server, with GitHub Pages' 404.html
- *     fallback (the dynamic `/expenses/<id>` routes only exist through it).
+ *  2. Serves it with the shared static server, with the build's `_headers`
+ *     (the production CSP: a violation is a console error that fails the run), Pages'
+ *     canonical redirects and its 404.html fallback (the dynamic `/expenses/<id>`
+ *     routes only exist through it).
  *  3. Seeds users and rows through the service role (scripts/lib/live-stack.mjs),
  *     and removes them again at the end; ids are per-run, so a run that died
  *     halfway can never collide with the next one.
@@ -130,6 +132,9 @@ async function main() {
     const page = await context.newPage();
     await page.goto(url('/auth/signin/'), { waitUntil: 'networkidle' });
     await page.locator('#login-email').fill(user.email);
+    // The smoke builds with PUBLIC_AUTH_GOOGLE unset, so it covers the email-only default
+    // (plan B20a): the form must not offer, or hint at, a disabled provider.
+    assert((await page.getByText(/google/i).count()) === 0, '/auth/signin/ shows Google while PUBLIC_AUTH_GOOGLE is unset');
     await page.locator('#login-password').fill(PASSWORD);
     await page.getByRole('button', { name: /^sign in$/i }).click();
     await page.waitForURL((u) => !u.pathname.includes('/auth/'), { timeout: 20_000 });
@@ -264,7 +269,8 @@ async function main() {
 
       await settle(a);
       await a.getByRole('link', { name: 'Add expense' }).click();
-      await a.waitForURL((u) => u.pathname.endsWith('/expenses/new') && u.search.includes(eventId));
+      // With or without the trailing slash: the static server redirects `/x` to `/x/` like Cloudflare Pages.
+      await a.waitForURL((u) => /\/expenses\/new\/?$/.test(u.pathname) && u.search.includes(eventId));
       await settle(a);
       await a.locator('#expense-form-description').fill('Smoke dinner');
       await a.locator('#expense-form-amount').fill('90');
