@@ -161,9 +161,9 @@ export function installLiveRegionObserver(win = window) {
         region: describe(region),
         regionKey: keyOf(region),
         text: atomic || !added ? after : added,
-        // A live region that arrives already holding its text is the pattern assistive technology
-        // announces least reliably; informational, the classifier does not fail on it.
-        inserted: !known && info.created,
+        // A live region that arrives already holding its text, with nothing live around it, is the pattern
+        // assistive technology announces least reliably; informational, the classifier does not fail on it.
+        inserted: !known && info.created && !(region.parentElement && regionOf(region.parentElement)),
       };
       log.push(entry);
       if (typeof win.__liveAnnounce === 'function') {
