@@ -70,7 +70,10 @@ as the subpath fallback. Nothing about it was deployed under that name yet: the 
   no workflow (`deploy-workflow.test.ts` pins both).
 - **Credentials.** Secrets `CLOUDFLARE_API_TOKEN` (Account → Cloudflare Pages → Edit only) and
   `CLOUDFLARE_ACCOUNT_ID`, handed to the job by name (never `secrets: inherit`) and to the action as
-  inputs, which it masks; never in a shell step or an `env` block. The public config
+  inputs, which it masks; never in a shell step or an `env` block. The one exception is the first step,
+  which sees only whether each secret is set (`secrets.X != ''`, so `'true'`/`'false'`): without both,
+  a preview push skips the deploy with a warning (CI stays green until the owner adds them) and a push
+  to `main` fails, since production must never silently not deploy. The public config
   (`PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY`, `PUBLIC_AUTH_GOOGLE`) is repository **variables**: it is
   browser-public by design (RLS is the authorization). The deploy holds no `GH_PACKAGES_TOKEN` (the
   `@cyber-eco/*` packages are vendored tarballs) and passes no GitHub token to the wrangler action
