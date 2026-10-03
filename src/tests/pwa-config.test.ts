@@ -127,6 +127,9 @@ async function buildFor(base: string): Promise<ParsedSw> {
   put('_astro/site.AbC123.css', 'a{}');
   put('favicon.svg', '<svg/>');
   put('icons/pwa-192.png', 'png');
+  put('icons/logo-maskable.svg', '<svg/>');
+  put('images/old-justsplit-logo.png', 'png');
+  put('images/favicon.ico', 'ico');
   const workbox = pwaOptions(base).workbox;
   await generateSW({
     ...(workbox as object),
@@ -235,6 +238,16 @@ describe.each(['/JustSplit', '/'])('service worker for base %s', (base) => {
   it('answers the no-trailing-slash form of a page, which is what the navigation links carry', async () => {
     expect(await decide(base, p('/settlements'))).toMatchObject({ kind: 'precache' });
     expect(await decide(base, p('/expenses/list'))).toMatchObject({ kind: 'precache' });
+  });
+
+  it('precaches the app icons but not the legacy brand files in images/ or the maskable render source (B20b)', async () => {
+    // public/images/ holds the pre-migration logo files (one PNG is 1.2 MB). No page
+    // references them, so precaching them only cost every install the download.
+    const keys = (await buildFor(base)).manifest.map((e: { url: string }) => e.url);
+    expect(keys).toContain('icons/pwa-192.png');
+    expect(keys).toContain('favicon.svg');
+    expect(keys.filter((k: string) => k.startsWith('images/'))).toEqual([]);
+    expect(keys).not.toContain('icons/logo-maskable.svg');
   });
 
   it('answers the root, with and without a trailing slash', async () => {
