@@ -279,7 +279,12 @@ export function classifyAnnouncements(entries, { windowMs = DOUBLE_ANNOUNCEMENT_
 function describeBurst(burst, windowMs) {
   const text = burst[0].text.trim();
   const regionKeys = new Set(burst.map((entry) => entry.regionKey ?? entry.region));
-  const regions = [...new Set(burst.map((entry) => entry.region))];
+  // Two regions can describe themselves identically (two toasts, both div[role=status]): number them then.
+  const byKey = new Map(burst.map((entry) => [entry.regionKey ?? entry.region, entry.region]));
+  const described = [...byKey.values()];
+  const regions = [...byKey].map(([key, region]) =>
+    described.filter((other) => other === region).length > 1 ? `${region} (#${key})` : region,
+  );
   const times = burst.length === 2 ? 'twice' : `${burst.length} times`;
   if (regionKeys.size > 1) {
     return {
