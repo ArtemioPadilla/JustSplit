@@ -86,7 +86,12 @@ export async function bodyText(page) {
 export async function axeViolations(page, { transition = false } = {}) {
   // Dialog and toast fade-ins: axe would read mid-transition colours.
   if (transition) await page.waitForTimeout(400);
-  const { violations } = await new AxeBuilder({ page }).analyze();
+  // `preload: false`: axe's default is to fetch the page's cross-origin stylesheets itself
+  // (XHR) to inspect them. Under the production CSP that fetch is refused by connect-src
+  // (Google Fonts is a style-src source, not a connect-src one), which is a console error
+  // from the audit, not from the app, and the stylesheet is a stub here anyway. Nothing the
+  // rules check (colour contrast, names, roles, landmarks) reads it.
+  const { violations } = await new AxeBuilder({ page }).options({ preload: false }).analyze();
   return violations.map(
     (v) => `[${v.impact ?? 'unknown'}] ${v.id} — ${v.help} (${v.nodes.length} node(s): ${v.nodes.slice(0, 2).map((n) => n.target.join(' ')).join(' | ')})`,
   );

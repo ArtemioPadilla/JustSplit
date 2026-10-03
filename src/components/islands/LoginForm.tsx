@@ -1,5 +1,6 @@
 /**
- * LoginForm — email/password + Google sign-in (plan B4).
+ * LoginForm — email/password, plus Google sign-in when the build enables it
+ * (plan B4; `PUBLIC_AUTH_GOOGLE`, off by default, plan B20a).
  *
  * Ported from Inceptor's `src/components/islands/LoginForm.tsx` block:
  * `handleLogin` now calls `signIn()` from `src/stores/auth.ts` instead of the
@@ -22,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { LoginSchema, type LoginValues } from '@/schemas/login';
+import { isGoogleSignInEnabled } from '@/lib/auth-providers';
 import { safeNext, withBase } from '@/lib/href';
 import { signIn, signInWithGoogle } from '@/stores/auth';
 import ErrorBoundary from './ErrorBoundary';
@@ -60,6 +62,9 @@ function LoginFormInner({
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [googleStatus, setGoogleStatus] = useState<GoogleStatus>('idle');
+  // A build-time constant: with the flag off nothing about Google renders (no button,
+  // no divider, no gap) and the handler below is dead code.
+  const googleEnabled = isGoogleSignInEnabled();
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(LoginSchema),
@@ -163,20 +168,24 @@ function LoginFormInner({
           {status === 'submitting' ? 'Signing in…' : 'Sign in'}
         </Button>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogle}
-          disabled={googleStatus === 'redirecting'}
-        >
-          {googleStatus === 'redirecting' ? 'Redirecting…' : 'Continue with Google'}
-        </Button>
+        {googleEnabled && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogle}
+              disabled={googleStatus === 'redirecting'}
+            >
+              {googleStatus === 'redirecting' ? 'Redirecting…' : 'Continue with Google'}
+            </Button>
 
-        {googleStatus === 'error' && (
-          <p role="alert" className="text-sm text-destructive">
-            Google sign-in failed. Please try again.
-          </p>
+            {googleStatus === 'error' && (
+              <p role="alert" className="text-sm text-destructive">
+                Google sign-in failed. Please try again.
+              </p>
+            )}
+          </>
         )}
 
         {signUpHref && (

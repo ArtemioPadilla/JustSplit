@@ -86,7 +86,9 @@ async function main() {
           await page.close();
           continue;
         }
-        const results = await new AxeBuilder({ page }).analyze();
+        // preload: false: see scripts/lib/live-audit.mjs (axe would XHR the Google Fonts stylesheet,
+        // which the production CSP's connect-src refuses; nothing the rules check reads it).
+        const results = await new AxeBuilder({ page }).options({ preload: false }).analyze();
         if (results.violations.length > 0) {
           for (const v of results.violations) {
             failures.push(

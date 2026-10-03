@@ -1,50 +1,132 @@
-# Production deploy — GitHub Pages (spec D2). Runs on every push to main.
-# The base path is a repository VARIABLE (public config, visible in logs):
-# '/JustSplit' for the project-pages URL, '/' once a custom domain exists.
-# The Supabase public config (B2a) is also passed as variables: it is browser
-# public by design; secrets are only for things that must never appear in logs.
-name: Deploy to GitHub Pages
+# Cloudflare Pages deploy (plan B20a, ADR 0016; supersedes spec D2's GitHub Pages).
+#
+# A reusable workflow, and nothing else: ci.yml's `deploy` job calls it with
+# `needs: [build, rls]`, so it only ever runs for a commit whose "Build & Check"
+# and "RLS & contract" jobs both passed, on pushes only. It has no trigger of its
+# own on purpose: a manual dispatch would be a way to publish a red commit, and a
+# `workflow_run` trigger runs from the default branch's copy of the file (the
+# frozen Next tree until the cutover), so `inceptor` previews would never fire.
+#
+# Where it deploys (the Pages project `justsplit` has `main` as its production
+# branch): a push to `main` is production (split.cybere.co); any other branch is
+# a preview at <branch>.justsplit.pages.dev. Until the cutover the `inceptor`
+# preview is the staging site that B18 audits. Rollback: Cloudflare dashboard ->
+# Workers & Pages -> justsplit -> Deployments -> "Rollback to this deployment",
+# or re-run the CI run of an older commit.
+#
+# Secrets: only the two Cloudflare credentials, handed to the wrangler action as
+# inputs (it masks them) and never to a shell. The public Supabase pair
+# (browser-public by design, RLS is the authorization) comes from repository
+# VARIABLES. No GitHub token is passed to the action, so it creates no GitHub
+# deployment record and needs no `deployments: write`.
+name: Deploy (Cloudflare Pages)
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  workflow_call:
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
 permissions:
   contents: read
-  pages: write
-  id-token: write
+# One deploy per branch. A newer push supersedes an older preview; production
+# deploys queue instead, so a deployment is never cut off half-way.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
-  build:
+  deploy:
+    name: Cloudflare Pages
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
+      # Until the owner adds the two Cloudflare secrets (SETUP.md), a deploy cannot
+      # succeed. A preview push then skips with a warning instead of turning CI red;
+      # a push to main fails hard, because production must never silently not
+      # deploy. The step sees only whether each secret is set, never its value.
+      - name: Require the Cloudflare credentials (previews skip until they exist)
+        id: creds
+        run: |
+          if [ "${HAS_API_TOKEN}" = "true" ] && [ "${HAS_ACCOUNT_ID}" = "true" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            echo "::error::both Cloudflare secrets must be set to deploy production (SETUP.md, owner steps)"
+            exit 1
+          else
+            echo "::warning::Cloudflare credentials not set yet: preview deploy skipped (SETUP.md, owner steps)"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "### Cloudflare Pages: preview skipped, the Cloudflare secrets are not set yet" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        env:
+          HAS_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        if: steps.creds.outputs.configured == 'true'
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        if: steps.creds.outputs.configured == 'true'
         with:
           node-version: '22'
           cache: 'npm'
-          registry-url: https://npm.pkg.github.com
-          scope: '@cyber-eco'
+      # All @cyber-eco/* packages are vendored tarballs (vendor/), so installing
+      # needs no registry credential and the deploy holds no GH_PACKAGES_TOKEN.
       - run: npm ci
+        if: steps.creds.outputs.configured == 'true'
+      - name: Require the public Supabase configuration
+        if: steps.creds.outputs.configured == 'true'
+        # A build without it succeeds and ships an app that cannot sign in.
+        # Reports the variable NAME only, never a value.
+        run: |
+          for name in PUBLIC_SUPABASE_URL PUBLIC_SUPABASE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::repository variable ${name} is not set (Settings -> Secrets and variables -> Actions -> Variables)"
+              exit 1
+            fi
+          done
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+          PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_KEY: ${{ vars.PUBLIC_SUPABASE_KEY }}
+      # No base-path variable: the site is served from the root of its own host. The build
+      # also writes dist/_headers (HSTS, the CSP with the inline-script hashes and
+      # the Supabase origin from PUBLIC_SUPABASE_URL, cache rules).
       - run: npm run build
+        if: steps.creds.outputs.configured == 'true'
         env:
-          ASTRO_BASE: ${{ vars.ASTRO_BASE || '/JustSplit' }}
           PUBLIC_REPO_SLUG: ${{ github.repository }}
           PUBLIC_BUILD_SHA: ${{ github.sha }}
           PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_KEY: ${{ vars.PUBLIC_SUPABASE_KEY }}
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+          # 'true' shows Google sign-in; unset (the default) = email/password only.
+          PUBLIC_AUTH_GOOGLE: ${{ vars.PUBLIC_AUTH_GOOGLE }}
+      - name: Pick the Pages branch (main = production, anything else = preview)
+        if: steps.creds.outputs.configured == 'true'
+        id: target
+        run: node scripts/pages-target.mjs
+        env:
+          REF: ${{ github.ref }}
+      - name: Deploy to Cloudflare Pages
+        if: steps.creds.outputs.configured == 'true'
+        id: pages
+        # v4.1.3. Wrangler is pinned too, so a new CLI release cannot change what
+        # a deploy does. The Pages project must exist already (SETUP.md): in a
+        # non-interactive run `pages deploy` refuses to create one.
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
-          path: ./dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.147.0'
+          command: pages deploy dist --project-name=justsplit --branch=${{ steps.target.outputs.branch }} --commit-hash=${{ github.sha }} --commit-dirty=true
+      - name: Summary
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          {
+            echo "### Cloudflare Pages"
+            echo "- Branch: \`${PAGES_BRANCH}\`"
+            echo "- Deployment: ${DEPLOYMENT_URL}"
+            if [ -n "${ALIAS_URL}" ]; then echo "- Branch alias: ${ALIAS_URL}"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          PAGES_BRANCH: ${{ steps.target.outputs.branch }}
+          DEPLOYMENT_URL: ${{ steps.pages.outputs.deployment-url }}
+          ALIAS_URL: ${{ steps.pages.outputs.pages-deployment-alias-url }}

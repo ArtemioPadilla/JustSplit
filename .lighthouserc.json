@@ -2,9 +2,9 @@
   "ci": {
     "collect": {
       "url": [
-        "https://artemiopadilla.github.io/JustSplit/landing/",
-        "https://artemiopadilla.github.io/JustSplit/auth/signin/",
-        "https://artemiopadilla.github.io/JustSplit/"
+        "https://inceptor.justsplit.pages.dev/landing/",
+        "https://inceptor.justsplit.pages.dev/auth/signin/",
+        "https://inceptor.justsplit.pages.dev/"
       ],
       "numberOfRuns": 1,
       "settings": {
@@ -13,10 +13,10 @@
       }
     },
     "assert": {
-      "//": "Run by hand from a developer machine against the live staging site (npm run perf, plan B18/B19); never in CI, and there is no local build or static server (lhci's staticDistDir cannot serve a /JustSplit-prefixed build from ./dist). Gate on category scores (Lighthouse aggregates individual audits into these) plus Core Web Vitals (warn-level: informative, not release-blocking); we deliberately do NOT use the lighthouse:no-pwa preset, which asserts ~150 granular audits at error level. Script budgets are assertMatrix assertions on resource-summary (transfer bytes, KiB x 1024), one entry per URL family: they replace lighthouse-budgets.json + settings.budgetsPath, which Lighthouse 12 no longer honours (no performance-budget audit exists in 12.6.1). The hard, every-PR gate is scripts/check-budgets.mjs against performance-budgets.json (statically loaded gzipped JS); Lighthouse counts every script the page loads, including mount-time lazy chunks (the service-worker registration), so these sit a little above it: marketing 150 KiB (Inceptor's, a rule: no React on /landing, /about, /help); /auth/* 222 KiB (signin measured at 211.2 KiB actually loaded, +5%; the gate is 220); / 242 KiB (the dashboard shell measured at 229.8 KiB actually loaded, +5%; the gate is 239). Never raise one to absorb a regression. The signed-in pages are behind auth, so Lighthouse cannot reach them; check-budgets covers them.",
+      "//": "Run by hand from a developer machine against the live staging site, the `inceptor` branch's Cloudflare Pages preview (npm run perf, plan B18/B19/B20a; after the cutover the three URLs move to https://split.cybere.co, B21); never in CI, and there is no local build or static server. Gate on category scores (Lighthouse aggregates individual audits into these) plus Core Web Vitals (warn-level: informative, not release-blocking); we deliberately do NOT use the lighthouse:no-pwa preset, which asserts ~150 granular audits at error level. Script budgets are assertMatrix assertions on resource-summary (transfer bytes, KiB x 1024), one entry per URL family: they replace lighthouse-budgets.json + settings.budgetsPath, which Lighthouse 12 no longer honours (no performance-budget audit exists in 12.6.1). The hard, every-PR gate is scripts/check-budgets.mjs against performance-budgets.json (statically loaded gzipped JS); Lighthouse counts every script the page loads, including mount-time lazy chunks (the service-worker registration), so these sit a little above it: marketing 150 KiB (Inceptor's, a rule: no React on /landing, /about, /help); /auth/* 222 KiB (signin measured at 211.2 KiB actually loaded, +5%; the gate is 220); / 242 KiB (the dashboard shell measured at 229.8 KiB actually loaded, +5%; the gate is 239). Never raise one to absorb a regression. The signed-in pages are behind auth, so Lighthouse cannot reach them; check-budgets covers them.",
       "assertMatrix": [
         {
-          "matchingUrlPattern": "^https://[^/]+/JustSplit/(landing|about|help)/?$",
+          "matchingUrlPattern": "^https://[^/]+/(landing|about|help)/?$",
           "assertions": {
             "categories:performance": [
               "error",
@@ -75,7 +75,7 @@
           }
         },
         {
-          "matchingUrlPattern": "^https://[^/]+/JustSplit/auth/",
+          "matchingUrlPattern": "^https://[^/]+/auth/",
           "assertions": {
             "categories:performance": [
               "error",
@@ -134,7 +134,7 @@
           }
         },
         {
-          "matchingUrlPattern": "^https://[^/]+/JustSplit/?$",
+          "matchingUrlPattern": "^https://[^/]+/?$",
           "assertions": {
             "categories:performance": [
               "error",

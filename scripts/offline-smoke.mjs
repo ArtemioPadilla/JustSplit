@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Offline shell smoke (plan B19): a production build served under the staging
- * base path (`/JustSplit`), driven in a real Chromium with service workers
- * ALLOWED, then taken offline.
+ * Offline shell smoke (plan B19): a production build served at the production
+ * base `/` (Cloudflare Pages at split.cybere.co, plan B20a, ADR 0016), driven in
+ * a real Chromium with service workers ALLOWED, then taken offline.
+ * `OFFLINE_SMOKE_BASE=/JustSplit npm run check:offline` proves the same under a
+ * subpath (the documented GitHub Pages fallback); unit tests pin that base too.
  *
  * Why a browser: the Workbox configuration is unit-tested as pure config
  * (`src/tests/pwa-config.test.ts`), but whether a service worker installs at all,
@@ -12,8 +14,8 @@
  * no Supabase stack, so it runs in the main CI job next to `check:a11y`.
  *
  * Like `check:a11y` it is NOT part of `npm run check` (needs a real browser).
- * `OFFLINE_SMOKE_DIST=<dir>` reuses a build made with ASTRO_BASE=/JustSplit
- * (local iteration only).
+ * `OFFLINE_SMOKE_DIST=<dir>` reuses a build made with the same base (local
+ * iteration only).
  *
  * What it asserts, offline, after the worker has installed and taken control:
  *   /expenses/abc                 -> the 404 app shell (AppRouterIsland), spec D2
@@ -31,7 +33,8 @@ import { resolve } from 'node:path';
 import { launchChromium } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 
-const BASE = '/JustSplit';
+// '' for the root, '/JustSplit' for the subpath override (no trailing slash).
+const BASE = (process.env.OFFLINE_SMOKE_BASE || '/').replace(/\/$/, '');
 const failures = [];
 const fail = (where, message) => failures.push(`${where}: ${message}`);
 const log = (message) => console.log(`offline-smoke ${message}`);

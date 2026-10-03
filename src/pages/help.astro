@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { withBase } from '@/lib/href';
+import { isGoogleSignInEnabled } from '@/lib/auth-providers';
 import { REPO_URL, SITE } from '@/lib/site-meta';
 
 // Help page (plan B7, spec D3): ported from the legacy Next tree's
@@ -29,7 +30,7 @@ const categories: Category[] = [
     id: 'getting-started',
     name: 'Getting Started',
     faqs: [
-      { question: 'How do I create an account?', answer: `Sign up from the ${SITE.name} sign-in page — register with your email address or Google.` },
+      { question: 'How do I create an account?', answer: `Sign up from the ${SITE.name} sign-in page — register with your email address${isGoogleSignInEnabled() ? ' or Google' : ''}.` },
       { question: `Is ${SITE.name} free to use?`, answer: `Yes. ${SITE.name} is free to use, and there is no paid plan.` },
       { question: 'How do I add friends?', answer: "Go to Friends and add people by their email address. If they don't have an account yet, you can send them an invitation link to sign up." },
     ],

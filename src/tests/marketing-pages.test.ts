@@ -73,6 +73,28 @@ describe('about.astro content', () => {
   });
 });
 
+/**
+ * Plan B20a: the help copy follows the PUBLIC_AUTH_GOOGLE build flag. The page is
+ * static, so the Google sentence is chosen at build time: every line that names
+ * Google goes through isGoogleSignInEnabled(), and the always-on text names email only.
+ */
+describe('help.astro Google sign-in copy follows the build flag (plan B20a)', () => {
+  const src = PAGES.help!;
+  it('imports the flag helper', () => {
+    expect(src).toMatch(/import\s*\{[^}]*isGoogleSignInEnabled[^}]*\}\s*from\s*['"][^'"]*auth-providers['"]/);
+  });
+
+  it('mentions Google only inside a branch on the flag', () => {
+    const lines = src.split('\n').filter((line) => /google/i.test(line));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line, line.trim()).toMatch(/isGoogleSignInEnabled|googleSignIn/);
+  });
+
+  it('the account answer still offers email sign-up when the flag is off', () => {
+    expect(src).toMatch(/register with your email address/);
+  });
+});
+
 describe('help.astro content', () => {
   const src = PAGES.help!;
   it('ports the real hero copy', () => {
