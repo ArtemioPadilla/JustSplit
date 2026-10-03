@@ -451,7 +451,7 @@ async function main() {
     };
     // Plan B19d: going offline is announced ONCE per page, by the layout's banner (polite); the per-control
     // sentence is not a live region (ADR 0015), so N blocked controls never mean N announcements; and
-    // reconnecting does not re-announce the outage.
+    // reconnecting is announced once, symmetrically ("You're back online."), without repeating the outage.
     const OFFLINE_BANNER = /You're offline — using cached data/;
     const goOffline = async () => {
       const tOffline = Date.now();
@@ -466,7 +466,7 @@ async function main() {
       const tOnline = Date.now();
       await A.context.setOffline(false);
       await a.getByText(OFFLINE_SENTENCE, { exact: true }).first().waitFor({ state: 'hidden' });
-      await sleep(DOUBLE_ANNOUNCEMENT_WINDOW_MS + 300);
+      await expectAnnouncedOnce(ana.name, tOnline, /^You're back online\.$/, 'reconnecting');
       const again = heard(ana.name, tOnline, /offline/i);
       assert(again.length === 0, `reconnecting announced the outage again (${again.map((e) => `"${e.text}" in ${e.region}`).join('; ')})`);
     };
