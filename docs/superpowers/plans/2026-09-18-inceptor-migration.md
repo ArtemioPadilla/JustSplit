@@ -2985,11 +2985,13 @@ records (its last item).** Each fix is its own red/green commit pair (`Tdd-Red:`
 - [x] **Docs**: this entry, B18's manual-pass item, the sequencing line, the ADR 0015 open question, the SETUP
       `test:live` row, the `CLAUDE.md` `check:a11y` and `test:live` rows.
 
-**Landed (B19d)** — no budget was raised; the only page that moved is `/expenses/new/` (264.6 to 264.7 gzipped kB,
-budget 279, for the splitter's `ready`). Gates on the final tree: `npm run check` (253 test files, 2990 tests, 0
-errors), `check:a11y` (16 pages x 3 configurations, 0 violations, now including the tree invariants), `check:offline`,
-`test:live` (all flows including the new announcement assertions, 22 page states x 3 configurations clean on axe and
-the tree invariants, 27 announcements recorded, none into a hidden region).
+**Landed (B19d)** — no budget was raised. The pages that carry the layout banners moved by about +0.2 gzipped kB
+(for the standing status region, the back-online pill and the splitter's `ready`), e.g. `/` 228.4 to 228.6,
+`/settlements/` 242.9 to 243.1, `/expenses/new/` 264.6 to 264.9 (budget 279). Gates on the final tree:
+`npm run check` (253 test files, 2999 tests, 0 errors), `check:a11y` (16 pages x 3 configurations, 0 violations, now
+including the tree invariants), `check:offline`, `test:live` (all flows including the new announcement assertions,
+reconnect announced exactly once per page, 22 page states x 3 configurations clean on axe and the tree invariants,
+no announcement into a hidden region).
 
 ### B20a. Host on Cloudflare Pages at `split.cybere.co` (`risk:high`, `tdd-tier:strict`)
 Sequencing: after B19c, before B18 and B20. It changes where production lives and how it is deployed and
