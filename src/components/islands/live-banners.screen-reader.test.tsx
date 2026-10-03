@@ -4,6 +4,7 @@ import * as React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { $needsRefresh } from '@/stores/install';
+import { $online } from '@/stores/online';
 import { restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 import { readAll, spokenWith, trackAnnouncements } from '@/tests/screen-reader';
 import OfflineBanner from './OfflineBanner';
@@ -188,6 +189,9 @@ describe('OfflineBanner: coming back online', () => {
 
   it('a page that loaded offline announces the reconnect (a real transition)', async () => {
     Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+    // What the store's onMount does on a real page load (here the store may already be mounted by an earlier
+    // test: nanostores unmounts on a delayed timer, which the fake clock holds back).
+    $online.set(false);
     render(<OfflineBanner />);
     await tick(10);
     expect(texts()).toEqual([expect.stringMatching(/offline/i)]);
@@ -197,13 +201,18 @@ describe('OfflineBanner: coming back online', () => {
   });
 
   it('cleans its timer up on unmount', async () => {
+    const scheduled = vi.spyOn(globalThis, 'setTimeout');
+    const cleared = vi.spyOn(globalThis, 'clearTimeout');
     const view = render(<OfflineBanner />);
     setOnLine(false);
     setOnLine(true);
     await tick(10);
-    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    const backTimer = scheduled.mock.calls.findIndex(([, ms]) => ms === 4000);
+    expect(backTimer).toBeGreaterThanOrEqual(0);
+    const id = scheduled.mock.results[backTimer]!.value;
+    expect(cleared).not.toHaveBeenCalledWith(id);
     view.unmount();
-    expect(vi.getTimerCount()).toBe(0);
+    expect(cleared).toHaveBeenCalledWith(id);
   });
 });
 
