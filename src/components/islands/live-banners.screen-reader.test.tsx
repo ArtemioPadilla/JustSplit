@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { $needsRefresh } from '@/stores/install';
 import { restoreOnLine, setOnLine } from '@/tests/offline-helpers';
 import { readAll, spokenWith, trackAnnouncements } from '@/tests/screen-reader';
@@ -20,8 +20,8 @@ import UpdateToast from './UpdateToast';
  *    reliably (NVDA and JAWS often say nothing), so "announced" must not depend on it;
  *  - the message is announced once, politely, however many times the state is
  *    re-asserted (a second `offline` event, a re-render);
- *  - when the state ends the text goes and nothing is announced; the next time
- *    it is announced again, once.
+ *  - when the state ends the text goes; the next time it is announced again, once.
+ *    (Reconnecting is announced too, see "coming back online" below.)
  */
 let announcements: Awaited<ReturnType<typeof trackAnnouncements>>;
 
@@ -74,21 +74,136 @@ describe('OfflineBanner', () => {
     });
     expect(await announcements.settled()).toHaveLength(1);
   });
+});
 
-  it('says nothing when the connection returns, and announces the next outage once more', async () => {
+/**
+ * Reconnecting is announced (WCAG 4.1.3: a status change is announced, and offline/online are symmetric).
+ * Behavior contracts:
+ *  - "You're back online." is ADDED to the same standing polite status region, once, on a real
+ *    offline -> online transition, never on a first load that is already online;
+ *  - it shows as a visible pill and the text clears after about 4 s, announcing nothing when it clears;
+ *  - flapping (offline, online, offline, online) never leaves a stale "back online", never announces a
+ *    transition twice, and the timer of an earlier reconnect never clears a later message;
+ *  - the timer is cleaned up on unmount.
+ */
+describe('OfflineBanner: coming back online', () => {
+  const BACK = "You're back online.";
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+  /** Advances the fake clock inside act and lets the observer's microtask run. */
+  const tick = (ms: number) =>
+    act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  const texts = () => announcements.log.map((entry) => entry.text);
+
+  it('announces nothing on a first load that is already online, or on a stray online event', async () => {
     render(<OfflineBanner />);
-    await announcements.settled();
-    setOnLine(false);
-    await announcements.settled();
-    setOnLine(true);
-    const afterReturn = await announcements.settled();
-    expect(afterReturn).toHaveLength(1);
+    await tick(10);
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await tick(10);
+    expect(announcements.log).toEqual([]);
     expect(statusRegions()[0]).toBeEmptyDOMElement();
+  });
 
+  it('announces it once, politely, into the region that was already there, as a visible pill', async () => {
+    render(<OfflineBanner />);
+    await tick(10);
     setOnLine(false);
-    // Two outages back to back inside this test are announced twice on purpose, so no `problems()` here:
-    // the double-announcement window is for one event, not for a person toggling their wifi.
-    expect(await announcements.settled()).toHaveLength(2);
+    await tick(10);
+    setOnLine(true);
+    await tick(10);
+
+    expect(texts()).toEqual([expect.stringMatching(/offline/i), BACK]);
+    expect(announcements.log[1]).toMatchObject({ politeness: 'polite', inserted: false });
+    expect(screen.getByText(BACK)).toBeVisible();
+    expect(statusRegions()).toHaveLength(1);
+    expect(spokenWith(await readAll(), BACK)).toBe(true);
+  });
+
+  it('is not destructive-toned: the offline pill is, this one is neutral', async () => {
+    render(<OfflineBanner />);
+    setOnLine(false);
+    await tick(10);
+    const offlinePill = screen.getByText(/You're offline/).closest('div')!;
+    expect(offlinePill.className).toMatch(/destructive/);
+    setOnLine(true);
+    await tick(10);
+    const onlinePill = screen.getByText(BACK).closest('div')!;
+    expect(onlinePill.className).not.toMatch(/destructive/);
+  });
+
+  it('clears the text after about 4 seconds and announces nothing when it clears', async () => {
+    render(<OfflineBanner />);
+    setOnLine(false);
+    await tick(10);
+    setOnLine(true);
+    await tick(3900);
+    expect(screen.getByText(BACK)).toBeInTheDocument();
+    await tick(300);
+    expect(statusRegions()[0]).toBeEmptyDOMElement();
+    expect(texts()).toHaveLength(2);
+  });
+
+  it('flapping offline -> online -> offline leaves no stale message and announces each transition once', async () => {
+    render(<OfflineBanner />);
+    setOnLine(false);
+    await tick(10);
+    setOnLine(true);
+    await tick(500);
+    setOnLine(false);
+    await tick(10);
+
+    expect(screen.queryByText(BACK)).not.toBeInTheDocument();
+    expect(screen.getByText(/You're offline/)).toBeInTheDocument();
+    // The first reconnect's timer must not fire into the outage.
+    await tick(5000);
+    expect(screen.getByText(/You're offline/)).toBeInTheDocument();
+    expect(texts()).toEqual([expect.stringMatching(/offline/i), BACK, expect.stringMatching(/offline/i)]);
+  });
+
+  it('a later reconnect keeps its full 4 seconds, whatever an earlier one scheduled', async () => {
+    render(<OfflineBanner />);
+    setOnLine(false);
+    setOnLine(true);
+    await tick(1000);
+    setOnLine(false);
+    await tick(1000);
+    setOnLine(true);
+    await tick(10);
+    expect(screen.getByText(BACK)).toBeInTheDocument();
+    // 3.5 s after the second reconnect is 5.5 s after the first, whose timer is long gone.
+    await tick(3500);
+    expect(screen.getByText(BACK)).toBeInTheDocument();
+    await tick(600);
+    expect(screen.queryByText(BACK)).not.toBeInTheDocument();
+    expect(texts().filter((text) => text === BACK)).toHaveLength(2);
+  });
+
+  it('a page that loaded offline announces the reconnect (a real transition)', async () => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+    render(<OfflineBanner />);
+    await tick(10);
+    expect(texts()).toEqual([expect.stringMatching(/offline/i)]);
+    setOnLine(true);
+    await tick(10);
+    expect(texts()).toEqual([expect.stringMatching(/offline/i), BACK]);
+  });
+
+  it('cleans its timer up on unmount', async () => {
+    const view = render(<OfflineBanner />);
+    setOnLine(false);
+    setOnLine(true);
+    await tick(10);
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+    view.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 
