@@ -223,6 +223,34 @@ describe('observeLiveRegions: what counts as an announcement', () => {
     expect(log[0]!.inserted).toBe(false);
   });
 
+  it('counts text once when several mutations in one batch add overlapping subtrees', async () => {
+    const log = await start();
+    // Like a React root: the container goes into the document, then the tree goes into the container, in one task.
+    const container = document.createElement('div');
+    document.body.append(container);
+    const form = document.createElement('form');
+    form.innerHTML = '<p role="status">Balanced — split evenly among 2 participants.</p>';
+    container.append(form);
+    await flush();
+    expect(log).toHaveLength(1);
+    expect(log[0]!.text).toBe('Balanced — split evenly among 2 participants.');
+  });
+
+  it('counts text once when a node and then something inside it are added to a standing region', async () => {
+    const log = await start();
+    const region = document.createElement('div');
+    region.setAttribute('role', 'status');
+    document.body.append(region);
+    await flush();
+    const wrapper = document.createElement('div');
+    region.append(wrapper);
+    const note = document.createElement('p');
+    note.textContent = 'Saved';
+    wrapper.append(note);
+    await flush();
+    expect(log.map((e) => e.text)).toEqual(['Saved']);
+  });
+
   it('does not flag content added to a region that was already there', async () => {
     const log = await start();
     const region = document.createElement('div');
