@@ -207,6 +207,22 @@ describe('observeLiveRegions: what counts as an announcement', () => {
     expect(log).toMatchObject([{ text: 'You are offline', inserted: true }]);
   });
 
+  it('does not flag a region inserted inside a live region that was already there (a toast in the toast viewport)', async () => {
+    const log = await start();
+    const viewport = document.createElement('div');
+    viewport.setAttribute('aria-live', 'polite');
+    document.body.append(viewport);
+    await flush();
+    const toast = document.createElement('div');
+    toast.setAttribute('role', 'status');
+    toast.textContent = 'Expense saved';
+    viewport.append(toast);
+    await flush();
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({ text: 'Expense saved' });
+    expect(log[0]!.inserted).toBe(false);
+  });
+
   it('does not flag content added to a region that was already there', async () => {
     const log = await start();
     const region = document.createElement('div');
