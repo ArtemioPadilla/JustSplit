@@ -256,12 +256,22 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   const contextSettled =
     mode === 'create' &&
     (params.group ? groupQuery.isSuccess : params.event ? eventContextSettled : friendsQuery.isSuccess);
+  // The splitter's status stays silent until the defaults are in (plan B19d). Not
+  // `contextSettled`: that is true one render BEFORE this effect sets the
+  // participants, and a browser paints that render, so the status region would
+  // hold "Select at least one participant." for a state nobody caused.
+  const [splitterReady, setSplitterReady] = React.useState(mode === 'edit');
   React.useEffect(() => {
-    if (mode !== 'create' || defaultsAppliedRef.current || !contextSettled || form.formState.isDirty) return;
+    if (mode !== 'create' || defaultsAppliedRef.current || !contextSettled) return;
     defaultsAppliedRef.current = true;
-    form.setValue('currency', resolved.currency ?? preferredCurrency);
-    form.setValue('paidBy', uid ?? '');
-    form.setValue('participantIds', resolved.candidateIds);
+    if (!form.formState.isDirty) {
+      form.setValue('currency', resolved.currency ?? preferredCurrency);
+      form.setValue('paidBy', uid ?? '');
+      form.setValue('participantIds', resolved.candidateIds);
+    }
+    // Batched with the setValue calls above: the first render with a ready splitter
+    // already has the participants.
+    setSplitterReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, guarded by the ref
   }, [mode, contextSettled]);
 
@@ -565,7 +575,7 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           onSharesChange={(shares) => form.setValue('shares', shares, { shouldDirty: true })}
           names={names}
           // Create mode starts with nobody selected until the context (friends, group or event) has answered.
-          ready={mode === 'edit' || contextSettled}
+          ready={splitterReady}
         />
         <FormField
           control={form.control}
