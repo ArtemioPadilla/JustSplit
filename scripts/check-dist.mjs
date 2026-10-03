@@ -145,6 +145,32 @@ if (existsSync(manifestPath)) {
   need(manifest.name === 'JustSplit', `${manifestPath}: name is ${manifest.name}`);
   need(manifest.start_url === at('/') || manifest.start_url === `${at('')}/`, `${manifestPath}: start_url is ${manifest.start_url}`);
   need(!/inceptor/i.test(JSON.stringify(manifest)), `${manifestPath} still mentions Inceptor`);
+
+  // App icons (plan B20b): every manifest icon is a real file in dist/ whose PNG
+  // header matches the size the manifest declares, so a missing or wrongly sized
+  // render fails the build rather than shipping a broken install prompt.
+  for (const icon of manifest.icons ?? []) {
+    const file = join('dist', icon.src.startsWith(`${at('')}/`) ? icon.src.slice(at('').length) : icon.src);
+    if (!existsSync(file)) {
+      failures.push(`${manifestPath}: icon ${icon.src} is not in dist/ (${file})`);
+      continue;
+    }
+    if (icon.type === 'image/png') {
+      const bytes = readFileSync(file);
+      const size = `${bytes.readUInt32BE(16)}x${bytes.readUInt32BE(20)}`;
+      need(size === icon.sizes, `${file}: is ${size} but the manifest declares ${icon.sizes}`);
+    } else if (icon.type === 'image/svg+xml') {
+      need(!/<image\b|base64/i.test(readFileSync(file, 'utf8')), `${file}: the vector icon embeds a raster`);
+    }
+  }
+  for (const file of ['dist/favicon.svg', 'dist/favicon.ico', 'dist/apple-touch-icon.png']) {
+    need(existsSync(file), `${file} is missing`);
+  }
+  if (existsSync('dist/apple-touch-icon.png')) {
+    // 180x180, colour type 2 (no alpha): iOS paints transparency black.
+    const bytes = readFileSync('dist/apple-touch-icon.png');
+    need(bytes.readUInt32BE(16) === 180 && bytes.readUInt32BE(20) === 180 && bytes[25] === 2, 'dist/apple-touch-icon.png is not an opaque 180x180 PNG');
+  }
 }
 for (const page of ['dist/index.html', 'dist/landing/index.html', 'dist/auth/signin/index.html', 'dist/404.html']) {
   if (existsSync(page)) {

@@ -1,4 +1,4 @@
-![Just](./public/images/logo.png)
+![JustSplit](./design/brand/logo.png)
 > **Fair expense splitting, made simple.** Track, divide, and settle shared expenses effortlessly — for trips, events, or daily life.
 
 ## About JustSplit
