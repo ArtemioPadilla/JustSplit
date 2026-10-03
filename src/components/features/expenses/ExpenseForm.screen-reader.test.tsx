@@ -93,6 +93,42 @@ async function renderForm() {
   await announcements.settled();
 }
 
+describe('ExpenseForm: the splitter status while the context loads', () => {
+  it('never commits "Select at least one participant." to the status region, not even for one render', async () => {
+    // A browser runs the defaults effect after paint, so a render where the context has
+    // settled but the participants are not applied yet reaches the screen reader (CI,
+    // Chromium 153). jsdom flushes the effect inside act() before the announcement observer
+    // reads the region, so this records every text the DOM ever held, including values a
+    // later render overwrote in place (characterData oldValue).
+    useFriends.mockReturnValue({ data: undefined, isSuccess: false });
+    const seen: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === 'characterData' && r.oldValue) seen.push(r.oldValue);
+        r.addedNodes.forEach((n) => seen.push(n.textContent ?? ''));
+      }
+    });
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true, characterDataOldValue: true });
+    const view = render(
+      <>
+        <ExpenseForm mode="create" />
+        <Toaster />
+      </>,
+    );
+    useFriends.mockReturnValue({ data: [{ users: ['u1', 'u2'], status: 'accepted', requestedBy: 'u1' }], isSuccess: true });
+    view.rerender(
+      <>
+        <ExpenseForm mode="create" />
+        <Toaster />
+      </>,
+    );
+    await screen.findByRole('checkbox', { name: 'Ana' });
+    seen.push(...observer.takeRecords().flatMap((r) => [r.oldValue ?? '', ...Array.from(r.addedNodes, (n) => n.textContent ?? '')]));
+    observer.disconnect();
+    expect(seen.filter((t) => /select at least one participant/i.test(t))).toEqual([]);
+  });
+});
+
 describe('ExpenseForm: a submit with invalid fields', () => {
   it('leaves focus on the first invalid field, spoken as invalid with its message', async () => {
     await renderForm();
