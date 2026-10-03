@@ -14,6 +14,13 @@ export interface ExpenseSplitterProps {
   shares: Shares;
   onSharesChange: (shares: Shares) => void;
   names: Record<string, string>;
+  /**
+   * False while the participants are still being resolved (nobody is selected yet because a query has not
+   * answered). The status region stays in the document but empty, so a validation sentence is never announced
+   * for a state the person did not cause, and the first real sentence is spoken into a region that was already
+   * there (plan B19d). Defaults to true: every other caller is unchanged.
+   */
+  ready?: boolean;
 }
 
 const SPLIT_TYPE_OPTIONS: { value: SplitType; label: string }[] = [
@@ -41,6 +48,7 @@ export function ExpenseSplitter({
   shares,
   onSharesChange,
   names,
+  ready = true,
 }: ExpenseSplitterProps) {
   const validation = validateSplit(splitType, amount, participantIds, shares);
 
@@ -100,11 +108,13 @@ export function ExpenseSplitter({
         aria-live="polite"
         className={cn('text-sm', validation.valid ? 'text-muted-foreground' : 'font-medium text-destructive')}
       >
-        {validation.valid
-          ? splitType === 'equal'
-            ? `Balanced — split evenly among ${participantIds.length} participant${participantIds.length === 1 ? '' : 's'}.`
-            : 'Split is balanced.'
-          : validation.message}
+        {!ready
+          ? null
+          : validation.valid
+            ? splitType === 'equal'
+              ? `Balanced — split evenly among ${participantIds.length} participant${participantIds.length === 1 ? '' : 's'}.`
+              : 'Split is balanced.'
+            : validation.message}
       </p>
     </div>
   );

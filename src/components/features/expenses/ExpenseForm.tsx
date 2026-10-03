@@ -564,6 +564,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           shares={watchedShares}
           onSharesChange={(shares) => form.setValue('shares', shares, { shouldDirty: true })}
           names={names}
+          // Create mode starts with nobody selected until the context (friends, group or event) has answered.
+          ready={mode === 'edit' || contextSettled}
         />
         <FormField
           control={form.control}
