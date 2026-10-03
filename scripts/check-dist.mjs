@@ -205,6 +205,18 @@ for (const sitemap of ['dist/sitemap-0.xml', 'dist/sitemap-index.xml']) {
   need(foreign.length === 0, `${sitemap}: ${foreign.length} URL(s) outside ${SITE_ORIGIN}, first: ${foreign[0]}`);
 }
 
+// ---- Google sign-in flag (plan B20a) ---------------------------------------
+// PUBLIC_AUTH_GOOGLE is off unless it is exactly 'true'. Off: the static help page
+// (the only server-rendered copy that could name the provider) must not mention it,
+// and the Google button's copy must not be shipped in any chunk (the flag is a
+// build-time constant, so the branch is dead code).
+if (process.env.PUBLIC_AUTH_GOOGLE !== 'true') {
+  need(!/\bGoogle\b/.test(readFileSync('dist/help/index.html', 'utf8').replace(/<link[^>]*>/g, '')), 'dist/help/index.html mentions Google sign-in while PUBLIC_AUTH_GOOGLE is off');
+  const chunks = readdirSync('dist/_astro').filter((f) => f.endsWith('.js'));
+  const leaking = chunks.filter((f) => /Continue with Google/.test(readFileSync(join('dist/_astro', f), 'utf8')));
+  need(leaking.length === 0, `Google sign-in copy is still bundled while PUBLIC_AUTH_GOOGLE is off: ${leaking.join(', ')}`);
+}
+
 if (failures.length) {
   console.error(`check:dist failed:\n  - ${failures.join('\n  - ')}`);
   process.exit(1);

@@ -72,6 +72,8 @@ jobs:
           PUBLIC_BUILD_SHA: ${{ github.sha }}
           PUBLIC_SUPABASE_URL: ${{ vars.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_KEY: ${{ vars.PUBLIC_SUPABASE_KEY }}
+          # 'true' shows Google sign-in; unset (the default) = email/password only.
+          PUBLIC_AUTH_GOOGLE: ${{ vars.PUBLIC_AUTH_GOOGLE }}
       - name: Pick the Pages branch (main = production, anything else = preview)
         id: target
         run: node scripts/pages-target.mjs

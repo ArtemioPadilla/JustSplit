@@ -3,7 +3,7 @@
  *
  * Sibling of `LoginForm`, same pattern (Form + react-hook-form + zod).
  * No Facebook/Twitter buttons and no `linkProvider` (plan B4 explicitly
- * forbids both); Google sign-in lives on the sign-in page only — Supabase's
+ * forbids both); Google sign-in (off by default, plan B20a) lives on the sign-in page only — Supabase's
  * `signInWithOAuth` creates the account too if it doesn't exist yet, so a
  * separate Google button here would be redundant. Mounted `client:only="react"`
  * on `src/pages/auth/signup.astro`.
