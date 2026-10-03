@@ -395,6 +395,7 @@ async function main() {
         (rows) => rows.length === 1,
       );
       assert(pending[0].status === 'pending' && pending[0].requested_by === ana.id, `wrong friendship ${JSON.stringify(pending[0])}`);
+      await expectAnnouncedOnce(ana.name, tSend, /^Friend request sent$/, 'send a friend request');
 
       await goto(c, '/friends');
       await waitForText(c, /Friend requests\s+[A-Z]{2}\s+Ana Smoke/);
@@ -410,7 +411,6 @@ async function main() {
 
       await goto(a, '/friends');
       await waitForText(a, /Friends \(\d\)[\s\S]*Cami Smoke/);
-      await expectAnnouncedOnce(ana.name, tSend, /^Friend request sent$/, 'send a friend request');
     });
 
     // ── 7. Profile: edit the name ────────────────────────────────────────────
@@ -419,6 +419,9 @@ async function main() {
       await a.locator('#profile-display-name').fill('Ana Renamed');
       const tProfile = Date.now();
       await a.getByRole('button', { name: 'Save changes' }).click();
+      // Before anything navigates away: the toast is immediate, and a reload right after the database shows the
+      // new name could land before the page has said so.
+      await expectAnnouncedOnce(ana.name, tProfile, /^Profile updated$/, 'save the profile');
       await eventually(
         'the renamed profile',
         async () => (await admin.from('profiles').select('name').eq('id', ana.id).maybeSingle()).data?.name,
@@ -426,7 +429,6 @@ async function main() {
       );
       await goto(a, '/profile');
       assert((await a.locator('#profile-display-name').inputValue()) === 'Ana Renamed', 'the new name must survive a reload');
-      await expectAnnouncedOnce(ana.name, tProfile, /^Profile updated$/, 'save the profile');
     });
 
     // ── 8. Offline (plan B19c, ADR 0015): writes are blocked and explained, then come back ─
