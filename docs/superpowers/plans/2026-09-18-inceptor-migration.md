@@ -2489,6 +2489,12 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       walking it by hand is one pass (DevTools → Network → Offline on one form and one dialog, then
       back online), see [ADR 0015](../../decisions/0015-writes-require-a-connection.md)
 - [ ] Every row of the Jest suite → owning task table is ticked
+- [ ] A manual screen-reader pass before public launch, with NVDA (Windows, Firefox or Chrome), VoiceOver (macOS
+      Safari and iOS) and TalkBack (Android Chrome): what B19d's automation cannot hear. Listen for: a success toast
+      (spoken once, politely), an error toast (spoken once, interrupting), going offline and coming back (the banner,
+      and the blocked control's reason read from the control), a form with an error (focus on the field, the message
+      read with it), the record-payment dialog (name on open, focus inside, back on close), and the update toast.
+      Record the result in the audit issue; the three automated layers are listed in B19d with what they cannot see
 - [ ] Measure time-to-data on a warm navigation ≤ 300 ms on the staging site (the `inceptor` preview) (Query persister:
       one `QueryProvider` per page, `meta.persist` on collection queries, one `justsplit:query`
       key — B5a; with `useLiveQuery` as the single network source there is exactly one request per
@@ -2906,6 +2912,86 @@ Gates on the final tree: `npm run check` (238 test files, 2750 tests, 0 errors),
 configurations, 0 violations), `check:offline`, `test:live` (all flows including the two offline ones, 22 page
 states x 3 configurations clean), `test:rls` (22 files, 305 tests), `test:contract:live`, `test:rls:mutation`
 (55/55 killed, two of them new), and `db:rollback` then `db:migrate` for migration 017.
+
+### B19d. Automated screen-reader checks, three layers (`tdd-tier:strict`)
+Sequencing: after B19c, before B18 and B20. ADR 0015 and the B19b toast work both end with "not checked with a
+real screen reader". Playwright cannot drive NVDA, JAWS, VoiceOver or TalkBack, but it can do three
+partial things in CI, so a screen-reader regression fails a build instead of waiting for a person. **Scope, stated
+honestly: this does not replace a manual NVDA, VoiceOver and TalkBack pass before public launch, which B18
+records (its last item).** Each fix is its own red/green commit pair (`Tdd-Red:` trailer; test infrastructure uses
+`Tdd-Red-Verified: inline`).
+- [x] **Layer 1, Vitest with a virtual screen reader.** `@guidepup/virtual-screen-reader` 0.33.0 (devDependency
+      only; `grep guidepup dist/` is empty and `check:budgets` is unchanged) runs under this repo's Vitest 4 +
+      jsdom 29 + React 19 + Testing Library with no shim (`src/tests/screen-reader.test.ts` pins that). Helpers in
+      `src/tests/screen-reader.ts`: `readAll` (one pass, the phrases a virtual cursor speaks), `speakFocused` (what is
+      spoken for the element that has focus), `spokenWith` (role/name/state fragments, never a whole log). The
+      virtual cursor does not model live regions, so `trackAnnouncements` runs layer 2's observer on the jsdom
+      document. Suites, each next to its surface: toast (`toast.screen-reader.test.tsx`: success once and polite, error
+      once and assertive, dismissing re-announces nothing), blocked write controls
+      (`OfflineWriteNotice.screen-reader.test.tsx`: the sentence read once however many controls share it, each
+      control spoken as disabled with it as its description, not a live region, back to ordinary on reconnect),
+      `OfflineBanner` and `UpdateToast` (`live-banners.screen-reader.test.tsx`), the sign-in and expense forms
+      (`LoginForm.` / `ExpenseForm.screen-reader.test.tsx`: focus on the first invalid field, spoken invalid with its
+      message), and the record-payment dialog (`RecordPaymentDialog.screen-reader.test.tsx`: spoken as a dialog
+      named "Record payment", focus on it, the page behind out of reach, focus back on close).
+- [x] **Layer 2, live-region announcement observer in the live smoke.** `scripts/lib/live-announcements.mjs`:
+      `installLiveRegionObserver` (injected with `addInitScript`, entries sent through `exposeBinding` so they
+      survive the full page load of every navigation) records each text added to an `aria-live`,
+      `role=status|alert|log` or `<output>` region: timestamp, politeness, region, normalized text, whether the
+      region was inserted already holding its text, whether it sat in a hidden subtree (behind an open modal). A
+      re-render that keeps the text, a removal, `aria-live="off"` and plain content are silent.
+      `classifyAnnouncements` is pure (`src/tests/live-announcements.test.ts`, like `console-policy.mjs`): the same
+      normalized text twice within 1.5 s, the same sentence from two regions, an assertive announcement that is not
+      an error. `scripts/live-smoke.mjs` asserts per flow: save expense, event, group, profile, friend request sent and
+      accepted, record payment and undo, each exactly once and polite; opening the payment dialog is not announced
+      through a live region; a form that loads clean announces no validation message; going offline is announced
+      once per page, by the banner, and the per-control sentence never once per control; reconnecting is announced
+      once ("You're back online.", see the decision below) without repeating the outage. A violation fails the run like a console-policy failure, naming the flow, the text and the regions.
+- [x] **Layer 3, accessibility-tree invariants.** `page.ariaSnapshotJSON()` (`page.accessibility.snapshot()` no
+      longer exists in Playwright 1.5x) through `scripts/lib/aria-invariants.mjs`, a pure function with fixture trees
+      that each break one rule (`src/tests/aria-invariants.test.ts`): one `main` and one level-1 heading; every button,
+      link and form field (and tab, menu item, ...) has a name; two or more `navigation` landmarks each have a
+      distinct label; every dialog has a name; nothing focused sits inside `aria-hidden` or `inert`. With a modal
+      dialog open the structure rules relax to "at most one" (the page behind it is hidden on purpose). No golden
+      snapshot. Run on every signed-in page state in light, dark and 375px by the live smoke, and on every static
+      page in the same three configurations by `check:a11y` (`scripts/axe-smoke.mjs`, Build & Check).
+- [x] **Found and fixed** (each red, then green): `/expenses/<unknown id>` had two `h1` (the view's own sr-only one
+      and "Page not found"; the embedded not-found message is now an `h2`); every load of `/expenses/new` announced
+      "Select at least one participant." (the splitter validated the not-yet-loaded empty state; it now takes
+      `ready`); the unbalanced-split error toast repeated the splitter's polite status sentence verbatim, one fact
+      from two live regions (the toast now reads "Can't save yet: $20.00 left to assign."); `OfflineBanner` and
+      `UpdateToast` returned `null` until they had something to say, so their polite status region was created
+      together with its text, the pattern NVDA and JAWS announce least reliably (the region now stands, empty, and
+      the message is added into it). The live smoke failed on the tree before the first two fixes (`125adf3`) and
+      passes after. Mutation check: a doubled `notifySuccess('Payment recorded')` fails the run with the flow, the
+      text and both regions named.
+- [x] **Decision: reconnecting is announced** (owner, WCAG 4.1.3: a status change is announced, and offline/online
+      are symmetric). `OfflineBanner` adds "You're back online." to the same standing polite region, as a visible
+      pill in a neutral tone (the offline one is destructive), on a real offline-to-online transition only (never on a
+      first load that is already online; a page that loaded offline does announce its reconnect). The text clears after
+      about 4 s without announcing, on a `createDisposer()` timer cleaned up on unmount; a flap (offline, online,
+      offline) drops the pending clear and the message, so nothing stale is left and nothing is said twice. Both pills
+      animate only under `motion-safe:` (reduced motion gets an instant pill). Layer 1:
+      `live-banners.screen-reader.test.tsx` ("coming back online"); layer 2: the offline flows assert it exactly once per
+      page. ADR 0015's open question records it.
+- [x] **What the three layers can and cannot catch.** They catch: wrong or missing roles, names, states and
+      descriptions; focus that lands nowhere or inside a hidden subtree; a landmark or heading structure that breaks;
+      a sentence announced twice by the page; an interruption for something that is not an error; an announcement
+      that never happens. They cannot catch: what a real screen reader chooses to speak (NVDA, JAWS, VoiceOver and
+      TalkBack differ on live-region de-duplication, queueing and verbosity), whether a name is a *good* name,
+      reading order, speech timing, braille, or mobile touch exploration. Layer 2 models the DOM mutations a browser
+      exposes as live-region events, so "no double announcement" means the page never asks twice. The
+      assertive-for-errors rule is a vocabulary heuristic (`isErrorText`), pinned both ways by its unit tests.
+- [x] **Docs**: this entry, B18's manual-pass item, the sequencing line, the ADR 0015 open question, the SETUP
+      `test:live` row, the `CLAUDE.md` `check:a11y` and `test:live` rows.
+
+**Landed (B19d)** — no budget was raised. The pages that carry the layout banners moved by about +0.2 gzipped kB
+(for the standing status region, the back-online pill and the splitter's `ready`), e.g. `/` 228.4 to 228.6,
+`/settlements/` 242.9 to 243.1, `/expenses/new/` 264.6 to 264.9 (budget 279). Gates on the final tree:
+`npm run check` (253 test files, 2999 tests, 0 errors), `check:a11y` (16 pages x 3 configurations, 0 violations, now
+including the tree invariants), `check:offline`, `test:live` (all flows including the new announcement assertions,
+reconnect announced exactly once per page, 22 page states x 3 configurations clean on axe and the tree invariants,
+no announcement into a hidden region).
 
 ### B20a. Host on Cloudflare Pages at `split.cybere.co` (`risk:high`, `tdd-tier:strict`)
 Sequencing: after B19c, before B18 and B20. It changes where production lives and how it is deployed and
@@ -3470,7 +3556,7 @@ B8a..B15, B17b parallelizable after B7 and B16
   (B8b after B8a; B10 after B9; B11b after B11a; B12 after B9+B11b; B14 after B14a;
    B14a after B2d + B8b + B9 + B11b + B13 (it rewrites how their balances and badges are derived); B14 is the island only, on B14a;
    B15 after B16; B13 after B5a (its policies shipped in B2); B8b/B9/B11b after B17a)
-B18 → B19 → B19b → B19c → B20 → B21 → B22        (B19b is the polish follow-up batch, with migration 016 and tightened budgets, and lands before the cutover PR; B19c makes writes require a connection and adds migration 017, also before the cutover; B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
+B18 → B19 → B19b → B19c → B19d → B20 → B21 → B22        (B19b is the polish follow-up batch, with migration 016 and tightened budgets, and lands before the cutover PR; B19c makes writes require a connection and adds migration 017, also before the cutover; B19d adds the automated screen-reader checks, the manual pass stays in B18; B20 opens the 14-day Firebase window; B21 closes it; B22 drops the contingency adapter once H2 is in)
 C1, C2 after B5b; C3 after B1 (independent of the cutover)
 H1 after this spec is approved (no code; unblocks ADR-008 gate 1) → H2 after the hub's gate C1 (Story 0.3) — or upstream the B5a contingency adapter → H3 after H2 + C1
 D1 → D2 → D3 → D4 → D5 → D6 → D7 → D8     (Track D increment 1, all after B22, on main; D2 before any default split is written)

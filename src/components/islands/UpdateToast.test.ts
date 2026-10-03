@@ -16,9 +16,8 @@ describe('UpdateToast', () => {
     expect(source).toMatch(/aria-live=["']polite["']/);
   });
 
-  it('returns null when no refresh is needed', () => {
-    expect(source).toMatch(/if\s*\(\s*!needs\s*\)\s*return\s*null/);
-  });
+  // "Nothing visible until an update is waiting, but the status region stays" is behaviour, pinned by
+  // live-banners.screen-reader.test.tsx (plan B19d).
 
   it('does not import from framer-motion', () => {
     expect(source).not.toMatch(/from ['"]framer-motion['"]/);

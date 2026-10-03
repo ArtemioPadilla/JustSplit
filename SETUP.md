@@ -49,7 +49,7 @@ comes with `npm ci`.
 | `npm run db:audit [-- <url>]` | read-only dump of RLS, policies, triggers, function grants, table grants, Realtime and buckets; diff local against the project (B18) |
 | `npm run test:rls` | the B2b RLS suite against the running stack |
 | `npm run test:rls:mutation` | drops each policy and guard trigger in turn and requires the suite to fail |
-| `npm run test:live` | the A7 live end-to-end smoke: builds `dist` against the running stack (keys from `supabase status`, into a temporary directory, so `dist/` is untouched), seeds and removes its own users through the service role, then drives Chromium (its offline step, plan B19c, takes the network away from one form and one dialog and checks the controls are blocked with the shared sentence and back on reconnect) — see §3 |
+| `npm run test:live` | the A7 live end-to-end smoke: builds `dist` against the running stack (keys from `supabase status`, into a temporary directory, so `dist/` is untouched), seeds and removes its own users through the service role, then drives Chromium (its offline step, plan B19c, takes the network away from one form and one dialog and checks the controls are blocked with the shared sentence and back on reconnect; plan B19d adds the screen-reader layers: every page records what its live regions announce and any double announcement or assertive non-error fails the run, and every page state is held to the accessibility-tree invariants of `scripts/lib/aria-invariants.mjs`) — see §3 |
 | `npm run db:rollback` / `db:status` / `db:stop` | dbmate rollback of the last file, status, stop the stack |
 
 Migrations live in `db/migrations/` and **never** in `supabase/migrations/`

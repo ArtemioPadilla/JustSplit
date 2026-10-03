@@ -13,10 +13,14 @@ import { withBase } from '@/lib/href';
  */
 export default function NotFoundView({ standalone = false }: { standalone?: boolean }) {
   const Container = standalone ? 'main' : 'div';
+  // The page has exactly ONE h1 (plan B19d, accessibility-tree invariant). Standalone, nothing else owns it, so
+  // this is it; nested, the route view above already renders its own sr-only h1 ("Expense", "Event", ...) and
+  // this is the heading under it.
+  const Heading = standalone ? 'h1' : 'h2';
   return (
     <Container id={standalone ? 'main-content' : undefined} className="mx-auto flex max-w-3xl flex-col px-4 py-24">
       <p className="font-mono text-sm uppercase tracking-widest text-primary">404</p>
-      <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-foreground">Page not found</h1>
+      <Heading className="mt-3 font-display text-4xl font-semibold tracking-tight text-foreground">Page not found</Heading>
       <p className="mt-4 max-w-prose text-muted-foreground">
         The URL doesn&apos;t match any page. If a link on this site brought you here, that&apos;s a bug worth filing
         with the chat bubble in the corner.

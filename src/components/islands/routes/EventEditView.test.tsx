@@ -57,6 +57,7 @@ describe('EventEditView', () => {
     useEvent.mockReturnValue({ isError: false, isLoading: false, data: null, refetch: vi.fn() });
     render(<EventEditView id="nope" />);
     expect(screen.getByText(/not found/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1); // the view's own sr-only h1; the not-found heading is an h2 under it
     expect(screen.queryByTestId('event-form')).not.toBeInTheDocument();
   });
 

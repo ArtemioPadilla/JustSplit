@@ -256,12 +256,22 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   const contextSettled =
     mode === 'create' &&
     (params.group ? groupQuery.isSuccess : params.event ? eventContextSettled : friendsQuery.isSuccess);
+  // The splitter's status stays silent until the defaults are in (plan B19d). Not
+  // `contextSettled`: that is true one render BEFORE this effect sets the
+  // participants, and a browser paints that render, so the status region would
+  // hold "Select at least one participant." for a state nobody caused.
+  const [splitterReady, setSplitterReady] = React.useState(mode === 'edit');
   React.useEffect(() => {
-    if (mode !== 'create' || defaultsAppliedRef.current || !contextSettled || form.formState.isDirty) return;
+    if (mode !== 'create' || defaultsAppliedRef.current || !contextSettled) return;
     defaultsAppliedRef.current = true;
-    form.setValue('currency', resolved.currency ?? preferredCurrency);
-    form.setValue('paidBy', uid ?? '');
-    form.setValue('participantIds', resolved.candidateIds);
+    if (!form.formState.isDirty) {
+      form.setValue('currency', resolved.currency ?? preferredCurrency);
+      form.setValue('paidBy', uid ?? '');
+      form.setValue('participantIds', resolved.candidateIds);
+    }
+    // Batched with the setValue calls above: the first render with a ready splitter
+    // already has the participants.
+    setSplitterReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, guarded by the ref
   }, [mode, contextSettled]);
 
@@ -290,7 +300,10 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   async function handleValid(values: ExpenseFormValues) {
     const splitValidation = validateSplit(values.splitType, Number(values.amount), values.participantIds, values.shares);
     if (!splitValidation.valid) {
-      notifyError(splitValidation.message ?? 'The split is not balanced yet.');
+      // Not the bare `message`: the splitter's polite status region already says "$20.00 left to assign" as the
+      // person types, and the same sentence from this assertive toast would be one fact announced by two live
+      // regions (plan B19d). Prefixed, it is also an error that makes sense on its own: the save was refused.
+      notifyError(`Can't save yet: ${splitValidation.message ?? 'the split is not balanced'}.`);
       return;
     }
 
@@ -561,6 +574,8 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
           shares={watchedShares}
           onSharesChange={(shares) => form.setValue('shares', shares, { shouldDirty: true })}
           names={names}
+          // Create mode starts with nobody selected until the context (friends, group or event) has answered.
+          ready={splitterReady}
         />
         <FormField
           control={form.control}

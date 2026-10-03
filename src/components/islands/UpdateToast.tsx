@@ -10,29 +10,31 @@ import ErrorBoundary from './ErrorBoundary';
  * Clicking "Reload" calls `activateUpdate()` which skip-waits the new SW
  * and reloads the page — the user immediately gets the updated app.
  *
- * Accessibility:
- * - role="status" + aria-live="polite" announces the message without
- *   interrupting ongoing screen-reader speech.
+ * Accessibility (plan B19d):
+ * - The polite `role="status"` region is ALWAYS rendered, empty until an update
+ *   is waiting, and the toast is added to it (a live region created already
+ *   holding its text is announced least reliably, see OfflineBanner). It
+ *   announces the message without interrupting ongoing screen-reader speech;
+ *   the card inside is `fixed`, so the empty wrapper takes no space.
  */
 function UpdateToastContent() {
   const needs = useStore($needsRefresh);
-  if (!needs) return null;
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed top-4 right-4 z-50 max-w-sm rounded-lg border border-border bg-card text-card-foreground px-4 py-3 shadow-lg motion-preset-slide-down-md motion-duration-300"
-    >
-      <p className="text-sm font-medium">Update available</p>
-      <p className="mt-1 text-xs text-muted-foreground">A new version is ready.</p>
-      <button
-        type="button"
-        onClick={() => activateUpdate()}
-        className="mt-2 inline-flex items-center rounded-md border border-primary/40 bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        Reload
-      </button>
+    <div role="status" aria-live="polite">
+      {needs ? (
+        <div className="fixed top-4 right-4 z-50 max-w-sm rounded-lg border border-border bg-card text-card-foreground px-4 py-3 shadow-lg motion-preset-slide-down-md motion-duration-300">
+          <p className="text-sm font-medium">Update available</p>
+          <p className="mt-1 text-xs text-muted-foreground">A new version is ready.</p>
+          <button
+            type="button"
+            onClick={() => activateUpdate()}
+            className="mt-2 inline-flex items-center rounded-md border border-primary/40 bg-primary text-primary-foreground px-3 py-1 text-xs font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Reload
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
