@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Post-build assertions (plan B2c): runs after `astro build` in `npm run check`.
 // dist/404.html must be the app shell, and the redirect pages must be emitted.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { SITE_ORIGIN } from '../site.config.mjs';
+import { collectInlineScriptHashes, headersFor, parseHeadersFile, supabaseOrigins } from './lib/pages-headers.mjs';
 
 const failures = [];
 const need = (cond, msg) => cond || failures.push(msg);
@@ -149,8 +152,61 @@ for (const page of ['dist/index.html', 'dist/landing/index.html', 'dist/auth/sig
   }
 }
 
+// ---- Cloudflare Pages: _headers, CSP, canonical origin (plan B20a, ADR 0016) --
+// `dist/_headers` is written by the pages-headers integration from the finished
+// HTML. Re-derive the inline-script hashes here, independently of the integration's
+// own run, so a script that slips past it (or a template change after it) fails the
+// build instead of shipping a page the CSP would silently block.
+const headersPath = 'dist/_headers';
+need(existsSync(headersPath), `${headersPath} is missing (the pages-headers integration did not run)`);
+if (existsSync(headersPath)) {
+  const rules = parseHeadersFile(readFileSync(headersPath, 'utf8'));
+  const all = headersFor(rules, '/');
+  const csp = all['content-security-policy'] ?? '';
+  const scriptSrc = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src ')) ?? '';
+  const missing = collectInlineScriptHashes('dist').filter((hash) => !scriptSrc.includes(hash));
+  need(missing.length === 0, `${headersPath}: script-src lacks the hash of ${missing.length} inline script(s) (${missing[0] ?? ''}); that page would be blocked`);
+  need(csp !== '', `${headersPath}: no Content-Security-Policy on /`);
+  need(!/unsafe-eval/.test(csp), `${headersPath}: the CSP allows unsafe-eval`);
+  need(!/unsafe-inline/.test(scriptSrc), `${headersPath}: script-src allows unsafe-inline`);
+  need(/frame-ancestors 'none'/.test(csp) && /object-src 'none'/.test(csp), `${headersPath}: frame-ancestors / object-src are not 'none'`);
+  need(/^max-age=31536000; includeSubDomains$/.test(all['strict-transport-security'] ?? ''), `${headersPath}: HSTS is not max-age=31536000; includeSubDomains`);
+  need(headersFor(rules, '/_astro/x.js')['cache-control'] === 'public, max-age=31536000, immutable', `${headersPath}: /_astro/* is not immutable`);
+  for (const path of ['/', '/sw.js', '/manifest.webmanifest']) {
+    need(headersFor(rules, path)['cache-control'] === 'no-cache', `${headersPath}: ${path} is not no-cache`);
+  }
+  const project = supabaseOrigins(process.env.PUBLIC_SUPABASE_URL);
+  if (project) need(csp.includes(project.http) && csp.includes(project.ws), `${headersPath}: connect-src does not name the configured Supabase project`);
+}
+
+// The canonical <link> and the sitemap only ever name the canonical origin; the
+// justsplit.cybere.co redirect host and *.pages.dev previews must never leak in.
+function htmlPages(dir) {
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name);
+    return statSync(path).isDirectory() ? htmlPages(path) : name.endsWith('.html') ? [path] : [];
+  });
+}
+for (const page of htmlPages('dist')) {
+  const html = readFileSync(page, 'utf8');
+  if (/<meta name="robots" content="noindex"/.test(html)) continue;
+  const canonical = /<link rel="canonical" href="([^"]*)"/.exec(html)?.[1];
+  need(canonical !== undefined, `${page}: no <link rel="canonical">`);
+  if (canonical) need(canonical.startsWith(`${SITE_ORIGIN}/`), `${page}: canonical is ${canonical}, expected the ${SITE_ORIGIN} origin`);
+}
+for (const sitemap of ['dist/sitemap-0.xml', 'dist/sitemap-index.xml']) {
+  if (!existsSync(sitemap)) {
+    failures.push(`${sitemap} is missing`);
+    continue;
+  }
+  const locs = [...readFileSync(sitemap, 'utf8').matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+  need(locs.length > 0, `${sitemap} lists no URL`);
+  const foreign = locs.filter((loc) => !loc.startsWith(`${SITE_ORIGIN}/`));
+  need(foreign.length === 0, `${sitemap}: ${foreign.length} URL(s) outside ${SITE_ORIGIN}, first: ${foreign[0]}`);
+}
+
 if (failures.length) {
   console.error(`check:dist failed:\n  - ${failures.join('\n  - ')}`);
   process.exit(1);
 }
-console.log('check:dist ok (404 shell, redirect pages, app nav + skip links, PWA worker + manifest)');
+console.log('check:dist ok (404 shell, redirect pages, app nav + skip links, PWA worker + manifest, _headers + CSP hashes, canonical origin)');

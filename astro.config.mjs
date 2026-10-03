@@ -7,6 +7,7 @@ import sitemap from '@astrojs/sitemap';
 import { SITE_ORIGIN } from './site.config.mjs';
 import { manualChunks, pureCyberEcoAuthSchemas } from './build.config.mjs';
 import { pwaOptions } from './pwa.config.mjs';
+import { pagesHeaders } from './pages-headers.config.mjs';
 
 // Subpath the site is served under. Production (Cloudflare Pages, split.cybere.co,
 // ADR 0016) is served from the root, so the default is '/' everywhere and the
@@ -33,6 +34,9 @@ export default defineConfig({
     react(),
     // Manifest, offline shell and Workbox rules: pwa.config.mjs (plan B19).
     AstroPWA(pwaOptions(BASE)),
+    // dist/_headers: HSTS, the enforced CSP with the inline-script hashes, cache rules
+    // (plan B20a, ADR 0016). Last, so it hashes the final HTML.
+    pagesHeaders(),
   ],
   vite: {
     plugins: [tailwindcss(), pureCyberEcoAuthSchemas()],
