@@ -93,7 +93,8 @@ describe('GroupDetailView', () => {
   it('renders NotFoundView for an id that resolves to no row', () => {
     useGroup.mockReturnValue({ data: null, isLoading: false, isError: false, refetch: vi.fn() });
     render(<GroupDetailView id="does-not-exist" />);
-    expect(screen.getByRole('heading', { level: 1, name: /not found/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /not found/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1); // the view's own sr-only h1; the not-found heading is an h2 under it
   });
 
   it('shows a skeleton while loading', () => {

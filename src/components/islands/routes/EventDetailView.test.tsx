@@ -217,7 +217,8 @@ describe('EventDetailView — states', () => {
   it('renders NotFoundView for an id that resolves to no row (missing or RLS-hidden — never distinguished)', () => {
     useEvent.mockReturnValue({ data: null, isLoading: false, isError: false, refetch: vi.fn() });
     render(<EventDetailView id="nope" />);
-    expect(screen.getByRole('heading', { level: 1, name: /not found/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /not found/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1); // the view's own sr-only h1; the not-found heading is an h2 under it
   });
 
   it('shows an error state with a working Retry when the event fails to load', async () => {

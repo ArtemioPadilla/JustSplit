@@ -11,14 +11,16 @@ import NotFoundView from './NotFoundView';
  * (`standalone`) it IS the page's main landmark.
  */
 describe('NotFoundView', () => {
-  it('nested in a route view: no landmark of its own, still the level-1 heading', () => {
+  it('nested in a route view: no landmark of its own and no second h1 (the view owns the page heading)', () => {
     render(
       <main>
+        <h1 className="sr-only">Expense</h1>
         <NotFoundView />
       </main>,
     );
     expect(screen.getAllByRole('main')).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Page not found' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back home' })).toBeInTheDocument();
   });
 
