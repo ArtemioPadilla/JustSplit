@@ -93,14 +93,15 @@ export function pwaOptions(base) {
       // slash) is a redirect on GitHub Pages and not an offline start.
       start_url: dir,
       scope: dir,
-      // Still the Inceptor scaffold's placeholder artwork; no plan issue
-      // regenerates it. The JustSplit mark is public/images/logo-square.png at
-      // 342px, too small for a 512px icon: it needs a vector or a 1024px source.
+      // Renders of the vector JustSplit logo (plan B20b): `npm run icons`
+      // (scripts/render-icons.mjs) writes the PNGs from icons/logo-source.svg
+      // ("any") and icons/logo-maskable.svg (full bleed, mark inside the safe
+      // zone). The SVG entry lets browsers that take a vector icon use it at any size.
       icons: [
         { src: assetUrl(base, 'icons/pwa-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
         { src: assetUrl(base, 'icons/pwa-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
         { src: assetUrl(base, 'icons/pwa-maskable-512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        { src: assetUrl(base, 'icons/logo-source.svg'), sizes: 'any', type: 'image/svg+xml' },
+        { src: assetUrl(base, 'icons/logo-source.svg'), sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
       ],
       shortcuts: [
         { name: 'Add expense', short_name: 'Add expense', url: assetUrl(base, 'expenses/new/') },
@@ -109,6 +110,9 @@ export function pwaOptions(base) {
     },
     workbox: {
       globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
+      // The maskable SVG is only the source `npm run icons` renders the maskable and
+      // apple-touch PNGs from; nothing references it at runtime, so it is not precached.
+      globIgnores: ['icons/logo-maskable.svg'],
       directoryIndex: 'index.html',
       manifestTransforms: [directoryAliasTransform(base)],
       // The offline shell (spec D2): an offline navigation to an app route with no
