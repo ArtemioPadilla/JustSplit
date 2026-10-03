@@ -85,6 +85,14 @@ export function installLiveRegionObserver(win = window) {
     return out;
   };
 
+  /** True when the region, or anything around it, is hidden from assistive technology: nothing in it is heard. */
+  const hiddenChain = (region) => {
+    for (let el = region; el; el = el.parentElement) {
+      if (el.hasAttribute('hidden') || el.hasAttribute('inert') || el.getAttribute('aria-hidden') === 'true') return true;
+    }
+    return false;
+  };
+
   const describe = (el) => {
     const parts = [el.localName];
     const role = el.getAttribute('role');
@@ -169,6 +177,9 @@ export function installLiveRegionObserver(win = window) {
         // A live region that arrives already holding its text, with nothing live around it, is the pattern
         // assistive technology announces least reliably; informational, the classifier does not fail on it.
         inserted: !known && info.created && !(region.parentElement && regionOf(region.parentElement)),
+        // Behind an open modal dialog, or in a hidden subtree: the browser exposes no live-region event, so
+        // nobody hears it. Logged anyway, so a flow can say WHY it expected an announcement and got none.
+        hidden: hiddenChain(region),
       };
       log.push(entry);
       if (typeof win.__liveAnnounce === 'function') {
@@ -209,7 +220,7 @@ export function isErrorText(text) {
 }
 
 /**
- * @typedef {{ at: number, doc?: string, politeness: 'polite' | 'assertive', region: string, regionKey?: number, text: string, inserted?: boolean }} Announcement
+ * @typedef {{ at: number, doc?: string, politeness: 'polite' | 'assertive', region: string, regionKey?: number, text: string, inserted?: boolean, hidden?: boolean }} Announcement
  * @typedef {{ kind: 'repeat' | 'two-regions' | 'assertive-non-error', text: string, regions: string[], message: string }} Violation
  */
 
@@ -222,6 +233,8 @@ const seconds = (ms) => `${(ms / 1000).toString().replace(/\.0$/, '')} s`;
  */
 export function classifyAnnouncements(entries, { windowMs = DOUBLE_ANNOUNCEMENT_WINDOW_MS } = {}) {
   const spoken = entries
+    // Hidden from assistive technology: nobody heard it, so it cannot be a double or an interruption.
+    .filter((entry) => !entry.hidden)
     .map((entry) => ({ ...entry, norm: normalizeAnnouncement(entry.text) }))
     .filter((entry) => entry.norm !== '')
     .sort((a, b) => a.at - b.at);
@@ -290,12 +303,16 @@ function describeBurst(burst, windowMs) {
  *
  * @param {Announcement[]} entries
  * @param {RegExp} pattern
- * @param {{ politeness?: string, doc?: string }} [filter]
+ * Announcements that went into a region hidden from assistive technology were not heard, so they are left
+ * out unless `hidden: true` asks for exactly those.
+ *
+ * @param {{ politeness?: string, doc?: string, hidden?: boolean }} [filter]
  */
-export function announcementsMatching(entries, pattern, { politeness, doc } = {}) {
+export function announcementsMatching(entries, pattern, { politeness, doc, hidden = false } = {}) {
   return entries.filter(
     (entry) =>
       pattern.test(entry.text) &&
+      Boolean(entry.hidden) === hidden &&
       (politeness === undefined || entry.politeness === politeness) &&
       (doc === undefined || entry.doc === doc),
   );
