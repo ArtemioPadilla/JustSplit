@@ -133,6 +133,12 @@ describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
     expect(text('deploy.yml')).not.toMatch(/ASTRO_BASE/);
   });
 
+  it('passes the Google sign-in flag as a repository VARIABLE, never a secret (plan B20a)', () => {
+    const build = steps(deploy).find((s) => /\bnpm run build\b/.test(s.run ?? ''))!;
+    expect(build.env?.PUBLIC_AUTH_GOOGLE).toMatch(/^\$\{\{\s*vars\.PUBLIC_AUTH_GOOGLE\s*\}\}$/);
+    expect(text('deploy.yml')).not.toMatch(/secrets\.PUBLIC_AUTH/);
+  });
+
   it('fails fast, without printing a value, when the public config variables are missing', () => {
     const guard = steps(deploy).find((s) => /PUBLIC_SUPABASE_URL/.test(s.run ?? ''));
     expect(guard, 'a guard step that checks the variables').toBeTruthy();

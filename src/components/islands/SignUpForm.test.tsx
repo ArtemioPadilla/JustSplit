@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import * as React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -93,5 +93,21 @@ describe('SignUpForm — links', () => {
 
     rerender(<SignUpForm signInHref="/auth/signin/" />);
     expect(screen.getByRole('link', { name: /sign in/i })).toHaveAttribute('href', '/auth/signin/');
+  });
+});
+
+/**
+ * Plan B20a: sign-up never has a Google button (the sign-in page owns the provider,
+ * and it is off by default), with the flag unset or on; email sign-up is the only path.
+ */
+describe.each(['', 'true'])('SignUpForm — no Google control (PUBLIC_AUTH_GOOGLE=%j)', (flag) => {
+  beforeEach(() => vi.stubEnv('PUBLIC_AUTH_GOOGLE', flag));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('renders no Google button, no "or" divider and no Google text', () => {
+    render(<SignUpForm signInHref="/auth/signin/" />);
+    expect(screen.queryByRole('button', { name: /google/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/google/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^or$/i)).not.toBeInTheDocument();
   });
 });
