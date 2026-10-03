@@ -112,8 +112,9 @@ export function pwaOptions(base) {
       globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
       // The maskable SVG is only the source `npm run icons` renders the maskable and
       // apple-touch PNGs from; nothing references it at runtime, so it is not precached.
-      // images/ holds the pre-migration logo files (one PNG is 1.2 MB): no page uses
-      // them, so they are not precached either.
+      // images/ held the pre-migration logo files (one PNG was 1.2 MB) until B20b
+      // moved them to design/brand/; the ignore keeps a re-added legacy directory
+      // out of every install (app-icons.test.ts also forbids it in public/).
       globIgnores: ['icons/logo-maskable.svg', 'images/**'],
       directoryIndex: 'index.html',
       manifestTransforms: [directoryAliasTransform(base)],
