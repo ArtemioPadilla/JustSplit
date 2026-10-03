@@ -2945,8 +2945,8 @@ records (its last item).** Each fix is its own red/green commit pair (`Tdd-Red:`
       an error. `scripts/live-smoke.mjs` asserts per flow: save expense, event, group, profile, friend request sent and
       accepted, record payment and undo, each exactly once and polite; opening the payment dialog is not announced
       through a live region; a form that loads clean announces no validation message; going offline is announced
-      once per page, by the banner, and the per-control sentence never once per control; reconnecting does not
-      re-announce. A violation fails the run like a console-policy failure, naming the flow, the text and the regions.
+      once per page, by the banner, and the per-control sentence never once per control; reconnecting is announced
+      once ("You're back online.", see the decision below) without repeating the outage. A violation fails the run like a console-policy failure, naming the flow, the text and the regions.
 - [x] **Layer 3, accessibility-tree invariants.** `page.ariaSnapshotJSON()` (`page.accessibility.snapshot()` no
       longer exists in Playwright 1.5x) through `scripts/lib/aria-invariants.mjs`, a pure function with fixture trees
       that each break one rule (`src/tests/aria-invariants.test.ts`): one `main` and one level-1 heading; every button,
@@ -2965,6 +2965,15 @@ records (its last item).** Each fix is its own red/green commit pair (`Tdd-Red:`
       the message is added into it). The live smoke failed on the tree before the first two fixes (`125adf3`) and
       passes after. Mutation check: a doubled `notifySuccess('Payment recorded')` fails the run with the flow, the
       text and both regions named.
+- [x] **Decision: reconnecting is announced** (owner, WCAG 4.1.3: a status change is announced, and offline/online
+      are symmetric). `OfflineBanner` adds "You're back online." to the same standing polite region, as a visible
+      pill in a neutral tone (the offline one is destructive), on a real offline-to-online transition only (never on a
+      first load that is already online; a page that loaded offline does announce its reconnect). The text clears after
+      about 4 s without announcing, on a `createDisposer()` timer cleaned up on unmount; a flap (offline, online,
+      offline) drops the pending clear and the message, so nothing stale is left and nothing is said twice. Both pills
+      animate only under `motion-safe:` (reduced motion gets an instant pill). Layer 1:
+      `live-banners.screen-reader.test.tsx` ("coming back online"); layer 2: the offline flows assert it exactly once per
+      page. ADR 0015's open question records it.
 - [x] **What the three layers can and cannot catch.** They catch: wrong or missing roles, names, states and
       descriptions; focus that lands nowhere or inside a hidden subtree; a landmark or heading structure that breaks;
       a sentence announced twice by the page; an interruption for something that is not an error; an announcement

@@ -216,6 +216,10 @@ on it. Signing out offline is still allowed.
   screen reader speaks the blocked control as disabled with the sentence as its description; the live smoke
   asserts the banner announces going offline once per page and the per-control sentence is never a live
   region); what NVDA, VoiceOver and TalkBack then say stays B18's manual pass.
+  Decided (plan B19d): reconnecting is announced too, symmetrically (WCAG 4.1.3). `OfflineBanner` adds
+  "You're back online." to the same standing polite region on a real offline-to-online transition only,
+  never on a first load that is already online, as a neutral pill that clears after about 4 s; the live smoke
+  asserts it is announced exactly once per page.
 - A ping-based "actually reachable" signal for lie-fi was not built; `navigator.onLine` is the one
   signal, blocking only on `false`.
 - A background-sync queue stays possible later, as its own issue with the requirements in §1.
