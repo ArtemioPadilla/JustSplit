@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 /**
  * Plan B19: Lighthouse CI is run by hand from a developer machine against the live
  * staging site in B18 (`npm run perf`), never in CI. `.lighthouserc.json` therefore
- * points at absolute staging URLs, with no local build or static server (lhci's
- * `staticDistDir` cannot serve a `/JustSplit`-prefixed build from `./dist`).
+ * points at absolute URLs, with no local build or static server. Since B20a the
+ * staging site is the `inceptor` branch's Cloudflare Pages preview (the production
+ * domain only serves a build once `main` is the Astro tree); after the cutover the
+ * three URLs move to `https://split.cybere.co` (B21).
  *
  * The script-size budgets are `assertMatrix` assertions on `resource-summary`.
  * They replace `lighthouse-budgets.json` + `settings.budgetsPath`, which stopped
@@ -28,7 +30,7 @@ const budgets = JSON.parse(readFileSync(resolve(ROOT, 'performance-budgets.json'
 };
 const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> };
 
-const STAGING = 'https://artemiopadilla.github.io/JustSplit';
+const STAGING = 'https://inceptor.justsplit.pages.dev';
 const scriptBudgetKb = (pattern: string) => {
   const entry = rc.ci.assert.assertMatrix.find((m) => m.matchingUrlPattern === pattern);
   expect(entry, pattern).toBeTruthy();
@@ -37,7 +39,7 @@ const scriptBudgetKb = (pattern: string) => {
 const patternFor = (url: string) => rc.ci.assert.assertMatrix.find((m) => new RegExp(m.matchingUrlPattern).test(url))?.matchingUrlPattern;
 
 describe('.lighthouserc.json (plan B19)', () => {
-  it('audits the live staging site: absolute URLs, no static server, no local build', () => {
+  it('audits the live staging site (the inceptor preview): absolute URLs, no static server, no local build', () => {
     expect(rc.ci.collect.staticDistDir).toBeUndefined();
     expect(rc.ci.collect.url).toEqual([`${STAGING}/landing/`, `${STAGING}/auth/signin/`, `${STAGING}/`]);
     expect(pkg.scripts.perf).toBe('lhci collect && lhci assert');
