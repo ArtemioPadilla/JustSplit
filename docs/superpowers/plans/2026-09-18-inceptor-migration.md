@@ -2970,6 +2970,36 @@ one except the auth pages, 0.1 kB smaller), `check:a11y` (16 pages x 3 configura
 at `/` and with `OFFLINE_SMOKE_BASE=/JustSplit`, `test:live` (9 flows, 22 page states x 3 configurations clean, under
 the real CSP), actionlint clean (v1.7.12, the SHA-pinned binary), unpinned-action scan empty.
 
+### B20b. Vector app icons (`tdd-tier:strict`)
+Sequencing: after B20a, before B20. B19 left the icons as the scaffold's placeholders because the only JustSplit
+mark was the 342 px raster `public/images/logo-square.png`, too small for a 512 px icon. The owner approved a
+faithful vector trace of that same logo (its proportions: the large green area and the J-shaped split line starting
+at the top middle; explicitly not a redesign), so every icon is now a render of a vector source.
+- [x] **Sources.** `public/icons/logo-source.svg` (the "any" icon: rounded navy tile, 342 x 342 viewBox, three
+      colours `#0f3769` / `#409cff` / `#48c27b`), `public/icons/logo-maskable.svg` (full bleed, the mark scaled 0.775
+      into the maskable safe zone) and `public/favicon.svg` (the same bytes as the "any" icon, under 2 kB). Both
+      sources are minified with no editor metadata and the artwork geometry and colours are untouched.
+- [x] **One reproducible script.** `npm run icons` (`scripts/render-icons.mjs`) rasterises each size straight from the
+      vector in the preinstalled Chromium (`playwright-core`, via `scripts/lib/browser.mjs`) and re-encodes with
+      `node:zlib` only (adaptive row filters, level-9 deflate; fully opaque images are stored as RGB), so **no
+      dependency is added**. Output: `apple-touch-icon.png` 180 (from the maskable source, colour type 2, the script
+      refuses to write it if any pixel is not opaque: iOS paints alpha black), `icons/pwa-192.png`, `pwa-512.png`
+      (from the "any" source), `icons/pwa-maskable-512.png` (from the maskable source), and a real `favicon.ico`
+      (16/32/48 px, PNG-in-ICO; it used to be a lone 32 px PNG with an `.ico` name). The output is committed, so a
+      build never needs a browser.
+- [x] **Manifest.** `pwa.config.mjs` keeps the 192, 512 and maskable 512 entries; the SVG entry is
+      `icons/logo-source.svg` with `purpose: 'any'`; the stale "placeholder / 342 px" comment is replaced.
+      `logo-maskable.svg` is a render source, not referenced at runtime, so it is **not** in `includeAssets` and is
+      excluded from the precache with `globIgnores` (the `**/*.svg` glob would otherwise pick it up).
+- [x] **Tests and gates.** `src/tests/app-icons.test.ts` (red commit first): real pixel sizes from the IHDR headers,
+      the apple-touch icon is colour type 2, the ICO directory lists 16/32/48 and each embedded PNG matches its
+      entry, `favicon.svg` and both sources are vector (no `<image`, no base64, under 2 kB, the three colours), the
+      `icons` script exists, the manifest icon list and that every entry is a real precached file. `check:dist`
+      now also reads the built manifest: every icon exists in `dist/`, its PNG size equals the declared `sizes`, the
+      vector icon embeds no raster, and `apple-touch-icon.png` is an opaque 180 x 180.
+- [x] **Cleanup.** `public/images/logo-square.png` (the 342 px raster the icons were derived from; the placeholder
+      comment named it as such) is deleted. Nothing in `src/` or the docs referenced it.
+
 ### B20. Cutover PR `inceptor → main` and Firebase deletion (`risk:high`)
 Amended 2026-10-03 by the owner decisions recorded in B20a / [ADR 0016](../../decisions/0016-cloudflare-pages-at-split-cybere-co.md):
 production is Cloudflare Pages at `https://split.cybere.co`; the Firebase project is **deleted with no
