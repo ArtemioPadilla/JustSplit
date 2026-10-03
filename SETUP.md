@@ -63,19 +63,22 @@ Repository → Settings → Secrets and variables → Actions.
 
 | Secret | Needed by | Where to get it | Status |
 |---|---|---|---|
-| `GH_PACKAGES_TOKEN` | switching `@cyber-eco/*` from the vendored tarballs (`vendor/`, B2a) back to GitHub Packages; `ci.yml` and the deploy workflows already export it as `NODE_AUTH_TOKEN` | A **classic** PAT with `read:packages`, created as a member of the `cyber-eco` org with read access to `cyber-eco/cybereco-hub`. GitHub Packages' npm registry does not accept fine-grained PATs today. `GITHUB_TOKEN` cannot read packages owned by another org. Pre-check: `NODE_AUTH_TOKEN=<pat> npm view @cyber-eco/types@0.2.1 --registry=https://npm.pkg.github.com` prints `0.2.1` | ☐ owner |
+| `GH_PACKAGES_TOKEN` | switching `@cyber-eco/*` from the vendored tarballs (`vendor/`, B2a) back to GitHub Packages; `ci.yml` already exports it as `NODE_AUTH_TOKEN` (the deploy workflow needs none: the packages are vendored) | A **classic** PAT with `read:packages`, created as a member of the `cyber-eco` org with read access to `cyber-eco/cybereco-hub`. GitHub Packages' npm registry does not accept fine-grained PATs today. `GITHUB_TOKEN` cannot read packages owned by another org. Pre-check: `NODE_AUTH_TOKEN=<pat> npm view @cyber-eco/types@0.2.1 --registry=https://npm.pkg.github.com` prints `0.2.1` | ☐ owner |
 | `SUPABASE_DB_URL` | `db-migrate.yml` (from B2) | Supabase dashboard → Project Settings → Database → Connection string → **Session pooler** → URI, with `?sslmode=require`. Not "Direct connection" (IPv6-only; runners are IPv4-only) | ☐ owner, after the Supabase project exists (B2a) |
 | `ANTHROPIC_API_KEY` | `claude.yml` (AI issue triage, from A5) | console.anthropic.com → API Keys | ☐ owner |
-| `FIREBASE_SERVICE_ACCOUNT*` | nothing (the Firebase workflows were deleted in #2) | — | ☐ owner: delete |
+| `CLOUDFLARE_API_TOKEN` | `deploy.yml` via `ci.yml`'s `deploy` job (plan B20a, ADR 0016) | Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token, permission **Account → Cloudflare Pages → Edit**, scoped to this account only. Nothing else | ☐ owner (§4, B20a step 3) |
+| `CLOUDFLARE_ACCOUNT_ID` | `deploy.yml` (B20a) | Cloudflare dashboard → Workers & Pages → the Account ID in the right-hand panel | ☐ owner (§4, B20a step 4) |
+| `FIREBASE_SERVICE_ACCOUNT*` | nothing (the Firebase workflows were deleted in #2) | — | ☐ owner: delete at any time; nothing depends on them |
 
 Repository **variables** (public config, visible in logs; Settings → Secrets and
 variables → Actions → Variables):
 
 | Variable | Needed by | Value | Status |
 |---|---|---|---|
-| `ASTRO_BASE` | `deploy.yml`, `deploy-staging.yml` | `/JustSplit` (project pages) or `/` with a custom domain | ☐ owner |
-| `PUBLIC_SUPABASE_URL` | `deploy.yml`, `deploy-staging.yml` (B2a) | Supabase → Project Settings → API → Project URL | ☐ owner, after the project exists |
-| `PUBLIC_SUPABASE_KEY` | `deploy.yml`, `deploy-staging.yml` (B2a) | Supabase → Project Settings → API → anon / publishable key (browser-public by design; RLS is the authorization) | ☐ owner, after the project exists |
+| `PUBLIC_SUPABASE_URL` | `deploy.yml` (B2a) | Supabase → Project Settings → API → Project URL. The build also puts its origin in the CSP's `connect-src` / `img-src` | ☐ owner, after the project exists |
+| `PUBLIC_SUPABASE_KEY` | `deploy.yml` (B2a) | Supabase → Project Settings → API → anon / publishable key (browser-public by design; RLS is the authorization) | ☐ owner, after the project exists |
+| `PUBLIC_AUTH_GOOGLE` | `deploy.yml` (B20a) | **Leave unset**: Google sign-in is off (owner decision 2026-10-03). `true` shows the Google button and the help sentence; see "Enable Google later" in §4 | optional, off |
+| ~~`ASTRO_BASE`~~ | nothing any more | Production is served from the root of `split.cybere.co` (ADR 0016), so the base defaults to `/`. **Delete the variable if it was created.** (Still honoured locally: `ASTRO_BASE=/x npm run build`) | ☐ owner: delete |
 
 `ci.yml` deliberately builds **without** the Supabase variables, so every PR
 exercises the guarded `supabaseEnabled === false` path.
@@ -94,16 +97,18 @@ token (see `vendor/README.md`). Once the token exists, contributors put it in
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check` (which includes the page-size budget gate, see "Performance budgets" below); then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below) and `npm run check:offline` (plan B19: builds its own copy under `/JustSplit`, lets the service worker install in Chromium, goes offline and asserts what it answers); actionlint + unpinned-action scan |
-| `deploy.yml` — `Deploy to GitHub Pages` | push to `main` (after cutover); `workflow_dispatch` | production build with `ASTRO_BASE` + `PUBLIC_SUPABASE_*` variables → `actions/deploy-pages` |
-| `deploy-staging.yml` — `Deploy staging (inceptor → GitHub Pages)` | push to `inceptor`; `workflow_dispatch` | same build from the integration branch to the same Pages site (`docs/runbooks/staging.md`) |
+| `ci.yml` — `Build & Check` + `Lint workflows (actionlint)` | push to `main`, `inceptor`, `phase-*/**`, `feat/**`, `fix/**`, `docs/**`, `chore/**`, `claude/**`; PRs to `main` / `inceptor` | `npm ci` + `npm run check` (which includes the page-size budget gate, see "Performance budgets" below); then `npm run check:a11y` (axe-core smoke against the build `check` just produced — plan B6; deliberately its own step, not part of `check`, same reasoning as `test:rls` below) and `npm run check:offline` (plan B19: builds its own copy at the production base `/` under the real `_headers`, lets the service worker install in Chromium, goes offline and asserts what it answers; `OFFLINE_SMOKE_BASE=/JustSplit` runs it under a subpath); actionlint + unpinned-action scan |
+| `ci.yml` — `Deploy` → `deploy.yml` (`Cloudflare Pages`) | pushes only, after `Build & Check` **and** `RLS & contract` pass for the commit (`needs`), in this repository only; `deploy.yml` itself has no trigger (reusable workflow) | builds with `PUBLIC_SUPABASE_*` / `PUBLIC_AUTH_GOOGLE` **variables** (no base path), which also writes `dist/_headers`, then `wrangler pages deploy` (`cloudflare/wrangler-action`, SHA-pinned) to the Pages project `justsplit`: `main` = production (`https://split.cybere.co`), any other branch = a preview at `https://<branch>.justsplit.pages.dev` (ADR 0016). Never on a pull request or a fork; no manual dispatch (a manual deploy would bypass the gate) |
 | `ci.yml` — `RLS & contract (supabase start)` | same triggers as `Build & Check` | `supabase start` + `db:migrate` + `test:rls` (plan B2b) + `test:contract:live` (B5a) + `npx playwright-core install --with-deps chromium` and `npm run test:live` (plan A7: real sign-in, the critical flows with the database checked through the service role, and axe + 375px overflow on every signed-in page state in light, dark and 375px, failing on any console error or hydration mismatch; deliberately its own step, never part of `check`, and no secret — the keys come from `supabase status`); required on `inceptor` |
 | `db-migrate.yml` — `DB Migrate (Supabase)` | push to `main` touching `db/migrations/**`; `workflow_dispatch` (`migrate` / `status` / `rollback` / `rollback-all` with `confirm=TEARDOWN`) | dbmate in a pinned container against `SUPABASE_DB_URL`; warns and skips while the secret is missing |
 
 Branch protection (owner, once, after the first green run): Settings →
-Branches → `main` → require a pull request and the `Build & Check` status
-check. The same rule applies to the `inceptor` integration branch for the life
-of Track B.
+Branches → `inceptor` (for the life of Track B) and, **at the cutover, `main`**:
+require a pull request and the `Build & Check` and
+`RLS & contract (supabase start)` status checks. The cutover replaces the Next
+tree on `main` wholesale, after tagging its last commit `next-final`; the
+`inceptor` branch is deleted afterwards (plan B20, B22). There is no staging
+workflow to delete: previews replace it (ADR 0016).
 
 ### Performance budgets (plan B19)
 
@@ -135,24 +140,46 @@ staging for B18) are a little above the gate because Lighthouse also counts moun
 Actions only the repository owner can perform. Tick and date them here so the
 plan's acceptance lines stay verifiable.
 
+### B20a — Cloudflare Pages at `split.cybere.co` (ADR 0016), in this order
+
+Steps 1–5 give every push a preview at `https://<branch>.justsplit.pages.dev` (until the cutover
+`https://inceptor.justsplit.pages.dev` is the staging site B18 audits); production appears when `main`
+carries the Astro tree (B20). Nothing below needs the code to change.
+
+| # | Owner step | Done |
+|---|---|---|
+| 1 | **Create the Pages project `justsplit`** with production branch `main`. Use the CLI: `CLOUDFLARE_API_TOKEN=<token> CLOUDFLARE_ACCOUNT_ID=<id> npx wrangler pages project create justsplit --production-branch=main` (or the dashboard: Workers & Pages → Create → Pages → **Upload assets**, name `justsplit`, then set the production branch to `main` under Settings → Builds). **Do not rely on the first workflow run to create it:** in CI `wrangler pages deploy` refuses to create a missing project (verified against wrangler 4.147), and an interactive first deploy would make the *deploying branch* (e.g. `inceptor`) the production branch | ☐ |
+| 2 | **Add the custom domain** `split.cybere.co`: Workers & Pages → `justsplit` → Custom domains → Set up a domain. Because `cybere.co` is already a Cloudflare zone, Cloudflare creates the proxied CNAME and issues the certificate itself (HTTPS automatic). Leave Rocket Loader, Email Address Obfuscation and automatic Web Analytics injection **off** for the zone/host: they rewrite or inject inline scripts and break the CSP's hashes | ☐ |
+| 3 | **Create the API token**: My Profile → API Tokens → Create Token → Custom token, permission **Account → Cloudflare Pages → Edit**, Account Resources limited to this account. No other permission, no zone permission | ☐ |
+| 4 | **GitHub → Settings → Secrets and variables → Actions.** Secrets: `CLOUDFLARE_API_TOKEN` (step 3), `CLOUDFLARE_ACCOUNT_ID`. Variables: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY` (Supabase → Project Settings → API). Leave `PUBLIC_AUTH_GOOGLE` unset. The deploy fails fast, naming the variable, if either Supabase variable is missing | ☐ |
+| 5 | **Delete the obsolete** repository variable `ASTRO_BASE` and the `github-pages` environment (and turn GitHub Pages off in Settings → Pages) if they were created | ☐ |
+| 6 | **Supabase → Authentication → URL Configuration**: Site URL `https://split.cybere.co`; Redirect URLs `https://split.cybere.co/auth/callback/` and `https://*.justsplit.pages.dev/auth/callback/` (previews). Providers: Email on; **Google stays off**. When Google is enabled later, the redirect URI in the Google OAuth client is Supabase's own `https://<ref>.supabase.co/auth/v1/callback` (unchanged by this move) and no "Authorized JavaScript origins" are needed (server-side PKCE redirect, not Google Identity Services) | ☐ |
+| 7 | **`db-migrate.yml`**: run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` (migrations through `…017`) before the first production deploy; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
+| 8 | **Delete the Firebase project** `justsplit-eef51` (Console → Project settings → Delete project) and the `FIREBASE_SERVICE_ACCOUNT*` secrets. Nobody used the app and there is no data: no export, no rollback window, no "we moved" page. Safe at any time; nothing depends on them | ☐ |
+| 9 | **`justsplit.cybere.co` → `split.cybere.co`** (the CyberEco Hub already links to the former). In the `cybere.co` zone: **(a)** DNS → Add record → `AAAA`, name `justsplit`, value `100::`, **Proxied** (orange cloud): a placeholder that only has to exist and be proxied; **(b)** Rules → Redirect Rules → Create rule → *Custom filter expression* `(http.host eq "justsplit.cybere.co")` → Type **Dynamic**, expression `concat("https://split.cybere.co", http.request.uri.path)`, status **301**, **Preserve query string** on. Check: `curl -sI "https://justsplit.cybere.co/expenses/list/?a=1"` shows `301` and `location: https://split.cybere.co/expenses/list/?a=1`. This host never serves a page, so no canonical link or sitemap names it. The Hub's references (`cybereco-hub` `apps/hub/src/pages/api/auth/generate-token.ts:11`, `apps/hub/src/middleware.ts:214`) can be switched to `split.cybere.co` later, in the Hub repository | ☐ |
+| 10 | **Enable Google later** (not now; owner decision 2026-10-03): **(a)** Google Cloud Console → APIs & Services → Credentials → OAuth client (Web), Authorized redirect URI `https://<ref>.supabase.co/auth/v1/callback`; **(b)** Supabase → Authentication → Providers → Google on, with the client id and secret; **(c)** GitHub variable `PUBLIC_AUTH_GOOGLE=true`; **(d)** redeploy (re-run the latest CI run on `main`, or push). Until (c) the button, the divider-free layout and the help sentence stay hidden | ☐ |
+
+Cutover-time owner steps (tag `next-final`, protect `main` with a PR plus `Build & Check` and
+`RLS & contract`, replace the tree, delete `inceptor`) are in the plan's B20 and B22.
+
 | Plan issue | Action | Done |
 |---|---|---|
 | A3b | Enable branch protection on `main` (`Build & Check` required) | ☐ |
-| B1 | Set repository variable `ASTRO_BASE` (`/JustSplit`, or `/` with a custom domain) and enable GitHub Pages (Source: GitHub Actions) | ☐ |
+| B1 | ~~Set `ASTRO_BASE` and enable GitHub Pages~~ superseded by B20a: do **not** create the variable or enable Pages (delete them if they exist) | n/a |
 | A4 | Delete the `FIREBASE_SERVICE_ACCOUNT*` secrets | ☐ |
 | A4 | Create `GH_PACKAGES_TOKEN` (classic PAT, `read:packages`, `cyber-eco` member) | ☐ |
 | A5 | Create `ANTHROPIC_API_KEY` | ☐ |
-| B2a | Create Supabase project `justsplit` (region closest to MX; record it here); enable Email + Google providers | ☐ |
-| B2a | Supabase Auth: Site URL = production origin; Redirect URLs += `https://artemiopadilla.github.io/JustSplit/auth/callback/` (and the custom domain's `/auth/callback/` later); same origins in the Google OAuth client | ☐ |
+| B2a | Create Supabase project `justsplit` (region closest to MX; record it here); enable the Email provider (Google stays off, see "Enable Google later") | ☐ |
+| B2a | Supabase Auth URL configuration: see B20a step 6 below (Site URL `https://split.cybere.co`; Redirect URLs `https://split.cybere.co/auth/callback/` and `https://*.justsplit.pages.dev/auth/callback/`). Providers: **Email only**; the Google provider stays disabled | ☐ |
 | B2a | Variables `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_KEY`; secret `SUPABASE_DB_URL` (session pooler, `?sslmode=require`) | ☐ |
-| B2a | Settings → Environments → `github-pages`: allow the `inceptor` branch (staging deploy) | ☐ |
+| B2a | ~~`github-pages` environment: allow `inceptor`~~ superseded by B20a: delete the `github-pages` environment if it exists | n/a |
 | B2 | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` once `SUPABASE_DB_URL` exists; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B2b | Add `RLS & contract (supabase start)` to the required checks on `inceptor` | ☐ |
 | B2d | After B2d merges, run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` again (migrations `…010`–`…014`: `event_id` columns, foreign keys, membership visibility, edit guards, email-lookup rate limit; ADR 0013), before or together with the app build that reads `event_id`; then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B19b | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` for migration `…016` (the `expense_groups.members[].role` check: normalises any unknown role to `member`, then adds and validates the constraint; ADR 0002, B19b amendment); then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump | ☐ |
 | B19c | Run `gh workflow run db-migrate.yml --ref inceptor -f command=migrate` for migration `…017` (a member labelled `owner`/`admin` in `expense_groups.members[]` must be in `admin_ids`: demotes any forged label to `member` without touching `admin_ids`, then adds and validates the constraint; ADR 0002 and ADR 0015); then `npm run -s db:audit -- "$SUPABASE_DB_URL"` equals the local dump. The app is safe to deploy before or after it | ☐ |
 | H1/H2 (hub) | Deploy the Hub (gate C1) so relational mode can be built upstream | ☐ |
-| B20 | Retire the Firebase project after the 14-day rollback window | ☐ |
+| B20 | Delete the Firebase project (B20a step 8; no window, no export) | ☐ |
 | A6 | Choose and add a `LICENSE` (the README claims open source; none exists; the hub uses open-core Apache-2.0 / proprietary) | ☐ |
 
 ## 5. Where things are

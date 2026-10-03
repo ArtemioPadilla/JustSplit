@@ -25,7 +25,7 @@ Two trees coexist in the plan's timeline; check which one you are in:
 | Data / auth | Firebase Auth + Firestore (client SDK) | Supabase via `@cyber-eco/types` / `auth` / `supabase` behind `src/lib/data/` |
 | State | React Context (`src/context/*`) | Nano Stores (session, prefs, toasts) + TanStack Query (data) |
 | Tests | Jest + Testing Library | Vitest + Testing Library; RLS suite against `supabase start` |
-| Hosting | Firebase Hosting (untouched until cutover) | GitHub Pages via Inceptor's `deploy.yml` |
+| Hosting | Firebase Hosting (untouched until cutover) | Cloudflare Pages at `split.cybere.co` via `deploy.yml` (ADR 0016; superseded GitHub Pages, spec D2) |
 
 `next.config.js` present ⇒ the frozen Next tree on `main` (no app-code changes there);
 `astro.config.mjs` present ⇒ the Astro tree (Track B, PRs target `inceptor`).
@@ -53,7 +53,7 @@ Target (spec §4): `src/pages/` (Astro shells, one route island each),
 | `npm run db:start` / `db:migrate` / `db:seed` | local Supabase stack + dbmate migrations + seed (`SETUP.md` §1) |
 | `npm run test:rls` | the RLS suite against the local stack (its own CI job; never part of `check`) |
 | `npm run check:a11y` | axe-core smoke against a production build (`dist/`, own CI step; never part of `check` — needs a real browser, see `scripts/axe-smoke.mjs`) |
-| `npm run check:offline` | offline shell smoke: builds under `/JustSplit` into `dist-offline/`, lets the service worker install in Chromium, goes offline and asserts `/expenses/abc` gets the 404 shell, `/settlements/?event=x` and `/auth/callback/?code=x` their own pages, Supabase paths untouched (own CI step after `check:a11y`; never part of `check` — needs a real browser, see `scripts/offline-smoke.mjs`) |
+| `npm run check:offline` | offline shell smoke: builds at the production base `/` into `dist-offline/` (`OFFLINE_SMOKE_BASE=/JustSplit` for a subpath), lets the service worker install in Chromium, goes offline and asserts `/expenses/abc` gets the 404 shell, `/settlements/?event=x` and `/auth/callback/?code=x` their own pages, Supabase paths untouched (own CI step after `check:a11y`; never part of `check` — needs a real browser, see `scripts/offline-smoke.mjs`) |
 | `npm run perf` | Lighthouse CI against the live staging URLs (`lhci collect && lhci assert`, `.lighthouserc.json`; by hand for B18, never in CI) |
 | `npm run test:live` | live end-to-end smoke: builds the site against `supabase start`, signs in through the real form, walks the critical flows (asserting DB state) and runs axe + the 375px overflow check on every signed-in page state (own CI step in the `RLS & contract` job, after the suites that need the same stack; never part of `check` — needs Docker, the stack and a real browser, see `scripts/live-smoke.mjs`) |
 | `npm run doctor` | preflight: node ≥ 22, gh auth, clean tree, branch naming, config present |

@@ -228,6 +228,8 @@ access cannot be granted: vendor the packages (§5, ADR 0011). Plus
 `@supabase/supabase-js` (peer dependency of the adapters).
 
 ### D2. Astro `output: 'static'` on GitHub Pages; client-only dynamic routes through the `404.astro` shell.
+> **Hosting superseded (2026-10-03, plan B20a):** production is **Cloudflare Pages at `https://split.cybere.co`**, no base path, branch previews instead of the staging workflow, `_headers` for HSTS/CSP — [ADR 0016](../../decisions/0016-cloudflare-pages-at-split-cybere-co.md). The static output, the `404.astro` shell, `withBase()` and the other paragraphs below stand; GitHub Pages remains the documented fallback.
+
 No SSR adapter: the app is 100 % authenticated client-side data, so there is
 nothing to render on the server. Hosting is **GitHub Pages** through
 Inceptor's own `deploy.yml` (kept from the `create-inceptor-app` output — it
@@ -515,6 +517,8 @@ tests. Every Jest suite has an owning task (plan Phase 2 table). Target: **no re
 line-for-line parity.
 
 ### D8. Node 22, SHA-pinned actions, five workflows: `ci.yml`, `deploy.yml`, `deploy-staging.yml`, `db-migrate.yml`, `claude.yml`.
+> **Deploy workflows superseded (2026-10-03, plan B20a):** `deploy-staging.yml` is deleted and `deploy.yml` is the Cloudflare Pages deploy, called from `ci.yml` after the required jobs pass — [ADR 0016](../../decisions/0016-cloudflare-pages-at-split-cybere-co.md). Four workflows remain.
+
 `ci.yml` is copied from Inceptor keeping only the `build` and `actionlint`
 jobs (`server-node`/`server-flask` deleted), with `inceptor` added to its
 branch globs; it installs `@cyber-eco/*` from GitHub Packages with
@@ -1053,7 +1057,7 @@ supabase/config.toml          local CLI only ([db.migrations] and [db.seed] disa
 | Redirect-only OAuth (`signInWithOAuth`) in a PWA/standalone window, and the `?code=` return URL under a subpath base; one Supabase Site URL for staging + production | The return URL is `withBase('/auth/callback/')` on the **originating origin**, passed per call as `options.redirectTo` (the adapter's `signInWithProvider` omits it and would land on the single Site URL, D3) and registered as an additional redirect URL in the Supabase project and in Google Cloud; `?next=` goes through `safeNext()` and travels in `sessionStorage`, not through the provider round-trip; supabase-js completes the PKCE exchange on load; standalone display-mode is tested manually on the staging site; email + password never needs the redirect |
 | Auth flash: `client:only` islands render nothing until JS runs and the session resolves | Each route island is mounted as `<XIsland client:only="react"><div slot="fallback"><RouteSkeleton /></div></XIsland>` (Astro renders the fallback slot statically); inside the island, `$authReady === false` renders the same `Skeleton`. `useClientPreference` is only needed in the SSR'd islands (`UserMenuIsland`, `ToasterIsland`) |
 | Existing deep links (`/expenses/abc123`) break | The `404.astro` shell (D2) mounts the matching route island; a Vitest asserts every dynamic route family is routed by `AppRouterIsland`, that `dist/404.html` exists and contains the shell, and that the redirect pages for `/expenses`, `/events`, `/groups` exist; the PWA `navigateFallback` serves the same shell offline (plan B19) — with `ignoreURLParametersMatching: [/.*/]`, because Workbox otherwise misses the precache for any URL with a query string and would serve the shell for `/auth/callback/?code=…`, `/settlements/?event=…` and table URL state (asserted by the B19 test) |
-| Subpath deploy (`ASTRO_BASE`) breaks hard-coded links or the staging site (always a subpath) | `withBase()` on every internal `href`/asset (D2); a Vitest greps `src/` for `href="/` outside `withBase(`; the staging site is a permanent subpath deployment, so a regression shows before cutover |
+| Subpath deploy (`ASTRO_BASE`) breaks hard-coded links or the staging site (always a subpath) | `withBase()` on every internal `href`/asset (D2); a Vitest greps `src/` for `href="/` outside `withBase(`; the staging site was a permanent subpath deployment, so a regression showed before cutover; **since B20a (ADR 0016) production and previews are root-hosted** and the subpath is covered by unit tests and `OFFLINE_SMOKE_BASE=/JustSplit npm run check:offline` |
 | Offline behaviour regresses (Firestore had a persistent cache + write queue; Supabase has neither) | TanStack Query idb persister for reads (D3); mutations disabled while offline with an explicit `OfflineBanner`; accepted and stated in ADR 0004 (no offline writes in v1) |
 | `@cyber-eco/auth` breaks in a static bundle (`process.env` reads); its single client entry + `jose` + a second `zod` push `/auth/signin/` over budget | `vite.define` for `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_HUB_URL` in `astro.config.mjs` (`examples/static-app/README.md`); a build test greps `dist/_astro/*.js` for the two unguarded reads only (`process\.env\.(NEXT_PUBLIC_HUB_URL\|NODE_ENV)`) and asserts zero hits — the guarded `typeof process !== 'undefined' && process.env…` reads in `useHubAuth.ts`/`logger.ts` are expected — plus a jsdom smoke test that mounts `<AuthProvider>` with `globalThis.process` deleted; the auth chunk is measured in plan B4 and ADR 0003 records the fallback (drive the Supabase adapters from `src/stores/auth.ts` without `<AuthProvider>`) |
 | Identity federation with the Hub arrives later and wants JustSplit's `auth.users` to be the Hub's | Out of scope (D1); JustSplit's `profiles` is the hub's schema verbatim, and every row keys on `auth.uid()`, so a later ADR-009 mapping has one column to remap. No JustSplit code assumes a Hub account |
@@ -1079,7 +1083,7 @@ supabase/config.toml          local CLI only ([db.migrations] and [db.seed] disa
 - [ ] Existing URLs resolve via the `404.astro` shell; `/expenses`, `/events`, `/groups` redirect to `/…/list`; dead links fixed; every link goes through `withBase()`
 - [ ] Every table in `public` has RLS (coverage guard), every `SchemaMap` table has a policy per command + guard trigger + Realtime publication, `public.documents` does not exist; the B2b RLS suite is green in CI against `supabase start` and `npm run db:audit` shows no diff against the `justsplit` project
 - [ ] `npm run check`, `npm run test`, Lighthouse budgets (split by route family) green; axe smoke clean
-- [ ] Staging Pages site (`https://artemiopadilla.github.io/JustSplit/`) manually smoke-tested (dedicated test account, publishable key only) on desktop + mobile viewport; Google sign-in verified to return to `/JustSplit/auth/callback/` on staging and to the production domain's callback after cutover
+- [ ] Staging site (the `inceptor` Cloudflare Pages preview `https://inceptor.justsplit.pages.dev`, ADR 0016, superseding the GitHub Pages URL) manually smoke-tested (dedicated test account, publishable key only) on desktop + mobile viewport; Google sign-in verified to return to `/JustSplit/auth/callback/` on staging and to the production domain's callback after cutover
 
 ## 7. Out of scope
 

@@ -1,53 +1,47 @@
-# Runbook — staging (the `inceptor` branch on GitHub Pages)
+# Runbook — previews and staging (Cloudflare Pages)
 
-Plan B2a, spec D2. Until cutover (B22) the Astro tree lives on the long-lived
-`inceptor` branch and `deploy-staging.yml` publishes it on every push.
+Plan B20a, [ADR 0016](../decisions/0016-cloudflare-pages-at-split-cybere-co.md); supersedes the GitHub Pages
+staging site of plan B2a / spec D2. Until the cutover (B20) the Astro tree lives on the long-lived `inceptor`
+branch; its **preview** is the staging site that B18 audits. There is no staging workflow any more: every push
+to a branch `ci.yml` builds is a preview.
 
 | | Value |
 |---|---|
-| Origin | `https://artemiopadilla.github.io` |
-| Base path | `/JustSplit/` (repository variable `ASTRO_BASE`, fallback `/JustSplit`) |
-| Staging URL | `https://artemiopadilla.github.io/JustSplit/` |
-| OAuth callback | `https://artemiopadilla.github.io/JustSplit/auth/callback/` |
-| Workflow | `.github/workflows/deploy-staging.yml` (push to `inceptor`, `workflow_dispatch`) |
+| Production origin | `https://split.cybere.co` (the `main` deployment; empty until the cutover) |
+| Staging (until cutover) | `https://inceptor.justsplit.pages.dev` |
+| Any branch's preview | `https://<branch>.justsplit.pages.dev` (Cloudflare lowercases the name and turns `/` and other punctuation into `-`; the exact URL is in the job summary) |
+| Base path | `/` (no `ASTRO_BASE`) |
+| OAuth callbacks | `https://split.cybere.co/auth/callback/`, `https://*.justsplit.pages.dev/auth/callback/` (Supabase Redirect URLs) |
+| Workflow | `.github/workflows/deploy.yml`, called by `ci.yml`'s `deploy` job after `Build & Check` and `RLS & contract` pass |
 | Supabase config | repository variables `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY` |
+| Google sign-in | off; `PUBLIC_AUTH_GOOGLE` unset |
 
-Staging and production are the **same Pages site**: `deploy.yml` runs only on
-pushes to `main`, and nothing pushes `main` with the Astro tree before
-cutover. Both workflows share the `pages` concurrency group. After cutover
-`deploy-staging.yml` is deleted (B22) and the URL above is production (or the
-custom domain's fallback).
+A preview and production share the Supabase project and the public config, so a preview is a real client of the
+real database: use the dedicated test account (B18), never real data you cannot lose.
 
 ## First-time setup (owner)
 
-1. Settings → Pages → Source: **GitHub Actions**.
-2. Settings → Environments → `github-pages` → Deployment branches: add
-   `inceptor` (the default rule allows only `main`; without it
-   `actions/deploy-pages` fails with an environment-protection error).
-3. Settings → Secrets and variables → Actions → **Variables**:
-   `ASTRO_BASE=/JustSplit`, `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_KEY`.
-4. Supabase → Authentication → URL Configuration: add the OAuth callback above
-   to **Redirect URLs**; add the same origin to the Google OAuth client.
-   Registering a URL only allows it; each sign-in picks its target through
-   `redirectTo` (B4).
+SETUP.md §4, "B20a", steps 1–6 (project, domain, token, secrets and variables, Supabase URL configuration).
 
 ## Deploying
 
-Merging a PR into `inceptor` deploys it. To redeploy without a change:
-Actions → *Deploy staging (inceptor → GitHub Pages)* → Run workflow on
-`inceptor`.
+Merging into `inceptor` (or pushing any CI-built branch) deploys it. To redeploy without a change: Actions →
+**CI** → open the run for the commit → Re-run all jobs (the gate runs again, then the deploy). There is no
+manual dispatch on purpose: it would be a way to publish a red commit.
 
 ## Checking a deploy
 
 ```sh
-curl -sI https://artemiopadilla.github.io/JustSplit/ | head -1        # 200
-curl -s  https://artemiopadilla.github.io/JustSplit/llms.txt | head -3
+curl -sI https://inceptor.justsplit.pages.dev/ | head -1                      # 200
+curl -sI https://inceptor.justsplit.pages.dev/ | grep -i -E 'content-security-policy|strict-transport|x-robots-tag'
+curl -sI https://inceptor.justsplit.pages.dev/expenses/abc | head -1          # 404 (the app shell, by design)
+curl -s  https://inceptor.justsplit.pages.dev/llms.txt | head -3
 ```
 
-A build without the Supabase variables still deploys: the client is guarded
-and the app shows a "not configured" notice instead of crashing.
+Open the preview in a browser with the console open: a Content-Security-Policy violation is a bug (the live smoke
+fails on one). A build without the Supabase variables is refused by the workflow's guard step.
 
 ## Rolling back
 
-Re-run the last good *Deploy staging* run (Actions → run → Re-run all jobs),
-or revert the offending merge on `inceptor`; the push redeploys.
+Cloudflare dashboard → Workers & Pages → `justsplit` → Deployments → a previous deployment → Rollback to this
+deployment; or re-run the CI run of an older commit; or revert the merge (the push redeploys).

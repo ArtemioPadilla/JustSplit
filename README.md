@@ -5,7 +5,7 @@
 
 JustSplit is an open-source, lightweight platform designed to make managing shared expenses easy, transparent, and fair. Whether you're planning a vacation with friends, organizing a group dinner, or sharing household bills, JustSplit ensures that everyone pays their fair share — without the headaches.
 
-Designed for quick deployments on static hosting platforms like GitHub Pages, JustSplit runs fully on the client side for maximum flexibility and privacy.
+Designed for quick deployments on static hosting platforms (production runs on Cloudflare Pages at split.cybere.co; GitHub Pages works as a fallback), JustSplit runs fully on the client side for maximum flexibility and privacy.
 
 ## Key Features
 
@@ -18,7 +18,7 @@ Designed for quick deployments on static hosting platforms like GitHub Pages, Ju
 - **Partial Payments Support**: Track partial reimbursements over time.
 - **Data Privacy First**: End-to-end encryption ensures your financial data stays private.
 - **Cross-Platform and Offline-Friendly**: Use JustSplit on any device, even with limited internet connectivity.
-- **Open-Source Freedom**: Self-host it anywhere, or deploy free on GitHub Pages in minutes.
+- **Open-Source Freedom**: Self-host it anywhere, or deploy free on Cloudflare Pages or GitHub Pages in minutes.
 
 ## Example Use Case
 

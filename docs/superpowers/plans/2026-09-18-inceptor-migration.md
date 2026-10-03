@@ -2480,7 +2480,8 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
 ### Phase 3 — Cutover
 
 ### B18. Feature-parity audit
-- [ ] Walk spec §6 checklist on the staging Pages site (dedicated test account), desktop + 375 px
+- [ ] Walk spec §6 checklist on the staging site, the `inceptor` Cloudflare Pages preview
+      `https://inceptor.justsplit.pages.dev` (B20a; dedicated test account), desktop + 375 px
       viewport; file an issue per gap and block cutover on them. The §6 "Offline" row (last data
       readable, writes disabled) is proven by B19c's tests, not re-audited here: the per-surface
       `— offline (plan B19c)` suites, `src/tests/offline-write-coverage.test.ts`,
@@ -2488,12 +2489,15 @@ Written against B2d (ADR 0013), not the pre-B2d text this entry replaces: `event
       walking it by hand is one pass (DevTools → Network → Offline on one form and one dialog, then
       back online), see [ADR 0015](../../decisions/0015-writes-require-a-connection.md)
 - [ ] Every row of the Jest suite → owning task table is ticked
-- [ ] Measure time-to-data on a warm navigation ≤ 300 ms on the staging site (Query persister:
+- [ ] Measure time-to-data on a warm navigation ≤ 300 ms on the staging site (the `inceptor` preview) (Query persister:
       one `QueryProvider` per page, `meta.persist` on collection queries, one `justsplit:query`
       key — B5a; with `useLiveQuery` as the single network source there is exactly one request per
       live key)
-- [ ] Run `npm run perf` (`@lhci/cli`, `lhci collect && lhci assert` against the absolute staging
-      URLs, no local build — B19) from a developer machine, not CI; the B5a contract suite and the
+- [ ] Run `npm run perf` (`@lhci/cli`, `lhci collect && lhci assert` against the absolute
+      `inceptor` preview URLs in `.lighthouserc.json`, no local build — B19, B20a) from a developer
+      machine, not CI. First `curl -sI https://inceptor.justsplit.pages.dev/ | grep -i x-robots-tag`:
+      if Cloudflare marks previews `noindex`, the SEO category fails for that reason alone (it is
+      infrastructure, not content) and is read from the first production run after the cutover (B21); the B5a contract suite and the
       spec §6 smoke run against the **`justsplit` project** as the throwaway account (publishable
       key only); RLS parity with production is proven by `npm run db:audit` (B2), a read-only
       script that dumps `pg_policies`, `pg_class.relrowsecurity`, `pg_trigger`, function grants and
@@ -2903,61 +2907,122 @@ configurations, 0 violations), `check:offline`, `test:live` (all flows including
 states x 3 configurations clean), `test:rls` (22 files, 305 tests), `test:contract:live`, `test:rls:mutation`
 (55/55 killed, two of them new), and `db:rollback` then `db:migrate` for migration 017.
 
-### B20. Cutover PR `inceptor → main` and Firebase retirement (`risk:high`)
-- [ ] Before merging: `firebase apphosting:backends:list --project justsplit-eef51`; if a backend
-      is connected to this repo, disconnect it (or it auto-builds `main` after the merge);
-      confirm which origin the custom domain (if any) points to today
-- [ ] Merge `inceptor → main`; `deploy.yml` publishes the production Pages site; `db-migrate.yml`
-      has already applied every migration (the project is shared with staging). Then DNS: the
-      custom domain's CNAME → `artemiopadilla.github.io`, `CNAME` file in `public/`, HTTPS
-      enforced in the Pages settings, the `ASTRO_BASE` repository **variable** set to `/`,
-      Supabase redirect URLs and Google OAuth origins updated to the production domain (owner
-      actions, in the runbook). Or, without a domain: production is
-      `https://artemiopadilla.github.io/JustSplit/` and `ASTRO_BASE` stays `/JustSplit`
+### B20a. Host on Cloudflare Pages at `split.cybere.co` (`risk:high`, `tdd-tier:strict`)
+Sequencing: after B19c, before B18 and B20. It changes where production lives and how it is deployed and
+therefore amends B18 (the staging audit target), B20, B21 and B22 (above and below). Decided by the owner on
+2026-10-03; it **supersedes spec D2's hosting choice** (GitHub Pages stays the documented fallback) and the deploy
+half of spec D8, see [ADR 0016](../../decisions/0016-cloudflare-pages-at-split-cybere-co.md). Each item is its own
+red/green commit pair (`Tdd-Red:` trailer; docs and config use `Tdd-Red-Verified: inline`).
+- [x] **Base `/` and origin `https://split.cybere.co`.** `ASTRO_BASE` defaults to `/` everywhere (workflows have
+      no variable and no `/JustSplit` fallback; the variable stays for local experiments); `SITE_ORIGIN` in
+      `site.config.mjs` and `src/lib/site-meta.ts` (kept in sync by `site-meta.test.ts`), `public/robots.txt`;
+      `BaseLayout` now emits `<link rel="canonical">` from `Astro.site` (there was only a JSON-LD `url`), and
+      `check:dist` fails on a canonical link or sitemap URL outside `SITE_ORIGIN`, so neither
+      `justsplit.cybere.co` nor a `*.pages.dev` preview can ever be named. `.lighthouserc.json` audits the
+      **`inceptor` preview** (`https://inceptor.justsplit.pages.dev`): until the cutover the production domain
+      serves nothing, and the preview is what B18 audits; B21 moves the three URLs. The offline smoke builds
+      at `/`; a base-path regression stays in `production-base.test.ts` (`withBase` at a subpath),
+      `pwa-config.test.ts`, `static-server.test.ts` and `OFFLINE_SMOKE_BASE=/JustSplit npm run check:offline`.
+- [x] **One deploy, gated.** `deploy-staging.yml` deleted; `deploy.yml` is a reusable workflow (build with the
+      public Supabase variables, `wrangler pages deploy`, `cloudflare/wrangler-action` v4.1.3 pinned to
+      `953926a2…`, verified against the release tag, wrangler pinned to 4.147.0) called by `ci.yml`'s `deploy`
+      job with `needs: [build, rls]`, on pushes only, in this repository only. `main` is the production branch of
+      the Pages project `justsplit`, every other branch a preview (`scripts/pages-target.mjs` sanitises the branch
+      name). Why `needs` and not `workflow_run`, and what each safety property is, is in ADR 0016;
+      `deploy-workflow.test.ts` and `supabase-workflow-env.test.ts` pin the triggers, the gate, the secret names,
+      the branch mapping, no `pull_request_target`, no `workflow_dispatch`, and `PUBLIC_*` from `vars`. actionlint
+      clean, every action SHA-pinned (the `ci.yml` scan), `permissions: contents: read`, a concurrency group per
+      branch (production queues, previews are superseded).
+- [x] **`dist/_headers`, generated at build** (`pages-headers.config.mjs` + `scripts/lib/pages-headers.mjs`):
+      HSTS without `preload` (reason in ADR 0016), nosniff, referrer policy, a Permissions-Policy with the camera
+      off (the pickers are file inputs, no `capture`), `X-Frame-Options: DENY`, immutable `/_astro/*`, `no-cache`
+      for HTML, the worker and the manifest, and an **enforced CSP**: `script-src 'self'` plus the sha256 of the 14
+      executable inline scripts found in `dist/` (JSON-LD needs none), no `unsafe-eval`, `style-src
+      'unsafe-inline'` for server-rendered `style=` attributes, the Supabase https/wss origin from
+      `PUBLIC_SUPABASE_URL`, Google Fonts, `open.er-api.com`, `*.googleusercontent.com` avatars. `check:dist`
+      re-derives the hashes independently. **404 and redirects confirmed against Pages' own asset handler**
+      (`wrangler pages dev` on the real `dist/`): unknown paths get `404.html` with status 404, the redirect stubs
+      work (no `_redirects` needed), `/x` → `/x/` keeps the query. The smokes' static server applies `_headers` and
+      those redirects, so `check:a11y`, `check:offline` and `test:live` run under the real CSP.
+- [x] **Found while doing it.** (1) axe's default asset preload fetches cross-origin stylesheets by XHR, which the
+      CSP's `connect-src` refuses: both audits pass `preload: false`. (2) Pages redirects `/x` to `/x/`, so the live
+      smoke's URL wait accepts a trailing slash. (3) `wrangler pages deploy` refuses to create a missing project in
+      CI (and an interactive first deploy would make the deploying branch the production branch), so SETUP creates
+      the project explicitly. (4) Cloudflare features that rewrite or inject HTML (Rocket Loader, Email Address
+      Obfuscation, automatic Web Analytics) must stay off: they would break the CSP's hashes.
+- [x] **Google sign-in off** (owner decision, same day; its own red/green pair): `PUBLIC_AUTH_GOOGLE`
+      (`src/lib/auth-providers.ts`, only the exact string `'true'` enables it, default off, a repository
+      **variable** passed by `deploy.yml`). Off: `LoginForm` renders no Google button or text and no gap, `SignUpForm`
+      never had one, `/help` names email only (chosen at build time), and the button's copy is not bundled
+      (`check:dist`); the live smoke builds with the flag unset and asserts no Google text on `/auth/signin/`.
+      `AuthCallbackIsland` is provider-agnostic (email confirmation and reset links fall back to `/`; covered by
+      `completeOAuthSignIn`'s tests). Budgets: the auth pages shrank 0.1 kB, none moved.
+- [x] **Docs**: this entry; ADR 0016 (decision, reasons, alternatives, Stakeholder Analysis, rollback, supersedes
+      D2's hosting); pointers in spec D2/D8 and its checklist, `CLAUDE.md`'s stack table, SETUP (secrets and variables,
+      workflows, the numbered owner steps for B20a including the `justsplit.cybere.co` Redirect Rule and "Enable
+      Google later"), `docs/runbooks/staging.md` (now previews); B18, B20, B21 and B22 amended (Firebase deleted with
+      no window or export, no staging workflow to delete, the Cloudflare cutover steps, `next-final`, `main`
+      protection). ADR 0009 is **not** written here: it comes with the B20 cutover PR.
+
+**Landed (B20a)** — gates on the final tree: `npm run check` (243 test files, 2844 tests, 0 errors; `check:dist`
+now also verifies `_headers`, the hashes and the canonical origin; budgets unchanged, the per-page table is the B19c
+one except the auth pages, 0.1 kB smaller), `check:a11y` (16 pages x 3 configurations, 0 violations), `check:offline`
+at `/` and with `OFFLINE_SMOKE_BASE=/JustSplit`, `test:live` (9 flows, 22 page states x 3 configurations clean, under
+the real CSP), actionlint clean (v1.7.12, the SHA-pinned binary), unpinned-action scan empty.
+
+### B20. Cutover PR `inceptor → main` and Firebase deletion (`risk:high`)
+Amended 2026-10-03 by the owner decisions recorded in B20a / [ADR 0016](../../decisions/0016-cloudflare-pages-at-split-cybere-co.md):
+production is Cloudflare Pages at `https://split.cybere.co`; the Firebase project is **deleted with no
+rollback window, no Firestore export and no "we moved" stub** (nobody ever used the `*.web.app` app and
+there is no data); `main` is protected; the Next tree is replaced wholesale after being tagged.
+- [ ] Before merging: SETUP.md §4 "B20a" steps 1–8 are done (Pages project, custom domain `split.cybere.co`,
+      token, secrets and variables, Supabase URL configuration, `db-migrate.yml`, Firebase project deleted:
+      deleting it also removes any App Hosting backend that would otherwise auto-build `main` after the
+      merge). The `inceptor` preview has been the B18 staging site, so the first production deploy is not
+      the first time this build has run on Cloudflare
+- [ ] Tag the last Next commit and protect `main`: `git tag next-final origin/main && git push origin
+      next-final` (the only way back to the Next tree is that tag); then Settings → Branches → `main`:
+      require a pull request and the `Build & Check` and `RLS & contract (supabase start)` checks
+- [ ] Merge `inceptor → main` as the one cutover PR, which **replaces the Next tree wholesale** (nothing of
+      the Next tree is kept: the diff deletes it). The merge's push runs `ci.yml`; its `deploy` job
+      (after both required jobs pass) publishes the production deployment of the Pages project `justsplit`.
+      `db-migrate.yml` has already applied every migration (the project is shared with the preview).
+      Domain: the custom domain `split.cybere.co` was added to the Pages project in B20a step 2, so
+      Cloudflare has already created the DNS record (the zone is on Cloudflare) and issues HTTPS
+      automatically; there is no `CNAME` file in `public/`, no `ASTRO_BASE` variable and no Pages
+      environment. `justsplit.cybere.co` redirects to it (B20a step 9). Google sign-in stays off
+      (`PUBLIC_AUTH_GOOGLE` unset)
 - [ ] Delete the last Next references in docs; append the `CHANGELOG.md` entry (file created in
       A6); delete `firebase.json`, `.firebaserc`, `firestore.rules`, `firestore.indexes.json`,
-      `src/firebase/` (already gone with `src/` in B1), `apphosting*.yaml` (A1 deferred them here).
-      Because the repo then holds no `firebase.json`/`.firebaserc`, every `firebase` command in
-      `docs/runbooks/firebase-retirement.md` passes `--project justsplit-eef51`
-- [ ] **Retire Firebase — day 0 to day 14** (owner actions, `docs/runbooks/firebase-retirement.md`):
-      day 0 — the old build keeps serving on Firebase Hosting untouched (this **is** the rollback:
-      re-pointing the domain back must show the Next app, so no "we moved" deploy on day 0);
-      day 0 — disable Firebase Auth sign-ups (Authentication → Settings → user actions), delete
-      the Hosting preview channels, delete the App Hosting backend if any; day 14, window closed —
-      the owner picks one of two recorded end states: **(a)** delete project `justsplit-eef51`
-      outright (the `*.web.app` URL dies; no "we moved" page; export Firestore first to a private
-      archive, nothing is imported anywhere — and if a future issue ever imports Firestore rows, an
-      expense's `settledAt` and the `Settlement` rows that covered it are carried **either/or,
-      never both** (the ledger, ADR 0014, already excludes a `settledAt` expense, so a covering
-      settlement would be counted twice); the 30-day Google grace period is the last safety
-      net), or **(b)** keep Hosting alive as a stub: deploy the static "we moved" page from a
-      throwaway directory with a minimal `firebase.json` (`{"hosting":{"public":"site"}}` —
-      today's `frameworksBackend` config cannot deploy a plain static page — `firebase deploy
-      --only hosting --project justsplit-eef51`), then `firebase functions:delete <ssr fn>
-      --region us-central1`, export and delete Firestore, disable Auth, and amend the
-      definition-of-done line to "Auth, Firestore and functions deleted; Hosting serves only the
-      static we-moved page". Log each step with its date in the runbook
-- [ ] ADR `docs/decisions/0009-cutover-and-firebase-retirement.md`: rollback = re-point the
-      domain to Firebase Hosting within the 14-day window (a `git revert` cannot bring the Next
-      SSR site back on Pages), which is why the old build stays as-deployed for the whole window;
-      after day 14 there is no rollback and the ADR says so; the (a)/(b) end state chosen;
-      Stakeholder Analysis (users lose nothing: no data existed that they keep; the old site is a
-      dead end once Auth is disabled — under (b) its landing page is replaced by the static "we
-      moved" page when the window closes)
-- [ ] Acceptance: production Pages site serves the Astro app on the chosen origin; Google sign-in
-      works there; `db-migrate.yml` is green on `main`; the Firebase project is in its 14-day
-      window with sign-ups disabled and the old build still serving
+      `src/firebase/` (already gone with `src/` in B1), `apphosting*.yaml` (A1 deferred them here)
+- [ ] Firebase: the project is already deleted (B20a step 8); delete the `FIREBASE_SERVICE_ACCOUNT*`
+      secrets if still present. There is no `docs/runbooks/firebase-retirement.md`: nothing is retired in
+      stages, so there is nothing to log
+- [ ] ADR `docs/decisions/0009-cutover-and-firebase-retirement.md` (written with this PR, not before):
+      rollback = redeploy a previous deployment from the Cloudflare dashboard, or re-run the CI run of an
+      older commit (ADR 0016); a `git revert` of the cutover cannot restore the Next SSR site on Pages,
+      and **there is no Firebase rollback by decision**; the Next tree is reachable as the `next-final`
+      tag; Stakeholder Analysis (users lose nothing: no data existed that they keep and nobody used the
+      old site)
+- [ ] Acceptance: production serves the Astro app at `https://split.cybere.co` with the CSP and HSTS
+      headers of ADR 0016; email sign-in works there; `db-migrate.yml` is green on `main`; the
+      Firebase project is deleted; `https://justsplit.cybere.co/…` answers 301 to the same path on
+      `split.cybere.co`
 ### B21. Post-cutover monitoring
-- [ ] 14-day watch: GitHub Pages deploy status, `FeedbackFAB` issues, Sentry (optional, Inceptor
-      `sentry.ts` guarded, grafted in B1), Supabase dashboard (auth errors, RLS denials in the
-      Postgres logs, Realtime connections); day 14: execute the last retirement step of B20 and
-      close the milestone
+- [ ] 14-day watch: the Cloudflare Pages deployment list and the `ci.yml` `deploy` job, `FeedbackFAB`
+      issues, Sentry (optional, Inceptor `sentry.ts` guarded, grafted in B1), Supabase dashboard (auth
+      errors, RLS denials in the Postgres logs, Realtime connections), and any CSP violation a real
+      browser reports (a console error naming a blocked source: add the host to ADR 0016's list on
+      purpose, never `'unsafe-inline'` for scripts). Point the three `.lighthouserc.json` URLs (and the
+      `STAGING` constant in `src/tests/lighthouse-config.test.ts`) at `https://split.cybere.co` and run
+      `npm run perf`, including the SEO category that a `*.pages.dev` preview may fail (B18). Day 14:
+      close the milestone (there is no Firebase step left)
 ### B22. Cleanup
-- [ ] Delete the `inceptor` branch, `deploy-staging.yml` and the `inceptor` entry in the
-      `github-pages` environment's allowed branches (or keep staging as a permanent pre-production
-      site on a second, branch-published Pages site — then add `public/.nojekyll` and an
-      `ASTRO_SITE` override so `site` is the staging origin — decide and record in ADR 0009);
-      archive `docs/refactor-plan.md`; append to `ROADMAP.md` (created in A6)
+- [ ] Delete the `inceptor` branch (its Cloudflare preview alias goes with it; delete the leftover preview
+      deployments in the dashboard if wanted). There is no `deploy-staging.yml` and no `github-pages`
+      environment to delete: B20a removed both. A permanent pre-production site is not needed:
+      every branch already gets a preview, and its canonical link names `split.cybere.co`; archive
+      `docs/refactor-plan.md`; append to `ROADMAP.md` (created in A6)
 - [ ] Once H2 is published: bump the three `@cyber-eco/*` packages (`types`, `auth`, `supabase`)
       to the H2 release in **one commit** (the B1 caret on 0.x is patch-only, so the minor is an
       explicit bump; `types` is in the hub's changesets `fixed` group, so its version moves with
