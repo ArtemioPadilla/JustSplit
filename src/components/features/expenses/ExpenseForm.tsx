@@ -290,7 +290,10 @@ export function ExpenseForm({ mode, expense }: ExpenseFormProps) {
   async function handleValid(values: ExpenseFormValues) {
     const splitValidation = validateSplit(values.splitType, Number(values.amount), values.participantIds, values.shares);
     if (!splitValidation.valid) {
-      notifyError(splitValidation.message ?? 'The split is not balanced yet.');
+      // Not the bare `message`: the splitter's polite status region already says "$20.00 left to assign" as the
+      // person types, and the same sentence from this assertive toast would be one fact announced by two live
+      // regions (plan B19d). Prefixed, it is also an error that makes sense on its own: the save was refused.
+      notifyError(`Can't save yet: ${splitValidation.message ?? 'the split is not balanced'}.`);
       return;
     }
 
