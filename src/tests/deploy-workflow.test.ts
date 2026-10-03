@@ -54,6 +54,8 @@ const deploy = load('deploy.yml');
 const ci = load('ci.yml');
 const steps = (wf: Workflow) => Object.values(wf.jobs).flatMap((j) => j.steps ?? []);
 const needsOf = (job: Job) => [job.needs ?? []].flat();
+/** `${{ secrets.NAME != '' }}`: evaluates to 'true' or 'false', the value never leaves the runner's expression engine */
+const PRESENCE = /^\$\{\{\s*secrets\.[A-Z_]+\s*!=\s*''\s*\}\}$/;
 
 describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
   it('the GitHub Pages workflows are gone: deploy.yml is the only deploy, there is no staging workflow', () => {
@@ -111,8 +113,10 @@ describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
     const used = new Set([...text('deploy.yml').matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]));
     expect(used).toEqual(new Set(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']));
     for (const step of steps(deploy)) {
-      if (step.run !== undefined) expect(JSON.stringify(step), step.name).not.toMatch(/secrets\./);
-      if (!step.uses?.startsWith('cloudflare/wrangler-action@')) expect(JSON.stringify(step.env ?? {}), step.name).not.toMatch(/secrets\./);
+      // the credentials preflight only ever sees whether a secret is set ('true'/'false'), never its value
+      const env = step.id === 'creds' ? Object.values(step.env ?? {}).filter((v) => !PRESENCE.test(v)) : step.env ?? {};
+      if (step.run !== undefined) expect(JSON.stringify({ ...step, env }), step.name).not.toMatch(/secrets\./);
+      if (!step.uses?.startsWith('cloudflare/wrangler-action@')) expect(JSON.stringify(env), step.name).not.toMatch(/secrets\./);
     }
     // the credentials are action inputs, which the action masks
     const wrangler = steps(deploy).find((s) => s.uses?.startsWith('cloudflare/wrangler-action@'))!;
@@ -168,6 +172,28 @@ describe('one Cloudflare Pages deploy (plan B20a, ADR 0016)', () => {
     expect(String(deploy.concurrency?.['cancel-in-progress'])).toMatch(/github\.ref\s*!=\s*'refs\/heads\/main'/);
     const node = steps(deploy).find((s) => s.uses?.startsWith('actions/setup-node@'));
     expect(node?.with?.['node-version']).toBe('22');
+  });
+
+  it('a preview push before the Cloudflare credentials exist skips with a warning; production fails hard', () => {
+    // Without this, every push between merging B20a and the owner adding the two
+    // secrets (SETUP.md) turns CI red on a deploy that cannot succeed yet.
+    const all = deploy.jobs.deploy!.steps!;
+    const creds = all[0]!;
+    expect(creds.id, 'the first step is the credentials preflight').toBe('creds');
+    expect(creds.env).toEqual({
+      HAS_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN != '' }}",
+      HAS_ACCOUNT_ID: "${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}",
+    });
+    for (const v of Object.values(creds.env!)) expect(v).toMatch(PRESENCE);
+    expect(creds.run).toMatch(/configured=true/);
+    expect(creds.run).toMatch(/configured=false/);
+    expect(creds.run).toMatch(/::warning::/);
+    // main is production: a missing credential there is an outage, never a skip
+    expect(creds.run).toMatch(/refs\/heads\/main[\s\S]*::error::[\s\S]*exit 1/);
+    expect(creds.run).not.toMatch(/\$\{\{/);
+    for (const step of all.slice(1)) {
+      expect(step.if, step.name ?? step.uses ?? step.run).toMatch(/^steps\.creds\.outputs\.configured\s*==\s*'true'$/);
+    }
   });
 
   it('skips the deploy on a fork: the job is guarded by the repository', () => {
