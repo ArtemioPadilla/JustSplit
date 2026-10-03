@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -137,5 +137,27 @@ describe('manifest icons (B20b)', () => {
 
   it('does not name the old 342 px raster as the icon source', () => {
     expect(readFileSync(resolve(ROOT, 'pwa.config.mjs'), 'utf8')).not.toMatch(/342px|logo-square\.png/);
+  });
+});
+
+describe('public/ ships only served assets (B20b)', () => {
+  // Everything under public/ is copied to dist/ and published at split.cybere.co.
+  // The pre-migration brand files (5.8 MB of .ai/.xcf plus unused PNGs, one of
+  // them 1.2 MB) were never referenced by a page: the editable sources live in
+  // design/brand/, which is not published, and superseded rasters are gone.
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(resolve(dir, e.name)) : [resolve(dir, e.name)],
+    );
+
+  it('holds no design sources (.ai, .xcf, .psd, .sketch, .fig)', () => {
+    const sources = walk(pub('')).filter((f) => /\.(ai|xcf|psd|sketch|fig)$/i.test(f));
+    expect(sources.map((f) => f.slice(pub('').length))).toEqual([]);
+  });
+
+  it('has no legacy public/images/: the README logo and the brand sources live in design/brand/', () => {
+    expect(existsSync(pub('images'))).toBe(false);
+    expect(existsSync(resolve(ROOT, 'design/brand/logo.png'))).toBe(true);
+    expect(readFileSync(resolve(ROOT, 'README.md'), 'utf8')).toMatch(/\]\(\.\/design\/brand\/logo\.png\)/);
   });
 });
