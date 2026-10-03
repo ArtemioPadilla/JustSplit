@@ -7,9 +7,8 @@ describe('OfflineBanner', () => {
     expect(source).toMatch(/useStore/);
   });
 
-  it('returns null when online', () => {
-    expect(source).toMatch(/if\s*\(\s*online\s*\)\s*return\s*null/);
-  });
+  // "Renders nothing visible online, keeps the status region" is behaviour, pinned by
+  // live-banners.screen-reader.test.tsx (plan B19d); a source regex cannot tell the two apart.
 
   it('sets aria-live="polite" + role="status"', () => {
     expect(source).toMatch(/role=["']status["']/);
