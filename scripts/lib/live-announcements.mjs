@@ -109,11 +109,11 @@ export function installLiveRegionObserver(win = window) {
   }
 
   const onMutations = (records) => {
-    /** @type {Map<Element, { added: string[], created: boolean }>} */
+    /** @type {Map<Element, { nodes: Node[], created: boolean }>} */
     const touched = new Map();
-    const touch = (region, text, created) => {
-      const info = touched.get(region) ?? { added: [], created: false };
-      if (text) info.added.push(text);
+    const touch = (region, node, created) => {
+      const info = touched.get(region) ?? { nodes: [], created: false };
+      if (node && !info.nodes.includes(node)) info.nodes.push(node);
       if (created) info.created = true;
       touched.set(region, info);
     };
@@ -121,22 +121,22 @@ export function installLiveRegionObserver(win = window) {
     for (const record of records) {
       if (record.type === 'characterData') {
         const region = regionOf(record.target);
-        if (region) touch(region, record.target.data, false);
+        if (region) touch(region, record.target, false);
         continue;
       }
       if (record.type !== 'childList') continue;
       const around = regionOf(record.target);
-      if (around) touch(around, '', false);
+      if (around) touch(around, null, false);
       for (const added of record.addedNodes) {
         if (added.nodeType !== 1 && added.nodeType !== 3) continue;
         const region = regionOf(added);
         if (region) {
-          touch(region, textOf(added), region === added);
+          touch(region, added, region === added);
         } else if (added.nodeType === 1) {
           // A subtree with live regions in it, inserted where there was none.
           for (const inner of added.querySelectorAll(LIVE)) {
             const innerRegion = regionOf(inner);
-            if (innerRegion) touch(innerRegion, textOf(inner), innerRegion === inner);
+            if (innerRegion) touch(innerRegion, inner, innerRegion === inner);
           }
         }
       }
@@ -149,7 +149,12 @@ export function installLiveRegionObserver(win = window) {
       lastText.set(region, after);
       // A re-render that leaves the text as it was, or a region that emptied, says nothing.
       if (after === before || after === '') continue;
-      const added = normalize(info.added.join(' '));
+      // What was added: the nodes still in the region, each counted once. Records of one batch overlap (a
+      // container goes into the document, then the tree goes into the container), so a node that sits
+      // inside another added node is already part of that one's text.
+      const present = info.nodes.filter((node) => region.contains(node));
+      const outermost = present.filter((node) => !present.some((other) => other !== node && other.contains(node)));
+      const added = normalize(outermost.map(textOf).join(' '));
       // Text that was added to a NESTED region is that region's announcement; the region around it only
       // changed as a consequence (a toast root inside the toast viewport) and is not a second one.
       if (added === '') continue;
@@ -160,7 +165,7 @@ export function installLiveRegionObserver(win = window) {
         politeness: politenessOf(region),
         region: describe(region),
         regionKey: keyOf(region),
-        text: atomic || !added ? after : added,
+        text: atomic ? after : added,
         // A live region that arrives already holding its text, with nothing live around it, is the pattern
         // assistive technology announces least reliably; informational, the classifier does not fail on it.
         inserted: !known && info.created && !(region.parentElement && regionOf(region.parentElement)),
